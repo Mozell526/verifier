@@ -107,3 +107,46 @@ pre-actual request candidates 中提取当前请求可关联的字段/语义线�
 - 不把单个 case、城市、天气或特定字段写死成判断规则。
 - 不改变冻结 case 或降低 review 标准。
 - 不自动执行 promotion。
+
+## 实测后的性能修订
+
+第一轮正式 Loop 证明业务结果已经满足四条冻结 case，但 Draft 端到端耗时为
+`903.9 / 172.9 / 86.7 / 218.5` 秒。调用记录把问题拆成了两类：
+
+1. Draft 完成适用 case 时必须依次执行 planning、semantic review 和 assessment；
+   Production 当前因 planning 失败而提前停止，不能把二者的端到端耗时直接当作同等
+   业务路径比较。
+2. Draft 的 planning 虽然缩小了初始上下文，却触发了额外的字段查询模型轮次；
+   exact-reference case 对两个字段发起六次查询，其中四次是同参数重复查询。
+3. exact-reference 的 semantic review 在无工具、约 23KB prompt 下耗时 659.2 秒。
+   当前 600 秒请求超时、SDK 隐式重试和应用层重试叠加，但 ContextRecord 只保存最终
+   成功结果，无法证明具体发生了哪一层重试。
+
+### 选择的方案
+
+保留三阶段业务协议，只优化每阶段的运行边界：
+
+- 每次 LLM 调用记录明确的 stage、应用层 attempt、attempt elapsed 和失败类型；
+- OpenAI-compatible SDK 禁用隐式重试，由 verifier 的 `max_attempts` 成为唯一重试
+  所有者；
+- planning 保留调查工具，但设置 Judge 专属工具调用预算，并在同一次 planning 内
+  对相同工具参数去重；
+- semantic review 使用无工具 client；assessment 只消费冻结计划、mandatory
+  Context 和确定性 comparator，同样使用无工具 client；
+- 不因性能优化删除 Authority constraint、semantic review 或 assessment，也不把
+  provider 超时转换成肯定业务结论。
+
+没有选择“合并三阶段”，因为会破坏 expectation pre-actual 冻结和独立语义门禁；也
+没有恢复完整 capability manifest，因为这会重新引入十万 token 级输入。阶段级硬
+超时暂不在单次样本上拍定数值：先消除隐式重试、重复工具轮次并补齐观测，再以同一
+冻结数据的重复实验确定合理 SLO。
+
+### 性能验收
+
+- ContextRecord 能定位 planning / semantic-review / assessment，并能区分每次应用层
+  attempt；成功后的历史失败 attempt 不再丢失。
+- 构造出的 OpenAI-compatible client 不再保留 SDK 默认重试。
+- semantic review 和 assessment 不得携带 Judge 调查工具。
+- 相同工具名与规范化参数在一次 planning 中最多真实执行一次；重复请求返回同一份
+  已审计结果。
+- 四条冻结 case 的业务状态、Authority 限制和 comparator 证据不得退化。
