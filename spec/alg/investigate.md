@@ -1089,7 +1089,7 @@ Investigate 在以下情况停止并报告：
 - `--check` 只打印配置解析结果，不生成清单；`--apply` 只执行校验、move/copy、关闭开关和 production 最小回归；
 - Candidate path 不再被其他启用中的 Draft Role 使用时 move，否则 copy；搬运不按 Tool/Context 类型分支，不得合并、改写或生成候选内容；
 - 人工确认后由协议代码按一致版本晋升，失败时从临时事务备份恢复 Role、资产和 `project.yaml`；
-- source revision 变化时提示更新调查包，不自动调用 AI。
+- source revision 或已登记业务源码 EvidenceRef hash 变化时，普通 Draft runtime 只标记调查包 stale 并输出 warning，继续使用现有调查包，不自动调用 AI；显式 Investigate、调查包验证和 promotion check 仍保持 strict，只有用户主动发起时才更新调查包。
 
 ### Task 9：更新 Evals onboarding
 

@@ -28,6 +28,7 @@ _ATTRIBUTE_TRACE_SECTIONS = (
     "## Operational index",
     "## Investigation procedure",
 )
+_BUSINESS_SOURCE_STALENESS_POLICIES = {"strict", "warn"}
 
 
 def validate_investigation_package(
@@ -42,7 +43,12 @@ def validate_investigation_package(
     tool_test_inputs: Optional[Mapping[str, Sequence[Mapping[str, Any]]]] = None,
     source_root: Optional[Path] = None,
     expected_source_revision: str = "",
+    business_source_staleness_policy: str = "strict",
 ) -> Dict[str, Any]:
+    if business_source_staleness_policy not in _BUSINESS_SOURCE_STALENESS_POLICIES:
+        raise ValueError(
+            "business_source_staleness_policy must be one of: strict, warn"
+        )
     if tool_test_inputs is not None and not execute_tools:
         raise ValueError("tool_test_inputs requires execute_tools=True")
     package = Path(package_dir).resolve()
@@ -63,11 +69,15 @@ def validate_investigation_package(
     detected_revision = str(expected_source_revision or "").strip()
     if source is not None and not detected_revision:
         detected_revision = detect_source_revision(source)
+    validation_warnings: list[str] = []
     if detected_revision and manifest.source_revision != detected_revision:
-        raise ValueError(
+        message = (
             "investigation source_revision does not match the configured business source repository: "
             f"manifest={manifest.source_revision}, current={detected_revision}"
         )
+        if business_source_staleness_policy == "strict":
+            raise ValueError(message)
+        validation_warnings.append(message)
     if expected_project_id and manifest.project_id != expected_project_id:
         raise ValueError(
             f"manifest project_id {manifest.project_id!r} does not match expected {expected_project_id!r}"
@@ -228,7 +238,16 @@ def validate_investigation_package(
                         f"EvidenceRef source revision differs from manifest: {evidence.ref_id}; "
                         f"evidence={evidence_revision}, manifest={manifest.source_revision}"
                     )
-            _validate_evidence_integrity(evidence, located)
+            _validate_evidence_integrity(
+                evidence,
+                located,
+                allow_hash_mismatch=(
+                    business_source_staleness_policy == "warn"
+                    and source is not None
+                    and located.is_relative_to(source)
+                ),
+                warnings=validation_warnings,
+            )
             evidence_files.append(str(located))
 
     tools = []
@@ -320,7 +339,10 @@ def validate_investigation_package(
         "manifest": str(manifest_path),
         "manifest_sha256": hashlib.sha256(manifest_path.read_bytes()).hexdigest(),
         "source_root": str(source) if source is not None else "",
-        "source_revision_verified": bool(detected_revision),
+        "current_source_revision": detected_revision,
+        "source_revision_verified": bool(detected_revision)
+        and manifest.source_revision == detected_revision,
+        "warnings": validation_warnings,
         "overview": str(overview_path),
         "artifacts": artifact_paths,
         "evidence_files": evidence_files,
@@ -353,7 +375,11 @@ def load_role_investigation_tools(
     if use_candidate:
         from .investigation_validation import require_investigation_validation_receipt
 
-        require_investigation_validation_receipt(spec, role)
+        require_investigation_validation_receipt(
+            spec,
+            role,
+            business_source_staleness_policy="warn",
+        )
 
     selected = resolve_role_assets(spec, role, use_candidate=use_candidate)
     tool_aliases = {
@@ -377,6 +403,7 @@ def load_role_investigation_tools(
             expected_role=role,
             tool_module_overrides=tool_aliases,
             source_root=(resolve_project_source_root(spec) if spec.has_business_source else None),
+            business_source_staleness_policy=("warn" if use_candidate else "strict"),
         )
         for requirement in manifest.tool_requirements:
             implementation = requirement.implementation
@@ -611,7 +638,13 @@ def detect_source_revision(source_root: Path) -> str:
     return revision
 
 
-def _validate_evidence_integrity(evidence: Any, path: Path) -> None:
+def _validate_evidence_integrity(
+    evidence: Any,
+    path: Path,
+    *,
+    allow_hash_mismatch: bool = False,
+    warnings: Optional[list[str]] = None,
+) -> None:
     expected_hash = str(
         evidence.metadata.get("sha256")
         or evidence.metadata.get("content_hash")
@@ -620,10 +653,15 @@ def _validate_evidence_integrity(evidence: Any, path: Path) -> None:
     if expected_hash:
         actual_hash = hashlib.sha256(path.read_bytes()).hexdigest()
         if actual_hash != expected_hash:
-            raise ValueError(
+            message = (
                 f"EvidenceRef content hash changed: {evidence.ref_id}; "
                 f"expected={expected_hash}, actual={actual_hash}"
             )
+            if allow_hash_mismatch:
+                if warnings is not None:
+                    warnings.append(message)
+            else:
+                raise ValueError(message)
     symbol = (
         evidence.location_ref.symbol
         if evidence.location_ref is not None

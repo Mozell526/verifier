@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
@@ -11,6 +12,8 @@ from .portable_artifact import write_active_artifact
 
 
 VALIDATION_RECEIPT_VERSION = 2
+_logger = logging.getLogger(__name__)
+_emitted_staleness_warnings: set[tuple[str, str, str, str]] = set()
 
 
 @dataclass(frozen=True)
@@ -84,7 +87,12 @@ def write_investigation_validation_receipt(
     )
 
 
-def require_investigation_validation_receipt(spec: Any, role: str) -> Mapping[str, Any]:
+def require_investigation_validation_receipt(
+    spec: Any,
+    role: str,
+    *,
+    business_source_staleness_policy: str = "strict",
+) -> Mapping[str, Any]:
     """Fail closed unless the candidate investigation package and Tool bytes were executed."""
     from .investigation import validate_investigation_package
     from .project_loader import (
@@ -127,7 +135,24 @@ def require_investigation_validation_receipt(spec: Any, role: str) -> Mapping[st
         expected_role=role,
         tool_module_overrides=tool_aliases,
         source_root=source_root,
+        business_source_staleness_policy=business_source_staleness_policy,
     )
+    warnings = tuple(str(item) for item in current.get("warnings") or [] if str(item).strip())
+    if warnings and business_source_staleness_policy == "warn":
+        key = (
+            str(spec.project_id),
+            str(role),
+            str(current.get("source_revision") or ""),
+            str(current.get("current_source_revision") or ""),
+        )
+        if key not in _emitted_staleness_warnings:
+            _emitted_staleness_warnings.add(key)
+            _logger.warning(
+                "[%s/%s] Draft investigation package is stale but runtime will continue: %s",
+                spec.project_id,
+                role,
+                "; ".join(warnings),
+            )
     if raw.get("manifest_sha256") != current.get("manifest_sha256"):
         raise ValueError("Investigation validation receipt is stale: manifest changed")
     if raw.get("source_revision") != current.get("source_revision"):
