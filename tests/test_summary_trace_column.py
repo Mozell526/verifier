@@ -109,7 +109,7 @@ def test_trace_column_is_wide_enough_for_full_trace_json():
 def test_case_pool_empty_rows_span_new_trace_column():
     source = _summary_source()
 
-    assert source.count('colspan="12"') == 2
+    assert source.count('colspan="12"') == 1
     assert 'colspan="11"' not in source
 
 

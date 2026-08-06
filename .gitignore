@@ -1,30 +1,50 @@
+.gitignore
 # macOS / Python artifacts
 .DS_Store
 __pycache__/
 *.py[cod]
 
-# Local secrets and operational notes
-.env
-env.md
-git.md
-.claude/settings.local.json
+# .claude contents tracked by git (except these)
+.claude/.DS_Store
+.claude/scheduled_tasks.lock
+.claude/scheduled_tasks.json
+.claude/bak/
 
-# Runtime / temporary data
-*.log
-tmp/
-trace_mkdir.py
+# Runtime data
+impl/data/context_runtime/
+impl/data/context_store/
+data/
+*.xlsx
+*.xls
+report/
+search-test-case/
+issues/
+issue/
 
-# Backups
-.claude/skills-backup/
-.claude/worktrees/
-impl/knowledge.backup/
+# Project draft state (runtime-generated)
+impl/projects/client_search/draft/.state/
+impl/projects/client_search/start.sh
+impl/projects/deerflow/draft/.state/
+impl/projects/deerflow/draft/cases/mock_iteration*.json
+impl/projects/deerflow/draft/investigation/mock/
+impl/projects/deerflow/draft/probes/
+impl/projects/deerflow/draft/mock.py
+impl/projects/deerflow/draft/tools/mock_validation_tools.py
+impl/projects/deerflow/mock_base.py
+impl/projects/marketting-planning/draft/.state/
+impl/projects/marketting-planning-intent/draft/.state/
+
+# Playwright / codex / agent local artifacts
+.playwright-cli/
+.codex/
+.agents/
+.superpowers/
+hooks/review/
+
+# Other local-only files
 *.backup
-
-# Local test artifacts
-selenium_test_results.json
-selenium_test.py
-material/
-test_agno_session.py
-test_who_creates_knowledge.py
-check_report_agno_refactor.md
-issue.md
+selenium_test*
+/test_*.py
+/_check_*.py
+/_test_*.py
+trace_mkdir.py

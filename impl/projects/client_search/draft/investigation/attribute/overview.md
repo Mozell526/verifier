@@ -8,7 +8,7 @@ The investigated API parses natural-language customer-search intent into structu
 
 ## Confirmed business path
 
-At source revision `2859c55f71ec8a1e9687c73b40cc0987d81d379c`:
+At source revision `974c121667b2e34e7de47efd28b7c0c0d7983c7c` (raw layout):
 
 1. The FastAPI endpoint accepts `ParseApiRequest` and calls `QueryRouter.route_with_peeling`.
 2. The router normalizes the query and runs enabled L1 and L2 extractors. If L2 produces confirmed conditions, current code discards all L1 conditions.
