@@ -98,6 +98,8 @@ Judge 的 `blocking` 只属于 `BusinessExpectation`，并且是结构化输出�
 - **可缺失字段**（?）：`field(default=None)` 且不放 `required` — 字段可以不出现在 JSON 里
 - **nullable 字段**（`|null`）：`Optional[str]` 但仍在 `required` 里 — 字段必须在，但值可以是 `None`
 
+类型注解支持 `X | None` 的 PEP 604 写法（含 `List[str] | None`、`tuple[str, ...] | None` 等泛型与前向引用），Python 3.9 运行时也会被协议层解析为 nullable；无法解析的注解会 fail-loud 报错，不会静默退化为无约束 schema。
+
 **3. `JudgeLLMOutput` 与 `JudgeResult` 的关系**
 
 `JudgeResult` 持有一个 `JudgeLLMOutput` 字段。LLM 产出后反序列化到 `JudgeLLMOutput`，然后代码派生字段（`trace_id`、`project_id`、`gate_decisions`、`summary` 等）补齐到 `JudgeResult` 的其余字段。职责清晰：LLM 只负责 `JudgeLLMOutput`，代码负责组装 `JudgeResult`。

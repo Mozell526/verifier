@@ -1,0 +1,303 @@
+{
+  "caller": "judge",
+  "created_at": "2026-08-11T14:51:47Z",
+  "elapsed_ms": 38917,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "production"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "7cf684035c98205166905daf6d194e3f478346fa0f08ab388c540acc8d2cc582",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [],
+      "lineage": {
+        "call_id": "",
+        "case_id": "policy-search-rich-0001",
+        "trace_id": "policy_search:policy-search-rich-0001:1786459868062"
+      },
+      "messages": [
+        {
+          "char_count": 7368,
+          "content_sha256": "f5559e2831ea15fd5d0a75f202e64faec2eaf6fc95f6497abac519065bb1f636",
+          "role": "system"
+        },
+        {
+          "char_count": 5127,
+          "content_sha256": "ffebba6a84532821a676af3f1d92847485df7bc1c8085b9ed99f964a84fab8a7",
+          "role": "user"
+        }
+      ],
+      "mode": "production",
+      "output_contract": {
+        "field_names": [
+          "acceptance_criteria",
+          "actual",
+          "actual_evidence",
+          "applicable_product_expectation_ids",
+          "authority_tool_call_ids",
+          "blocking",
+          "boundary",
+          "business_expectations",
+          "code",
+          "downstream_consumer",
+          "downstream_impact",
+          "error_type",
+          "evidence",
+          "evidence_ref",
+          "expectation_id",
+          "expected",
+          "expected_evidence",
+          "expected_outcome",
+          "extra",
+          "filter",
+          "fulfillment_assessments",
+          "incomplete",
+          "kind",
+          "message",
+          "missing",
+          "msg",
+          "priority",
+          "query",
+          "raw",
+          "reasoning_summary",
+          "required_capabilities",
+          "score",
+          "status",
+          "user_intent",
+          "wrong"
+        ],
+        "identity": "impl.core.schema.judge.JudgeLLMOutput",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "1ebd986c8c695abe1e8329086ca3fa881a0eaa83fe0e670d24af6af6d4fad2f0",
+        "sha256": "1ebd986c8c695abe1e8329086ca3fa881a0eaa83fe0e670d24af6af6d4fad2f0"
+      },
+      "project_id": "policy_search",
+      "prompt_char_count": 12495,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 5127,
+        "occurred": false
+      },
+      "role": "judge",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 1725,
+          "content_sha256": "5727bfa7858a8ce05122cd632b62736542f3792c880caa51ab16c7257d1f754b",
+          "order": 0,
+          "role": "judge",
+          "segment_id": "compiled-system",
+          "source": "impl/core/judge.py#judge_trace",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 5127,
+          "content_sha256": "ffebba6a84532821a676af3f1d92847485df7bc1c8085b9ed99f964a84fab8a7",
+          "order": 1,
+          "role": "judge",
+          "segment_id": "case-user-payload",
+          "source": "trace://judge-evidence-view",
+          "stage": "judge"
+        }
+      ],
+      "stage": "judge",
+      "tool_plan": []
+    }
+  },
+  "llm_model": "deepseek-v4-flash-0731",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "你是通用评估系统的 judge agent。\n\n## 核心原则\n只基于当前 RunTrace、项目评判标准和动态检索的知识库内容判断，不继承历史 case。\n首要职责：理解用户/下游消费者的真实业务意图 → 派生 business_expectations → 基于完整执行链路（每轮 output、最终 output、交互过程和停止事实）判断 expectations 的 fulfillment。\n\n## expectation 拆分原则\nbusiness_expectations 的粒度直接决定判断精度。每个 expectation 必须是原子、独立可评价的判断单元：证据充分时判 fulfilled 或 not_fulfilled；确需评价但当前证据不足时按协议判 not_evaluable。\n- 一个 expectation 只描述一个可独立验证的结果维度\n- 多维度意图必须拆成多个 expectation\n- 每个 expectation 必须有明确的 acceptance_criteria\n- 每个 expectation 必须在比较 actual 前确定 blocking：只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true\n- fulfillment_assessments 只判断对应 expectation 的 status 和证据，不得重新定义 blocking\n- expectation_id 必须是描述性的中文短语，禁止使用 E1/E2/exp_01 等占位符 ID\n- reasoning_summary 必须是中文写成的判断依据\n\n## 输出词表\n`fulfillment_assessments[*].status` 必须从以下 3 个值中选择：\n  - fulfilled：该 expectation 完全满足\n  - not_fulfilled：该 expectation 未满足\n  - not_evaluable：当前无法评估\n禁用 failed/passed/incorrect/wrong/met/unmet/partially_fulfilled/partial/success/fail/ok/unknown 等同义词。\n`fulfillment_assessments[*].expected_evidence` 与 `actual_evidence` **必须是数组**（JSON array / list），即使只有一条证据也要用 `[...]` 包裹，不可直接用字符串或对象。\n\n不要输出 overall_fulfillment；公共层会在项目契约补充完成后根据 blocking expectations 确定性派生整体状态。\n\n## 评估规范\n\n\n## 评估边界\n\n\n## 判断标准\n\n\n\n\n你评价的是保单筛选语义是否被完整、可执行且安全地表达。先判断服务依赖是否成功，再比较 query 与 filter。忽略 node_id 命名差异；允许逻辑等价的树。字段、操作符、值、角色、AND/OR/NOT 作用域、日期边界和条件完整性都必须正确。SUCCESS 必须有完整 filter；歧义、条件缺失或越界场景应 UNSUPPORTED 且不得返回部分 filter。业务实现、prompt 和配置是当前能力证据，不是不可质疑的自证。\n## 工具使用原则\n所有工具的用途、调用时机和参数含义以 Agno tool schema 为准；user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息。\n\n## 禁止事项\n- 不要把 reference answer 当作默认主目标（除非 case 明确指定）\n- 不要把 HTTP 状态、run_status、attribute/cluster 结论当作满足依据\n- 不要归因内部代码、配置或 prompt 原因（属于 attribute agent）\n- 分析文字必须使用中文，包括 reasoning_summary 等所有文本字段。\n\n\n## 输出约束：judge 判定输出（自产 reference + fulfillment 判定）\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"business_expectations\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeBusinessExpectationOutput\"\n      },\n      \"minItems\": 1\n    },\n    \"applicable_product_expectation_ids\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"fulfillment_assessments\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeFulfillmentAssessmentOutput\"\n      }\n    },\n    \"expected\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"code\": {\n          \"type\": \"integer\"\n        },\n        \"msg\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"query\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"filter\": {\n          \"type\": [\n            \"object\",\n            \"null\"\n          ]\n        },\n        \"message\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"code\",\n        \"msg\",\n        \"status\",\n        \"query\",\n        \"filter\",\n        \"message\"\n      ]\n    },\n    \"missing\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"wrong\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"extra\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"evidence\": {\n      \"type\": \"array\",\n      \"items\": {}\n    },\n    \"reasoning_summary\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    }\n  },\n  \"additionalProperties\": false,\n  \"$defs\": {\n    \"JudgeBusinessExpectationOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"blocking\": {\n          \"type\": \"boolean\"\n        },\n        \"downstream_consumer\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"user_intent\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected_outcome\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"required_capabilities\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"acceptance_criteria\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"boundary\": {\n          \"type\": \"object\"\n        },\n        \"priority\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"blocking\"\n      ]\n    },\n    \"JudgeFulfillmentAssessmentOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"score\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        },\n        \"expected_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"actual_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"downstream_impact\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"authority_tool_call_ids\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"status\"\n      ]\n    },\n    \"GapItem\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"kind\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"error_type\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected\": {},\n        \"actual\": {},\n        \"evidence_ref\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"raw\": {},\n        \"incomplete\": {\n          \"type\": \"boolean\"\n        }\n      },\n      \"additionalProperties\": false\n    }\n  },\n  \"required\": [\n    \"expected\",\n    \"business_expectations\",\n    \"reasoning_summary\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['business_expectations', 'expected', 'reasoning_summary']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n\n### 嵌套字段子结构约束\n以下字段内部的子结构也必须严格遵守，不可随意编造字段名或类型：\n- **`expected`** 字段 (项目 policy_search 的 expected/live output 结构) 必须符合以下结构：\n  ```json\n  {\n    \"type\": \"object\",\n    \"properties\": {\n      \"code\": {\n        \"type\": \"integer\"\n      },\n      \"msg\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"status\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"query\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"filter\": {\n        \"type\": [\n          \"object\",\n          \"null\"\n        ]\n      },\n      \"message\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"additionalProperties\": false,\n    \"required\": [\n      \"code\",\n      \"msg\",\n      \"status\",\n      \"query\",\n      \"filter\",\n      \"message\"\n    ]\n  }\n  ```\n",
+      "created_at": 1786459876,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "d4966139-3f2a-484f-9dab-ccac491b181f",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"user_intent\": \"按合同号码中的指定文本筛选保单\", \"run_trace\": {\"trace_id\": \"policy_search:policy-search-rich-0001:1786459868062\", \"project_id\": \"policy_search\", \"case_id\": \"policy-search-rich-0001\", \"intent_input\": {\"session_id\": \"policy-search-rich-0001\", \"trace_id\": \"policy-search-rich-0001\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"合同号码里带4826的\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"normalized_request\": {\"session_id\": \"policy-search-rich-0001\", \"trace_id\": \"policy-search-rich-0001\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"合同号码里带4826的\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"final_output\": {}, \"final_output_turn\": null, \"turns\": [{\"turn_index\": 1, \"request\": {\"session_id\": \"policy-search-rich-0001\", \"trace_id\": \"policy-search-rich-0001\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"合同号码里带4826的\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"extracted_output\": {}, \"call_status\": \"failed\", \"runtime_ms\": 380, \"error\": \"policy-search API failed: code=1001, msg=保单搜索解析失败\", \"fallbacks\": [{\"fallback_id\": \"live-error-policy_search\", \"source_stage\": \"live\", \"fallback_type\": \"live_error\", \"status\": \"error\", \"reason\": \"policy-search API failed: code=1001, msg=保单搜索解析失败\", \"missing_evidence\": [\"valid_live_response\"], \"recoverable\": false, \"needs_human_review\": true, \"quality_flags\": [\"live_protocol_error\"], \"evidence_refs\": [], \"failed_gate_ids\": [], \"metadata\": {\"case_id\": \"\", \"session_id\": \"\", \"failure_type\": \"live_protocol_error\"}}], \"validation\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"execution_trace\": [], \"application_boundary\": {}, \"project_fields\": {}}], \"conversation_transcript\": [], \"conversation_summary\": {\"turn_count\": 1, \"final_output_turn\": null, \"completion_status\": \"failed\", \"stop_reason\": \"execution_error\", \"interaction_controller_status\": \"not_run\", \"interaction_controller_error\": \"\"}, \"stop_reason\": \"execution_error\", \"completion_status\": \"failed\", \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"turn_1\", \"status\": \"failed\", \"evidence\": \"policy-search API failed: code=1001, msg=保单搜索解析失败\", \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"evidence_refs\": [], \"raw_response_evidence\": [{\"code\": 1001, \"msg\": \"保单搜索解析失败\", \"data\": null}], \"evidence_completeness\": {\"complete\": false, \"missing_evidence\": [\"final_output\", \"successful_execution\"]}, \"application_boundary\": {}, \"reference_contract\": {}, \"scenario\": \"atomic_condition\", \"status\": \"error\", \"error\": \"policy-search API failed: code=1001, msg=保单搜索解析失败\"}, \"query\": \"合同号码里带4826的\", \"actual_output\": {}, \"reference_contract\": {}, \"business_evidence_paths\": {\"api_contract\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索算法解析接口文档（智能体对接稿）.md\", \"filter_contract\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索查询语法树协议（首期精简版）.md\", \"technical_design\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索算法解析技术方案（当前实现版）.md\", \"business_config\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/configs/insurance_search_business_config_prd.json\", \"runtime_config\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/configs/insurance_search_runtime_config_prd.json\", \"golden_manifest\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/data/golden_dataset/manifest.yaml\"}, \"evaluation_dimensions\": [\"field_selection\", \"operator_and_value\", \"logical_scope\", \"time_boundary\", \"condition_completeness\", \"safe_failure\"]}",
+      "created_at": 1786459876,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "dd8fb5bd-0882-4c9a-af9c-15dbaaf78503",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"服务调用成功并返回结构化结果\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单筛选下游执行链路\",\n      \"user_intent\": \"按合同号码中的指定文本筛选保单\",\n      \"expected_outcome\": \"policy-search 接口返回 code=0 的成功响应，包含解析后的 query 与结构化 filter，使下游可据此执行保单筛选\",\n      \"required_capabilities\": [\"policy-search API 可用\", \"合法请求可被解析并返回成功响应\"],\n      \"acceptance_criteria\": [\n        \"实际响应中存在非空的最终输出对象\",\n        \"code 为 0（或项目约定的成功码）\",\n        \"status 为 SUCCESS\",\n        \"响应结构符合 policy_search 输出协议\"\n      ],\n      \"boundary\": {\n        \"排除\": [\"HTTP 状态码本身不作为满足依据\", \"仅存在调用记录但无输出不算成功\"]\n      },\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"查询语义被完整解析为等价筛选条件\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单筛选下游执行链路\",\n      \"user_intent\": \"按合同号码中的指定文本筛选保单\",\n      \"expected_outcome\": \"输入查询“合同号码里带4826的”被解析为合同号码字段包含文本“4826”的过滤条件，且该过滤条件被结构化为标准 filter，未遗漏或改写任何语义要素\",\n      \"required_capabilities\": [\"合同号码字段识别\", \"文本包含匹配操作符\", \"查询解析为结构化 filter\"],\n      \"acceptance_criteria\": [\n        \"filter 中存在合同号码字段（contractNo/policyNo 等字段名按协议约定）\",\n        \"过滤操作符语义为“包含”（contains/substring 等）而非精确相等或通配前缀\",\n        \"过滤值为文本“4826”，未经歧义转换或丢失\",\n        \"不存在额外猜测的未表达条件\",\n        \"条件在逻辑作用域内保持独立完整\"\n      ],\n      \"boundary\": {\n        \"排除\": [\"不要求节点命名与协议逐字一致，允许逻辑等价的表达式\", \"不能在歧义场景下返回部分 filter\"]\n      },\n      \"priority\": \"P0\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"服务调用成功并返回结构化结果\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        \"最终输出为结构化对象，包含 code=0、status=SUCCESS、query 及 filter 字段\",\n        \"execution_trace 中 turn_1 状态为 succeeded\",\n        \"evidence_completeness 标记 complete 且无 missing_evidence\"\n      ],\n      \"actual_evidence\": [\n        \"final_output 为空对象 {}\",\n        \"turn_1 的 call_status 为 failed，error 为“policy-search API failed: code=1001, msg=保单搜索解析失败”\",\n        \"raw_response_evidence 为 {code: 1001, msg: 保单搜索解析失败, data: null}\",\n        \"completion_status 为 failed，stop_reason 为 execution_error\",\n        \"evidence_completeness.complete 为 false，missing_evidence 包含 final_output 与 successful_execution\"\n      ],\n      \"downstream_impact\": \"下游无法获取任何解析结果，保单筛选链路整体中断，用户核心目的完全无法达成\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"查询语义被完整解析为等价筛选条件\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        \"返回 filter 包含合同号码字段的文本包含匹配条件，如 {\\\"field\\\": \\\"contractNo\\\", \\\"operator\\\": \\\"contains\\\", \\\"value\\\": \\\"4826\\\"}\",\n        \"filter 与查询“合同号码里带4826的”语义等价，无缺失、无越界、无歧义\"\n      ],\n      \"actual_evidence\": [\n        \"无任何解析输出，final_output 为空对象 {}\",\n        \"原始响应 data 为 null，未返回任何 filter 或中间结果\",\n        \"fallback 类型为 live_error，标志 live_protocol_error，recoverable=false\"\n      ],\n      \"downstream_impact\": \"缺少合同号码文本匹配条件，下游无法执行筛选，用户期望的保单检索完全不可达\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"expected\": {\n    \"code\": 0,\n    \"msg\": \"success\",\n    \"status\": \"SUCCESS\",\n    \"query\": \"合同号码里带4826的\",\n    \"filter\": {\n      \"field\": \"contractNo\",\n      \"operator\": \"contains\",\n      \"value\": \"4826\"\n    },\n    \"message\": \"已按合同号码文本筛选解析成功\"\n  },\n  \"missing\": [\n    {\n      \"kind\": \"missing\",\n      \"error_type\": \"output_absent\",\n      \"expected\": {\n        \"final_output\": {\n          \"code\": 0,\n          \"msg\": \"success\",\n          \"status\": \"SUCCESS\",\n          \"query\": \"合同号码里带4826的\",\n          \"filter\": {\n            \"field\": \"contractNo\",\n            \"operator\": \"contains\",\n            \"value\": \"4826\"\n          }\n        }\n      },\n      \"actual\": {},\n      \"evidence_ref\": \"turn_1.error / raw_response_evidence\",\n      \"raw\": {\n        \"code\": 1001,\n        \"msg\": \"保单搜索解析失败\",\n        \"data\": null\n      },\n      \"incomplete\": true\n    }\n  ],\n  \"wrong\": [],\n  \"extra\": [],\n  \"evidence\": [\n    {\n      \"ref\": \"turn_1\",\n      \"call_status\": \"failed\",\n      \"error\": \"policy-search API failed: code=1001, msg=保单搜索解析失败\",\n      \"runtime_ms\": 380\n    },\n    {\n      \"ref\": \"raw_response_evidence\",\n      \"code\": 1001,\n      \"msg\": \"保单搜索解析失败\",\n      \"data\": null\n    },\n    {\n      \"ref\": \"fallbacks[0]\",\n      \"status\": \"error\",\n      \"fallback_type\": \"live_error\",\n      \"reason\": \"policy-search API failed: code=1001, msg=保单搜索解析失败\",\n      \"recoverable\": false,\n      \"quality_flags\": [\"live_protocol_error\"]\n    },\n    {\n      \"ref\": \"evidence_completeness\",\n      \"complete\": false,\n      \"missing_evidence\": [\"final_output\", \"successful_execution\"]\n    },\n    {\n      \"ref\": \"conversation_summary\",\n      \"completion_status\": \"failed\",\n      \"stop_reason\": \"execution_error\"\n    }\n  ],\n  \"reasoning_summary\": \"用户意图为按合同号码中的指定文本筛选保单，查询语句“合同号码里带4826的”语义清晰、无歧义：即合同号码字段包含文本“4826”。业务上应返回完整的结构化筛选条件，不存在需要回退为 UNSUPPORTED 的歧义或越界场景，因此不能接受任何部分 filter 或空结果。实际执行链路中，服务调用在 turn_1 即失败，最终输出为空对象，原始响应为 code=1001、msg=保单搜索解析失败、data=null，fallback 被判定为不可恢复的 live_protocol_error，evidence_completeness 也明确缺失 final_output 与 successful_execution。服务依赖失败直接阻断了用户获取筛选结果的核心目的，属于安全底线与项目强契约层面的阻断项。据此，服务成功返回结构化结果、查询语义完整解析为等价 filter 这两个业务期望均判定为 not_fulfilled；missing 清单记录缺失的完整输出与 filter，wrong 与 extra 清单为空，因为不存在错误内容或多余内容，仅是全部输出缺失。\"\n}",
+      "created_at": 1786459876,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "b9c8b220-235e-469a-8d06-32b4fbfe9b18",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 2304,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 3930,
+        "output_tokens": 2591,
+        "provider_metrics": null,
+        "reasoning_tokens": 838,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 6521
+      },
+      "name": null,
+      "provider_data": {
+        "id": "b2981d4b-8108-4477-9750-ba1c47381b86",
+        "model_extra": {
+          "cost": "0"
+        }
+      },
+      "reasoning_content": "好的，我先看一下这个 case 的基本情况。这是一个保单搜索案例，用户想按合同号码中的指定文本筛选保单，具体查询是\"合同号码里带4826的\"。\n\n从运行轨迹来看，trace_id 是 policy-search-rich-0001，turn 1 的调用失败了，错误信息是\"policy-search API failed: code=1001, msg=保单搜索解析失败\"，最终输出是空的。fallbacks 里显示 live_protocol_error，说明这是一个协议错误。completion_status 是 failed，stop_reason 是 execution_error。\n\n这是个失败场景，没有成功的响应。我需要根据判断标准来评估这个情况。user_intent 是\"按合同号码中的指定文本筛选保单\"，query 是\"合同号码里带4826的\"。\n\n由于服务调用失败，没有返回任何有效数据，我需要基于缺失证据来处理。分几个期望来评估：\n- 服务执行成功并返回结构化结果（blocking）\n- 查询语义被正确解析为 filter（blocking）\n- 字段选择正确（合同号码字段）\n- 操作符和值正确（包含\"4826\"的文本匹配）\n- 条件完整性（无额外条件遗漏）\n\nexpected 字段我需要构造一个参照输出。由于实际输出为空，我应该基于用户意图和项目契约构造合理的期望。query 是\"合同号码里带4826的\"，对应的 filter 应该是在合同号字段上做包含匹配。\n\n按照 schema 要求，expected 需要包含 code、msg、status、query、filter、message 这些字段。由于是失败场景，我构造的 expected 可以反映失败状态，但业务期望是成功解析。\n\n我需要为业务期望和 fulfillment 评估分别构造内容。业务期望描述原子化、可独立验证的维度。fulfillment 评估中，证据不足时判 not_evaluable，但如果是服务失败导致完全缺失，应该判 not_fulfilled（因为用户的核心目的没有达成）。\n\n让我构造引用：\n- expected.code: 0（成功代码）\n- expected.msg: 成功信息\n- expected.status: SUCCESS\n- expected.query: \"合同号码里带4826的\"\n- expected.filter: 包含合同号字段的文本匹配\n- expected.message: 说明\n\nfilter 的结构应该是什么样的？根据保单搜索查询语法树协议，应该是类似 {\"field\": \"contractNo\", \"operator\": \"contains\", \"value\": \"4826\"} 这样的结构。我用一个合理的过滤条件表示。\n\n对于 fulfillment：\n1. 服务成功执行并返回结构化结果 - not_fulfilled，因为实际返回 code=1001 错误\n2. 查询语义正确解析为 filter - not_fulfilled（服务失败无解析输出）\n3. 字段选择正确 - not_fulfilled（无输出，证据缺失但原因是失败）\n4. 操作符和值正确 - not_fulfilled\n5. 条件完整性 - not_fulfilled\n\n也考虑是否应该用 not_evaluable。项目判断标准说：SUCCESS 必须有完整 filter；歧义、条件缺失或越界场景应 UNSUPPORTED 且不得返回部分 filter。这个 case 服务直接失败，没有输出。用户核心意图（获取筛选后的保单）没有达成，所以这些期望都应该是 not_fulfilled，而不是 not_evaluable，因为失败这一事实本身已经足以否定 fulfillment。\n\nmissing、wrong、extra 部分：\n- missing: [{kind: \"missing\", error_type: \"output_absent\", expected: {...}, actual: {}, evidence_ref: \"turn_1.error\", raw: {code:1001, msg:\"保单搜索解析失败\", data:null}, incomplete: false}]\n- wrong: []（没有错误但缺失）\n- extra: []\n\nreasoning_summary 需要用中文写清楚判断依据。\n\n由于查询没有歧义——\"合同号码里带4826的\"明确表达合同号字段包含\"4826\"，服务依赖失败导致无法解析，这是核心阻断。\n\n让我构造最终 JSON。",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "policy_search",
+  "prompt_size": 17588,
+  "record_id": "6add28c5-0d2d-4810-8de4-1a0192398881",
+  "response": {
+    "content": "{\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"服务调用成功并返回结构化结果\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单筛选下游执行链路\",\n      \"user_intent\": \"按合同号码中的指定文本筛选保单\",\n      \"expected_outcome\": \"policy-search 接口返回 code=0 的成功响应，包含解析后的 query 与结构化 filter，使下游可据此执行保单筛选\",\n      \"required_capabilities\": [\"policy-search API 可用\", \"合法请求可被解析并返回成功响应\"],\n      \"acceptance_criteria\": [\n        \"实际响应中存在非空的最终输出对象\",\n        \"code 为 0（或项目约定的成功码）\",\n        \"status 为 SUCCESS\",\n        \"响应结构符合 policy_search 输出协议\"\n      ],\n      \"boundary\": {\n        \"排除\": [\"HTTP 状态码本身不作为满足依据\", \"仅存在调用记录但无输出不算成功\"]\n      },\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"查询语义被完整解析为等价筛选条件\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单筛选下游执行链路\",\n      \"user_intent\": \"按合同号码中的指定文本筛选保单\",\n      \"expected_outcome\": \"输入查询“合同号码里带4826的”被解析为合同号码字段包含文本“4826”的过滤条件，且该过滤条件被结构化为标准 filter，未遗漏或改写任何语义要素\",\n      \"required_capabilities\": [\"合同号码字段识别\", \"文本包含匹配操作符\", \"查询解析为结构化 filter\"],\n      \"acceptance_criteria\": [\n        \"filter 中存在合同号码字段（contractNo/policyNo 等字段名按协议约定）\",\n        \"过滤操作符语义为“包含”（contains/substring 等）而非精确相等或通配前缀\",\n        \"过滤值为文本“4826”，未经歧义转换或丢失\",\n        \"不存在额外猜测的未表达条件\",\n        \"条件在逻辑作用域内保持独立完整\"\n      ],\n      \"boundary\": {\n        \"排除\": [\"不要求节点命名与协议逐字一致，允许逻辑等价的表达式\", \"不能在歧义场景下返回部分 filter\"]\n      },\n      \"priority\": \"P0\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"服务调用成功并返回结构化结果\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        \"最终输出为结构化对象，包含 code=0、status=SUCCESS、query 及 filter 字段\",\n        \"execution_trace 中 turn_1 状态为 succeeded\",\n        \"evidence_completeness 标记 complete 且无 missing_evidence\"\n      ],\n      \"actual_evidence\": [\n        \"final_output 为空对象 {}\",\n        \"turn_1 的 call_status 为 failed，error 为“policy-search API failed: code=1001, msg=保单搜索解析失败”\",\n        \"raw_response_evidence 为 {code: 1001, msg: 保单搜索解析失败, data: null}\",\n        \"completion_status 为 failed，stop_reason 为 execution_error\",\n        \"evidence_completeness.complete 为 false，missing_evidence 包含 final_output 与 successful_execution\"\n      ],\n      \"downstream_impact\": \"下游无法获取任何解析结果，保单筛选链路整体中断，用户核心目的完全无法达成\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"查询语义被完整解析为等价筛选条件\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        \"返回 filter 包含合同号码字段的文本包含匹配条件，如 {\\\"field\\\": \\\"contractNo\\\", \\\"operator\\\": \\\"contains\\\", \\\"value\\\": \\\"4826\\\"}\",\n        \"filter 与查询“合同号码里带4826的”语义等价，无缺失、无越界、无歧义\"\n      ],\n      \"actual_evidence\": [\n        \"无任何解析输出，final_output 为空对象 {}\",\n        \"原始响应 data 为 null，未返回任何 filter 或中间结果\",\n        \"fallback 类型为 live_error，标志 live_protocol_error，recoverable=false\"\n      ],\n      \"downstream_impact\": \"缺少合同号码文本匹配条件，下游无法执行筛选，用户期望的保单检索完全不可达\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"expected\": {\n    \"code\": 0,\n    \"msg\": \"success\",\n    \"status\": \"SUCCESS\",\n    \"query\": \"合同号码里带4826的\",\n    \"filter\": {\n      \"field\": \"contractNo\",\n      \"operator\": \"contains\",\n      \"value\": \"4826\"\n    },\n    \"message\": \"已按合同号码文本筛选解析成功\"\n  },\n  \"missing\": [\n    {\n      \"kind\": \"missing\",\n      \"error_type\": \"output_absent\",\n      \"expected\": {\n        \"final_output\": {\n          \"code\": 0,\n          \"msg\": \"success\",\n          \"status\": \"SUCCESS\",\n          \"query\": \"合同号码里带4826的\",\n          \"filter\": {\n            \"field\": \"contractNo\",\n            \"operator\": \"contains\",\n            \"value\": \"4826\"\n          }\n        }\n      },\n      \"actual\": {},\n      \"evidence_ref\": \"turn_1.error / raw_response_evidence\",\n      \"raw\": {\n        \"code\": 1001,\n        \"msg\": \"保单搜索解析失败\",\n        \"data\": null\n      },\n      \"incomplete\": true\n    }\n  ],\n  \"wrong\": [],\n  \"extra\": [],\n  \"evidence\": [\n    {\n      \"ref\": \"turn_1\",\n      \"call_status\": \"failed\",\n      \"error\": \"policy-search API failed: code=1001, msg=保单搜索解析失败\",\n      \"runtime_ms\": 380\n    },\n    {\n      \"ref\": \"raw_response_evidence\",\n      \"code\": 1001,\n      \"msg\": \"保单搜索解析失败\",\n      \"data\": null\n    },\n    {\n      \"ref\": \"fallbacks[0]\",\n      \"status\": \"error\",\n      \"fallback_type\": \"live_error\",\n      \"reason\": \"policy-search API failed: code=1001, msg=保单搜索解析失败\",\n      \"recoverable\": false,\n      \"quality_flags\": [\"live_protocol_error\"]\n    },\n    {\n      \"ref\": \"evidence_completeness\",\n      \"complete\": false,\n      \"missing_evidence\": [\"final_output\", \"successful_execution\"]\n    },\n    {\n      \"ref\": \"conversation_summary\",\n      \"completion_status\": \"failed\",\n      \"stop_reason\": \"execution_error\"\n    }\n  ],\n  \"reasoning_summary\": \"用户意图为按合同号码中的指定文本筛选保单，查询语句“合同号码里带4826的”语义清晰、无歧义：即合同号码字段包含文本“4826”。业务上应返回完整的结构化筛选条件，不存在需要回退为 UNSUPPORTED 的歧义或越界场景，因此不能接受任何部分 filter 或空结果。实际执行链路中，服务调用在 turn_1 即失败，最终输出为空对象，原始响应为 code=1001、msg=保单搜索解析失败、data=null，fallback 被判定为不可恢复的 live_protocol_error，evidence_completeness 也明确缺失 final_output 与 successful_execution。服务依赖失败直接阻断了用户获取筛选结果的核心目的，属于安全底线与项目强契约层面的阻断项。据此，服务成功返回结构化结果、查询语义完整解析为等价 filter 这两个业务期望均判定为 not_fulfilled；missing 清单记录缺失的完整输出与 filter，wrong 与 extra 清单为空，因为不存在错误内容或多余内容，仅是全部输出缺失。\"\n}",
+    "metrics": {
+      "cache_read_tokens": 2304,
+      "cache_write_tokens": 0,
+      "input_tokens": 3930,
+      "output_tokens": 2591,
+      "reasoning_tokens": 838,
+      "total_tokens": 6521
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 30573,
+          "endpoint": "fallback1",
+          "model": "deepseek-v4-flash-0731",
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "selected_endpoint": "fallback1",
+      "selected_model": "deepseek-v4-flash-0731",
+      "stage": ""
+    }
+  },
+  "trace_id": "policy_search:policy-search-rich-0001:1786459868062"
+}

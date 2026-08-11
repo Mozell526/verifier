@@ -3,6 +3,8 @@ from types import SimpleNamespace
 from impl.projects.client_search.draft.tools import investigation_tools
 from impl.projects.client_search.tools.rule_verify import build_rule_verify_tool
 from impl.projects.client_search.tools.field_capability import build_field_capability_tool
+from impl.projects.client_search.tools.search_condition_compare import ClientSearchConditionCompareTool
+from impl.tools import ToolContext
 from impl.projects.client_search.attribute import _build_project_attribute_context
 from impl.core.schema import JudgeResult, ProjectSpec, RunTrace
 from impl.core.path_contract import PathResolver, PathRoots
@@ -144,3 +146,71 @@ def test_case_route_replay_retains_real_match_and_capture_shape(tmp_path, monkey
     }]
     assert result.actual["matched_patterns"][0]["capture_groups"] == ["张伟的人"]
     assert "does not execute L1" in result.boundary_limits[1]
+
+
+def test_condition_compare_reads_current_conditions_trace_contract():
+    condition = {"field": "polNo", "operator": "MATCH", "value": "3125"}
+    trace = RunTrace(
+        trace_id="badcase-108",
+        project_id="client_search",
+        normalized_request={"user_text": "尾号保单尾号是。三幺二五"},
+        extracted_output={
+            "query_logic": "OR",
+            "conditions": [condition],
+        },
+    )
+
+    result = ClientSearchConditionCompareTool().run(
+        ToolContext(
+            project_id="client_search",
+            purpose="judge",
+            trace=trace,
+            inputs={
+                "expected": {
+                    "expected_source": "business_contract",
+                    "query_logic": "OR",
+                    "conditions": [condition],
+                }
+            },
+        )
+    )
+
+    assert result.outputs["actual"] == {
+        "query_logic": "OR",
+        "conditions": [condition],
+    }
+    assert result.outputs["wrong"] == []
+    assert result.outputs["missing"] == []
+    assert result.outputs["extra"] == []
+
+
+def test_condition_compare_keeps_legacy_structured_output_trace_contract():
+    condition = {"field": "clientAge", "operator": "GTE", "value": 18}
+    trace = RunTrace(
+        trace_id="legacy-condition-trace",
+        project_id="client_search",
+        extracted_output={
+            "logic": "AND",
+            "structured_output": [condition],
+        },
+    )
+
+    result = ClientSearchConditionCompareTool().run(
+        ToolContext(
+            project_id="client_search",
+            purpose="judge",
+            trace=trace,
+            inputs={
+                "expected": {
+                    "expected_source": "business_contract",
+                    "query_logic": "AND",
+                    "conditions": [condition],
+                }
+            },
+        )
+    )
+
+    assert result.outputs["actual"]["conditions"] == [condition]
+    assert result.outputs["wrong"] == []
+    assert result.outputs["missing"] == []
+    assert result.outputs["extra"] == []

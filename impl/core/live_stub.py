@@ -114,7 +114,6 @@ def generate_live_output(
     )
     if random_info:
         system += f"你对系统的部分了解：{random_info}\n"
-    system += "输出 JSON，只含格式模板定义的字段。"
 
     user = json.dumps({
         "user_intent": intent.get("input", {}),
@@ -136,6 +135,22 @@ def generate_live_output(
     client._project_id = project_id
     client._caller = "live_stub"
     trace_id = f"live-stub-{project_id}-{random.randint(0, 999999)}"
+    from .context_governance import configure_context_governance, role_governance_config
+    configure_context_governance(
+        client,
+        config=role_governance_config(
+            spec,
+            role="live_stub",
+            stage="generation",
+            trace_id=trace_id,
+            compiler_source="impl/core/live_stub.py#generation",
+        ),
+        project_id=project_id,
+        system=system,
+        user=user,
+        output_spec=output_spec,
+        tools=list(getattr(client, "tools", None) or []),
+    )
     data = client.complete_json(
         system, user, trace_id=trace_id,
         output_spec=output_spec,

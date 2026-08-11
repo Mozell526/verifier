@@ -1,0 +1,265 @@
+{
+  "caller": "llm",
+  "created_at": "2026-08-10T07:50:17Z",
+  "elapsed_ms": 15831,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "production"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "e838178f7475bcac63a42682115bdc3538b267f61714323b0dea911f3b1eafaf",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [],
+      "lineage": {
+        "call_id": "",
+        "case_id": "",
+        "trace_id": "relay-probe-new"
+      },
+      "messages": [
+        {
+          "char_count": 664,
+          "content_sha256": "586491dc51567ccbb9f3c492747fb7dd3be1877396bb58ebde85b9997366f5ec",
+          "role": "system"
+        },
+        {
+          "char_count": 13,
+          "content_sha256": "a9e7880216bd4a62dd8997d9e3bb710f5f5893f16000cbed18bd1413dac6ad1c",
+          "role": "user"
+        }
+      ],
+      "mode": "production",
+      "output_contract": {
+        "field_names": [
+          "result"
+        ],
+        "identity": "impl.core.structured_output._FreeTextOutput",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "0e6eafd6d3ace83cfac721b52e752f76e937f5fddf316a1bbdeba23065325496",
+        "sha256": "0e6eafd6d3ace83cfac721b52e752f76e937f5fddf316a1bbdeba23065325496"
+      },
+      "project_id": "default",
+      "prompt_char_count": 677,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 13,
+        "occurred": false
+      },
+      "role": "llm",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "llm"
+          ],
+          "allowed_stages": [
+            "complete_json"
+          ],
+          "char_count": 20,
+          "content_sha256": "e05ee2eacaeada705d1599f840e575e88eee449372ac623210d5cb4317c2bb8f",
+          "order": 0,
+          "role": "llm",
+          "segment_id": "compiled-system",
+          "source": "impl/core/llm_client.py#complete_json-auto-governance",
+          "stage": "complete_json"
+        },
+        {
+          "allowed_roles": [
+            "llm"
+          ],
+          "allowed_stages": [
+            "complete_json"
+          ],
+          "char_count": 13,
+          "content_sha256": "a9e7880216bd4a62dd8997d9e3bb710f5f5893f16000cbed18bd1413dac6ad1c",
+          "order": 1,
+          "role": "llm",
+          "segment_id": "case-user-payload",
+          "source": "trace://llm-call-payload",
+          "stage": "complete_json"
+        }
+      ],
+      "stage": "complete_json",
+      "tool_plan": []
+    }
+  },
+  "llm_model": "deepseek-v4-flash-0731",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "You are a tiny echo.\n\n## 输出约束：自由文本输出（单字段 result）\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"result\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    }\n  },\n  \"additionalProperties\": false,\n  \"required\": [\n    \"result\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['result']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n",
+      "created_at": 1786348202,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "2aecc92b-9008-4eb8-aa4b-5ef38063f9f0",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "Reply ok=true",
+      "created_at": 1786348202,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "fc9e8e1a-b412-4cfc-9f00-c8101ac428a0",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"result\":\"ok=true\"}",
+      "created_at": 1786348202,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "490870ef-65a1-4147-a747-826244e3456a",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 372,
+        "output_tokens": 40,
+        "provider_metrics": null,
+        "reasoning_tokens": 33,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 412
+      },
+      "name": null,
+      "provider_data": {
+        "id": "a75b046f-3fb7-4452-a4b3-07d816ed67d2",
+        "model_extra": {
+          "cost": "0"
+        }
+      },
+      "reasoning_content": "We need answer as JSON with result field. User said \"Reply ok=true\". Need output {\"result\":\"ok=true\"} maybe. Must be valid JSON single object.",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "",
+  "prompt_size": 697,
+  "record_id": "c8918ac9-3c07-444b-a356-645db4eb6fe3",
+  "response": {
+    "content": "{\"result\":\"ok=true\"}",
+    "metrics": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 372,
+      "output_tokens": 40,
+      "reasoning_tokens": 33,
+      "total_tokens": 412
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 15829,
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "stage": ""
+    }
+  },
+  "trace_id": "relay-probe-new"
+}

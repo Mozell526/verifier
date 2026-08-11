@@ -403,10 +403,15 @@ class _LiveProtocol(ABC):
                     stage="live_schema.validate_request", status="ok",
                     evidence={"project_id": self.spec.project_id}
                 )
+            details = []
+            if hasattr(self.live_schema.check, "request_errors"):
+                details = list(self.live_schema.check.request_errors(payload) or [])
+            detail_text = f" errors: {'; '.join(details)}" if details else ""
             raise ValueError(
                 f"[live_schema] request check failed for {self.spec.project_id}: "
                 f"request 不符合 live_schema.REQUEST_SCHEMA。payload keys: "
                 f"{list(payload.keys()) if isinstance(payload, dict) else type(payload).__name__}"
+                f"{detail_text}"
             )
         except ValueError:
             raise

@@ -613,6 +613,24 @@ def test_invalidation_removes_unit_from_search_and_load(tmp_path):
         run.load_context_units(["temporary"])
 
 
+def test_invalidation_does_not_require_removed_content_ref(tmp_path):
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    document = project_root / "obsolete.md"
+    document.write_text("obsolete evidence", encoding="utf-8")
+    resolver = CompositeContentResolver([FileContentResolver([project_root])])
+    runtime = build_runtime(tmp_path, resolver=resolver)
+    runtime.register_context_unit(
+        make_record("obsolete", content=None, content_ref=document.as_uri())
+    )
+    document.unlink()
+
+    result = runtime.invalidate_context_unit("obsolete")
+
+    assert result == {"id": "obsolete", "action": "updated", "embedding_rebuilt": False}
+    assert runtime.registry.get("obsolete")["record"].status == "inactive"
+
+
 def test_mandatory_units_use_the_same_guarded_load_path(tmp_path):
     project_policy = {
         "roles": {
@@ -710,3 +728,49 @@ def test_search_ignores_vectors_from_a_different_embedding_model(tmp_path):
 
     changed_runtime.register_context_unit(record)
     assert run.search_context_units(["model bound searchable"])[0]["id"] == "model-bound"
+
+
+def test_selection_refs_for_context_units_exposes_authorized_targets_without_loading(tmp_path):
+    runtime = build_runtime(tmp_path)
+    runtime.register_context_unit(make_record("exact-target"))
+    run = runtime.start_run(role="judge", operation="evaluate")
+
+    refs = run.selection_refs_for_context_units(["exact-target"])
+
+    assert len(refs) == 1 and refs[0].startswith("C")
+    assert run.loaded_unit_ids() == ()
+    assert run.materialized_unit_id_for_selection_ref(refs[0]) == "exact-target"
+    loaded = run.load_context_units(refs)
+    assert [unit.id for unit in loaded] == ["exact-target"]
+
+
+def test_selection_refs_for_context_units_rejects_unauthorized_targets(tmp_path):
+    runtime = build_runtime(tmp_path)
+    runtime.register_context_unit(make_record("attribute-only", roles=("attribute",)))
+    run = runtime.start_run(role="judge", operation="evaluate")
+
+    with pytest.raises(ContextAuthorizationError):
+        run.selection_refs_for_context_units(["attribute-only"])
+
+
+def test_navigation_refs_do_not_pollute_search_candidates(tmp_path, monkeypatch):
+    """CG-ENG-007 / AUTH-R17-002：导航寻址（selection_refs_for_context_units）
+    不是搜索候选；candidate_ids 只记录真实 search_context_units 命中。"""
+    runtime = build_runtime(tmp_path)
+    runtime.register_context_units([
+        make_record("target-a"),
+        make_record("target-b"),
+    ])
+    install_scripted_search(runtime, monkeypatch, {"need": ["target-a"]})
+    run = runtime.start_run(role="judge", operation="evaluate")
+
+    refs = run.selection_refs_for_context_units(["target-a", "target-b"])
+    assert refs
+    debug = run.debug_snapshot()["context_debug"]
+    assert debug["candidate_ids"] == []
+    assert debug["loaded_ids"] == []
+
+    hits = run.search_context_units(["need"], top_k_per_query=2)
+    assert {item["id"] for item in hits} == {"target-a"}
+    debug = run.debug_snapshot()["context_debug"]
+    assert debug["candidate_ids"] == ["target-a"]

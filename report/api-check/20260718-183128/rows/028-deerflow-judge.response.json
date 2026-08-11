@@ -1,0 +1,333 @@
+{
+  "trace_id": "deerflow:mock-agent-deerflow-fd77d173:1784370885253",
+  "project_id": "deerflow",
+  "business_expectations": [
+    {
+      "expectation_id": "多轮信息累积汇总生成完整规划",
+      "downstream_consumer": "终端用户",
+      "user_intent": "需要一份整合了产品、用户类型、渠道、预算倾向和目标人数的促销活动规划",
+      "expected_outcome": "最终回复整合前三轮对话中全部关键信息：在线教育平台月度课程会员（原价299元，首月半价促销）；面向全新注册及注册未付费用户；推广渠道为APP推送、微信公众号、教育社群合作；预算主要投入内容营销（海报、短视频）并辅以朋友圈广告；活动目标新增100-200个付费会员。",
+      "required_capabilities": [
+        "多轮上下文记忆与理解",
+        "关键信息提取与融合",
+        "结构化规划生成"
+      ],
+      "acceptance_criteria": [
+        "回复文本明确提及产品类型、促销价格、目标用户范围、推广渠道组合、预算分配类别、目标会员数量",
+        "无关键信息遗漏或矛盾"
+      ],
+      "priority": "critical",
+      "evidence_refs": [
+        {
+          "source": "turn_1_request",
+          "content": "订阅套餐"
+        },
+        {
+          "source": "turn_2_request",
+          "content": "在线教育平台、月度课程会员、首月半价"
+        },
+        {
+          "source": "turn_3_request",
+          "content": "全新注册及注册未付费用户、渠道为APP推送+微信公众号+社群合作、预算侧重内容营销、目标100-200新付费会员"
+        }
+      ]
+    },
+    {
+      "expectation_id": "业务指标与目标值明确",
+      "downstream_consumer": "营销执行团队",
+      "user_intent": "活动预期新增至少100个付费会员，理想200个，预算控制在5万以内",
+      "expected_outcome": "输出中清晰列出关键业务指标（新增付费会员数100-200个）及其单位，同时提供预算明细且各分项之和不超过5万元。",
+      "required_capabilities": [
+        "数值理解与表达",
+        "预算计算与合计",
+        "目标指标提取"
+      ],
+      "acceptance_criteria": [
+        "回复中包含“100-200个新付费会员”或语义等价的业务指标",
+        "预算分项列表总和等于5万元（20000+10000+8000+5000+7000=50000）",
+        "数值单位明确（元、个）"
+      ],
+      "priority": "high",
+      "evidence_refs": [
+        {
+          "source": "turn_3_request",
+          "content": "至少新增100个付费会员，理想200个"
+        },
+        {
+          "source": "final_output.reply_text",
+          "content": "预期目标：100-200个新付费会员；预算分配列表"
+        }
+      ]
+    },
+    {
+      "expectation_id": "阶段路由正确",
+      "downstream_consumer": "对话流程监控与下游自动化节点",
+      "user_intent": "在用户提供完整信息后，系统应自动进入规划执行阶段",
+      "expected_outcome": "最后一轮被识别为planning阶段而非clarification阶段，以确保后续流程（如结果入库、通知等）被正确触发。",
+      "required_capabilities": [
+        "意图澄清与完成度感知",
+        "阶段切换逻辑",
+        "对话状态管理"
+      ],
+      "acceptance_criteria": [
+        "final_output.stage 值为 'planning'"
+      ],
+      "priority": "high",
+      "evidence_refs": [
+        {
+          "source": "final_output",
+          "field": "stage",
+          "actual_value": "clarification"
+        }
+      ]
+    },
+    {
+      "expectation_id": "调用NBEV脚本处理规划数据",
+      "downstream_consumer": "数据管道、业务数据库及分析系统",
+      "user_intent": "生成的促销规划应当被系统自动记录并可用于后续数据统计与复盘",
+      "expected_outcome": "在生成规划内容的同时，调用至少一个NBEV脚本将预算、目标等结构化数据持久化或触发关联计算。",
+      "required_capabilities": [
+        "NBEV脚本调用",
+        "数据持久化",
+        "业务事件通知"
+      ],
+      "acceptance_criteria": [
+        "nbev_tool_count >= 1",
+        "tool_calls 数组中存在 is_nbev_script == true 的项"
+      ],
+      "priority": "high",
+      "evidence_refs": [
+        {
+          "source": "final_output",
+          "field": "nbev_tool_count",
+          "actual_value": 0
+        }
+      ]
+    },
+    {
+      "expectation_id": "交付可保存的规划文档",
+      "downstream_consumer": "用户及协作团队",
+      "user_intent": "需要一份可直接查看、分享或存档的促销活动规划文档",
+      "expected_outcome": "通过文件呈现工具向用户提供一个明确路径的Markdown文档，并在回复中说明文档主要内容。",
+      "required_capabilities": [
+        "文件生成或引用",
+        "工具调用（present_files）"
+      ],
+      "acceptance_criteria": [
+        "存在 present_files 工具调用，且提供了非空文件路径",
+        "回复文字提及文档的附加信息（如内容概要）"
+      ],
+      "priority": "medium",
+      "evidence_refs": [
+        {
+          "source": "final_output.tool_calls",
+          "tool": "present_files",
+          "filepath": "/mnt/user-data/outputs/新会员促销活动规划.md"
+        }
+      ]
+    }
+  ],
+  "fulfillment_assessments": [
+    {
+      "expectation_id": "多轮信息累积汇总生成完整规划",
+      "status": "fulfilled",
+      "expected_evidence": [
+        "回复中包含产品为在线教育月度课程会员、首月半价149元、前50名赠专题课；面向全新注册和注册未付费用户；推广渠道包括APP推送、微信公众号、教育社群、朋友圈广告；预算分为短视频制作2万、社群合作1万、海报设计8千、朋友圈广告5千、杂项7千；目标100-200新付费会员。"
+      ],
+      "actual_evidence": [
+        "回复文本：'核心促销方案：首月半价149元（原价299元），前50名付费用户再赠99元专题课'，'推广渠道：APP推送 + 微信公众号推文 + 教育社群合作 + 朋友圈广告'，'预算分配：- 短视频制作 2万元（重点）- 社群合作费用 1万元- 海报设计 8千元- 朋友圈广告 5千元- 其他杂项 7千元'，'预期目标：100-200个新付费会员'。"
+      ],
+      "downstream_impact": "终端用户获得完整、准确的规划，可直接用于执行。",
+      "blocking": false,
+      "confidence": 1.0
+    },
+    {
+      "expectation_id": "业务指标与目标值明确",
+      "status": "fulfilled",
+      "expected_evidence": [
+        "输出中明确写出新增付费会员数100-200个，预算分项总和为5万元。"
+      ],
+      "actual_evidence": [
+        "reply_text 包含'预期目标：100-200个新付费会员'；预算分项合计：20000+10000+8000+5000+7000=50000元，符合5万以内。"
+      ],
+      "downstream_impact": "执行团队可直接采用目标与预算方案。",
+      "blocking": false,
+      "confidence": 1.0
+    },
+    {
+      "expectation_id": "阶段路由正确",
+      "status": "not_fulfilled",
+      "expected_evidence": [
+        "final_output.stage 应为 'planning'。"
+      ],
+      "actual_evidence": [
+        "final_output.stage 值为 'clarification'。"
+      ],
+      "downstream_impact": "下游自动化节点（如规划结果入库、状态通知）可能不被触发，导致流程中断或陷入无限澄清。",
+      "blocking": true,
+      "confidence": 1.0
+    },
+    {
+      "expectation_id": "调用NBEV脚本处理规划数据",
+      "status": "not_fulfilled",
+      "expected_evidence": [
+        "至少一次NBEV脚本调用，例如将预算或目标数据写入业务表。"
+      ],
+      "actual_evidence": [
+        "nbev_tool_count = 0，tool_calls 中无 is_nbev_script 为 true 的调用。"
+      ],
+      "downstream_impact": "规划数据未能持久化，后续复盘、BI分析或自动对账将丢失本次活动的基础数据。",
+      "blocking": true,
+      "confidence": 1.0
+    },
+    {
+      "expectation_id": "交付可保存的规划文档",
+      "status": "fulfilled",
+      "expected_evidence": [
+        "使用 present_files 输出一个可访问的文档路径。"
+      ],
+      "actual_evidence": [
+        "tool_calls 包含 present_files，参数 filepaths 为 ['/mnt/user-data/outputs/新会员促销活动规划.md']。"
+      ],
+      "downstream_impact": "用户可获得文档文件，便于保存与分发。",
+      "blocking": false,
+      "confidence": 0.9
+    }
+  ],
+  "overall_fulfillment": {
+    "status": "not_fulfilled",
+    "brief_summary": "虽然核心业务内容已生成并交付文档，但阶段路由错误和NBEV脚本调用缺失导致系统集成层面不可用，严重阻断下游自动化流程。"
+  },
+  "expected": {
+    "reply_text": "促销活动规划已生成，包含首月半价149元方案、渠道组合、5万元预算分解及100-200人目标，详见文档。",
+    "tool_calls": [
+      {
+        "name": "nbev_create_promotion_plan",
+        "args": {
+          "budget": 50000,
+          "target_new_members_min": 100,
+          "target_new_members_max": 200,
+          "channels": [
+            "app_push",
+            "wechat_article",
+            "education_community",
+            "moments_ad"
+          ],
+          "product_id": "monthly_course_member"
+        },
+        "is_nbev_script": true
+      },
+      {
+        "name": "present_files",
+        "args": {
+          "filepaths": [
+            "/mnt/user-data/outputs/新会员促销活动规划.md"
+          ]
+        },
+        "is_nbev_script": false
+      }
+    ],
+    "stage": "planning",
+    "nbev_tool_count": 1,
+    "scripts_called": [
+      "nbev_create_promotion_plan"
+    ],
+    "session_summary": {
+      "evidence_declared": true,
+      "evidence_status": "declared"
+    },
+    "fallback": {
+      "allowed": false,
+      "used": false
+    }
+  },
+  "actual": {
+    "fallback": {
+      "allowed": false,
+      "reason": "",
+      "used": false
+    },
+    "nbev_tool_count": 0,
+    "reply_text": "这份规划已经为您准备好了，主要包括：\n\n**核心促销方案**：首月半价149元（原价299元），前50名付费用户再赠99元专题课\n\n**推广渠道**：APP推送 + 微信公众号推文 + 教育社群合作 + 朋友圈广告\n\n**预算分配**：\n- 短视频制作 2万元（重点）\n- 社群合作费用 1万元\n- 海报设计 8千元\n- 朋友圈广告 5千元\n- 其他杂项 7千元\n\n**预期目标**：100-200个新付费会员\n\n活动时间安排在7月20日（下周一）至26日，为期7天。文档里还包含了详细的时间进度表、风险预案和所需团队支持。\n\n如果您需要我进一步制作促销海报或短视频脚本，可以随时告诉我！",
+    "session_summary": {
+      "evidence_declared": true,
+      "evidence_status": "declared",
+      "thread_id": ""
+    },
+    "stage": "clarification",
+    "tool_calls": [
+      {
+        "args": {
+          "filepaths": [
+            "/mnt/user-data/outputs/新会员促销活动规划.md"
+          ]
+        },
+        "is_nbev_script": false,
+        "name": "present_files"
+      }
+    ]
+  },
+  "missing": [
+    {
+      "kind": "tool_call",
+      "error_type": "missing",
+      "expected": {
+        "name": "nbev_create_promotion_plan",
+        "is_nbev_script": true
+      },
+      "evidence_ref": "final_output.tool_calls",
+      "incomplete": false
+    }
+  ],
+  "wrong": [
+    {
+      "kind": "stage",
+      "error_type": "wrong",
+      "expected": "planning",
+      "actual": "clarification",
+      "evidence_ref": "final_output.stage",
+      "incomplete": false
+    }
+  ],
+  "evidence": [
+    {
+      "source": "final_output",
+      "field": "stage",
+      "value": "clarification"
+    },
+    {
+      "source": "final_output",
+      "field": "nbev_tool_count",
+      "value": 0
+    },
+    {
+      "source": "final_output.tool_calls[0]",
+      "tool": "present_files"
+    }
+  ],
+  "reasoning_summary": "用户提交的促销规划需求经过三轮澄清后获得了完整的方案文本和文件交付，核心内容满足业务直觉。然而，根据 Deerflow 评估框架的关键维度，系统在阶段管理上出现错误——完成信息收集后仍标记为 clarification，导致下游流程无法被正确触发；同时本次规划完全未调用 NBEV 脚本，预算与目标数据未能持久化，影响后续数据链路。这两项缺陷严重阻碍了自动化运营与数据消费，因此整体判定为 not_fulfilled。",
+  "summary": {
+    "reason": "not_fulfilled · blocking=[调用NBEV脚本处理规划数据,阶段路由正确] · 用户提交的促销规划需求经过三轮澄清后获得了完整的方案文本和文件交付，核心内容满足业务直觉。然而，根据 Deerflow 评估框架的关键维度，系统在阶段管理上出现错误——完成信息收集后仍标记为 clarification，导致下游流程无法被正确触发；同时本次规划完全未调用 NBEV 脚本，预算与目标数据未能持久化，影响后续数据链路。这两项缺陷严重阻碍了自动化运营与数据消费，因此整体判定为 not_fulfilled。",
+    "primary_failure_dimensions": [
+      {
+        "expectation_id": "调用NBEV脚本处理规划数据",
+        "status": "not_fulfilled",
+        "blocking": true,
+        "downstream_impact": "规划数据未能持久化，后续复盘、BI分析或自动对账将丢失本次活动的基础数据。",
+        "evidence": "nbev_tool_count = 0，tool_calls 中无 is_nbev_script 为 true 的调用。 | 至少一次NBEV脚本调用，例如将预算或目标数据写入业务表。"
+      },
+      {
+        "expectation_id": "阶段路由正确",
+        "status": "not_fulfilled",
+        "blocking": true,
+        "downstream_impact": "下游自动化节点（如规划结果入库、状态通知）可能不被触发，导致流程中断或陷入无限澄清。",
+        "evidence": "final_output.stage 值为 'clarification'。 | final_output.stage 应为 'planning'。"
+      }
+    ],
+    "reason_source": "aggregated_fulfillment",
+    "fulfillment_status": "not_fulfilled",
+    "assessment_count": 5,
+    "blocking_count": 2,
+    "is_formal_attribution": true
+  }
+}

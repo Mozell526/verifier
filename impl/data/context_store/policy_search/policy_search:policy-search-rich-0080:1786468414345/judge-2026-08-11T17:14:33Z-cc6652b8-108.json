@@ -1,0 +1,303 @@
+{
+  "caller": "judge",
+  "created_at": "2026-08-11T17:14:33Z",
+  "elapsed_ms": 59281,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "production"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "605f10d1c41a55be00e8c1c3a4b6e0e1431b4a3a4d03957867ab402810ba89ff",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [],
+      "lineage": {
+        "call_id": "",
+        "case_id": "policy-search-rich-0080",
+        "trace_id": "policy_search:policy-search-rich-0080:1786468414345"
+      },
+      "messages": [
+        {
+          "char_count": 7368,
+          "content_sha256": "f5559e2831ea15fd5d0a75f202e64faec2eaf6fc95f6497abac519065bb1f636",
+          "role": "system"
+        },
+        {
+          "char_count": 5514,
+          "content_sha256": "628bf40c84197d160a54d4a2bc64f8d93756f82c26d4c7c7ebec13608695fa0b",
+          "role": "user"
+        }
+      ],
+      "mode": "production",
+      "output_contract": {
+        "field_names": [
+          "acceptance_criteria",
+          "actual",
+          "actual_evidence",
+          "applicable_product_expectation_ids",
+          "authority_tool_call_ids",
+          "blocking",
+          "boundary",
+          "business_expectations",
+          "code",
+          "downstream_consumer",
+          "downstream_impact",
+          "error_type",
+          "evidence",
+          "evidence_ref",
+          "expectation_id",
+          "expected",
+          "expected_evidence",
+          "expected_outcome",
+          "extra",
+          "filter",
+          "fulfillment_assessments",
+          "incomplete",
+          "kind",
+          "message",
+          "missing",
+          "msg",
+          "priority",
+          "query",
+          "raw",
+          "reasoning_summary",
+          "required_capabilities",
+          "score",
+          "status",
+          "user_intent",
+          "wrong"
+        ],
+        "identity": "impl.core.schema.judge.JudgeLLMOutput",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "1ebd986c8c695abe1e8329086ca3fa881a0eaa83fe0e670d24af6af6d4fad2f0",
+        "sha256": "1ebd986c8c695abe1e8329086ca3fa881a0eaa83fe0e670d24af6af6d4fad2f0"
+      },
+      "project_id": "policy_search",
+      "prompt_char_count": 12882,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 5514,
+        "occurred": false
+      },
+      "role": "judge",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 1725,
+          "content_sha256": "5727bfa7858a8ce05122cd632b62736542f3792c880caa51ab16c7257d1f754b",
+          "order": 0,
+          "role": "judge",
+          "segment_id": "compiled-system",
+          "source": "impl/core/judge.py#judge_trace",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 5514,
+          "content_sha256": "628bf40c84197d160a54d4a2bc64f8d93756f82c26d4c7c7ebec13608695fa0b",
+          "order": 1,
+          "role": "judge",
+          "segment_id": "case-user-payload",
+          "source": "trace://judge-evidence-view",
+          "stage": "judge"
+        }
+      ],
+      "stage": "judge",
+      "tool_plan": []
+    }
+  },
+  "llm_model": "deepseek-v4-flash-0731",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "你是通用评估系统的 judge agent。\n\n## 核心原则\n只基于当前 RunTrace、项目评判标准和动态检索的知识库内容判断，不继承历史 case。\n首要职责：理解用户/下游消费者的真实业务意图 → 派生 business_expectations → 基于完整执行链路（每轮 output、最终 output、交互过程和停止事实）判断 expectations 的 fulfillment。\n\n## expectation 拆分原则\nbusiness_expectations 的粒度直接决定判断精度。每个 expectation 必须是原子、独立可评价的判断单元：证据充分时判 fulfilled 或 not_fulfilled；确需评价但当前证据不足时按协议判 not_evaluable。\n- 一个 expectation 只描述一个可独立验证的结果维度\n- 多维度意图必须拆成多个 expectation\n- 每个 expectation 必须有明确的 acceptance_criteria\n- 每个 expectation 必须在比较 actual 前确定 blocking：只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true\n- fulfillment_assessments 只判断对应 expectation 的 status 和证据，不得重新定义 blocking\n- expectation_id 必须是描述性的中文短语，禁止使用 E1/E2/exp_01 等占位符 ID\n- reasoning_summary 必须是中文写成的判断依据\n\n## 输出词表\n`fulfillment_assessments[*].status` 必须从以下 3 个值中选择：\n  - fulfilled：该 expectation 完全满足\n  - not_fulfilled：该 expectation 未满足\n  - not_evaluable：当前无法评估\n禁用 failed/passed/incorrect/wrong/met/unmet/partially_fulfilled/partial/success/fail/ok/unknown 等同义词。\n`fulfillment_assessments[*].expected_evidence` 与 `actual_evidence` **必须是数组**（JSON array / list），即使只有一条证据也要用 `[...]` 包裹，不可直接用字符串或对象。\n\n不要输出 overall_fulfillment；公共层会在项目契约补充完成后根据 blocking expectations 确定性派生整体状态。\n\n## 评估规范\n\n\n## 评估边界\n\n\n## 判断标准\n\n\n\n\n你评价的是保单筛选语义是否被完整、可执行且安全地表达。先判断服务依赖是否成功，再比较 query 与 filter。忽略 node_id 命名差异；允许逻辑等价的树。字段、操作符、值、角色、AND/OR/NOT 作用域、日期边界和条件完整性都必须正确。SUCCESS 必须有完整 filter；歧义、条件缺失或越界场景应 UNSUPPORTED 且不得返回部分 filter。业务实现、prompt 和配置是当前能力证据，不是不可质疑的自证。\n## 工具使用原则\n所有工具的用途、调用时机和参数含义以 Agno tool schema 为准；user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息。\n\n## 禁止事项\n- 不要把 reference answer 当作默认主目标（除非 case 明确指定）\n- 不要把 HTTP 状态、run_status、attribute/cluster 结论当作满足依据\n- 不要归因内部代码、配置或 prompt 原因（属于 attribute agent）\n- 分析文字必须使用中文，包括 reasoning_summary 等所有文本字段。\n\n\n## 输出约束：judge 判定输出（自产 reference + fulfillment 判定）\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"business_expectations\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeBusinessExpectationOutput\"\n      },\n      \"minItems\": 1\n    },\n    \"applicable_product_expectation_ids\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"fulfillment_assessments\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeFulfillmentAssessmentOutput\"\n      }\n    },\n    \"expected\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"code\": {\n          \"type\": \"integer\"\n        },\n        \"msg\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"query\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"filter\": {\n          \"type\": [\n            \"object\",\n            \"null\"\n          ]\n        },\n        \"message\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"code\",\n        \"msg\",\n        \"status\",\n        \"query\",\n        \"filter\",\n        \"message\"\n      ]\n    },\n    \"missing\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"wrong\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"extra\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"evidence\": {\n      \"type\": \"array\",\n      \"items\": {}\n    },\n    \"reasoning_summary\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    }\n  },\n  \"additionalProperties\": false,\n  \"$defs\": {\n    \"JudgeBusinessExpectationOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"blocking\": {\n          \"type\": \"boolean\"\n        },\n        \"downstream_consumer\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"user_intent\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected_outcome\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"required_capabilities\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"acceptance_criteria\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"boundary\": {\n          \"type\": \"object\"\n        },\n        \"priority\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"blocking\"\n      ]\n    },\n    \"JudgeFulfillmentAssessmentOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"score\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        },\n        \"expected_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"actual_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"downstream_impact\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"authority_tool_call_ids\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"status\"\n      ]\n    },\n    \"GapItem\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"kind\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"error_type\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected\": {},\n        \"actual\": {},\n        \"evidence_ref\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"raw\": {},\n        \"incomplete\": {\n          \"type\": \"boolean\"\n        }\n      },\n      \"additionalProperties\": false\n    }\n  },\n  \"required\": [\n    \"expected\",\n    \"business_expectations\",\n    \"reasoning_summary\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['business_expectations', 'expected', 'reasoning_summary']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n\n### 嵌套字段子结构约束\n以下字段内部的子结构也必须严格遵守，不可随意编造字段名或类型：\n- **`expected`** 字段 (项目 policy_search 的 expected/live output 结构) 必须符合以下结构：\n  ```json\n  {\n    \"type\": \"object\",\n    \"properties\": {\n      \"code\": {\n        \"type\": \"integer\"\n      },\n      \"msg\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"status\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"query\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"filter\": {\n        \"type\": [\n          \"object\",\n          \"null\"\n        ]\n      },\n      \"message\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"additionalProperties\": false,\n    \"required\": [\n      \"code\",\n      \"msg\",\n      \"status\",\n      \"query\",\n      \"filter\",\n      \"message\"\n    ]\n  }\n  ```\n",
+      "created_at": 1786468414,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "95d65454-ab00-4f7d-8dfc-d5d91f247a0f",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"user_intent\": \"筛选符合“查找PX7319保单号”所表达条件的保单\", \"run_trace\": {\"trace_id\": \"policy_search:policy-search-rich-0080:1786468414345\", \"project_id\": \"policy_search\", \"case_id\": \"policy-search-rich-0080\", \"intent_input\": {\"session_id\": \"policy-search-rich-0080\", \"trace_id\": \"policy-search-rich-0080\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"麻烦帮我筛一下，查找PX7319保单号\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"normalized_request\": {\"session_id\": \"policy-search-rich-0080\", \"trace_id\": \"policy-search-rich-0080\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"麻烦帮我筛一下，查找PX7319保单号\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"final_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"UNSUPPORTED\", \"query\": \"麻烦帮我筛一下，查找PX7319保单号\", \"filter\": null, \"message\": \"当前未能识别对应的保单查询信息，请补充想查询的保单信息或条件\"}, \"final_output_turn\": 1, \"turns\": [{\"turn_index\": 1, \"request\": {\"session_id\": \"policy-search-rich-0080\", \"trace_id\": \"policy-search-rich-0080\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"麻烦帮我筛一下，查找PX7319保单号\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"extracted_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"UNSUPPORTED\", \"query\": \"麻烦帮我筛一下，查找PX7319保单号\", \"filter\": null, \"message\": \"当前未能识别对应的保单查询信息，请补充想查询的保单信息或条件\"}, \"call_status\": \"succeeded\", \"runtime_ms\": 60, \"error\": null, \"fallbacks\": [], \"validation\": [], \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"application_boundary\": {\"dependency_status\": \"available\", \"allow_fallback\": false, \"excluded_evidence\": [], \"notes\": \"UNSUPPORTED is an in-scope parser decision\"}, \"project_fields\": {\"parse_status\": \"UNSUPPORTED\", \"filter_root_type\": null}}], \"conversation_transcript\": [], \"conversation_summary\": {\"turn_count\": 1, \"final_output_turn\": 1, \"completion_status\": \"completed\", \"stop_reason\": \"single_turn_completed\", \"interaction_controller_status\": \"not_run\", \"interaction_controller_error\": \"\"}, \"stop_reason\": \"single_turn_completed\", \"completion_status\": \"completed\", \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"evidence_refs\": [], \"raw_response_evidence\": null, \"evidence_completeness\": {\"complete\": true, \"missing_evidence\": []}, \"application_boundary\": {\"dependency_status\": \"available\", \"allow_fallback\": false, \"excluded_evidence\": [], \"notes\": \"UNSUPPORTED is an in-scope parser decision\"}, \"reference_contract\": {}, \"scenario\": \"surface_generalization\", \"status\": \"ok\", \"error\": null}, \"query\": \"麻烦帮我筛一下，查找PX7319保单号\", \"actual_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"UNSUPPORTED\", \"query\": \"麻烦帮我筛一下，查找PX7319保单号\", \"filter\": null, \"message\": \"当前未能识别对应的保单查询信息，请补充想查询的保单信息或条件\"}, \"reference_contract\": {}, \"business_evidence_paths\": {\"api_contract\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索算法解析接口文档（智能体对接稿）.md\", \"filter_contract\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索查询语法树协议（首期精简版）.md\", \"technical_design\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索算法解析技术方案（当前实现版）.md\", \"business_config\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/configs/insurance_search_business_config_prd.json\", \"runtime_config\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/configs/insurance_search_runtime_config_prd.json\", \"golden_manifest\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/data/golden_dataset/manifest.json\"}, \"evaluation_dimensions\": [\"field_selection\", \"operator_and_value\", \"logical_scope\", \"time_boundary\", \"condition_completeness\", \"safe_failure\"]}",
+      "created_at": 1786468414,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "1e94b2d4-0041-47df-97ed-7e306ee5e86d",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"保单号等值条件识别\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"下游保单筛选/查询模块（filter 消费者）\",\n      \"user_intent\": \"用户以口语简略表达“查找PX7319保单号”表示按保单号筛选保单，即保单号等于 PX7319\",\n      \"expected_outcome\": \"从 query 中解析出保单号字段与值 PX7319 的等值条件，并纳入返回的 filter\",\n      \"required_capabilities\": [\"保单号字段识别\", \"等值操作符解析\", \"口语省略表达理解\"],\n      \"acceptance_criteria\": [\"filter 中存在保单号=PX7319 的等值条件\", \"字段、操作符、值均正确，允许逻辑等价的语法树\"],\n      \"boundary\": {\"逻辑等价树可接受\": true, \"字段名以项目协议为准\": true},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"成功解析并返回完整筛选条件\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"下游查询执行器（依赖 status 与 filter 决定是否执行查询）\",\n      \"user_intent\": \"查询条件完整明确时，系统应进入可执行的成功路径并返回完整 filter\",\n      \"expected_outcome\": \"返回 status=SUCCESS，filter 为完整非空对象，message 说明已识别保单号条件\",\n      \"required_capabilities\": [\"条件完整性判定\", \"成功结果封装\"],\n      \"acceptance_criteria\": [\"status 为 SUCCESS\", \"filter 非 null 且包含完整条件\", \"SUCCESS 必须携带完整 filter\"],\n      \"boundary\": {\"SUCCESS 不允许返回空 filter\": true},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"安全失败机制不被误触发\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"交互引导模块（仅在真正歧义/条件缺失时提示补充信息）\",\n      \"user_intent\": \"UNSUPPORTED 仅用于真实歧义、条件缺失或越界场景，本查询保单号条件明确，不应触发失败分支\",\n      \"expected_outcome\": \"实际输出不应为 UNSUPPORTED，不应要求用户补充查询信息\",\n      \"required_capabilities\": [\"歧义判定\", \"条件完整性判定\"],\n      \"acceptance_criteria\": [\"实际 status 不是 UNSUPPORTED\", \"不会因本 query 错误引导用户补充信息\"],\n      \"boundary\": {\"歧义/条件缺失才允许 UNSUPPORTED\": true},\n      \"priority\": \"P1\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"保单号等值条件识别\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        {\"filter\": \"包含保单号=PX7319 等值条件的非空对象\"}\n      ],\n      \"actual_evidence\": [\n        {\"filter\": null},\n        {\"message\": \"当前未能识别对应的保单查询信息，请补充想查询的保单信息或条件\"}\n      ],\n      \"downstream_impact\": \"下游无法获得任何保单号筛选条件，用户按保单号查找保单的核心目的完全落空\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"成功解析并返回完整筛选条件\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        {\"status\": \"SUCCESS\"},\n        {\"filter\": \"完整非空对象\"}\n      ],\n      \"actual_evidence\": [\n        {\"status\": \"UNSUPPORTED\"},\n        {\"filter\": null}\n      ],\n      \"downstream_impact\": \"查询进入 UNSUPPORTED 分支，下游无法执行保单筛选，用户请求被拒绝\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"安全失败机制不被误触发\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        {\"status\": \"非 UNSUPPORTED\"},\n        {\"query 含明确保单号条件，无歧义\"}\n      ],\n      \"actual_evidence\": [\n        {\"status\": \"UNSUPPORTED\"},\n        {\"message\": \"请补充想查询的保单信息或条件\"}\n      ],\n      \"downstream_impact\": \"对条件明确的 query 错误触发失败分支，错误引导用户补充信息，产生误导性交互路径\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"expected\": {\n    \"code\": 0,\n    \"msg\": \"success\",\n    \"status\": \"SUCCESS\",\n    \"query\": \"麻烦帮我筛一下，查找PX7319保单号\",\n    \"filter\": {\n      \"type\": \"and\",\n      \"children\": [\n        {\n          \"type\": \"condition\",\n          \"field\": \"policy_no\",\n          \"operator\": \"eq\",\n          \"value\": \"PX7319\"\n        }\n      ]\n    },\n    \"message\": \"已识别保单号筛选条件：保单号为 PX7319\"\n  },\n  \"missing\": [\n    {\n      \"kind\": \"field_selection\",\n      \"error_type\": \"missing_condition\",\n      \"expected\": {\n        \"field\": \"policy_no\",\n        \"operator\": \"eq\",\n        \"value\": \"PX7319\"\n      },\n      \"actual\": null,\n      \"evidence_ref\": \"final_output.filter\",\n      \"raw\": {\"filter\": null},\n      \"incomplete\": false\n    }\n  ],\n  \"wrong\": [\n    {\n      \"kind\": \"parse_status\",\n      \"error_type\": \"wrong_status\",\n      \"expected\": \"SUCCESS\",\n      \"actual\": \"UNSUPPORTED\",\n      \"evidence_ref\": \"final_output.status\",\n      \"raw\": {\n        \"status\": \"UNSUPPORTED\",\n        \"message\": \"当前未能识别对应的保单查询信息，请补充想查询的保单信息或条件\"\n      },\n      \"incomplete\": false\n    }\n  ],\n  \"extra\": [],\n  \"evidence\": [\n    {\n      \"query\": \"麻烦帮我筛一下，查找PX7319保单号\"\n    },\n    {\n      \"final_output\": {\n        \"code\": 0,\n        \"msg\": \"success\",\n        \"status\": \"UNSUPPORTED\",\n        \"query\": \"麻烦帮我筛一下，查找PX7319保单号\",\n        \"filter\": null,\n        \"message\": \"当前未能识别对应的保单查询信息，请补充想查询的保单信息或条件\"\n      }\n    },\n    {\n      \"application_boundary\": {\n        \"dependency_status\": \"available\",\n        \"notes\": \"UNSUPPORTED is an in-scope parser decision\"\n      }\n    }\n  ],\n  \"reasoning_summary\": \"用户意图为按保单号筛选保单，query“查找PX7319保单号”是典型的口语省略表达，语义即“保单号等于 PX7319”：其中“PX7319”紧邻中心语“保单号”，构成明确的值-字段关联，不存在真实歧义，也没有条件缺失或越界。服务依赖状态为 available，满足评估前提。实际输出却返回 UNSUPPORTED 且 filter 为 null，未提取任何保单号条件，属于对明确条件的错误拒绝：既未完成保单号等值条件的识别，也未走通 SUCCESS+完整 filter 的成功路径，同时误触发了安全失败分支、错误引导用户补充信息。因此三个阻塞性业务期望均判定为 not_fulfilled。期望的 filter 为保单号=PX7319 的等值条件树，具体字段名与操作符编码以项目语法树协议为准，逻辑等价即可。\"\n}",
+      "created_at": 1786468414,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "fa05652a-00a6-432b-b922-50551d57ab0d",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 2304,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 4082,
+        "output_tokens": 6743,
+        "provider_metrics": null,
+        "reasoning_tokens": 5045,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 10825
+      },
+      "name": null,
+      "provider_data": {
+        "id": "5022d42c-8911-498d-9c79-39310e739bad",
+        "model_extra": {
+          "cost": "0"
+        }
+      },
+      "reasoning_content": "我需要分析这个 case。用户意图是筛选符合“查找PX7319保单号”所表达条件的保单。query 是“麻烦帮我筛一下，查找PX7319保单号”。\n\n首先，我需要理解这个 query 表达的业务语义。用户想查找保单号为 PX7319 的保单。这里的关键是“PX7319保单号”这种表达方式——用户说“查找PX7319保单号”，这是一个简略的表达，实际意思是查找保单号为 PX7319 的保单。\n\n让我先看看知识库信息。这里我注意到 prompt 中没有直接给出能力清单，我需要参考提供的文档路径。但作为 judge，我主要基于 RunTrace 和项目评判标准来判断。\n\n关键问题：query “麻烦帮我筛一下，查找PX7319保单号” 是否应该被解析为 SUCCESS 并生成 filter（policy_no = PX7319）？\n\n用户的表达有歧义吗？“PX7319保单号”可以理解为：\n1. 保单号为 PX7319 的保单\n2. 这个表达比较口语化，但语义上是清楚的——PX7319 是保单号的值\n\n从语义看，“查找PX7319保单号”就是“查找保单号为PX7319的保单”。这是一个明确的筛选条件。我认为这不是歧义，而是常见的口语省略表达。\n\n实际输出是 UNSUPPORTED，filter 为 null，message 是“当前未能识别对应的保单查询信息，请补充想查询的保单信息或条件”。\n\n根据评判标准：“SUCCESS 必须有完整 filter；歧义、条件缺失或越界场景应 UNSUPPORTED 且不得返回部分 filter。”\n\n那么这里是否真的存在歧义或条件缺失？查询“查找PX7319保单号”表达了明确的保单号条件。我认为这个查询应该被解析为 SUCCESS，filter 应该包含 policy_no = PX7319 的条件。\n\n让我再考虑一下。这个 case 的 scenario 是 \"surface_generalization\"，即表面泛化。用户用口语化的方式“查找PX7319保单号”表达“保单号等于PX7319”。这种表达方式：\n- “PX7319保单号”——保单号是 PX7319\n- 这其实是中文里常见的定语后置/宾语前置表达\n\n实际上，“查找PX7319保单号”在中文口语中完全可以理解为“查找保单号是PX7319的（保单）”。所以这个应该是可以被解析的。\n\n但是，我需要谨慎。有没有可能系统设计上要求更明确的表达？比如“查找保单号PX7319”已经可以，但“查找PX7319保单号”是否等价？\n\n从自然语言角度，“PX7319保单号”=“PX7319（这个）保单号”，即值 PX7319 修饰保单号字段。这是明确的值+字段组合。所以 filter 应该是 {\"field\": \"policy_no\", \"operator\": \"eq\", \"value\": \"PX7319\"} 之类的。\n\n因此，我认为实际输出 UNSUPPORTED 是错误的，应该输出 SUCCESS 并带有完整 filter。\n\n不过，等等。我需要考虑另一个角度：这个 case 是否是刻意设计为歧义场景？比如“PX7319保单号”可能被解读为“PX7319 保单号”其中 PX7319 不是保单号而是某种编号？但从常识看，PX7319 看起来就是一个保单号格式（字母+数字）。\n\n再看一下输入参数：user_text 为空，history 为空，没有上下文。query 是唯一的输入。“查找PX7319保单号”这个表达中，PX7319 紧邻“保单号”，语义非常明确。\n\n所以我的判断是：\n- 期望：status=SUCCESS，filter 包含 policy_no=PX7319 的等值条件\n- 实际：status=UNSUPPORTED，filter=null\n- 这是 not_fulfilled\n\n现在我需要构造 business_expectations。原子 expectation：\n\n1. expectation: 保单号等值条件识别——用户意图是查找保单号为 PX7319 的保单，系统应将“PX7319保单号”解析为 policy_no=PX7319 的等值条件。blocking=true（因为这是核心目的，缺失会阻断用户核心目的）。\n\n2. expectation: 成功路径返回完整筛选结果——当条件被识别时，应返回 SUCCESS 状态和完整 filter，而不是 UNSUPPORTED。blocking=true。\n\n3. expectation: 安全失败处理——对于真正的歧义/条件缺失场景才返回 UNSUPPORTED，且不得返回部分 filter。这里是否要设为 expectation？评判标准说“歧义、条件缺失或越界场景应 UNSUPPORTED 且不得返回部分 filter”。这个 expectation 是正向的：仅在真正歧义时 UNSUPPORTED。在本 case 中，查询并不歧义，因此这个 expectation 可以解释为“安全失败机制不应被误触发”。我可以把它作为一个 expectation，检查实际输出是否合理触发了 UNSUPPORTED。\n\n让我细化：\n\nExpectation 1: 保单号字段与值的正确识别\n- downstream_consumer: 保单筛选下游解析器（filter 消费者）\n- user_intent: 找到保单号等于 PX7319 的保单\n- expected_outcome: 从“查找PX7319保单号”中提取 policy_no 字段，值 PX7319，生成等值条件\n- acceptance_criteria: filter 中应存在 policy_no=PX7319 的等值约束；字段、操作符、值均正确\n- blocking: true\n\nExpectation 2: 解析状态应为 SUCCESS\n- expected_outcome: 由于条件完整无歧义，返回 status=SUCCESS 且 filter 非空\n- acceptance_criteria: status=SUCCESS，filter 不为 null，message 说明成功解析\n- blocking: true\n\nExpectation 3: 安全失败不应误触发（UNSUPPORTED 仅用于真正的歧义/条件缺失）\n- expected_outcome: 本查询具备明确条件，不应返回 UNSUPPORTED\n- acceptance_criteria: 实际输出不是 UNSUPPORTED（当条件明确时）\n- blocking: 这个可能和 expectation 2 重叠。我可以合并。\n\n其实 expectation 2 和 3 可以合并为“完整成功解析”。让我保持三个但清晰：\n\n1. 保单号等值条件提取（字段/值/操作符正确）\n2. 返回 SUCCESS 与完整 filter\n3. 不得在条件明确时误报 UNSUPPORTED（安全失败仅用于真实歧义）\n\n这三个有部分重叠，但代表不同的验证维度：内容正确性、状态正确性、失败策略正确性。\n\n现在，fulfillment 判定：\n- Expectation 1: not_fulfilled——filter 为 null，没有提取出 policy_no=PX7319\n- Expectation 2: not_fulfilled——status=UNSUPPORTED，filter=null\n- Expectation 3: not_fulfilled——在条件明确（PX7319 紧邻保单号，值是明确的保单号格式）时错误返回 UNSUPPORTED\n\nexpected 结构需要填写 code/msg/status/query/filter/message：\n- code: 0\n- msg: \"success\"\n- status: \"SUCCESS\"\n- query: \"麻烦帮我筛一下，查找PX7319保单号\"\n- filter: 需要给出期望的 filter 对象。但我不知道 filter 的确切 schema。从文档描述看，这是一个查询语法树协议。我可以构造一个合理的 filter。需要小心：我不能编造 schema。让我想想通常 policy_search 的 filter 结构。\n\n从项目来看，filter 是查询语法树。常见的结构可能是：\n```json\n{\n  \"type\": \"and\",\n  \"conditions\": [\n    {\"field\": \"policy_no\", \"operator\": \"eq\", \"value\": \"PX7319\"}\n  ]\n}\n```\n或者更简单：\n```json\n{\n  \"policy_no\": {\"eq\": \"PX7319\"}\n}\n```\n\n由于我没有具体的 filter schema 证据，我应该在 expected.filter 中给出一个表示保单号= PX7319 的合理结构，同时在 reasoning 中说明具体结构以协议为准。但 schema 要求 filter 是 object，不能为字符串。\n\n让我搜索一下记忆中类似 case 的处理。在之前的 policy_search judge 中，filter 通常是一个嵌套对象。常见格式是：\n```json\n{\n  \"logical_operator\": \"AND\",\n  \"conditions\": [\n    {\"field\": \"policy_no\", \"operator\": \"=\", \"value\": \"PX7319\"}\n  ]\n}\n```\n\n我不能确定。但 expected 是 judge 自产的参考。我可以给出基于语义的 filter，并注明结构依据协议。考虑到评价是“允许逻辑等价的树”，我应该给出一个合理的树。\n\n我将使用一个通用结构：\n```json\n{\n  \"operator\": \"AND\",\n  \"sub_conditions\": [\n    {\"field\": \"policy_no\", \"operator\": \"EQ\", \"value\": \"PX7319\"}\n  ]\n}\n```\n\n嗯，但为了不过度编造，我可以这样写，并在 reasoning_summary 中说明核心断言是 policy_no=PX7319 等值条件，具体语法树结构若与协议实现有异但逻辑等价均可接受。\n\n现在 missing/wrong/extra：\n- missing: 缺少政策号等值条件（policy_no=PX7319）\n- wrong: status 应为 SUCCESS 却为 UNSUPPORTED；filter 应为对象却为 null\n- extra: 无多余条件（因为 filter 为 null，没有 extra）\n\nGapItem 结构：\nmissing: [{\"kind\": \"field_selection\", \"error_type\": \"missing_condition\", \"expected\": {\"field\": \"policy_no\", \"operator\": \"EQ\", \"value\": \"PX7319\"}, \"actual\": null, \"evidence_ref\": \"final_output.filter\", \"raw\": {\"filter\": null}, \"incomplete\": false}]\nwrong: [{\"kind\": \"parse_status\", \"error_type\": \"wrong_status\", \"expected\": \"SUCCESS\", \"actual\": \"UNSUPPORTED\", \"evidence_ref\": \"final_output.status\", \"raw\": {\"status\": \"UNSUPPORTED\"}, \"incomplete\": false}]\nextra: []\n\nevidence: 可以放 final_output 和 query。\n\napplicable_product_expectation_ids：这个字段与产品期望相关。我没有看到明确的产品期望列表。可以放与本次判断相关的期望 ID，比如 [\"policy_no_equality_condition\", \"success_with_full_filter\", \"safe_failure_only_for_true_ambiguity\"]？但实际上这个字段应该引用产品级 expectation。我不太确定。既然 prompt 说“applicable_product_expectation_ids”，而 business_expectations 是 judge 自产的，我可以让 applicable_product_expectation_ids 引用 business_expectations 的 expectation_id？不，名字是“product_expectation_ids”，应该是产品定义好的期望。\n\n由于没有产品期望清单，我可以把它设为空数组？但 schema 没有 minItems 约束（business_expectations 有 minItems:1，applicable_product_expectation_ids 没有 minItems）。不过 prompt 说“禁止把 schema 里的类型描述符原样当作内容填进去”，空数组是否合规？对于 applicable_product_expectation_ids，schema 没有要求非空。但前面说“以下字段必须非空：['business_expectations', 'expected', 'reasoning_summary']”，applicable_product_expectation_ids 不在其中。所以可以设为 []。\n\n嗯，不过让我再想想。也许我应该把 business_expectations 的 expectation_id 与产品期望关联。但为保险，applicable_product_expectation_ids 设为与本次判断相关的期望 ID。我认为将其设为 business expectations 的 ID 更合理？不，它们是“product”期望。我倾向于给一个保守的、与本次评估维度相关的 ID 列表，比如 [\"policy_number_search\"]。但这样编造也不好。\n\n我决定将 applicable_product_expectation_ids 设置为 []，并在 reasoning 中不提及。因为该字段非必填非空。\n\n等等，让我重新考虑整个判断。有没有可能这个 case 设计上就是期望 UNSUPPORTED？scenario 是 surface_generalization。也许这个 case 是测试“PX7319保单号”这种表面表达，预期是能够解析？或者预期是 UNSUPPORTED？\n\n让我深入分析 query：“麻烦帮我筛一下，查找PX7319保单号”。\n\n中文里，“查找PX7319保单号”的语义：\n- 查找 [PX7319保单号] —— 查找 PX7319 这个保单号\n- 这里“保单号”是中心语，“PX7319”是限定语，修饰保单号\n- 即“查找（值为）PX7319（的）保单号”\n\n另一种读法：“查找PX7319保单号”= 查找保单号（为）PX7319。这是常见的省略“为/是”的表达。\n\n对于保单搜索场景，用户给出一个具体的保单号字符串“PX7319”，意图非常明确：按保单号筛选。这里没有任何歧义需要澄清——PX7319 紧邻“保单号”，明确是保单号的值。\n\n所以我认为 SUCCESS 是正确期望。\n\n再看实际 message：“当前未能识别对应的保单查询信息，请补充想查询的保单信息或条件”。这说明解析器未能从 query 中提取任何字段。这属于解析失败，而不是合理的 UNSUPPORTED（如歧义）。\n\n也许这个 case 是特意为了测试“PX7319保单号”这种表达方式是否能被解析。从“surface_generalization”场景名看，这个 scenario 通常会有一组 query 变体，期望都能解析出相同的语义。这更支持 SUCCESS 的期望。\n\n好，我的判断是 not_fulfilled（3 个 expectation 都 not fulfilled）。\n\n现在让我再确认 expected.filter 的结构。我不想编造与协议不符的结构。让我基于常见语法树协议给出一个保守结构。\n\n参考“保单搜索查询语法树协议”，filter 应该是一个树形 JSON。让我构造：\n```json\n{\n  \"node_type\": \"condition\",\n  \"field\": \"policy_no\",\n  \"operator\": \"eq\",\n  \"value\": \"PX7319\"\n}\n```\n\n或者带根节点：\n```json\n{\n  \"type\": \"and\",\n  \"children\": [\n    {\"type\": \"condition\", \"field\": \"policy_no\", \"operator\": \"eq\", \"value\": \"PX7319\"}\n  ]\n}\n```\n\n我将使用第二种，因为树协议通常有根节点。\n\n在 missing/wrong 中，我引用字段名 policy_no。我需要确认字段名。保单号在系统中通常叫 policy_no 或 policyNumber。从项目文档名看，保险搜索，字段可能是 \"policy_no\"。我会在 expected.filter 和 gap 中使用 \"policy_no\"，并在 reasoning 中说明字段名以业务配置为准，核心断言是保单号=PX7319。\n\n其实，为了稳妥，在 reasoning_summary 中我会说明：期望的核心语义是“保单号等于 PX7319”的等值条件，具体 filter 的字段名/操作符编码以项目语法树协议为准，逻辑等价即可。\n\n现在填写各字段。\n\nbusiness_expectations（3 个）：\n\n1. expectation_id: \"保单号等值条件识别\"\n   - blocking: true\n   - downstream_consumer: \"下游保单查询模块（filter 消费者）\"\n   - user_intent: \"用户以口语简略方式'查找PX7319保单号'表达按保单号筛选的意图\"\n   - expected_outcome: \"解析出保单号字段等于 PX7319 的等值条件，并纳入 filter\"\n   - required_capabilities: [\"保单号字段识别\", \"等值操作符解析\", \"口语省略表达理解\"]\n   - acceptance_criteria: [\"filter 中存在 policy_no=PX7319 的等值条件\", \"字段、操作符、值均正确\"]\n   - boundary: {\"允许逻辑等价树\": true}\n   - priority: \"P0\"\n\n2. expectation_id: \"成功解析并返回完整筛选条件\"\n   - blocking: true\n   - downstream_consumer: \"下游查询执行器（依赖 status 与 filter 决定是否执行查询）\"\n   - user_intent: \"查询条件完整明确时，系统应进入可执行的成功路径\"\n   - expected_outcome: \"status=SUCCESS 且 filter 为完整非空对象，message 说明已解析保单号条件\"\n   - required_capabilities: [\"条件完整性判定\", \"成功结果封装\"]\n   - acceptance_criteria: [\"status 为 SUCCESS\", \"filter 非 null 且包含完整条件\"]\n   - boundary: {\"SUCCESS 必须携带完整 filter\": true}\n   - priority: \"P0\"\n\n3. expectation_id: \"安全失败机制不被误触发\"\n   - blocking: true\n   - downstream_consumer: \"交互引导模块（仅在真正的歧义/缺失时提示补充信息）\"\n   - user_intent: \"UNSUPPORTED 只应用于真实歧义、条件缺失或越界场景\"\n   - expected_outcome: \"本查询具备明确且完整的保单号条件，不应返回 UNSUPPORTED，不应要求用户补充信息\"\n   - required_capabilities: [\"歧义判定\", \"条件完整性判定\"]\n   - acceptance_criteria: [\"实际 status 不是 UNSUPPORTED\", \"不会因本 query 向用户错误引导补充信息\"]\n   - boundary: {\"歧义/条件缺失才允许 UNSUPPORTED\": true}\n   - priority: \"P1\"\n\napplicable_product_expectation_ids: [] —— 或者我放 [\"policy_no_equality_condition\", \"success_with_full_filter\", \"safe_failure_only_for_true_ambiguity\"]？\n\n其实这个字段我理解为：本次 case 涉及的产品（项目）期望。由于没有给定产品期望清单，设为空数组更安全。schema 允许。\n\nfulfillment_assessments（3 个，对应）：\n\n1. 保单号等值条件识别\n   - status: \"not_fulfilled\"\n   - score: 0\n   - expected_evidence: [{\"filter\": \"包含 policy_no=PX7319 等值条件的完整对象\"}]\n   - actual_evidence: [{\"filter\": null, \"message\": \"当前未能识别对应的保单查询信息，请补充想查询的保单信息或条件\"}]\n   - downstream_impact: \"下游无法获得保单号查询条件，用户按保单号筛选保单的核心目的完全落空\"\n   - authority_tool_call_ids: []（没有工具调用）\n\n2. 成功解析并返回完整筛选条件\n   - status: \"not_fulfilled\"\n   - score: 0\n   - expected_evidence: [{\"status\": \"SUCCESS\"}, {\"filter\": \"非空对象\"}]\n   - actual_evidence: [{\"status\": \"UNSUPPORTED\"}, {\"filter\": null}]\n   - downstream_impact: \"查询进入 UNSUPPORTED 分支，无法执行保单筛选\"\n   - authority_tool_call_ids: []\n\n3. 安全失败机制不被误触发\n   - status: \"not_fulfilled\"\n   - score: 0\n   - expected_evidence: [{\"status\": \"非 UNSUPPORTED\"}, {\"query 含明确保单号条件，无歧义\"}]\n   - actual_evidence: [{\"status\": \"UNSUPPORTED\", \"message\": \"请补充想查询的保单信息或条件\"}]\n   - downstream_impact: \"错误地引导用户补充信息，造成交互路径误导\"\n   - authority_tool_call_ids: []\n\nexpected 字段：\n{\n  \"code\": 0,\n  \"msg\": \"success\",\n  \"status\": \"SUCCESS\",\n  \"query\": \"麻烦帮我筛一下，查找PX7319保单号\",\n  \"filter\": {\n    \"type\": \"and\",\n    \"children\": [\n      {\"type\": \"condition\", \"field\": \"policy_no\", \"operator\": \"eq\", \"value\": \"PX7319\"}\n    ]\n  },\n  \"message\": \"已识别保单号筛选条件：保单号为 PX7319\"\n}\n\nmissing:\n[\n  {\n    \"kind\": \"field_selection\",\n    \"error_type\": \"missing_condition\",\n    \"expected\": {\"field\": \"policy_no\", \"operator\": \"eq\", \"value\": \"PX7319\"},\n    \"actual\": null,\n    \"evidence_ref\": \"final_output.filter\",\n    \"raw\": {\"filter\": null},\n    \"incomplete\": false\n  }\n]\n\nwrong:\n[\n  {\n    \"kind\": \"parse_status\",\n    \"error_type\": \"wrong_status\",\n    \"expected\": \"SUCCESS\",\n    \"actual\": \"UNSUPPORTED\",\n    \"evidence_ref\": \"final_output.status\",\n    \"raw\": {\"status\": \"UNSUPPORTED\", \"message\": \"当前未能识别对应的保单查询信息，请补充想查询的保单信息或条件\"},\n    \"incomplete\": false\n  }\n]\n\nextra: []\n\nevidence:\n[\n  {\"query\": \"麻烦帮我筛一下，查找PX7319保单号\"},\n  {\"final_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"UNSUPPORTED\", \"query\": \"麻烦帮我筛一下，查找PX7319保单号\", \"filter\": null, \"message\": \"当前未能识别对应的保单查询信息，请补充想查询的保单信息或条件\"}},\n  {\"application_boundary\": {\"dependency_status\": \"available\", \"notes\": \"UNSUPPORTED is an in-scope parser decision\"}}\n]\n\nreasoning_summary（中文）：说明用户意图明确，query“查找PX7319保单号”语义为保单号等于 PX7319，无歧义、无缺失；服务依赖可用；实际输出 UNSUPPORTED 且 filter 为 null，未提取任何条件，属于错误失败，三个 expectation 均未满足。\n\n需要考虑的一点：filter 的字段名。如果协议里字段名不是 policy_no 怎么办？我以“逻辑等价”为准则，在 reasoning 中说清楚。在 expected.filter 中我确实需要填一个对象，这是 judge 自产 reference，无法穷举协议内所有合法变体，我给出一个语义等价的树即可。\n\n还要注意：user_intent 字段说“筛选符合'查找PX7319保单号'所表达条件的保单”。这确认了用户意图是按该 query 筛选。\n\n关于是否真的应该 SUCCESS——让我再找反面证据。query 是“麻烦帮我筛一下，查找PX7319保单号”。“PX7319”是否可能是别的号码？比如团险号、批次号？但用户明确说了“保单号”，且“PX7319”紧贴“保单号”，形成“PX7319保单号”的同位结构。中文口语中“查找XX保单号”等价于“查找保单号为XX”。这是常见的 surface generalization。场景名就是 surface_generalization，说明该 case 正是测试表面表达泛化能力。\n\n所以判断 SUCCESS 是合理的。\n\n最终检查输出 JSON 的合规性：\n- 首字符 {，末字符 }\n- 无 markdown\n- 所有 required 字段都有：expected, business_expectations, reasoning_summary\n- business_expectations 中每个 item 有 expectation_id 和 blocking\n- fulfillment_assessments 中每个有 expectation_id 和 status（required），我加上 score、expected_evidence、actual_evidence、downstream_impact、authority_tool_call_ids\n- expected_evidence 和 actual_evidence 是数组\n- expected 有 code/msg/status/query/filter/message\n- missing/wrong/extra 是数组\n- evidence 是数组\n- 无 additional properties\n\n好，准备输出。",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "policy_search",
+  "prompt_size": 17650,
+  "record_id": "cc6652b8-1085-45cc-a997-5b332320276b",
+  "response": {
+    "content": "{\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"保单号等值条件识别\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"下游保单筛选/查询模块（filter 消费者）\",\n      \"user_intent\": \"用户以口语简略表达“查找PX7319保单号”表示按保单号筛选保单，即保单号等于 PX7319\",\n      \"expected_outcome\": \"从 query 中解析出保单号字段与值 PX7319 的等值条件，并纳入返回的 filter\",\n      \"required_capabilities\": [\"保单号字段识别\", \"等值操作符解析\", \"口语省略表达理解\"],\n      \"acceptance_criteria\": [\"filter 中存在保单号=PX7319 的等值条件\", \"字段、操作符、值均正确，允许逻辑等价的语法树\"],\n      \"boundary\": {\"逻辑等价树可接受\": true, \"字段名以项目协议为准\": true},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"成功解析并返回完整筛选条件\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"下游查询执行器（依赖 status 与 filter 决定是否执行查询）\",\n      \"user_intent\": \"查询条件完整明确时，系统应进入可执行的成功路径并返回完整 filter\",\n      \"expected_outcome\": \"返回 status=SUCCESS，filter 为完整非空对象，message 说明已识别保单号条件\",\n      \"required_capabilities\": [\"条件完整性判定\", \"成功结果封装\"],\n      \"acceptance_criteria\": [\"status 为 SUCCESS\", \"filter 非 null 且包含完整条件\", \"SUCCESS 必须携带完整 filter\"],\n      \"boundary\": {\"SUCCESS 不允许返回空 filter\": true},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"安全失败机制不被误触发\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"交互引导模块（仅在真正歧义/条件缺失时提示补充信息）\",\n      \"user_intent\": \"UNSUPPORTED 仅用于真实歧义、条件缺失或越界场景，本查询保单号条件明确，不应触发失败分支\",\n      \"expected_outcome\": \"实际输出不应为 UNSUPPORTED，不应要求用户补充查询信息\",\n      \"required_capabilities\": [\"歧义判定\", \"条件完整性判定\"],\n      \"acceptance_criteria\": [\"实际 status 不是 UNSUPPORTED\", \"不会因本 query 错误引导用户补充信息\"],\n      \"boundary\": {\"歧义/条件缺失才允许 UNSUPPORTED\": true},\n      \"priority\": \"P1\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"保单号等值条件识别\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        {\"filter\": \"包含保单号=PX7319 等值条件的非空对象\"}\n      ],\n      \"actual_evidence\": [\n        {\"filter\": null},\n        {\"message\": \"当前未能识别对应的保单查询信息，请补充想查询的保单信息或条件\"}\n      ],\n      \"downstream_impact\": \"下游无法获得任何保单号筛选条件，用户按保单号查找保单的核心目的完全落空\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"成功解析并返回完整筛选条件\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        {\"status\": \"SUCCESS\"},\n        {\"filter\": \"完整非空对象\"}\n      ],\n      \"actual_evidence\": [\n        {\"status\": \"UNSUPPORTED\"},\n        {\"filter\": null}\n      ],\n      \"downstream_impact\": \"查询进入 UNSUPPORTED 分支，下游无法执行保单筛选，用户请求被拒绝\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"安全失败机制不被误触发\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        {\"status\": \"非 UNSUPPORTED\"},\n        {\"query 含明确保单号条件，无歧义\"}\n      ],\n      \"actual_evidence\": [\n        {\"status\": \"UNSUPPORTED\"},\n        {\"message\": \"请补充想查询的保单信息或条件\"}\n      ],\n      \"downstream_impact\": \"对条件明确的 query 错误触发失败分支，错误引导用户补充信息，产生误导性交互路径\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"expected\": {\n    \"code\": 0,\n    \"msg\": \"success\",\n    \"status\": \"SUCCESS\",\n    \"query\": \"麻烦帮我筛一下，查找PX7319保单号\",\n    \"filter\": {\n      \"type\": \"and\",\n      \"children\": [\n        {\n          \"type\": \"condition\",\n          \"field\": \"policy_no\",\n          \"operator\": \"eq\",\n          \"value\": \"PX7319\"\n        }\n      ]\n    },\n    \"message\": \"已识别保单号筛选条件：保单号为 PX7319\"\n  },\n  \"missing\": [\n    {\n      \"kind\": \"field_selection\",\n      \"error_type\": \"missing_condition\",\n      \"expected\": {\n        \"field\": \"policy_no\",\n        \"operator\": \"eq\",\n        \"value\": \"PX7319\"\n      },\n      \"actual\": null,\n      \"evidence_ref\": \"final_output.filter\",\n      \"raw\": {\"filter\": null},\n      \"incomplete\": false\n    }\n  ],\n  \"wrong\": [\n    {\n      \"kind\": \"parse_status\",\n      \"error_type\": \"wrong_status\",\n      \"expected\": \"SUCCESS\",\n      \"actual\": \"UNSUPPORTED\",\n      \"evidence_ref\": \"final_output.status\",\n      \"raw\": {\n        \"status\": \"UNSUPPORTED\",\n        \"message\": \"当前未能识别对应的保单查询信息，请补充想查询的保单信息或条件\"\n      },\n      \"incomplete\": false\n    }\n  ],\n  \"extra\": [],\n  \"evidence\": [\n    {\n      \"query\": \"麻烦帮我筛一下，查找PX7319保单号\"\n    },\n    {\n      \"final_output\": {\n        \"code\": 0,\n        \"msg\": \"success\",\n        \"status\": \"UNSUPPORTED\",\n        \"query\": \"麻烦帮我筛一下，查找PX7319保单号\",\n        \"filter\": null,\n        \"message\": \"当前未能识别对应的保单查询信息，请补充想查询的保单信息或条件\"\n      }\n    },\n    {\n      \"application_boundary\": {\n        \"dependency_status\": \"available\",\n        \"notes\": \"UNSUPPORTED is an in-scope parser decision\"\n      }\n    }\n  ],\n  \"reasoning_summary\": \"用户意图为按保单号筛选保单，query“查找PX7319保单号”是典型的口语省略表达，语义即“保单号等于 PX7319”：其中“PX7319”紧邻中心语“保单号”，构成明确的值-字段关联，不存在真实歧义，也没有条件缺失或越界。服务依赖状态为 available，满足评估前提。实际输出却返回 UNSUPPORTED 且 filter 为 null，未提取任何保单号条件，属于对明确条件的错误拒绝：既未完成保单号等值条件的识别，也未走通 SUCCESS+完整 filter 的成功路径，同时误触发了安全失败分支、错误引导用户补充信息。因此三个阻塞性业务期望均判定为 not_fulfilled。期望的 filter 为保单号=PX7319 的等值条件树，具体字段名与操作符编码以项目语法树协议为准，逻辑等价即可。\"\n}",
+    "metrics": {
+      "cache_read_tokens": 2304,
+      "cache_write_tokens": 0,
+      "input_tokens": 4082,
+      "output_tokens": 6743,
+      "reasoning_tokens": 5045,
+      "total_tokens": 10825
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 59278,
+          "endpoint": "fallback1",
+          "model": "deepseek-v4-flash-0731",
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "selected_endpoint": "fallback1",
+      "selected_model": "deepseek-v4-flash-0731",
+      "stage": ""
+    }
+  },
+  "trace_id": "policy_search:policy-search-rich-0080:1786468414345"
+}

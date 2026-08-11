@@ -1,0 +1,2559 @@
+{
+  "case_index": 5,
+  "completed_rows": [
+    {
+      "case_key": "source-badcase-008",
+      "current": {
+        "actual": {
+          "conditions": [
+            {
+              "field": "orphanType",
+              "match_mode": null,
+              "operator": "MATCH",
+              "value": "纯存续单客户"
+            }
+          ],
+          "intent_summary": "存续客户类型为纯存续单客户",
+          "query": "纯存续单客户",
+          "query_logic": "AND",
+          "robot_text": "存续客户类型为纯存续单客户"
+        },
+        "business_expectations": [
+          {
+            "acceptance_criteria": [
+              "目标客户类型的枚举值为“在职有效客户”",
+              "不得将其解析为“纯存续单客户”或其他客户类型"
+            ],
+            "blocking": true,
+            "boundary": {
+              "judge_scope": "parser_condition_semantics_only",
+              "result_set_verified": false
+            },
+            "downstream_consumer": "客户搜索下游",
+            "evidence_refs": [],
+            "expectation_id": "将孤儿单映射为在职有效客户",
+            "expected_outcome": "将用户词语“孤儿单”按当前业务口径解析为“在职有效客户”。",
+            "priority": "核心",
+            "required_capabilities": [
+              "识别用户词语“孤儿单”",
+              "使用当前值映射完成枚举归一化"
+            ],
+            "user_intent": "查询孤儿单客户"
+          },
+          {
+            "acceptance_criteria": [
+              "结构化条件字段为 orphanType",
+              "字段值表达孤儿单对应的在职有效客户"
+            ],
+            "blocking": true,
+            "boundary": {
+              "available_enums": [
+                "在职有效客户",
+                "纯存续单客户",
+                "非纯存续单客户"
+              ],
+              "field": "orphanType"
+            },
+            "downstream_consumer": "客户搜索解析器",
+            "evidence_refs": [],
+            "expectation_id": "使用孤儿单对应的客户类型字段",
+            "expected_outcome": "使用承载该业务语义的 orphanType 字段表达筛选条件。",
+            "priority": "核心",
+            "required_capabilities": [
+              "识别 orphanType 字段",
+              "将客户类型条件写入结构化搜索条件"
+            ],
+            "user_intent": "按客户类型筛选孤儿单客户"
+          },
+          {
+            "acceptance_criteria": [
+              "操作符为 MATCH",
+              "值类型为 orphanType 支持的枚举值"
+            ],
+            "blocking": true,
+            "boundary": {
+              "allowed_operators": [
+                "MATCH"
+              ],
+              "field": "orphanType",
+              "value_type": "enum"
+            },
+            "downstream_consumer": "ES客户搜索接口",
+            "evidence_refs": [],
+            "expectation_id": "使用支持的MATCH操作符查询客户类型",
+            "expected_outcome": "使用 orphanType 支持的 MATCH 操作符查询标准枚举值。",
+            "priority": "核心",
+            "required_capabilities": [
+              "使用 MATCH 操作符",
+              "传递枚举类型值"
+            ],
+            "user_intent": "执行孤儿单客户类型筛选"
+          },
+          {
+            "acceptance_criteria": [
+              "仅包含一个 orphanType 条件",
+              "不存在用户未表达的额外条件",
+              "query_logic 为 AND 或其他等价的单条件逻辑"
+            ],
+            "blocking": false,
+            "boundary": {
+              "condition_count": 1,
+              "extra_constraints_allowed": false
+            },
+            "downstream_consumer": "客户搜索解析器",
+            "evidence_refs": [],
+            "expectation_id": "保持单条件查询逻辑不引入额外筛选",
+            "expected_outcome": "只生成一个客户类型条件，单条件使用 AND 不改变查询语义。",
+            "priority": "次要",
+            "required_capabilities": [
+              "识别单一筛选意图",
+              "正确组织查询逻辑"
+            ],
+            "user_intent": "仅按孤儿单这一项条件搜索"
+          },
+          {
+            "acceptance_criteria": [
+              "请求可由 orphanType 字段表达",
+              "不需要未提供的字段、枚举或外部数据"
+            ],
+            "blocking": false,
+            "boundary": {
+              "capability_manifest_complete": true,
+              "unsupported_request": false
+            },
+            "downstream_consumer": "客户搜索系统",
+            "evidence_refs": [],
+            "expectation_id": "不依赖超出当前能力边界的字段或枚举",
+            "expected_outcome": "使用当前能力清单中已有的字段和枚举表达请求。",
+            "priority": "约束",
+            "required_capabilities": [
+              "使用已配置字段",
+              "使用已配置枚举"
+            ],
+            "user_intent": "在现有客户类型能力范围内完成查询"
+          }
+        ],
+        "evidence": [
+          {
+            "fact": "孤儿单映射为纯存续单客户",
+            "interpretation": "该映射与当前业务口径备注冲突，当前业务口径明确为孤儿单=在职有效客户。",
+            "source": "capability_manifest.value_mappings.orphanType"
+          },
+          {
+            "fact": "当前口径：孤儿单=在职有效客户；有存续单=纯存续单客户；非存续单=非纯存续单客户。",
+            "source": "capability_manifest.orphanType.notes"
+          },
+          {
+            "fact": "实际输出使用 orphanType MATCH 纯存续单客户，且仅包含一个条件。",
+            "source": "run_trace.final_output"
+          },
+          {
+            "fact": "下游结果集未验证，评价范围为 parser_condition_semantics_only，result_set_verified=false。",
+            "source": "run_trace.application_boundary"
+          }
+        ],
+        "expected": {
+          "code": 0,
+          "conditions": [
+            {
+              "field": "orphanType",
+              "match_mode": null,
+              "operator": "MATCH",
+              "value": "在职有效客户"
+            }
+          ],
+          "msg": "解析成功",
+          "query": "在职有效客户",
+          "query_logic": "AND",
+          "rewritten_query": null,
+          "robot_text": "客户类型为在职有效客户"
+        },
+        "extra": [],
+        "fulfillment_assessments": [
+          {
+            "actual_evidence": [
+              "最终条件为 orphanType MATCH “纯存续单客户”",
+              "最终 query 为“纯存续单客户”",
+              "最终 intent_summary 表述为“存续客户类型为纯存续单客户”"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 1,
+            "downstream_impact": "会把孤儿单客户查询成纯存续单客户，导致核心目标客户群发生偏移。",
+            "evidence_refs": [],
+            "expectation_id": "将孤儿单映射为在职有效客户",
+            "expected_evidence": [
+              "当前 value_mappings.orphanType 将“孤儿单”映射为“纯存续单客户”以外的正确业务口径是“在职有效客户”",
+              "孤儿单的当前业务口径备注为“孤儿单=在职有效客户”"
+            ],
+            "score": 0,
+            "status": "not_fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "最终条件使用字段 orphanType",
+              "该字段属于 capability_manifest，且提供了对应枚举能力"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 1,
+            "downstream_impact": "字段选择能够承载客户类型筛选语义，但字段值错误仍会影响最终搜索对象。",
+            "evidence_refs": [],
+            "expectation_id": "使用孤儿单对应的客户类型字段",
+            "expected_evidence": [
+              "orphanType 是当前能力清单中用于表达客户类型的字段",
+              "孤儿单的目标值应通过 orphanType 字段表达"
+            ],
+            "score": 1,
+            "status": "fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "最终条件使用 operator MATCH",
+              "最终条件值“纯存续单客户”属于 orphanType 的合法枚举"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 1,
+            "downstream_impact": "操作符和值类型可执行，不构成额外的查询语义问题。",
+            "evidence_refs": [],
+            "expectation_id": "使用支持的MATCH操作符查询客户类型",
+            "expected_evidence": [
+              "orphanType 允许的操作符为 MATCH",
+              "orphanType 的值类型为 enum"
+            ],
+            "score": 1,
+            "status": "fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "最终 conditions 仅包含一个 orphanType 条件",
+              "最终 query_logic 为 AND",
+              "未发现额外筛选条件"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 1,
+            "downstream_impact": "查询范围没有因额外条件而进一步缩窄。",
+            "evidence_refs": [],
+            "expectation_id": "保持单条件查询逻辑不引入额外筛选",
+            "expected_evidence": [
+              "用户只提出“孤儿单”一个筛选意图",
+              "单个条件使用 AND 不改变其查询语义"
+            ],
+            "score": 1,
+            "status": "fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "最终输出使用已声明的 orphanType 字段",
+              "最终值“纯存续单客户”属于已声明枚举",
+              "application_boundary.judge_scope 为 parser_condition_semantics_only"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 1,
+            "downstream_impact": "该请求属于当前解析能力可表达的范围，结果集未实际验证但不影响对条件语义的判断。",
+            "evidence_refs": [],
+            "expectation_id": "不依赖超出当前能力边界的字段或枚举",
+            "expected_evidence": [
+              "orphanType 及其枚举已在 capability_manifest 中提供",
+              "请求不需要未配置的字段或外部数据"
+            ],
+            "score": 1,
+            "status": "fulfilled"
+          }
+        ],
+        "missing": [
+          {
+            "actual": {
+              "field": "orphanType",
+              "operator": "MATCH",
+              "value": "纯存续单客户"
+            },
+            "error_type": "缺少正确目标值",
+            "evidence_ref": "final_output.conditions[0]",
+            "expected": {
+              "field": "orphanType",
+              "operator": "MATCH",
+              "value": "在职有效客户"
+            },
+            "incomplete": false,
+            "kind": "核心筛选条件",
+            "raw": "孤儿单应映射为在职有效客户"
+          }
+        ],
+        "overall_fulfillment": {
+          "blocking_expectations": [
+            "将孤儿单映射为在职有效客户",
+            "使用孤儿单对应的客户类型字段",
+            "使用支持的MATCH操作符查询客户类型"
+          ],
+          "status": "not_fulfilled"
+        },
+        "project_id": "client_search",
+        "reasoning_summary": "用户只提出“孤儿单”，当前业务口径明确将其定义为“在职有效客户”。实际输出虽然正确使用了 orphanType 字段、MATCH 操作符、合法枚举值，并且没有添加额外条件，但将核心值解析为“纯存续单客户”，其业务含义对应有存续单而非孤儿单。因此核心目标客户群未被正确表达。下游结果集未验证，但现有字段、枚举和映射信息足以确定该条件语义不一致。",
+        "summary": {
+          "assessment_count": 5,
+          "blocking_count": 3,
+          "fulfillment_status": "not_fulfilled",
+          "is_formal_attribution": true,
+          "primary_failure_dimensions": [
+            {
+              "blocking": true,
+              "downstream_impact": "会把孤儿单客户查询成纯存续单客户，导致核心目标客户群发生偏移。",
+              "evidence": "最终条件为 orphanType MATCH “纯存续单客户” | 最终 query 为“纯存续单客户” | 最终 intent_summary 表述为“存续客户类型为纯存续单客户” | 当前 value_mappings.orphanType 将“孤儿单”映射为“纯存续单客户”以外的正确业务口径是“在职有效客户” | 孤儿单的当前业务口径备注为“孤儿单=在职有效客户”",
+              "expectation_id": "将孤儿单映射为在职有效客户",
+              "status": "not_fulfilled"
+            }
+          ],
+          "reason": "not_fulfilled · blocking=[将孤儿单映射为在职有效客户] · 用户只提出“孤儿单”，当前业务口径明确将其定义为“在职有效客户”。实际输出虽然正确使用了 orphanType 字段、MATCH 操作符、合法枚举值，并且没有添加额外条件，但将核心值解析为“纯存续单客户”，其业务含义对应有存续单而非孤儿单。因此核心目标客户群未被正确表达。下游结果集未验证，但现有字段、枚举和映射信息足以确定该条件语义不一致。",
+          "reason_source": "aggregated_fulfillment"
+        },
+        "trace_id": "client_search:badcase-008:1785239538449",
+        "wrong": [
+          {
+            "actual": "纯存续单客户",
+            "error_type": "枚举值语义不匹配",
+            "evidence_ref": "final_output.conditions[0].value",
+            "expected": "在职有效客户",
+            "incomplete": false,
+            "kind": "值映射",
+            "raw": "孤儿单"
+          },
+          {
+            "actual": "纯存续单客户",
+            "error_type": "查询意图被改写为其他客户类型",
+            "evidence_ref": "final_output.query",
+            "expected": "在职有效客户",
+            "incomplete": false,
+            "kind": "查询文本",
+            "raw": "纯存续单客户"
+          }
+        ]
+      },
+      "current_metrics": {
+        "elapsed_seconds": 129.924512
+      },
+      "current_runtime": {
+        "authority_audit": {},
+        "authority_tool_call_ids": [],
+        "environment": "missing",
+        "environment_snapshot_sha256": ""
+      },
+      "draft": {
+        "actual": {
+          "conditions": [
+            {
+              "field": "orphanType",
+              "match_mode": null,
+              "operator": "MATCH",
+              "value": "纯存续单客户"
+            }
+          ],
+          "intent_summary": "存续客户类型为纯存续单客户",
+          "query": "纯存续单客户",
+          "query_logic": "AND",
+          "robot_text": "存续客户类型为纯存续单客户"
+        },
+        "business_expectations": [
+          {
+            "acceptance_criteria": [
+              "用户口语“孤儿单”的目标客户类型为 orphanType=“在职有效客户”。",
+              "不得将其归一为“纯存续单客户”。"
+            ],
+            "blocking": true,
+            "boundary": {
+              "judge_scope": "parser_condition_semantics_only",
+              "result_set_verified": false
+            },
+            "downstream_consumer": "client_search 下游客户筛选",
+            "evidence_refs": [],
+            "expectation_id": "将孤儿单识别为在职有效客户类型",
+            "expected_outcome": "将“孤儿单”归一为 orphanType 枚举值“在职有效客户”。",
+            "priority": "核心业务目标",
+            "required_capabilities": [
+              "orphanType"
+            ],
+            "user_intent": "用户输入“孤儿单”，意图是检索对应的目标客户群体。"
+          },
+          {
+            "acceptance_criteria": [
+              "字段为 orphanType 或业务语义等价字段。",
+              "操作符为下游支持的 MATCH。",
+              "枚举值为“在职有效客户”。"
+            ],
+            "blocking": true,
+            "boundary": {
+              "judge_scope": "parser_condition_semantics_only",
+              "result_set_verified": false
+            },
+            "downstream_consumer": "ES 客户搜索查询构造",
+            "evidence_refs": [],
+            "expectation_id": "交付孤儿单对应的可执行筛选条件",
+            "expected_outcome": "交付 orphanType 字段上的 MATCH 条件，值为“在职有效客户”。",
+            "priority": "下游可执行性",
+            "required_capabilities": [
+              "orphanType"
+            ],
+            "user_intent": "输出能够交给下游执行的孤儿单客户筛选条件。"
+          },
+          {
+            "acceptance_criteria": [
+              "query_logic 为 AND。",
+              "查询中不拆分出额外的 OR、NOT 或其他逻辑关系。"
+            ],
+            "blocking": true,
+            "boundary": {
+              "judge_scope": "parser_condition_semantics_only",
+              "result_set_verified": false
+            },
+            "downstream_consumer": "ES 客户搜索查询构造",
+            "evidence_refs": [],
+            "expectation_id": "保持孤儿单单条件的查询逻辑",
+            "expected_outcome": "query_logic 为 AND，且仅包含孤儿单这一项筛选条件。",
+            "priority": "查询逻辑保持",
+            "required_capabilities": [
+              "orphanType"
+            ],
+            "user_intent": "用户只提出一个筛选条件，因此查询应保持单条件 AND 逻辑。"
+          },
+          {
+            "acceptance_criteria": [
+              "输出条件数量为一。",
+              "不存在用户未表达的年龄、姓名、状态或其他筛选条件。"
+            ],
+            "blocking": true,
+            "boundary": {
+              "judge_scope": "parser_condition_semantics_only",
+              "result_set_verified": false
+            },
+            "downstream_consumer": "ES 客户搜索查询构造",
+            "evidence_refs": [],
+            "expectation_id": "不增加用户未表达的筛选限制",
+            "expected_outcome": "除 orphanType 条件外不增加其他会改变客户集合的限制。",
+            "priority": "客户集合完整性",
+            "required_capabilities": [
+              "orphanType"
+            ],
+            "user_intent": "查询客户集合只能受“孤儿单”这一明确条件约束。"
+          }
+        ],
+        "evidence": [
+          {
+            "content": "孤儿单",
+            "type": "user_input"
+          },
+          {
+            "conclusion": "“孤儿单”应归一为“在职有效客户”。",
+            "tool_call_id": "authority.client_search.6fc17204025a",
+            "type": "authority_resolution"
+          },
+          {
+            "content": {
+              "conditions": [
+                {
+                  "field": "orphanType",
+                  "operator": "MATCH",
+                  "value": "纯存续单客户"
+                }
+              ],
+              "intent_summary": "存续客户类型为纯存续单客户",
+              "query_logic": "AND"
+            },
+            "type": "actual_output"
+          },
+          {
+            "result_set_verified": false,
+            "scope": "parser_condition_semantics_only",
+            "status": "not_verified",
+            "type": "downstream_search"
+          },
+          {
+            "environment_snapshot_sha256": "227ff6b5de70e10241ed9a481905f8ee85b2b7de77f9a541bc16bb6dc3f3ae13",
+            "reused_resolution_refs": [
+              "resolution.10@8518367c53bf",
+              "resolution.12@8518367c53bf",
+              "resolution.1@8518367c53bf",
+              "resolution.2@8518367c53bf",
+              "resolution.3@8518367c53bf",
+              "resolution.5@8518367c53bf",
+              "resolution.8@8518367c53bf",
+              "resolution.9@8518367c53bf"
+            ],
+            "source": "authority_runtime",
+            "tool_call_ids": [
+              "authority.client_search.6fc17204025a"
+            ]
+          },
+          {
+            "extra": [],
+            "missing": [],
+            "source": "client_search.condition_compare",
+            "wrong": []
+          }
+        ],
+        "expected": {
+          "code": 200,
+          "conditions": [
+            {
+              "field": "orphanType",
+              "match_mode": null,
+              "operator": "MATCH",
+              "value": "在职有效客户"
+            }
+          ],
+          "msg": "success",
+          "query": "孤儿单",
+          "query_logic": "AND",
+          "rewritten_query": "在职有效客户",
+          "robot_text": "存续客户类型为在职有效客户"
+        },
+        "extra": [],
+        "fulfillment_assessments": [
+          {
+            "actual_evidence": [
+              "当前 final_output 将“孤儿单”解释为“存续客户类型为纯存续单客户”。",
+              "实际条件为 orphanType MATCH “纯存续单客户”。",
+              "该值与 Authority 裁决的“在职有效客户”不一致。",
+              "下游结果集未验证；本结论基于 parser 条件语义判断。"
+            ],
+            "authority_tool_call_ids": [
+              "authority.client_search.6fc17204025a"
+            ],
+            "confidence": 1,
+            "downstream_impact": "会把目标客户集合筛选为纯存续单客户，而不是用户要求的孤儿单对应客户。",
+            "evidence_refs": [],
+            "expectation_id": "将孤儿单识别为在职有效客户类型",
+            "expected_evidence": [
+              "Authority 已裁决：在当前 client_search 场景中，“孤儿单”应归一为 orphanType=“在职有效客户”。",
+              "field_definitions 的 orphanType notes 记载“孤儿单=在职有效客户”。"
+            ],
+            "score": 0,
+            "status": "not_fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "实际条件：field=orphanType，operator=MATCH，value=“纯存续单客户”。",
+              "字段和操作符可执行，但枚举值承载的业务语义不符合“孤儿单”的已裁决归一结果。",
+              "下游结果集未验证；本结论基于 parser 条件语义判断。"
+            ],
+            "authority_tool_call_ids": [
+              "authority.client_search.6fc17204025a"
+            ],
+            "confidence": 1,
+            "downstream_impact": "下游可以执行该条件，但执行的是错误的客户类型筛选，无法交付用户要求的客户集合。",
+            "evidence_refs": [],
+            "expectation_id": "交付孤儿单对应的可执行筛选条件",
+            "expected_evidence": [
+              "期望条件：field=orphanType，operator=MATCH，value=“在职有效客户”。",
+              "orphanType 字段支持 MATCH，且“在职有效客户”属于其枚举值。"
+            ],
+            "score": 0,
+            "status": "not_fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "final_output 的 query_logic 为 AND。",
+              "conditions 仅包含一项 orphanType 条件。",
+              "下游结果集未验证；逻辑结构可由当前 parser 输出直接确认。"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 1,
+            "downstream_impact": "查询逻辑未引入额外组合关系。",
+            "evidence_refs": [],
+            "expectation_id": "保持孤儿单单条件的查询逻辑",
+            "expected_evidence": [
+              "用户仅输入一个筛选条件，期望使用 query_logic=AND。",
+              "不应产生额外的 OR、NOT 或复合逻辑。"
+            ],
+            "score": 1,
+            "status": "fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "final_output 仅输出一个 orphanType 条件。",
+              "未发现额外的未表达筛选限制。",
+              "下游结果集未验证；条件覆盖可由当前 parser 输出直接确认。"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 1,
+            "downstream_impact": "没有因增加额外限制而进一步缩小客户集合。",
+            "evidence_refs": [],
+            "expectation_id": "不增加用户未表达的筛选限制",
+            "expected_evidence": [
+              "用户未表达年龄、姓名、保单或其他附加筛选条件。",
+              "期望只保留孤儿单对应的一个客户类型条件。"
+            ],
+            "score": 1,
+            "status": "fulfilled"
+          }
+        ],
+        "missing": [],
+        "overall_fulfillment": {
+          "blocking_expectations": [
+            "将孤儿单识别为在职有效客户类型",
+            "交付孤儿单对应的可执行筛选条件",
+            "保持孤儿单单条件的查询逻辑",
+            "不增加用户未表达的筛选限制"
+          ],
+          "status": "not_fulfilled"
+        },
+        "project_id": "client_search",
+        "reasoning_summary": "该请求属于 find-target-customers 场景，用户要检索“孤儿单”对应的目标客户。Authority 已裁决当前业务口径为 orphanType=“在职有效客户”，而实际输出使用了“纯存续单客户”；虽然字段 orphanType 和 MATCH 操作符可执行，且 query_logic=AND、没有增加额外条件，但核心客户类型值不一致，因此核心目标和下游可执行条件均未满足。由于下游结果集未验证，本判断仅基于当前 parser 条件语义。",
+        "summary": {
+          "assessment_count": 4,
+          "blocking_count": 4,
+          "fulfillment_status": "not_fulfilled",
+          "is_formal_attribution": true,
+          "primary_failure_dimensions": [
+            {
+              "blocking": true,
+              "downstream_impact": "下游可以执行该条件，但执行的是错误的客户类型筛选，无法交付用户要求的客户集合。",
+              "evidence": "实际条件：field=orphanType，operator=MATCH，value=“纯存续单客户”。 | 字段和操作符可执行，但枚举值承载的业务语义不符合“孤儿单”的已裁决归一结果。 | 下游结果集未验证；本结论基于 parser 条件语义判断。 | 期望条件：field=orphanType，operator=MATCH，value=“在职有效客户”。 | orphanType 字段支持 MATCH，且“在职有效客户”属于其枚举值。",
+              "expectation_id": "交付孤儿单对应的可执行筛选条件",
+              "status": "not_fulfilled"
+            },
+            {
+              "blocking": true,
+              "downstream_impact": "会把目标客户集合筛选为纯存续单客户，而不是用户要求的孤儿单对应客户。",
+              "evidence": "当前 final_output 将“孤儿单”解释为“存续客户类型为纯存续单客户”。 | 实际条件为 orphanType MATCH “纯存续单客户”。 | 该值与 Authority 裁决的“在职有效客户”不一致。 | 下游结果集未验证；本结论基于 parser 条件语义判断。 | Authority 已裁决：在当前 client_search 场景中，“孤儿单”应归一为 orphanType=“在职有效客户”。 | field_definitions 的 orphanType notes 记载“孤儿单=在职有效客户”。",
+              "expectation_id": "将孤儿单识别为在职有效客户类型",
+              "status": "not_fulfilled"
+            }
+          ],
+          "reason": "not_fulfilled · blocking=[交付孤儿单对应的可执行筛选条件,将孤儿单识别为在职有效客户类型] · 该请求属于 find-target-customers 场景，用户要检索“孤儿单”对应的目标客户。Authority 已裁决当前业务口径为 orphanType=“在职有效客户”，而实际输出使用了“纯存续单客户”；虽然字段 orphanType 和 MATCH 操作符可执行，且 query_logic=AND、没有增加额外条件，但核心客户类型值不一致，因此核心目标和下游可执行条件均未满足。由于下游结果集未验证，本判断仅基于当前 parser 条件语义。",
+          "reason_source": "aggregated_fulfillment"
+        },
+        "trace_id": "client_search:badcase-008:1785239538449",
+        "wrong": [
+          {
+            "actual": {
+              "field": "orphanType",
+              "operator": "MATCH",
+              "value": "纯存续单客户"
+            },
+            "error_type": "value_semantics_mismatch",
+            "evidence_ref": "authority.client_search.6fc17204025a",
+            "expected": {
+              "field": "orphanType",
+              "operator": "MATCH",
+              "value": "在职有效客户"
+            },
+            "incomplete": false,
+            "kind": "condition",
+            "raw": "用户输入“孤儿单”被输出为“纯存续单客户”，而当前业务裁决要求“在职有效客户”。"
+          }
+        ]
+      },
+      "draft_metrics": {
+        "elapsed_seconds": 253.723243
+      },
+      "draft_runtime": {
+        "authority_audit": {
+          "authority.client_search.6fc17204025a": {
+            "environment_snapshot_sha256": "227ff6b5de70e10241ed9a481905f8ee85b2b7de77f9a541bc16bb6dc3f3ae13",
+            "request": {
+              "decision_question": "在当前 client_search 客户搜索场景中，用户仅输入“孤儿单”时，orphanType 应将该口语归一为“纯存续单客户”还是“在职有效客户”，哪一个枚举值才是业务认可的目标客户类型？"
+            },
+            "resolution": {
+              "basis_evidence_ref_ids": [
+                "authority-ref-a7decb143bb6e76a",
+                "authority-ref-2f73775fce4d2f8b"
+              ],
+              "reason": "orphanType 字段定义明确注明当前口径为“孤儿单=在职有效客户”，并将“有存续单”单独归一为“纯存续单客户”。因此在 client_search 客户搜索场景下，“孤儿单”与“纯存续单客户”不是同义表达，字段应使用“在职有效客户”枚举值；对应规则支持对 orphanType 枚举进行匹配。",
+              "required_evidence": [],
+              "statement": "用户仅输入“孤儿单”时，orphanType 应归一为“在职有效客户”，该枚举值是当前业务认可的目标客户类型。",
+              "status": "resolved"
+            }
+          }
+        },
+        "authority_tool_call_ids": [
+          "authority.client_search.6fc17204025a"
+        ],
+        "environment": "ok",
+        "environment_snapshot_sha256": "227ff6b5de70e10241ed9a481905f8ee85b2b7de77f9a541bc16bb6dc3f3ae13"
+      }
+    },
+    {
+      "case_key": "source-badcase-018",
+      "current": {
+        "actual": {
+          "conditions": [
+            {
+              "field": "vipType",
+              "match_mode": null,
+              "operator": "CONTAINS",
+              "value": [
+                "铂金V1",
+                "铂金V2",
+                "原铂金VIP"
+              ]
+            }
+          ],
+          "intent_summary": "客户VIP等级包含铂金V1、铂金V2、原铂金VIP的客户",
+          "query": "我的铂金客户名单",
+          "query_logic": "OR",
+          "robot_text": "客户VIP等级包含铂金V1、铂金V2、原铂金VIP的客户"
+        },
+        "business_expectations": [
+          {
+            "acceptance_criteria": [
+              "查询对象应为客户，而不是会员权益或其他对象",
+              "“我的”作为当前查询上下文范围理解，不要求生成未提供能力支持的额外字段条件"
+            ],
+            "blocking": true,
+            "boundary": {
+              "judge_scope": "parser_condition_semantics_only",
+              "result_set_verified": false
+            },
+            "downstream_consumer": "客户搜索下游",
+            "evidence_refs": [],
+            "expectation_id": "限定当前用户的客户范围",
+            "expected_outcome": "在当前用户可访问的客户范围内执行铂金VIP等级筛选",
+            "priority": "高",
+            "required_capabilities": [
+              "识别客户名单查询意图",
+              "保留当前用户客户范围这一上下文"
+            ],
+            "user_intent": "查询当前用户客户范围内的铂金客户名单"
+          },
+          {
+            "acceptance_criteria": [
+              "筛选字段应表达寿险VIP等级标签",
+              "不得将铂金客户解释为会员权益开通时间或其他权益体系等级"
+            ],
+            "blocking": true,
+            "boundary": {
+              "field": "vipType",
+              "field_semantics": "寿险VIP等级标签"
+            },
+            "downstream_consumer": "客户搜索下游",
+            "evidence_refs": [],
+            "expectation_id": "使用寿险VIP等级字段表达铂金客户",
+            "expected_outcome": "使用承载寿险VIP等级标签的字段进行筛选",
+            "priority": "高",
+            "required_capabilities": [
+              "vipType字段",
+              "vipType字段语义识别"
+            ],
+            "user_intent": "按寿险VIP等级筛选铂金客户"
+          },
+          {
+            "acceptance_criteria": [
+              "操作符应为当前字段支持的CONTAINS或语义等价操作",
+              "操作值类型应为vipType允许的枚举集合"
+            ],
+            "blocking": true,
+            "boundary": {
+              "field": "vipType",
+              "operator": "CONTAINS",
+              "value_type": "enum"
+            },
+            "downstream_consumer": "客户搜索下游",
+            "evidence_refs": [],
+            "expectation_id": "使用可执行的VIP等级包含操作",
+            "expected_outcome": "使用vipType的CONTAINS操作表达等级集合匹配",
+            "priority": "高",
+            "required_capabilities": [
+              "vipType.CONTAINS操作符",
+              "枚举集合查询"
+            ],
+            "user_intent": "匹配属于铂金等级集合的客户"
+          },
+          {
+            "acceptance_criteria": [
+              "值集合必须包含铂金V1、铂金V2、原铂金VIP",
+              "不应遗漏上述任一铂金枚举",
+              "不应加入黄金、钻石、金钻或黑钻等其他等级"
+            ],
+            "blocking": true,
+            "boundary": {
+              "allowed_values": [
+                "铂金V1",
+                "铂金V2",
+                "原铂金VIP"
+              ],
+              "field": "vipType"
+            },
+            "downstream_consumer": "客户搜索下游",
+            "evidence_refs": [],
+            "expectation_id": "覆盖全部铂金VIP枚举值",
+            "expected_outcome": "匹配铂金V1、铂金V2和原铂金VIP",
+            "priority": "高",
+            "required_capabilities": [
+              "铂金客户口语映射",
+              "vipType枚举值归一化"
+            ],
+            "user_intent": "覆盖所有被定义为铂金客户的VIP等级"
+          },
+          {
+            "acceptance_criteria": [
+              "铂金V1、铂金V2和原铂金VIP之间应为OR关系",
+              "不应要求客户同时具备多个互斥等级"
+            ],
+            "blocking": true,
+            "boundary": {
+              "query_logic": "OR"
+            },
+            "downstream_consumer": "客户搜索下游",
+            "evidence_refs": [],
+            "expectation_id": "以或逻辑合并铂金等级",
+            "expected_outcome": "对三个铂金枚举值采用OR逻辑查询",
+            "priority": "高",
+            "required_capabilities": [
+              "多枚举值组合",
+              "OR布尔逻辑"
+            ],
+            "user_intent": "只要客户属于任一铂金VIP等级即可纳入名单"
+          },
+          {
+            "acceptance_criteria": [
+              "输出条件仅围绕铂金VIP等级",
+              "不得添加用户未表达的其他强筛选条件"
+            ],
+            "blocking": false,
+            "boundary": {
+              "unsupported_or_out_of_boundary_request": "无"
+            },
+            "downstream_consumer": "客户搜索下游",
+            "evidence_refs": [],
+            "expectation_id": "不引入未表达的额外筛选语义",
+            "expected_outcome": "不额外添加权益、时间、产品或更高等级等条件",
+            "priority": "中",
+            "required_capabilities": [
+              "单条件意图识别",
+              "额外条件抑制"
+            ],
+            "user_intent": "仅按铂金VIP客户这一条件查询名单"
+          }
+        ],
+        "evidence": [
+          {
+            "details": "输出包含vipType的CONTAINS条件，值为全部三个铂金枚举，query_logic为OR。",
+            "result_set_verified": false,
+            "source": "RunTrace.final_output"
+          },
+          {
+            "details": "vipType支持CONTAINS，枚举包含铂金V1、铂金V2、原铂金VIP，且口语映射明确将铂金会员映射到这三个值。",
+            "source": "capability_manifest.vipType"
+          },
+          {
+            "details": "下游结果集未验证，当前评价范围为parser_condition_semantics_only；本判断基于字段语义、操作符、枚举和布尔逻辑。",
+            "source": "RunTrace.application_boundary"
+          }
+        ],
+        "expected": {
+          "code": 200,
+          "conditions": [
+            {
+              "field": "vipType",
+              "match_mode": null,
+              "operator": "CONTAINS",
+              "value": [
+                "铂金V1",
+                "铂金V2",
+                "原铂金VIP"
+              ]
+            }
+          ],
+          "confidence": null,
+          "cost_times": null,
+          "end_flag": null,
+          "intent_summary": "客户VIP等级包含铂金V1、铂金V2、原铂金VIP的客户",
+          "matched_level": null,
+          "matched_patterns": null,
+          "msg": "解析成功",
+          "query": "我的铂金客户名单",
+          "query_logic": "OR",
+          "rewritten_query": null,
+          "robot_text": "客户VIP等级包含铂金V1、铂金V2、原铂金VIP的客户",
+          "trace_id": "client_search:badcase-018:1785239538429"
+        },
+        "extra": [],
+        "fulfillment_assessments": [
+          {
+            "actual_evidence": [
+              "final_output.query为“我的铂金客户名单”",
+              "final_output.intent_summary明确描述为铂金VIP等级客户",
+              "当前application_boundary为parser_condition_semantics_only；result_set_verified=false，但不影响对已生成查询语义的判断"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.92,
+            "downstream_impact": "可将当前用户范围内的客户交给下游按铂金等级检索；实际结果集未由下游验证。",
+            "evidence_refs": [],
+            "expectation_id": "限定当前用户的客户范围",
+            "expected_evidence": [
+              "用户表达为“我的铂金客户名单”，目标对象是当前用户客户范围内的客户名单",
+              "“我的”属于查询上下文范围，当前能力清单未提供需要额外输出的客户归属字段"
+            ],
+            "score": 1.0,
+            "status": "fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "conditions中的field为vipType",
+              "intent_summary为“客户VIP等级包含铂金V1、铂金V2、原铂金VIP”"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.99,
+            "downstream_impact": "字段语义与用户的寿险VIP铂金客户意图一致。",
+            "evidence_refs": [],
+            "expectation_id": "使用寿险VIP等级字段表达铂金客户",
+            "expected_evidence": [
+              "vipType定义为寿险VIP等级标签",
+              "用户未提及会员权益开通时间或其他权益体系等级"
+            ],
+            "score": 1.0,
+            "status": "fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "conditions中的operator为CONTAINS",
+              "conditions中的value为枚举数组"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.99,
+            "downstream_impact": "生成了当前字段能力范围内的可执行集合筛选条件。",
+            "evidence_refs": [],
+            "expectation_id": "使用可执行的VIP等级包含操作",
+            "expected_evidence": [
+              "vipType支持CONTAINS操作符",
+              "vipType允许enum值类型"
+            ],
+            "score": 1.0,
+            "status": "fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "conditions.value完整包含铂金V1、铂金V2、原铂金VIP",
+              "未包含其他VIP等级"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 1.0,
+            "downstream_impact": "铂金客户的三个支持枚举均被覆盖，没有可见的等级遗漏或额外等级。",
+            "evidence_refs": [],
+            "expectation_id": "覆盖全部铂金VIP枚举值",
+            "expected_evidence": [
+              "铂金客户映射为铂金V1、铂金V2、原铂金VIP"
+            ],
+            "score": 1.0,
+            "status": "fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "final_output.query_logic为OR",
+              "单个conditions中的value包含三个铂金等级"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.99,
+            "downstream_impact": "任一铂金VIP等级的客户均可被纳入查询语义。",
+            "evidence_refs": [],
+            "expectation_id": "以或逻辑合并铂金等级",
+            "expected_evidence": [
+              "三个铂金等级是互斥的可选枚举，应以OR组合"
+            ],
+            "score": 1.0,
+            "status": "fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "final_output仅包含vipType一项条件",
+              "conditions中没有额外字段或额外强约束"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.99,
+            "downstream_impact": "查询范围未被用户未表达的条件进一步收窄。",
+            "evidence_refs": [],
+            "expectation_id": "不引入未表达的额外筛选语义",
+            "expected_evidence": [
+              "用户只提出铂金客户名单，没有指定产品、时间、权益或更高等级条件"
+            ],
+            "score": 1.0,
+            "status": "fulfilled"
+          }
+        ],
+        "missing": [],
+        "overall_fulfillment": {
+          "blocking_expectations": [
+            "限定当前用户的客户范围",
+            "使用寿险VIP等级字段表达铂金客户",
+            "使用可执行的VIP等级包含操作",
+            "覆盖全部铂金VIP枚举值",
+            "以或逻辑合并铂金等级"
+          ],
+          "status": "fulfilled"
+        },
+        "project_id": "client_search",
+        "reasoning_summary": "用户意图是查询当前用户客户范围内的铂金VIP客户名单。能力清单明确规定铂金客户对应铂金V1、铂金V2和原铂金VIP，vipType支持CONTAINS枚举集合查询。当前输出准确使用vipType、完整覆盖三个铂金枚举，并以OR逻辑组合，且未加入额外条件。下游结果集未验证，因此不能声称实际客户列表已检索确认，但在当前parser_condition_semantics_only边界内，查询语义完整且可执行。",
+        "summary": {
+          "assessment_count": 6,
+          "blocking_count": 5,
+          "fulfillment_status": "fulfilled",
+          "is_formal_attribution": true,
+          "primary_failure_dimensions": [],
+          "reason": "fulfilled · 5 blocking expectations all met · 用户意图是查询当前用户客户范围内的铂金VIP客户名单。能力清单明确规定铂金客户对应铂金V1、铂金V2和原铂金VIP，vipType支持CONTAINS枚举集合查询。当前输出准确使用vipType、完整覆盖三个铂金枚举，并以OR逻辑组合，且未加入额外条件。下游结果集未验证，因此不能声称实际客户列表已检索确认，但在当前parser_condition_semantics_only边界内，查询语义完整且可执行。",
+          "reason_source": "aggregated_fulfillment"
+        },
+        "trace_id": "client_search:badcase-018:1785239538429",
+        "wrong": []
+      },
+      "current_metrics": {
+        "elapsed_seconds": 77.33591
+      },
+      "current_runtime": {
+        "authority_audit": {},
+        "authority_tool_call_ids": [],
+        "environment": "missing",
+        "environment_snapshot_sha256": ""
+      },
+      "draft": {
+        "actual": {
+          "conditions": [
+            {
+              "field": "vipType",
+              "match_mode": null,
+              "operator": "CONTAINS",
+              "value": [
+                "铂金V1",
+                "铂金V2",
+                "原铂金VIP"
+              ]
+            }
+          ],
+          "intent_summary": "客户VIP等级包含铂金V1、铂金V2、原铂金VIP的客户",
+          "query": "我的铂金客户名单",
+          "query_logic": "OR",
+          "robot_text": "客户VIP等级包含铂金V1、铂金V2、原铂金VIP的客户"
+        },
+        "business_expectations": [
+          {
+            "acceptance_criteria": [
+              "查询条件应针对铂金客户群体",
+              "不得加入用户未表达且会缩小客户集合的额外条件"
+            ],
+            "blocking": true,
+            "boundary": {
+              "judge_scope": "parser_condition_semantics_only",
+              "result_set_verified": false
+            },
+            "downstream_consumer": "客户搜索下游",
+            "evidence_refs": [],
+            "expectation_id": "检索铂金客户名单",
+            "expected_outcome": "输出能够检索铂金客户的结构化条件，并保留客户搜索意图",
+            "priority": "核心目标",
+            "required_capabilities": [
+              "vipType"
+            ],
+            "user_intent": "查找当前用户名下的铂金等级客户名单"
+          },
+          {
+            "acceptance_criteria": [
+              "字段语义应表示寿险VIP等级标签",
+              "字段应能被下游按支持的操作符执行"
+            ],
+            "blocking": true,
+            "boundary": {
+              "judge_scope": "parser_condition_semantics_only"
+            },
+            "downstream_consumer": "客户搜索下游",
+            "evidence_refs": [],
+            "expectation_id": "将铂金客户映射为寿险VIP等级字段",
+            "expected_outcome": "使用vipType字段表达铂金等级筛选",
+            "priority": "核心筛选条件",
+            "required_capabilities": [
+              "vipType"
+            ],
+            "user_intent": "按铂金客户这一VIP等级类别筛选客户"
+          },
+          {
+            "acceptance_criteria": [
+              "实际值全部属于vipType枚举",
+              "铂金客户类别应展开为铂金V1、铂金V2、原铂金VIP",
+              "不得遗漏上述任一铂金等级或加入其他等级"
+            ],
+            "blocking": true,
+            "boundary": {
+              "completeness_basis": "当前parser可交付的静态枚举集合",
+              "judge_scope": "parser_condition_semantics_only"
+            },
+            "downstream_consumer": "客户搜索下游",
+            "evidence_refs": [],
+            "expectation_id": "完整展开铂金客户等级值",
+            "expected_outcome": "包含铂金V1、铂金V2和原铂金VIP三个vipType枚举值",
+            "priority": "核心筛选条件",
+            "required_capabilities": [
+              "vipType"
+            ],
+            "user_intent": "覆盖铂金类别下的全部可交付等级"
+          },
+          {
+            "acceptance_criteria": [
+              "铂金V1、铂金V2和原铂金VIP之间应为OR关系",
+              "不得将三个等级错误地组合为AND关系"
+            ],
+            "blocking": true,
+            "boundary": {
+              "judge_scope": "parser_condition_semantics_only"
+            },
+            "downstream_consumer": "客户搜索下游",
+            "evidence_refs": [],
+            "expectation_id": "以或逻辑合并铂金等级",
+            "expected_outcome": "三个铂金等级之间使用OR逻辑",
+            "priority": "查询逻辑",
+            "required_capabilities": [
+              "vipType",
+              "OR逻辑"
+            ],
+            "user_intent": "匹配任一铂金VIP等级的客户"
+          },
+          {
+            "acceptance_criteria": [
+              "不得额外添加客户类型、年龄、保单或其他筛选条件",
+              "不得因“我的”增加未由请求表达的字段限制"
+            ],
+            "blocking": true,
+            "boundary": {
+              "judge_scope": "parser_condition_semantics_only"
+            },
+            "downstream_consumer": "客户搜索下游",
+            "evidence_refs": [],
+            "expectation_id": "不增加未表达的客户筛选限制",
+            "expected_outcome": "查询只包含用户明确表达的铂金等级条件",
+            "priority": "契约约束",
+            "required_capabilities": [
+              "no_unexpressed_constraints"
+            ],
+            "user_intent": "仅按铂金VIP等级筛选我的客户"
+          }
+        ],
+        "evidence": [
+          {
+            "query": "我的铂金客户名单"
+          },
+          {
+            "actual_state": "available",
+            "conditions": [
+              {
+                "field": "vipType",
+                "operator": "CONTAINS",
+                "value": [
+                  "铂金V1",
+                  "铂金V2",
+                  "原铂金VIP"
+                ]
+              }
+            ],
+            "query_logic": "OR"
+          },
+          {
+            "capability_manifest_evidence": "vipType支持CONTAINS，枚举包含铂金V1、铂金V2、原铂金VIP；notes明确“铂金会员”映射到这三个值"
+          },
+          {
+            "downstream_search_evidence": "result_set_verified=false；下游结果集未验证，但parser_condition_semantics_only范围内条件语义可确定"
+          },
+          {
+            "environment_snapshot_sha256": "8eacc1d28966c11b4480dc2db6050f1f5ea959558b3e494f8b0d6d49aa6a8640",
+            "reused_resolution_refs": [
+              "resolution.10@8518367c53bf",
+              "resolution.12@8518367c53bf",
+              "resolution.1@8518367c53bf",
+              "resolution.2@8518367c53bf",
+              "resolution.3@8518367c53bf",
+              "resolution.5@8518367c53bf",
+              "resolution.8@8518367c53bf",
+              "resolution.9@8518367c53bf"
+            ],
+            "source": "authority_runtime",
+            "tool_call_ids": []
+          },
+          {
+            "extra": [],
+            "missing": [],
+            "source": "client_search.condition_compare",
+            "wrong": []
+          }
+        ],
+        "expected": {
+          "code": 0,
+          "conditions": [
+            {
+              "field": "vipType",
+              "match_mode": null,
+              "operator": "CONTAINS",
+              "value": [
+                "铂金V1",
+                "铂金V2",
+                "原铂金VIP"
+              ]
+            }
+          ],
+          "msg": "查询条件解析成功",
+          "query": "我的铂金客户名单",
+          "query_logic": "OR",
+          "rewritten_query": null,
+          "robot_text": "客户VIP等级包含铂金V1、铂金V2、原铂金VIP的客户"
+        },
+        "extra": [],
+        "fulfillment_assessments": [
+          {
+            "actual_evidence": [
+              "actual_state=available",
+              "实际输出包含vipType条件，值为铂金V1、铂金V2、原铂金VIP",
+              "result_set_verified=false；当前仅评价parser条件语义，未验证下游客户结果集"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.99,
+            "downstream_impact": "条件语义能够交付给下游客户搜索；是否存在匹配客户不在本次评价范围内",
+            "evidence_refs": [],
+            "expectation_id": "检索铂金客户名单",
+            "expected_evidence": [
+              "用户请求“我的铂金客户名单”表达了查找铂金客户群体的目标",
+              "核心产品期望为find-target-customers"
+            ],
+            "score": 1,
+            "status": "fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "实际条件字段为vipType",
+              "实际操作符为CONTAINS",
+              "字段和值类型与当前能力清单一致"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.99,
+            "downstream_impact": "下游可按寿险VIP等级标签执行客户筛选",
+            "evidence_refs": [],
+            "expectation_id": "将铂金客户映射为寿险VIP等级字段",
+            "expected_evidence": [
+              "capability_manifest中vipType的定义为寿险VIP等级标签",
+              "vipType支持CONTAINS操作符和枚举值"
+            ],
+            "score": 1,
+            "status": "fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "实际值完整包含铂金V1、铂金V2、原铂金VIP",
+              "enum_completeness_evidence表明实际三个值全部在当前静态注册表内，且在parser_condition_semantics_only范围内可判断为完整覆盖当前parser可交付集合"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.99,
+            "downstream_impact": "当前parser可交付的铂金等级均被覆盖，不会因值遗漏造成筛选集合缩小",
+            "evidence_refs": [],
+            "expectation_id": "完整展开铂金客户等级值",
+            "expected_evidence": [
+              "vipType口语映射明确规定铂金会员对应铂金V1、铂金V2、原铂金VIP",
+              "上述三个值均存在于vipType枚举集合"
+            ],
+            "score": 1,
+            "status": "fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "实际query_logic为OR",
+              "单个vipType条件的value数组包含三个铂金等级",
+              "condition_comparison未发现错误逻辑、遗漏或额外条件"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.99,
+            "downstream_impact": "下游查询会匹配任一铂金等级客户，而不是要求客户同时拥有三个等级",
+            "evidence_refs": [],
+            "expectation_id": "以或逻辑合并铂金等级",
+            "expected_evidence": [
+              "类别“铂金客户”展开为多个等级时，任一等级均应符合筛选条件",
+              "三个等级之间的业务关系是OR"
+            ],
+            "score": 1,
+            "status": "fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "实际仅输出一个vipType条件",
+              "condition_comparison的extra和extra_or_overbroad均为空",
+              "实际未增加isBuyInsurance或其他未表达字段条件"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.98,
+            "downstream_impact": "不会因额外强约束错误缩小铂金客户结果集",
+            "evidence_refs": [],
+            "expectation_id": "不增加未表达的客户筛选限制",
+            "expected_evidence": [
+              "用户只明确表达了“我的”“铂金”“客户名单”，未表达年龄、客户类型、保单或其他限制"
+            ],
+            "score": 1,
+            "status": "fulfilled"
+          }
+        ],
+        "missing": [],
+        "overall_fulfillment": {
+          "blocking_expectations": [
+            "检索铂金客户名单",
+            "将铂金客户映射为寿险VIP等级字段",
+            "完整展开铂金客户等级值",
+            "以或逻辑合并铂金等级",
+            "不增加未表达的客户筛选限制"
+          ],
+          "status": "fulfilled"
+        },
+        "project_id": "client_search",
+        "reasoning_summary": "该请求属于find-target-customers场景，用户意图是按铂金VIP等级查询客户名单。当前输出使用vipType字段和支持的CONTAINS操作符，完整包含能力清单中铂金类别对应的铂金V1、铂金V2、原铂金VIP三个枚举值，并使用OR逻辑合并；同时没有增加未表达的客户类型或其他筛选条件。因此所有核心业务期望均已满足。下游结果集未验证，但本案评价范围限定为parser条件语义，不能据此否定输出。",
+        "summary": {
+          "assessment_count": 5,
+          "blocking_count": 5,
+          "fulfillment_status": "fulfilled",
+          "is_formal_attribution": true,
+          "primary_failure_dimensions": [],
+          "reason": "fulfilled · 5 blocking expectations all met · 该请求属于find-target-customers场景，用户意图是按铂金VIP等级查询客户名单。当前输出使用vipType字段和支持的CONTAINS操作符，完整包含能力清单中铂金类别对应的铂金V1、铂金V2、原铂金VIP三个枚举值，并使用OR逻辑合并；同时没有增加未表达的客户类型或其他筛选条件。因此所有核心业务期望均已满足。下游结果集未验证，但本案评价范围限定为parser条件语义，不能据此否定输出。",
+          "reason_source": "aggregated_fulfillment"
+        },
+        "trace_id": "client_search:badcase-018:1785239538429",
+        "wrong": []
+      },
+      "draft_metrics": {
+        "elapsed_seconds": 90.60577
+      },
+      "draft_runtime": {
+        "authority_audit": {},
+        "authority_tool_call_ids": [],
+        "environment": "ok",
+        "environment_snapshot_sha256": "8eacc1d28966c11b4480dc2db6050f1f5ea959558b3e494f8b0d6d49aa6a8640"
+      }
+    },
+    {
+      "case_key": "source-badcase-013",
+      "current": {
+        "actual": {
+          "conditions": [
+            {
+              "field": "pajjMemberGradeInfo.pajjmemberstatus",
+              "match_mode": null,
+              "operator": "CONTAINS",
+              "value": [
+                "潜客",
+                "意向"
+              ]
+            }
+          ],
+          "intent_summary": "平安居家权益状态包含潜客、意向的客户",
+          "query": "平安居家临界客户",
+          "query_logic": "AND",
+          "robot_text": "平安居家权益状态包含潜客、意向的客户"
+        },
+        "business_expectations": [
+          {
+            "acceptance_criteria": [
+              "查询条件覆盖潜客和意向两种状态",
+              "未引入达标、预达标或维持等非临界状态"
+            ],
+            "blocking": true,
+            "boundary": {
+              "judge_scope": "parser_condition_semantics_only",
+              "result_set_verified": false,
+              "判定依据": "基于当前能力清单和增强规则判断查询语义，不验证实际客户结果集"
+            },
+            "downstream_consumer": "客户搜索下游",
+            "evidence_refs": [],
+            "expectation_id": "识别居家临界客户群体",
+            "expected_outcome": "将居家临界客户解释为平安居家权益状态属于潜客或意向的客户。",
+            "priority": "核心",
+            "required_capabilities": [
+              "识别居家临界客户的业务规则",
+              "将目标人群映射为平安居家会员状态条件"
+            ],
+            "user_intent": "查询平安居家业务中的临界客户"
+          },
+          {
+            "acceptance_criteria": [
+              "字段承载平安居家会员类型或状态",
+              "字段不应被误解为平安居家等级版本字段"
+            ],
+            "blocking": true,
+            "boundary": {
+              "field": "pajjMemberGradeInfo.pajjmemberstatus",
+              "field_definition": "平安居家会员类型或状态，不表示平安居家等级版本"
+            },
+            "downstream_consumer": "客户搜索下游",
+            "evidence_refs": [],
+            "expectation_id": "使用正确的平安居家状态字段",
+            "expected_outcome": "使用字段 pajjMemberGradeInfo.pajjmemberstatus 表达平安居家会员状态。",
+            "priority": "核心",
+            "required_capabilities": [
+              "字段语义匹配",
+              "平安居家会员状态字段查询"
+            ],
+            "user_intent": "按平安居家会员类型或状态筛选客户"
+          },
+          {
+            "acceptance_criteria": [
+              "operator 为 CONTAINS",
+              "value 为包含“潜客”和“意向”的数组",
+              "使用的枚举值均存在于当前能力清单"
+            ],
+            "blocking": true,
+            "boundary": {
+              "allowed_operator": "CONTAINS",
+              "allowed_value_type": "enum",
+              "allowed_values": [
+                "潜客",
+                "意向",
+                "达标",
+                "预达标",
+                "维持"
+              ],
+              "enhanced_rule": "平安居家-临界客户"
+            },
+            "downstream_consumer": "客户搜索下游",
+            "evidence_refs": [],
+            "expectation_id": "使用潜客和意向的包含条件",
+            "expected_outcome": "对平安居家会员状态字段使用 CONTAINS，值为潜客和意向。",
+            "priority": "核心",
+            "required_capabilities": [
+              "支持 CONTAINS 操作符",
+              "支持枚举数组值",
+              "正确映射临界状态枚举"
+            ],
+            "user_intent": "筛选状态为潜客或意向的居家客户"
+          },
+          {
+            "acceptance_criteria": [
+              "query_logic 为 AND 或其他对单条件等价的逻辑",
+              "不存在额外强约束条件"
+            ],
+            "blocking": false,
+            "boundary": {
+              "condition_count": 1,
+              "result_set_verified": false
+            },
+            "downstream_consumer": "客户搜索下游",
+            "evidence_refs": [],
+            "expectation_id": "保持单一筛选条件的正确逻辑",
+            "expected_outcome": "查询仅包含该状态筛选条件，单条件逻辑不会额外缩小或扩大目标人群。",
+            "priority": "重要",
+            "required_capabilities": [
+              "正确生成单条件查询逻辑",
+              "避免添加用户未表达的额外条件"
+            ],
+            "user_intent": "仅按居家临界状态查询客户"
+          },
+          {
+            "acceptance_criteria": [
+              "不出现未支持字段或未支持枚举",
+              "不需要额外的上游数据能力才能形成该查询"
+            ],
+            "blocking": false,
+            "boundary": {
+              "downstream_result_set_verified": false,
+              "unsupported_request": false
+            },
+            "downstream_consumer": "客户搜索下游",
+            "evidence_refs": [],
+            "expectation_id": "请求保持在当前字段和枚举能力边界内",
+            "expected_outcome": "请求不依赖能力清单之外的字段、操作符或枚举值。",
+            "priority": "一般",
+            "required_capabilities": [
+              "使用已配置的平安居家状态字段",
+              "使用当前支持的状态枚举"
+            ],
+            "user_intent": "查询当前系统可表达的居家临界客户"
+          }
+        ],
+        "evidence": [
+          {
+            "content": "居家临界客户",
+            "source": "user_intent"
+          },
+          {
+            "content": "pajjMemberGradeInfo.pajjmemberstatus 支持 CONTAINS，枚举包括潜客、意向、达标、预达标、维持",
+            "source": "capability_manifest"
+          },
+          {
+            "content": "规则“平安居家-临界客户”将临界客户映射为[“潜客”, “意向”]",
+            "source": "enhanced_rules"
+          },
+          {
+            "content": "实际输出的字段、操作符、枚举值和单条件逻辑均与预期一致",
+            "source": "run_trace.final_output"
+          },
+          {
+            "content": "judge_scope 为 parser_condition_semantics_only，result_set_verified 为 false",
+            "source": "application_boundary"
+          }
+        ],
+        "expected": {
+          "code": 200,
+          "conditions": [
+            {
+              "field": "pajjMemberGradeInfo.pajjmemberstatus",
+              "match_mode": null,
+              "operator": "CONTAINS",
+              "value": [
+                "潜客",
+                "意向"
+              ]
+            }
+          ],
+          "confidence": null,
+          "cost_times": null,
+          "end_flag": null,
+          "intent_summary": "平安居家权益状态包含潜客、意向的客户",
+          "matched_level": null,
+          "matched_patterns": null,
+          "msg": "success",
+          "query": "平安居家临界客户",
+          "query_logic": "AND",
+          "rewritten_query": null,
+          "robot_text": "平安居家权益状态包含潜客、意向的客户",
+          "trace_id": null
+        },
+        "extra": [],
+        "fulfillment_assessments": [
+          {
+            "actual_evidence": [
+              "final_output.intent_summary 为“平安居家权益状态包含潜客、意向的客户”",
+              "final_output.conditions.value 为[“潜客”, “意向”]"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.99,
+            "downstream_impact": "能够覆盖用户表达的居家临界客户群体；实际下游结果集未验证。",
+            "evidence_refs": [],
+            "expectation_id": "识别居家临界客户群体",
+            "expected_evidence": [
+              "增强规则“平安居家-临界客户”将居家临界客户映射为状态潜客和意向"
+            ],
+            "score": 1,
+            "status": "fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "final_output.conditions.field 为 pajjMemberGradeInfo.pajjmemberstatus"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.99,
+            "downstream_impact": "筛选字段与用户意图的业务字段语义一致。",
+            "evidence_refs": [],
+            "expectation_id": "使用正确的平安居家状态字段",
+            "expected_evidence": [
+              "能力清单定义 pajjMemberGradeInfo.pajjmemberstatus 为平安居家会员类型或状态字段"
+            ],
+            "score": 1,
+            "status": "fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "final_output.conditions.operator 为 CONTAINS",
+              "final_output.conditions.value 为[“潜客”, “意向”]",
+              "潜客和意向均属于字段允许的枚举值"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.99,
+            "downstream_impact": "形成可执行的状态包含查询；实际下游结果集未验证。",
+            "evidence_refs": [],
+            "expectation_id": "使用潜客和意向的包含条件",
+            "expected_evidence": [
+              "当前字段支持 CONTAINS 操作符和 enum 数组值",
+              "增强规则规定临界客户的静态值为[“潜客”, “意向”]"
+            ],
+            "score": 1,
+            "status": "fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "final_output 仅包含一个 conditions 条件",
+              "final_output.query_logic 为 AND",
+              "未发现额外筛选条件"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.99,
+            "downstream_impact": "不会因未表达的额外条件缩小目标客户范围。",
+            "evidence_refs": [],
+            "expectation_id": "保持单一筛选条件的正确逻辑",
+            "expected_evidence": [
+              "用户请求只表达居家临界客户这一项筛选意图"
+            ],
+            "score": 1,
+            "status": "fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "使用了能力清单已声明的字段",
+              "使用了能力清单已声明的操作符 CONTAINS",
+              "使用的潜客和意向均为已声明枚举值",
+              "application_boundary.result_set_verified 为 false，未将未验证的结果集作为满足依据"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.99,
+            "downstream_impact": "请求在当前 parser 条件语义能力范围内可评估和表达。",
+            "evidence_refs": [],
+            "expectation_id": "请求保持在当前字段和枚举能力边界内",
+            "expected_evidence": [
+              "用户意图可由当前能力清单中的平安居家状态字段及枚举表达"
+            ],
+            "score": 1,
+            "status": "fulfilled"
+          }
+        ],
+        "missing": [],
+        "overall_fulfillment": {
+          "blocking_expectations": [
+            "识别居家临界客户群体",
+            "使用正确的平安居家状态字段",
+            "使用潜客和意向的包含条件"
+          ],
+          "status": "fulfilled"
+        },
+        "project_id": "client_search",
+        "reasoning_summary": "用户的“居家临界客户”在当前增强规则中被明确映射为平安居家会员状态“潜客”和“意向”。实际输出使用了正确的 pajjMemberGradeInfo.pajjmemberstatus 字段、CONTAINS 操作符和两个合法枚举值，仅包含一个条件并使用 AND 逻辑，没有遗漏、错误或额外强约束。下游结果集未验证，因此结论基于 parser 条件语义，不声称实际客户结果已验证。",
+        "summary": {
+          "assessment_count": 5,
+          "blocking_count": 3,
+          "fulfillment_status": "fulfilled",
+          "is_formal_attribution": true,
+          "primary_failure_dimensions": [],
+          "reason": "fulfilled · 3 blocking expectations all met · 用户的“居家临界客户”在当前增强规则中被明确映射为平安居家会员状态“潜客”和“意向”。实际输出使用了正确的 pajjMemberGradeInfo.pajjmemberstatus 字段、CONTAINS 操作符和两个合法枚举值，仅包含一个条件并使用 AND 逻辑，没有遗漏、错误或额外强约束。下游结果集未验证，因此结论基于 parser 条件语义，不声称实际客户结果已验证。",
+          "reason_source": "aggregated_fulfillment"
+        },
+        "trace_id": "client_search:badcase-013:1785239539503",
+        "wrong": []
+      },
+      "current_metrics": {
+        "elapsed_seconds": 69.32417
+      },
+      "current_runtime": {
+        "authority_audit": {},
+        "authority_tool_call_ids": [],
+        "environment": "missing",
+        "environment_snapshot_sha256": ""
+      },
+      "draft": {
+        "actual": {
+          "conditions": [
+            {
+              "field": "pajjMemberGradeInfo.pajjmemberstatus",
+              "match_mode": null,
+              "operator": "CONTAINS",
+              "value": [
+                "潜客",
+                "意向"
+              ]
+            }
+          ],
+          "intent_summary": "平安居家权益状态包含潜客、意向的客户",
+          "query": "平安居家临界客户",
+          "query_logic": "AND",
+          "robot_text": "平安居家权益状态包含潜客、意向的客户"
+        },
+        "business_expectations": [
+          {
+            "acceptance_criteria": [
+              "条件字段语义承载平安居家会员类型或状态。",
+              "筛选值同时包含“潜客”和“意向”。",
+              "条件可被下游客户搜索消费。"
+            ],
+            "blocking": true,
+            "boundary": {
+              "judge_scope": "parser_condition_semantics_only",
+              "result_set_verified": false,
+              "不承担": "下游数据库是否存在匹配客户"
+            },
+            "downstream_consumer": "客户搜索下游查询",
+            "evidence_refs": [],
+            "expectation_id": "检索居家临界客户群体",
+            "expected_outcome": "交付能够覆盖居家临界客户的结构化客户筛选条件。",
+            "priority": "核心业务目标",
+            "required_capabilities": [
+              "pajjMemberGradeInfo.pajjmemberstatus"
+            ],
+            "user_intent": "从客户搜索产品中检索平安居家临界客户，即状态为潜客或意向的客户。"
+          },
+          {
+            "acceptance_criteria": [
+              "字段承载客户的平安居家会员类型或状态。",
+              "不得改用会员等级字段或服务线名称字段。"
+            ],
+            "blocking": true,
+            "boundary": {
+              "judge_scope": "parser_condition_semantics_only"
+            },
+            "downstream_consumer": "客户搜索解析器与下游查询适配器",
+            "evidence_refs": [],
+            "expectation_id": "使用平安居家会员状态字段",
+            "expected_outcome": "使用 pajjMemberGradeInfo.pajjmemberstatus 表达临界状态。",
+            "priority": "核心条件语义",
+            "required_capabilities": [
+              "pajjMemberGradeInfo.pajjmemberstatus"
+            ],
+            "user_intent": "将“居家临界”解释为平安居家会员状态维度，而不是等级或服务线维度。"
+          },
+          {
+            "acceptance_criteria": [
+              "操作符为字段支持的集合包含语义。",
+              "值集合恰好包含“潜客”和“意向”。",
+              "不遗漏任一状态，也不增加达标、预达标或维持等状态。"
+            ],
+            "blocking": true,
+            "boundary": {
+              "enum_values_source": "capability_manifest",
+              "judge_scope": "parser_condition_semantics_only"
+            },
+            "downstream_consumer": "下游客户搜索查询",
+            "evidence_refs": [],
+            "expectation_id": "保留潜客与意向状态值",
+            "expected_outcome": "以可执行的集合值筛选潜客或意向状态。",
+            "priority": "核心筛选值",
+            "required_capabilities": [
+              "pajjMemberGradeInfo.pajjmemberstatus"
+            ],
+            "user_intent": "临界客户由“潜客”和“意向”两种状态组成。"
+          },
+          {
+            "acceptance_criteria": [
+              "不存在未由用户表达的额外强约束。",
+              "单一状态条件下的 AND 逻辑不会改变目标集合。"
+            ],
+            "blocking": true,
+            "boundary": {
+              "judge_scope": "parser_condition_semantics_only"
+            },
+            "downstream_consumer": "下游客户搜索查询",
+            "evidence_refs": [],
+            "expectation_id": "不增加未表达的筛选限制",
+            "expected_outcome": "输出只包含用户表达的状态条件，不额外限制会员等级、服务线或客户类型。",
+            "priority": "查询集合完整性",
+            "required_capabilities": [
+              "pajjMemberGradeInfo.pajjmemberstatus"
+            ],
+            "user_intent": "仅按居家临界状态筛选客户。"
+          }
+        ],
+        "evidence": [
+          {
+            "source": "用户请求",
+            "value": "居家临界客户"
+          },
+          {
+            "description": "平安居家会员类型或状态，不表示平安居家等级版本",
+            "enums": [
+              "潜客",
+              "意向",
+              "达标",
+              "预达标",
+              "维持"
+            ],
+            "field": "pajjMemberGradeInfo.pajjmemberstatus",
+            "source": "capability_manifest"
+          },
+          {
+            "field": "pajjMemberGradeInfo.pajjmemberstatus",
+            "operator": "CONTAINS",
+            "rule": "平安居家-临界客户",
+            "source": "enhanced_rules",
+            "value": [
+              "潜客",
+              "意向"
+            ]
+          },
+          {
+            "conditions": [
+              {
+                "field": "pajjMemberGradeInfo.pajjmemberstatus",
+                "match_mode": null,
+                "operator": "CONTAINS",
+                "value": [
+                  "潜客",
+                  "意向"
+                ]
+              }
+            ],
+            "query_logic": "AND",
+            "source": "actual_output"
+          },
+          {
+            "judge_scope": "parser_condition_semantics_only",
+            "result_set_verified": false,
+            "source": "application_boundary"
+          },
+          {
+            "environment_snapshot_sha256": "8eacc1d28966c11b4480dc2db6050f1f5ea959558b3e494f8b0d6d49aa6a8640",
+            "reused_resolution_refs": [
+              "resolution.10@8518367c53bf",
+              "resolution.12@8518367c53bf",
+              "resolution.1@8518367c53bf",
+              "resolution.2@8518367c53bf",
+              "resolution.3@8518367c53bf",
+              "resolution.5@8518367c53bf",
+              "resolution.8@8518367c53bf",
+              "resolution.9@8518367c53bf"
+            ],
+            "source": "authority_runtime",
+            "tool_call_ids": []
+          },
+          {
+            "extra": [],
+            "missing": [],
+            "source": "client_search.condition_compare",
+            "wrong": []
+          }
+        ],
+        "expected": {
+          "code": 0,
+          "conditions": [
+            {
+              "field": "pajjMemberGradeInfo.pajjmemberstatus",
+              "match_mode": null,
+              "operator": "CONTAINS",
+              "value": [
+                "潜客",
+                "意向"
+              ]
+            }
+          ],
+          "confidence": null,
+          "cost_times": null,
+          "end_flag": null,
+          "intent_summary": "平安居家权益状态包含潜客、意向的客户",
+          "matched_level": null,
+          "matched_patterns": null,
+          "msg": "解析成功",
+          "query": "居家临界客户",
+          "query_logic": "AND",
+          "rewritten_query": null,
+          "robot_text": "平安居家权益状态包含潜客、意向的客户",
+          "trace_id": null
+        },
+        "extra": [],
+        "fulfillment_assessments": [
+          {
+            "actual_evidence": [
+              "Live actual_state=available。",
+              "actual conditions 为 pajjMemberGradeInfo.pajjmemberstatus CONTAINS [“潜客”, “意向”]。",
+              "下游结果集未验证，result_set_verified=false；本判断基于 parser_condition_semantics_only 下的字段和值语义。"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.99,
+            "downstream_impact": "结构化条件能够表达用户要检索的居家临界客户群体；实际匹配客户数量仍取决于下游数据库。",
+            "evidence_refs": [],
+            "expectation_id": "检索居家临界客户群体",
+            "expected_evidence": [
+              "用户请求为“居家临界客户”，属于描述目标客户群体的客户搜索场景。",
+              "项目增强规则“平安居家-临界客户”将该表达映射为状态值“潜客”和“意向”。"
+            ],
+            "score": 1,
+            "status": "fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "actual field 为 pajjMemberGradeInfo.pajjmemberstatus。",
+              "actual intent_summary 为“平安居家权益状态包含潜客、意向的客户”，与状态字段语义一致。"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.99,
+            "downstream_impact": "字段语义与用户请求一致，可由下游适配器生成客户状态查询。",
+            "evidence_refs": [],
+            "expectation_id": "使用平安居家会员状态字段",
+            "expected_evidence": [
+              "能力清单将 pajjMemberGradeInfo.pajjmemberstatus 定义为平安居家会员类型或状态字段。",
+              "增强规则“平安居家-临界客户”明确指定该字段。"
+            ],
+            "score": 1,
+            "status": "fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "actual operator 为 CONTAINS，值为 [“潜客”, “意向”]。",
+              "enum_completeness_evidence 表明实际值全部位于当前静态注册表，且在 parser_condition_semantics_only 范围内可判断为当前 parser 可交付集合。"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.99,
+            "downstream_impact": "两个目标状态均被保留，查询不会因遗漏任一临界状态而缩小客户集合。",
+            "evidence_refs": [],
+            "expectation_id": "保留潜客与意向状态值",
+            "expected_evidence": [
+              "pajjMemberGradeInfo.pajjmemberstatus 的能力清单枚举包含“潜客”和“意向”。",
+              "增强规则“平安居家-临界客户”的静态值为 [“潜客”, “意向”]。"
+            ],
+            "score": 1,
+            "status": "fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "actual 仅包含一个 pajjMemberGradeInfo.pajjmemberstatus 条件。",
+              "未发现会员等级、服务线、客户类型或其他额外条件。",
+              "query_logic 为 AND；在仅有一个条件时不引入额外集合限制。"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.99,
+            "downstream_impact": "查询集合未被未表达条件收窄或改变。",
+            "evidence_refs": [],
+            "expectation_id": "不增加未表达的筛选限制",
+            "expected_evidence": [
+              "用户只表达了居家临界客户这一单一筛选意图。",
+              "冻结业务契约要求不得增加未表达的会改变客户集合的限制。"
+            ],
+            "score": 1,
+            "status": "fulfilled"
+          }
+        ],
+        "missing": [],
+        "overall_fulfillment": {
+          "blocking_expectations": [
+            "检索居家临界客户群体",
+            "使用平安居家会员状态字段",
+            "保留潜客与意向状态值",
+            "不增加未表达的筛选限制"
+          ],
+          "status": "fulfilled"
+        },
+        "project_id": "client_search",
+        "reasoning_summary": "该请求明确描述要检索居家临界客户，属于 find-target-customers 场景。当前增强规则直接将“居家临界客户”定义为平安居家会员状态包含“潜客”和“意向”，且能力清单确认该字段、操作符和两个枚举值均可执行。Live 输出逐项一致，没有遗漏用户条件，也没有增加会员等级、服务线或客户类型等未表达限制。下游结果集未验证，因此未声称数据库中存在匹配客户；在限定的 parser_condition_semantics_only 范围内，该输出满足用户搜索意图。",
+        "summary": {
+          "assessment_count": 4,
+          "blocking_count": 4,
+          "fulfillment_status": "fulfilled",
+          "is_formal_attribution": true,
+          "primary_failure_dimensions": [],
+          "reason": "fulfilled · 4 blocking expectations all met · 该请求明确描述要检索居家临界客户，属于 find-target-customers 场景。当前增强规则直接将“居家临界客户”定义为平安居家会员状态包含“潜客”和“意向”，且能力清单确认该字段、操作符和两个枚举值均可执行。Live 输出逐项一致，没有遗漏用户条件，也没有增加会员等级、服务线或客户类型等未表达限制。下游结果集未验证，因此未声称数据库中存在匹配客户；在限定的 parser_condition_semantics_only 范围内，该输出满足用户搜索意图。",
+          "reason_source": "aggregated_fulfillment"
+        },
+        "trace_id": "client_search:badcase-013:1785239539503",
+        "wrong": []
+      },
+      "draft_metrics": {
+        "elapsed_seconds": 74.23996
+      },
+      "draft_runtime": {
+        "authority_audit": {},
+        "authority_tool_call_ids": [],
+        "environment": "ok",
+        "environment_snapshot_sha256": "8eacc1d28966c11b4480dc2db6050f1f5ea959558b3e494f8b0d6d49aa6a8640"
+      }
+    },
+    {
+      "case_key": "source-badcase-028",
+      "current": {
+        "actual": {
+          "conditions": [
+            {
+              "field": "polNoInfo.poleffdate",
+              "match_mode": null,
+              "operator": "RANGE",
+              "value": {
+                "max": "2026-07-28 00:00:00",
+                "min": "2024-07-28 00:00:00"
+              }
+            }
+          ],
+          "intent_summary": "保单生效日在2024-07-28 至 2026-07-28的客户",
+          "query": "近两年成交客户",
+          "query_logic": "AND",
+          "robot_text": "保单生效日在2024-07-28 至 2026-07-28的客户"
+        },
+        "business_expectations": [
+          {
+            "acceptance_criteria": [
+              "查询时间下限为当前日期往前两年",
+              "查询时间上限为当前日期",
+              "时间范围使用可执行的日期 RANGE 条件"
+            ],
+            "blocking": true,
+            "boundary": {
+              "judge_scope": "parser_condition_semantics_only",
+              "result_set_verified": false
+            },
+            "downstream_consumer": "客户搜索下游",
+            "evidence_refs": [],
+            "expectation_id": "筛选近两年成交客户",
+            "expected_outcome": "生成覆盖近两年时间范围的客户搜索条件",
+            "priority": "核心",
+            "required_capabilities": [
+              "识别“近两年”动态时间范围",
+              "将“成交”映射为保单生效日期",
+              "生成日期范围查询"
+            ],
+            "user_intent": "查询在当前日期往前两年内成交的客户"
+          },
+          {
+            "acceptance_criteria": [
+              "字段为 polNoInfo.poleffdate",
+              "不映射到投保申请日期或承保日期"
+            ],
+            "blocking": true,
+            "boundary": {
+              "judge_scope": "parser_condition_semantics_only"
+            },
+            "downstream_consumer": "客户搜索解析器与ES查询适配层",
+            "evidence_refs": [],
+            "expectation_id": "将成交语义映射为保单生效日期",
+            "expected_outcome": "使用 polNoInfo.poleffdate 表示成交时间",
+            "priority": "核心",
+            "required_capabilities": [
+              "理解成交时间业务口径",
+              "使用 polNoInfo.poleffdate 字段"
+            ],
+            "user_intent": "以业务定义中的成交时间筛选客户"
+          },
+          {
+            "acceptance_criteria": [
+              "操作符为 RANGE",
+              "值包含 min 和 max 两个日期边界",
+              "日期格式为 yyyy-MM-dd HH:mm:ss"
+            ],
+            "blocking": true,
+            "boundary": {
+              "judge_scope": "parser_condition_semantics_only"
+            },
+            "downstream_consumer": "ES搜索查询",
+            "evidence_refs": [],
+            "expectation_id": "使用日期范围操作符表达近两年",
+            "expected_outcome": "使用 RANGE 操作符表达日期区间",
+            "priority": "核心",
+            "required_capabilities": [
+              "支持 RANGE 操作符",
+              "支持日期类型值"
+            ],
+            "user_intent": "筛选时间区间内的成交客户"
+          },
+          {
+            "acceptance_criteria": [
+              "下限为 2024-07-28 00:00:00",
+              "上限为 2026-07-28 00:00:00",
+              "时间跨度为两年"
+            ],
+            "blocking": true,
+            "boundary": {
+              "date_basis": "RunTrace中动态日期上限为2026-07-28",
+              "judge_scope": "parser_condition_semantics_only"
+            },
+            "downstream_consumer": "客户搜索下游",
+            "evidence_refs": [],
+            "expectation_id": "正确归一化两年时间单位",
+            "expected_outcome": "生成动态的过去两年至今日期范围",
+            "priority": "核心",
+            "required_capabilities": [
+              "识别中文数字和时间单位",
+              "动态计算过去N年到当前日期"
+            ],
+            "user_intent": "将“两年”解释为从当前日期向前推两年"
+          },
+          {
+            "acceptance_criteria": [
+              "仅包含一个成交时间条件",
+              "query_logic 为 AND",
+              "不额外加入姓名、险种、年龄等限制"
+            ],
+            "blocking": true,
+            "boundary": {
+              "judge_scope": "parser_condition_semantics_only"
+            },
+            "downstream_consumer": "客户搜索下游",
+            "evidence_refs": [],
+            "expectation_id": "保持单一时间条件的查询逻辑",
+            "expected_outcome": "不添加未表达的额外筛选条件，并保持条件逻辑可执行",
+            "priority": "核心",
+            "required_capabilities": [
+              "识别单一筛选意图",
+              "正确生成查询逻辑"
+            ],
+            "user_intent": "仅按近两年成交时间筛选客户"
+          },
+          {
+            "acceptance_criteria": [
+              "字段存在于 capability_manifest",
+              "RANGE 是该字段支持的操作符",
+              "日期是该字段支持的值类型"
+            ],
+            "blocking": false,
+            "boundary": {
+              "judge_scope": "parser_condition_semantics_only"
+            },
+            "downstream_consumer": "客户搜索解析器",
+            "evidence_refs": [],
+            "expectation_id": "请求不依赖当前未支持的字段或枚举",
+            "expected_outcome": "使用当前能力清单中已支持的字段、操作符和日期类型",
+            "priority": "辅助",
+            "required_capabilities": [
+              "使用已声明字段能力",
+              "使用已声明操作符和日期值类型"
+            ],
+            "user_intent": "在现有客户搜索能力范围内完成时间筛选"
+          }
+        ],
+        "evidence": [
+          {
+            "details": "实际输出包含单一保单生效日期 RANGE 条件，范围为2024-07-28至2026-07-28。",
+            "result_set_verified": false,
+            "source": "RunTrace.final_output"
+          },
+          {
+            "details": "polNoInfo.poleffdate 支持 RANGE 操作符和 date 类型，且成交时间统一映射为保单生效日期。",
+            "source": "capability_manifest"
+          },
+          {
+            "details": "保单生效日-签单业务近N年规则将近N年成交解析为过去N年至今的动态日期范围。",
+            "source": "enhanced_rules"
+          },
+          {
+            "details": "下游结果集未验证，因此仅依据 parser 条件语义判断。",
+            "source": "application_boundary"
+          }
+        ],
+        "expected": {
+          "code": 200,
+          "conditions": [
+            {
+              "field": "polNoInfo.poleffdate",
+              "match_mode": null,
+              "operator": "RANGE",
+              "value": {
+                "max": "2026-07-28 00:00:00",
+                "min": "2024-07-28 00:00:00"
+              }
+            }
+          ],
+          "msg": "解析成功",
+          "query": "近两年成交客户",
+          "query_logic": "AND",
+          "rewritten_query": null,
+          "robot_text": "保单生效日在2024-07-28 至 2026-07-28的客户"
+        },
+        "extra": [],
+        "fulfillment_assessments": [
+          {
+            "actual_evidence": [
+              "实际条件为 polNoInfo.poleffdate 的 RANGE，范围为 2024-07-28 00:00:00 至 2026-07-28 00:00:00",
+              "实际意图摘要明确为保单生效日在该日期范围内的客户",
+              "result_set_verified=false；下游结果集未提供，本判断基于解析条件语义"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.99,
+            "downstream_impact": "条件能够表达近两年成交客户的核心筛选意图；未进行下游客户结果集验证。",
+            "evidence_refs": [],
+            "expectation_id": "筛选近两年成交客户",
+            "expected_evidence": [
+              "应生成近两年到当前日期的客户筛选条件"
+            ],
+            "score": 1,
+            "status": "fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "实际字段为 polNoInfo.poleffdate",
+              "实际 robot_text 为保单生效日在日期范围内的客户"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.99,
+            "downstream_impact": "字段业务含义与用户的成交时间语义一致。",
+            "evidence_refs": [],
+            "expectation_id": "将成交语义映射为保单生效日期",
+            "expected_evidence": [
+              "成交时间应映射为 polNoInfo.poleffdate",
+              "能力清单说明签单、签约和成交时间统一映射为保单生效日期"
+            ],
+            "score": 1,
+            "status": "fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "实际操作符为 RANGE",
+              "实际值包含 min 和 max 两个日期字符串，格式为 yyyy-MM-dd HH:mm:ss",
+              "RANGE 和 date 类型均在 polNoInfo.poleffdate 的 capability_manifest 中声明支持"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.99,
+            "downstream_impact": "下游可按日期区间执行该筛选条件；未进行实际结果集验证。",
+            "evidence_refs": [],
+            "expectation_id": "使用日期范围操作符表达近两年",
+            "expected_evidence": [
+              "应使用支持日期类型的 RANGE 操作符表达时间区间"
+            ],
+            "score": 1,
+            "status": "fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "实际最小日期为 2024-07-28 00:00:00，最大日期为 2026-07-28 00:00:00",
+              "enhanced_rules 中“保单生效日-签单业务近N年”规定使用 past_n_years_to_today 动态范围"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.99,
+            "downstream_impact": "时间单位和动态边界均符合近两年的业务表达。",
+            "evidence_refs": [],
+            "expectation_id": "正确归一化两年时间单位",
+            "expected_evidence": [
+              "近两年应动态解析为当前日期往前两年至当前日期"
+            ],
+            "score": 1,
+            "status": "fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "conditions 仅包含一个 polNoInfo.poleffdate 条件",
+              "query_logic 为 AND",
+              "未出现姓名、险种、年龄或其他额外条件"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.99,
+            "downstream_impact": "不会因额外强约束缩小用户期望的客户范围。",
+            "evidence_refs": [],
+            "expectation_id": "保持单一时间条件的查询逻辑",
+            "expected_evidence": [
+              "应仅按成交时间筛选，不添加用户未表达的强约束",
+              "单一条件查询应保持可执行逻辑"
+            ],
+            "score": 1,
+            "status": "fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "polNoInfo.poleffdate 在 capability_manifest 中存在",
+              "该字段支持 RANGE 操作符和 date 值类型",
+              "该请求不涉及枚举值"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.99,
+            "downstream_impact": "请求处于当前 parser 条件表达能力范围内。",
+            "evidence_refs": [],
+            "expectation_id": "请求不依赖当前未支持的字段或枚举",
+            "expected_evidence": [
+              "应使用能力清单中已支持的字段、操作符和值类型"
+            ],
+            "score": 1,
+            "status": "fulfilled"
+          }
+        ],
+        "missing": [],
+        "overall_fulfillment": {
+          "blocking_expectations": [
+            "筛选近两年成交客户",
+            "将成交语义映射为保单生效日期",
+            "使用日期范围操作符表达近两年",
+            "正确归一化两年时间单位",
+            "保持单一时间条件的查询逻辑"
+          ],
+          "status": "fulfilled"
+        },
+        "project_id": "client_search",
+        "reasoning_summary": "用户意图是查询近两年内成交的客户。能力清单明确将成交时间映射为保单生效日期，且该字段支持日期 RANGE 查询。实际输出使用 polNoInfo.poleffdate 的 RANGE 条件，时间范围为2024-07-28 00:00:00至2026-07-28 00:00:00，与当前动态日期上限及过去两年的规则一致；同时没有加入其他未表达的筛选条件。由于下游结果集不可用，未声称已验证实际客户列表，但在 parser_condition_semantics_only 范围内，实际查询语义完整满足用户需求。",
+        "summary": {
+          "assessment_count": 6,
+          "blocking_count": 5,
+          "fulfillment_status": "fulfilled",
+          "is_formal_attribution": true,
+          "primary_failure_dimensions": [],
+          "reason": "fulfilled · 5 blocking expectations all met · 用户意图是查询近两年内成交的客户。能力清单明确将成交时间映射为保单生效日期，且该字段支持日期 RANGE 查询。实际输出使用 polNoInfo.poleffdate 的 RANGE 条件，时间范围为2024-07-28 00:00:00至2026-07-28 00:00:00，与当前动态日期上限及过去两年的规则一致；同时没有加入其他未表达的筛选条件。由于下游结果集不可用，未声称已验证实际客户列表，但在 parser_condition_semantics_only 范围内，实际查询语义完整满足用户需求。",
+          "reason_source": "aggregated_fulfillment"
+        },
+        "trace_id": "client_search:badcase-028:1785239539537",
+        "wrong": []
+      },
+      "current_metrics": {
+        "elapsed_seconds": 79.727437
+      },
+      "current_runtime": {
+        "authority_audit": {},
+        "authority_tool_call_ids": [],
+        "environment": "missing",
+        "environment_snapshot_sha256": ""
+      },
+      "draft": {
+        "actual": {
+          "conditions": [
+            {
+              "field": "polNoInfo.poleffdate",
+              "match_mode": null,
+              "operator": "RANGE",
+              "value": {
+                "max": "2026-07-28 00:00:00",
+                "min": "2024-07-28 00:00:00"
+              }
+            }
+          ],
+          "intent_summary": "保单生效日在2024-07-28 至 2026-07-28的客户",
+          "query": "近两年成交客户",
+          "query_logic": "AND",
+          "robot_text": "保单生效日在2024-07-28 至 2026-07-28的客户"
+        },
+        "business_expectations": [
+          {
+            "acceptance_criteria": [
+              "输出至少包含一个成交时间筛选条件",
+              "该条件的业务语义覆盖当前日期往前两年的客户"
+            ],
+            "blocking": true,
+            "boundary": {
+              "judge_scope": "parser_condition_semantics_only",
+              "result_set_verified": false,
+              "不要求验证数据库中实际是否存在匹配客户": true
+            },
+            "downstream_consumer": "客户搜索下游查询",
+            "evidence_refs": [],
+            "expectation_id": "检索近两年成交客户目标群体",
+            "expected_outcome": "交付能够表示近两年成交客户的可执行客户搜索条件",
+            "priority": "核心业务目标",
+            "required_capabilities": [
+              "polNoInfo.poleffdate"
+            ],
+            "user_intent": "从客户数据中筛选近两年内成交的客户"
+          },
+          {
+            "acceptance_criteria": [
+              "字段承载成交或签单时间窗口语义",
+              "不误用投保申请日期或承保日期字段"
+            ],
+            "blocking": true,
+            "boundary": {
+              "judge_scope": "parser_condition_semantics_only"
+            },
+            "downstream_consumer": "客户搜索下游查询",
+            "evidence_refs": [],
+            "expectation_id": "成交时间映射为保单生效日期",
+            "expected_outcome": "使用 polNoInfo.poleffdate 表达成交时间窗口",
+            "priority": "核心条件语义",
+            "required_capabilities": [
+              "polNoInfo.poleffdate"
+            ],
+            "user_intent": "将“成交”按当前客户搜索业务口径解释为保单生效时间"
+          },
+          {
+            "acceptance_criteria": [
+              "操作符属于 polNoInfo.poleffdate 支持的 RANGE 族",
+              "最小日期为当前日期减两年",
+              "最大日期为当前日期",
+              "日期值采用可执行的日期时间格式"
+            ],
+            "blocking": true,
+            "boundary": {
+              "judge_scope": "parser_condition_semantics_only",
+              "日期端点按用户表达的“近两年”粒度判断": true
+            },
+            "downstream_consumer": "客户搜索下游查询",
+            "evidence_refs": [],
+            "expectation_id": "近两年时间范围和值边界正确",
+            "expected_outcome": "使用 RANGE 表达动态的过去两年到今天的日期区间",
+            "priority": "核心条件语义",
+            "required_capabilities": [
+              "polNoInfo.poleffdate"
+            ],
+            "user_intent": "筛选从当前日期向前两年至当前日期范围内成交的客户"
+          },
+          {
+            "acceptance_criteria": [
+              "query_logic 为 AND 或其他不会改变单一条件结果集的等价表达",
+              "条件列表仅包含用户表达的成交时间条件",
+              "不增加客户类型、险种、姓名等未表达限制"
+            ],
+            "blocking": false,
+            "boundary": {
+              "judge_scope": "parser_condition_semantics_only"
+            },
+            "downstream_consumer": "客户搜索下游查询",
+            "evidence_refs": [],
+            "expectation_id": "保持单条件查询逻辑且不增加未表达限制",
+            "expected_outcome": "以 AND 交付单一时间条件，且不添加额外条件",
+            "priority": "查询契约",
+            "required_capabilities": [
+              "polNoInfo.poleffdate"
+            ],
+            "user_intent": "仅按成交时间筛选目标客户，不附加用户未表达的客户类型、产品或其他限制"
+          }
+        ],
+        "evidence": [
+          {
+            "source": "current_user_intent",
+            "value": "近两年成交客户"
+          },
+          {
+            "source": "current_actual",
+            "value": {
+              "conditions": [
+                {
+                  "field": "polNoInfo.poleffdate",
+                  "operator": "RANGE",
+                  "value": {
+                    "max": "2026-07-28 00:00:00",
+                    "min": "2024-07-28 00:00:00"
+                  }
+                }
+              ],
+              "intent_summary": "保单生效日在2024-07-28 至 2026-07-28的客户",
+              "query_logic": "AND"
+            }
+          },
+          {
+            "source": "capability_manifest",
+            "value": "polNoInfo.poleffdate 支持 RANGE，且成交时间统一映射为保单生效日期范围"
+          },
+          {
+            "audit_ref": "resolution.1@8518367c53bf",
+            "source": "authority_resolution",
+            "value": "近N年成交时间窗口由 polNoInfo.poleffdate + RANGE 族操作符表达"
+          },
+          {
+            "source": "application_boundary",
+            "value": {
+              "judge_scope": "parser_condition_semantics_only",
+              "result_set_verified": false
+            }
+          },
+          {
+            "environment_snapshot_sha256": "8eacc1d28966c11b4480dc2db6050f1f5ea959558b3e494f8b0d6d49aa6a8640",
+            "reused_resolution_refs": [
+              "resolution.10@8518367c53bf",
+              "resolution.12@8518367c53bf",
+              "resolution.1@8518367c53bf",
+              "resolution.2@8518367c53bf",
+              "resolution.3@8518367c53bf",
+              "resolution.5@8518367c53bf",
+              "resolution.8@8518367c53bf",
+              "resolution.9@8518367c53bf"
+            ],
+            "source": "authority_runtime",
+            "tool_call_ids": []
+          },
+          {
+            "extra": [],
+            "missing": [],
+            "source": "client_search.condition_compare",
+            "wrong": []
+          }
+        ],
+        "expected": {
+          "code": 0,
+          "conditions": [
+            {
+              "field": "polNoInfo.poleffdate",
+              "operator": "RANGE",
+              "value": {
+                "max": "当前日期",
+                "min": "当前日期减两年"
+              }
+            }
+          ],
+          "msg": "应按近两年成交时间筛选客户",
+          "query": "近两年成交客户",
+          "query_logic": "AND",
+          "rewritten_query": null,
+          "robot_text": "保单生效日在当前日期前两年至当前日期的客户"
+        },
+        "extra": [],
+        "fulfillment_assessments": [
+          {
+            "actual_evidence": [
+              "actual_state=available",
+              "实际输出包含 polNoInfo.poleffdate 的时间范围条件，覆盖 2024-07-28 00:00:00 至 2026-07-28 00:00:00",
+              "该范围与当前日期向前两年的动态时间窗口语义一致",
+              "judge_scope=parser_condition_semantics_only，result_set_verified=false；本判断基于条件语义，未声称数据库结果集已验证"
+            ],
+            "authority_tool_call_ids": [
+              "resolution.1@8518367c53bf"
+            ],
+            "confidence": 0.99,
+            "downstream_impact": "下游可据此按近两年成交时间筛选客户；数据库是否存在匹配客户不属于本次评价责任。",
+            "evidence_refs": [],
+            "expectation_id": "检索近两年成交客户目标群体",
+            "expected_evidence": [
+              "用户意图是筛选“近两年成交客户”",
+              "产品契约要求保留明确客户筛选条件并交付下游可支持的查询条件"
+            ],
+            "score": 1,
+            "status": "fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "实际字段为 polNoInfo.poleffdate",
+              "用户表达为成交时间，未额外指定投保或承保时间",
+              "实际字段与成交时间窗口的已确认承载关系一致"
+            ],
+            "authority_tool_call_ids": [
+              "resolution.1@8518367c53bf"
+            ],
+            "confidence": 0.99,
+            "downstream_impact": "下游查询使用正确的成交时间承载字段，不会将请求错误解释为投保申请或承保时间。",
+            "evidence_refs": [],
+            "expectation_id": "成交时间映射为保单生效日期",
+            "expected_evidence": [
+              "权威决议明确：业务口径中的签单、签约和成交时间统一映射为 polNoInfo.poleffdate",
+              "该字段表示保单生效日期，不表示投保申请日期或承保日期"
+            ],
+            "score": 1,
+            "status": "fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "实际操作符为 RANGE",
+              "实际最小值为 2024-07-28 00:00:00，最大值为 2026-07-28 00:00:00",
+              "日期格式为 yyyy-MM-dd HH:mm:ss，满足字段可执行格式",
+              "该区间正好表示以 2026-07-28 为当前日期时的近两年范围"
+            ],
+            "authority_tool_call_ids": [
+              "resolution.1@8518367c53bf"
+            ],
+            "confidence": 0.99,
+            "downstream_impact": "下游能够消费该日期范围进行时间区间筛选；没有结果集验证证据，但条件语义本身可确定。",
+            "evidence_refs": [],
+            "expectation_id": "近两年时间范围和值边界正确",
+            "expected_evidence": [
+              "polNoInfo.poleffdate 支持 RANGE 操作符和 date 类型",
+              "近N年时间窗口由该字段的 RANGE 族操作符表达",
+              "动态模板定义为 past_n_years_to_today"
+            ],
+            "score": 1,
+            "status": "fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "实际 query_logic 为 AND",
+              "实际 conditions 仅包含一个 polNoInfo.poleffdate 时间范围条件",
+              "未发现额外客户类型、险种、姓名或其他筛选条件"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.99,
+            "downstream_impact": "查询集合不会因未表达的额外强约束而被缩小；单条件下 AND 逻辑可直接被下游消费。",
+            "evidence_refs": [],
+            "expectation_id": "保持单条件查询逻辑且不增加未表达限制",
+            "expected_evidence": [
+              "用户只表达了一个成交时间条件",
+              "产品契约要求保持布尔逻辑并避免增加未表达限制"
+            ],
+            "score": 1,
+            "status": "fulfilled"
+          }
+        ],
+        "missing": [],
+        "overall_fulfillment": {
+          "blocking_expectations": [
+            "检索近两年成交客户目标群体",
+            "成交时间映射为保单生效日期",
+            "近两年时间范围和值边界正确"
+          ],
+          "status": "fulfilled"
+        },
+        "project_id": "client_search",
+        "reasoning_summary": "当前请求属于 find-target-customers 场景。用户的唯一核心条件是近两年成交，已确认的业务口径将成交时间映射到 polNoInfo.poleffdate，并使用 RANGE 表达过去两年至当前日期的窗口。实际输出字段、操作符、日期范围和日期格式均符合该语义，query_logic 为 AND 且没有增加未表达限制。下游结果集未验证，但当前评价范围是 parser_condition_semantics_only，条件语义已经足以判定该输出满足请求。",
+        "summary": {
+          "assessment_count": 4,
+          "blocking_count": 3,
+          "fulfillment_status": "fulfilled",
+          "is_formal_attribution": true,
+          "primary_failure_dimensions": [],
+          "reason": "fulfilled · 3 blocking expectations all met · 当前请求属于 find-target-customers 场景。用户的唯一核心条件是近两年成交，已确认的业务口径将成交时间映射到 polNoInfo.poleffdate，并使用 RANGE 表达过去两年至当前日期的窗口。实际输出字段、操作符、日期范围和日期格式均符合该语义，query_logic 为 AND 且没有增加未表达限制。下游结果集未验证，但当前评价范围是 parser_condition_semantics_only，条件语义已经足以判定该输出满足请求。",
+          "reason_source": "aggregated_fulfillment"
+        },
+        "trace_id": "client_search:badcase-028:1785239539537",
+        "wrong": []
+      },
+      "draft_metrics": {
+        "elapsed_seconds": 92.639651
+      },
+      "draft_runtime": {
+        "authority_audit": {},
+        "authority_tool_call_ids": [],
+        "environment": "ok",
+        "environment_snapshot_sha256": "8eacc1d28966c11b4480dc2db6050f1f5ea959558b3e494f8b0d6d49aa6a8640"
+      }
+    }
+  ],
+  "current_fingerprint": "1fb23ad1e8e5e4f9e9e0d5acda9310bd4ebb0c84bd7da71e7c8ccd6e318e5d93",
+  "draft_fingerprint": "49e9f671a643abe2ddab054a91c79466067e45533c387c092ebe6cf770e59f08",
+  "frozen_cases_sha256": "bf9e77ee33b34d912316db83007134ae9cd708987be936cfbb03020ac51844d4",
+  "phase": "case_completed",
+  "project_id": "client_search",
+  "role": "judge",
+  "run_status": "running",
+  "schema_version": 2
+}

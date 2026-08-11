@@ -69,6 +69,7 @@ class JudgeRequest(ApiRequest):
 class AttributeRequest(ApiRequest):
     trace: Any = None
     judge: Any = None
+    manual_override: Optional[bool] = None
 
 
 class ClusterRequest(ApiRequest):

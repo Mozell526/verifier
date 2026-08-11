@@ -1,0 +1,399 @@
+{
+  "checks": {
+    "authorities": {
+      "query-form-equivalence-authority": {
+        "analysis_id": "query-form-equivalence-authority",
+        "basis_source_ref_ids": [
+          "business-field-definitions",
+          "business-enhanced-rules",
+          "current-judge-standard"
+        ],
+        "case_time": {
+          "without_decisive_evidence": "not_evaluable"
+        },
+        "dimension_ids": [
+          "search-intent-preservation",
+          "downstream-query-consumability"
+        ],
+        "required_evidence": [
+          "固定数据快照上的只读双查询比较能力",
+          "业务确认的封闭式等价规则"
+        ]
+      },
+      "semantic-mapping-authority": {
+        "analysis_id": "semantic-mapping-authority",
+        "basis_source_ref_ids": [
+          "business-value-mappings",
+          "business-field-definitions",
+          "current-judge-standard"
+        ],
+        "case_time": {
+          "without_decisive_evidence": "not_evaluable"
+        },
+        "dimension_ids": [
+          "search-intent-preservation"
+        ],
+        "required_evidence": [
+          "业务方认可的澄清规则或标准术语表"
+        ]
+      }
+    },
+    "authority_runtime_replay": {
+      "probe_results": [
+        {
+          "basis_evidence_ref_ids": [
+            "authority-ref-e99be00e449b1f78"
+          ],
+          "environment_snapshot_sha256": "7be230f1ebebfa0c6cff0c73c3bbf56593e448ed1f41cd42a3da5d508fc76a29",
+          "probe_id": "authority-probe-3a9ca6b02431",
+          "reason": "决定性证据来自 field_enums_args.yaml（来源文件 src/main/python/data/client_search_query_parse/field_enums_args.yaml）中 orphanType 字段的枚举声明，内容为 {\"orphanType\": {\"values\": [\"在职有效客户\", \"纯存续单客户\", \"非纯存续单客户\"]}}。MaterialDecision business-field-enums.decision-1（inlive_boundary）明确管辖“字段的可枚举值空间（哪些值在下游可表达、可执行）”，并在项目已登记信任模型 M1 的前提下认定该枚举文件是下游值空间的代理：parser 无法表达空间外的值，空间外出现即属漂移发现信号而非空间否认。问题问的正是该字段的正式合法枚举值空间，与上述决定管辖范围完全对应，且满足“字段枚举为当前启用配置、无灰度覆盖”的条件；未发现其他来源对 orphanType 枚举空间给出冲突定义（business-enhanced-rules 的 orphanType 切片仅含 MATCH 操作符规则，不重定义值空间）。因此该枚举文件声明对当前问题条件具有决定性。",
+          "required_evidence": [],
+          "statement": "client_search 当前启用的客户搜索字段定义中，orphanType 字段的正式合法枚举值空间为：在职有效客户、纯存续单客户、非纯存续单客户（共 3 个值）。",
+          "status": "resolved",
+          "subject_id": "enum_space:orphanType",
+          "tool_audit_present": true,
+          "tool_call_id": "authority.client_search.68a09f556869"
+        },
+        {
+          "basis_evidence_ref_ids": [
+            "authority-ref-1f6e174129616796",
+            "authority-ref-548e44e0478becce"
+          ],
+          "environment_snapshot_sha256": "7be230f1ebebfa0c6cff0c73c3bbf56593e448ed1f41cd42a3da5d508fc76a29",
+          "probe_id": "authority-probe-cd992787b4f7",
+          "reason": "问题要求确定 familyInfo.familyclientbirthday 在 client_search 字段定义与 enhanced_rules 同时启用时的“正式支持”操作符及唯一生效规则，属规范性裁决。已加载两份决定性原始资料：①字段定义切片（field_definitions_args.yaml，familyInfo.familyclientbirthday）声明 operator=MATCH，但同一条目 5 个示例输出分别使用 RANGE/GTE/LTE/LT/GT，资料内部存在操作符口径自相矛盾；②enhanced_rules 切片（enhanced_rules_args.yaml）该字段 9 条规则使用 EXISTS/GT/GTE/LT/LTE/RANGE，但该资料经调查层登记为 current_behavior（business-enhanced-rules.decision-1），只能说明系统当前解析行为，不能单独作为正式操作符支持范围的依据。调查层 MaterialDecision（business-field-definitions.decision-1/decision-2）已明确登记“familyInfo.familyclientbirthday 的字段定义声明 MATCH，但同资料示例使用 RANGE，操作符口径存在冲突且未裁决”。由于当前唯一可能裁定操作符空间的资料（field_definitions）自身冲突且未裁决，又无 normative_rule/external_fact 或统一操作符白名单可唯一确定生效规则，无法给出正式支持的操作符集合，也无法确定唯一生效规则。",
+          "required_evidence": [
+            "能够唯一裁决 familyInfo.familyclientbirthday 正式操作符空间的 normative_rule 或 external_fact（如统一操作符白名单/下游 ES 能力规范），或对 field_definitions_args.yaml 中声明 operator=MATCH 与同条目示例使用 RANGE/GTE/LTE/LT/GT 冲突的正式裁决结论；在获得此类决定性证据前，当前资料不足以确定唯一生效规则。"
+          ],
+          "statement": "",
+          "status": "unresolved",
+          "subject_id": "operator_support:familyInfo.familyclientbirthday",
+          "tool_audit_present": true,
+          "tool_call_id": "authority.client_search.6311549482a8"
+        },
+        {
+          "basis_evidence_ref_ids": [
+            "authority-ref-e99be00e449b1f78"
+          ],
+          "environment_snapshot_sha256": "7be230f1ebebfa0c6cff0c73c3bbf56593e448ed1f41cd42a3da5d508fc76a29",
+          "probe_id": "authority-probe-9f425d278a34",
+          "reason": "问题要求在 client_search 的正式业务口径（规范性规则/外部事实，而非仅当前 parser 配置行为）中确定“孤儿单”唯一映射到哪个 orphanType 枚举值。已完成的调查与资料检索如下：(1) authority.material-decisions 调查索引以“孤儿单”“orphanType”等关键词检索均无任何已登记 MaterialDecision，说明不存在覆盖该映射的证明范围合同；(2) 实际加载的唯一相关资料为 business-field-enums 的 orphanType 切片（unit_id: authority-ref-e99be00e449b1f78），其内容仅为字段枚举值列表 [\"在职有效客户\", \"纯存续单客户\", \"非纯存续单客户\"]，属于当前配置/枚举资料，不包含“孤儿单”口语表达到任一枚举值的映射规则或业务定义，也未说明“孤儿单”对应哪个值（在保险业务语义上“孤儿单”可能涉及离职业务员遗留保单，但该枚举三项均为客户类型维度，无法从资料推断其对应关系）；(3) 检索未命中任何 normative_rule/external_fact 类资料（如 client_search 正式业务口径文档、字段定义文档中明确“孤儿单”→orphanType 的规则）。因此：现有证据只证明了 orphanType 的合法枚举集合，无法在问题条件内唯一决定“孤儿单”的正式映射；不能把当前枚举配置升级为正式业务口径结论，证据不足，判定 unresolved。",
+          "required_evidence": [
+            "能够明确将用户表达“孤儿单”映射到 orphanType 正式枚举值（在职有效客户/纯存续单客户/非纯存续单客户 之一）的 normative_rule 或 external_fact 类资料，例如 client_search 正式业务口径/字段定义文档中对 orphanType 或“孤儿单”的业务语义与映射规则；或覆盖该映射的 MaterialDecision 及其 required_evidence 所要求的决定性资料。"
+          ],
+          "statement": "",
+          "status": "unresolved",
+          "subject_id": "value_mapping:orphanType:孤儿单",
+          "tool_audit_present": true,
+          "tool_call_id": "authority.client_search.77b8837ea481"
+        }
+      ]
+    },
+    "authority_snapshot_sha256": "7be230f1ebebfa0c6cff0c73c3bbf56593e448ed1f41cd42a3da5d508fc76a29",
+    "business_contract_loaded": true,
+    "claim_gate": {
+      "claim_count": 5,
+      "claims_sha256": "3e0b2a62ec1cf68a544e83f1c2100cc202d62c709ed48e326f6cba13824e83b1",
+      "conflict_count": 2,
+      "probes": [
+        {
+          "basis_evidence_ref_ids": [
+            "business-field-enums"
+          ],
+          "expected_status": "resolved",
+          "probe_id": "authority-probe-3a9ca6b02431",
+          "required_evidence": [],
+          "subject_id": "enum_space:orphanType"
+        },
+        {
+          "basis_evidence_ref_ids": [
+            "business-field-definitions",
+            "business-enhanced-rules",
+            "current-judge-standard"
+          ],
+          "expected_status": "unresolved",
+          "probe_id": "authority-probe-cd992787b4f7",
+          "required_evidence": [
+            "固定数据快照上的只读双查询比较能力",
+            "业务确认的封闭式等价规则"
+          ],
+          "subject_id": "operator_support:familyInfo.familyclientbirthday"
+        },
+        {
+          "basis_evidence_ref_ids": [
+            "business-value-mappings",
+            "business-field-definitions",
+            "current-judge-standard"
+          ],
+          "expected_status": "unresolved",
+          "probe_id": "authority-probe-9f425d278a34",
+          "required_evidence": [
+            "业务方认可的澄清规则或标准术语表"
+          ],
+          "subject_id": "value_mapping:orphanType:孤儿单"
+        }
+      ],
+      "subject_count": 3
+    },
+    "four_quadrant_gate": {
+      "quadrants": {
+        "Q1_available_supported": {
+          "assessment_actions": [],
+          "authority_obligations": 1,
+          "checked_claims": [
+            {
+              "expectation_ids": [
+                "core"
+              ],
+              "subject": "subject:q1",
+              "support": "supported",
+              "tool_call_id": "call-q1"
+            }
+          ],
+          "finding_counts": {},
+          "findings": [],
+          "observed_authority_calls": [
+            "call-q1"
+          ],
+          "schema_version": 1,
+          "status": "passed"
+        },
+        "Q2_available_gap": {
+          "assessment_actions": [],
+          "authority_obligations": 1,
+          "checked_claims": [
+            {
+              "expectation_ids": [
+                "core"
+              ],
+              "subject": "subject:q2",
+              "support": "gap_only",
+              "tool_call_id": "call-q2"
+            }
+          ],
+          "finding_counts": {},
+          "findings": [],
+          "observed_authority_calls": [
+            "call-q2"
+          ],
+          "schema_version": 1,
+          "status": "passed"
+        },
+        "Q3_unavailable_material_backed": {
+          "assessment_actions": [],
+          "authority_obligations": 1,
+          "checked_claims": [
+            {
+              "expectation_ids": [
+                "core"
+              ],
+              "subject": "subject:q3",
+              "support": "compact_material"
+            }
+          ],
+          "finding_counts": {},
+          "findings": [],
+          "observed_authority_calls": [],
+          "schema_version": 1,
+          "status": "passed"
+        },
+        "Q4_unavailable_gap": {
+          "assessment_actions": [],
+          "authority_obligations": 1,
+          "checked_claims": [
+            {
+              "expectation_ids": [
+                "core"
+              ],
+              "finding_type": "availability_miss",
+              "subject": "subject:q4",
+              "support": "missing"
+            }
+          ],
+          "finding_counts": {
+            "availability_miss": 1
+          },
+          "findings": [
+            {
+              "code": "availability_miss",
+              "expectation_ids": [
+                "core"
+              ],
+              "finding_type": "availability_miss",
+              "kind": "authority_obligation",
+              "observed_call_ids": [],
+              "owner": "investigate_authority_availability",
+              "remediation_target": "补充或修复 Authority Search→Load 能力；工具不可用时不得把该 finding 计为 Judge 误用。",
+              "required_change": "补充或修复 Authority Search→Load 能力；工具不可用时不得把该 finding 计为 Judge 误用。",
+              "subject": "subject:q4",
+              "trigger": "unspecified"
+            }
+          ],
+          "observed_authority_calls": [],
+          "schema_version": 1,
+          "status": "failed"
+        }
+      },
+      "status": "succeeded"
+    },
+    "judge_obligation_gate": {
+      "detected": {
+        "bad_topology": true,
+        "healthy_passed": true,
+        "not_called": true,
+        "tool_failure": true
+      },
+      "examples": {
+        "bad_topology": {
+          "assessment_actions": [],
+          "authority_obligations": 1,
+          "checked_claims": [
+            {
+              "expectation_ids": [
+                "core"
+              ],
+              "subject": "synthetic:boundary",
+              "support": "unresolved",
+              "tool_call_id": "authority.client_search.synthetic"
+            }
+          ],
+          "finding_counts": {
+            "safety_expectation_marked_blocking": 1
+          },
+          "findings": [
+            {
+              "code": "safety_expectation_marked_blocking",
+              "expectation_ids": [
+                "safe"
+              ],
+              "kind": "expectation_topology",
+              "owner": "candidate_judge_expectation_construction",
+              "required_change": "将安全拒绝、透明说明或不编造条件保留为独立 non-blocking 验收项。"
+            }
+          ],
+          "observed_authority_calls": [
+            "authority.client_search.synthetic"
+          ],
+          "schema_version": 1,
+          "status": "failed"
+        },
+        "healthy": {
+          "assessment_actions": [],
+          "authority_obligations": 1,
+          "checked_claims": [
+            {
+              "expectation_ids": [
+                "core"
+              ],
+              "subject": "synthetic:conflict",
+              "support": "unresolved",
+              "tool_call_id": "authority.client_search.synthetic"
+            }
+          ],
+          "finding_counts": {},
+          "findings": [],
+          "observed_authority_calls": [
+            "authority.client_search.synthetic"
+          ],
+          "schema_version": 1,
+          "status": "passed"
+        },
+        "missing_call": {
+          "assessment_actions": [
+            {
+              "action": "downgrade_to_not_evaluable",
+              "assessment_id": "core",
+              "reason": "normative claim was used without compact-material or Authority backing"
+            }
+          ],
+          "authority_obligations": 1,
+          "checked_claims": [
+            {
+              "expectation_ids": [
+                "core"
+              ],
+              "finding_type": "judge_failed_to_call",
+              "subject": "synthetic:missing-carrier",
+              "support": "missing"
+            }
+          ],
+          "finding_counts": {
+            "not_called": 1
+          },
+          "findings": [
+            {
+              "code": "not_called",
+              "expectation_ids": [
+                "core"
+              ],
+              "finding_type": "judge_failed_to_call",
+              "kind": "authority_obligation",
+              "observed_call_ids": [],
+              "owner": "candidate_judge_trigger_logic",
+              "remediation_target": "让该通用 trigger 提供并调用 authority.resolve；未裁决时依赖项不得给肯定结论。",
+              "required_change": "让该通用 trigger 提供并调用 authority.resolve；未裁决时依赖项不得给肯定结论。",
+              "subject": "synthetic:missing-carrier",
+              "trigger": "missing_semantic_carrier"
+            }
+          ],
+          "observed_authority_calls": [],
+          "schema_version": 1,
+          "status": "failed"
+        },
+        "tool_failure": {
+          "assessment_actions": [],
+          "authority_obligations": 1,
+          "checked_claims": [
+            {
+              "expectation_ids": [
+                "core"
+              ],
+              "subject": "synthetic:tool-failure",
+              "support": "tool_failure",
+              "tool_call_id": "authority.client_search.synthetic"
+            }
+          ],
+          "finding_counts": {
+            "tool_failure": 1
+          },
+          "findings": [
+            {
+              "code": "tool_failure",
+              "expectation_ids": [
+                "core"
+              ],
+              "kind": "authority_obligation",
+              "observed_call_ids": [
+                "authority.client_search.synthetic"
+              ],
+              "owner": "solidify_authority_tool",
+              "required_change": "修复 authority.resolve 结构化输出/调用稳定性；该 side 不得作为肯定改善证据。",
+              "subject": "synthetic:tool-failure",
+              "trigger": "operator_contract_conflict"
+            }
+          ],
+          "observed_authority_calls": [
+            "authority.client_search.synthetic"
+          ],
+          "schema_version": 1,
+          "status": "failed"
+        }
+      },
+      "status": "succeeded"
+    },
+    "report": {
+      "coverage_gaps": 2,
+      "materials": 11,
+      "report_id": "client_search-judge-authority-report"
+    }
+  },
+  "observed_asset_ids": [
+    "candidate_role",
+    "judge_business_contract",
+    "judge_investigation"
+  ],
+  "project_id": "client_search",
+  "role": "judge",
+  "schema_version": 1,
+  "status": "succeeded"
+}

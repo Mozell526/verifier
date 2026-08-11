@@ -44,8 +44,6 @@ llm:
   temperature: 0
   reasoning_effort: max
   request_timeout_seconds: 120
-  max_attempts: 2
-  retry_delay_seconds: 2
   capabilities:
     json_mode: true
     tool_calls: true

@@ -67,6 +67,43 @@ class MockAgent:
         self._mandatory_context_loaded = False
         self._mandatory_context_cache = None
 
+    def _complete_json(
+        self,
+        system: str,
+        user: str,
+        *,
+        trace_id: str,
+        output_spec: StructuredOutputSpec,
+        stage: str,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        """Run one Mock phase with a persisted role/stage context snapshot."""
+        from .context_governance import configure_context_governance, role_governance_config
+
+        tools = list(getattr(self.llm, "tools", None) or [])
+        configure_context_governance(
+            self.llm,
+            config=role_governance_config(
+                self.spec,
+                role="mock",
+                stage=stage,
+                trace_id=trace_id,
+                compiler_source=f"impl/core/mock_agent.py#{stage}",
+            ),
+            project_id=self.spec.project_id,
+            system=system,
+            user=user,
+            output_spec=output_spec,
+            tools=tools,
+        )
+        return self.llm.complete_json(
+            system,
+            user,
+            trace_id=trace_id,
+            output_spec=output_spec,
+            **kwargs,
+        )
+
     # --- 顶层入口：两步串行 ---
 
     def build(self, build_spec: MockBuildSpec) -> MockBuildResult:
@@ -89,7 +126,7 @@ class MockAgent:
             "required_input_fields": spec.required_input_fields,
             "template": spec.template,
         }, ensure_ascii=False)
-        data = self.llm.complete_json(system, user, trace_id=trace_id, reasoning_effort="low", output_spec=_MOCK_INTENT_SPEC)
+        data = self._complete_json(system, user, trace_id=trace_id, reasoning_effort="low", output_spec=_MOCK_INTENT_SPEC, stage="intent")
         if data.get("error"):
             return self._empty_result(spec, reason=f"llm_error:{data.get('error')}")
         single_pass = bool(
@@ -97,12 +134,11 @@ class MockAgent:
             and spec.template.get("single_pass") is True
         )
         if spec.requested_intent and not single_pass:
-            fidelity = self.llm.complete_json(
+            fidelity = self._complete_json(
                 (
                     "你是用户原话的语义保真编辑器，不是业务专家。比较固定事实合同与候选用户原话："
                     "允许自然语气、同义改写和不造成歧义的省略；保留原有不确定性；"
                     "只移除或改正合同没有支持的新增事实、对象缩窄、已选状态或关系，不能补充新事实。"
-                    "输出 JSON，只包含 query。"
                 ),
                 json.dumps(
                     {
@@ -114,6 +150,7 @@ class MockAgent:
                 trace_id=f"{trace_id}-fidelity",
                 reasoning_effort="low",
                 output_spec=_MOCK_INTENT_FIDELITY_SPEC,
+                stage="intent_fidelity",
             )
             if fidelity.get("error"):
                 return self._empty_result(spec, reason=f"fidelity_error:{fidelity.get('error')}")
@@ -165,7 +202,7 @@ class MockAgent:
 
         # 主调用 + 兜底校验重试
         for attempt in range(2):
-            data = self.llm.complete_json(system, user, trace_id=trace_id, reasoning_effort="low", output_spec=live_request_spec)
+            data = self._complete_json(system, user, trace_id=trace_id, reasoning_effort="low", output_spec=live_request_spec, stage="live_request")
             if data.get("error"):
                 if attempt == 0:
                     continue  # 重试一次
@@ -268,21 +305,21 @@ class MockAgent:
             "previous_turns": previous_turns,
             "live_feedback": live_feedback,
         }, ensure_ascii=False)
-        data = self.llm.complete_json(system, user, trace_id=trace_id, reasoning_effort="low", output_spec=_MOCK_NEXT_TURN_SPEC)
+        data = self._complete_json(system, user, trace_id=trace_id, reasoning_effort="low", output_spec=_MOCK_NEXT_TURN_SPEC, stage="next_turn")
         if data.get("error"):
             return {"error": str(data.get("error")), "turn_index": len(previous_turns) + 1}
         query = str(data.get("query") or "")
         if policy and self._contains_internal_user_language(query):
-            repair = self.llm.complete_json(
+            repair = self._complete_json(
                 (
                     "只改写下面这句用户原话，保持业务目标和当前对话进度不变。"
                     "改成普通业务用户会说的自然中文，只保留用户目标、已有对话和可见业务结果。"
-                    "只能输出 JSON：{\"query\": str}。"
                 ),
                 json.dumps({"query": query, "previous_turns": previous_turns[-2:]}, ensure_ascii=False),
                 trace_id=f"{trace_id}-user-language-repair",
                 reasoning_effort="low",
                 output_spec=_MOCK_NEXT_TURN_SPEC,
+                stage="next_turn_repair",
             )
             if repair.get("error"):
                 return {"error": str(repair.get("error")), "turn_index": len(previous_turns) + 1}
@@ -314,12 +351,13 @@ class MockAgent:
             "反推用户表达、用户意图和其对该业务系统的有限认知。没有证据的 user_context 保持空对象，"
             "没有证据的 system_understanding 保持空字符串。输出必须简短。"
         )
-        data = self.llm.complete_json(
+        data = self._complete_json(
             system,
             json.dumps({"project_id": self.spec.project_id, "scenario": scenario, "initial_request": initial_request}, ensure_ascii=False),
             trace_id=trace_id,
             reasoning_effort="low",
             output_spec=_MOCK_INTENT_SPEC,
+            stage="infer_intent",
         )
         if data.get("error"):
             raise RuntimeError(f"infer_user_intent failed: {data.get('error')}")
@@ -338,7 +376,7 @@ class MockAgent:
     ) -> MockContinueDecision:
         """基于受限交互状态进行极简用户继续判断。"""
         trace_id = f"mock-agent-continue-{uuid.uuid4()}"
-        data = self.llm.complete_json(
+        data = self._complete_json(
             (
                 "你扮演真实用户，只根据用户可见的交互判断是否继续使用当前业务系统。\n"
                 "- continue：目标尚未满足，但交互仍有实质进展，例如获得了新信息、新结果，"
@@ -358,6 +396,7 @@ class MockAgent:
             trace_id=trace_id,
             reasoning_effort="low",
             output_spec=_MOCK_CONTINUE_DECISION_SPEC,
+            stage="continue_decision",
         )
         if data.get("error"):
             raise RuntimeError(f"decide_next_action failed: {data.get('error')}")
@@ -497,7 +536,6 @@ class MockAgent:
                 "开放生成只模拟业务助手能实际帮助完成的工作；除非调用方显式指定故障测试，"
                 "不要把纯产品支持问题或界面故障报障作为用户主要目标。"
             )
-        base += f'输出 JSON，只包含必填字段：query，user_intent。'
         return base
 
     def _live_request_system_prompt(self, live_shape: Dict[str, Any], build_spec: MockBuildSpec) -> str:
@@ -509,24 +547,24 @@ class MockAgent:
         )
         if not build_spec.requested_intent:
             capability = self._capability_context(build_spec.project_id, build_spec.scenario)
-        # 显式列出必填字段，避免 LLM 漏掉不熟悉的字段（如 reference/metadata）
-        required_fields = live_shape.get("required", []) if isinstance(live_shape, dict) else []
+        # 保留字段语义提示（reference/metadata 的取值建议），不重复结构声明；
+        # 必填字段与 JSON Schema 由统一 StructuredOutputSpec 渲染。
         required_hint = ""
-        if required_fields:
-            required_hint = f"必填字段列表：{', '.join(required_fields)}。每个必填字段都必须出现且非空；"
-            # 对部分项目需要特殊提示的字段
-            if "reference" in required_fields:
-                required_hint += "reference 是预期答案/参考，若不知内容可填空对象 {}；"
-            if "metadata" in required_fields:
-                required_hint += "metadata 是请求上下文，可填 {\"trace_id\": \"trace-001\", \"org_id\": \"eval-org\"}；"
+        required_fields = (
+            live_shape.get("required", [])
+            if isinstance(live_shape, dict)
+            else []
+        )
+        if "reference" in required_fields:
+            required_hint += "reference 是预期答案/参考，若不知内容可填空对象 {}；"
+        if "metadata" in required_fields:
+            required_hint += "metadata 是请求上下文，可填 {\"trace_id\": \"trace-001\", \"org_id\": \"eval-org\"}；"
         return (
             "你将用户意图映射为 live 请求体。"
-            f"请求体 JSON Schema：{json.dumps(live_shape, ensure_ascii=False)}。"
             f"场景：{build_spec.scenario}。{capability}"
             f"{required_hint}"
             "要求：按 schema 填充所有必填字段；用户原话必须写入 schema 中表达用户输入的字段，贴合系统业务场景；"
             "只填充用户可见请求所需的信息，不要编造输出内容。"
-            "输出 JSON，包含完整的请求体字段。"
         )
 
     def _next_turn_system_prompt(self, scenario: str, policy: str = "") -> str:
@@ -537,7 +575,6 @@ class MockAgent:
             "1. 基于 user_context 的用户画像/背景，保持用户角色一致（语气、诉求、知识水平）。"
             "2. 基于 user_intent 的核心目标，在每轮 query 里体现目标推进（不要偏题）。"
             "3. 基于上轮 live 反馈里缺失的字段或系统的澄清提示，自然地补充；不要重复已说内容。"
-            '输出 JSON，字段：{"query": str}。'
         )
         return f"{prompt}{policy}" if policy else prompt
 

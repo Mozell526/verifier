@@ -12,7 +12,7 @@ from typing import Optional, Dict, Any
 from typing import final as typing_final
 from impl.core.schema import RunTrace, JudgeResult, ProjectSpec, normalize_judge_result
 from impl.core.protocol_base import check_forbidden_overrides
-from impl.core.judge import judge_trace as core_judge_trace
+from impl.core.judge_execution import JudgeExecution, SinglePassJudgeExecution
 
 logger = logging.getLogger(__name__)
 
@@ -81,15 +81,12 @@ class _JudgeProtocol(ABC):
             reconciled_pre = self.reconcile_result(trace, normalized_pre)
             return finalize_judge_result(reconciled_pre)
 
-        # 2. 构建上下文（扩展点）
-        context = self.build_context(trace)
-        from impl.core.judge import build_judge_evidence_view
-        context = {**(context or {}), "judge_evidence": build_judge_evidence_view(trace)}
-        context = {**(context or {}), "intent_frame": self.build_intent_frame(trace, context)}
-
-        # 3. 调用 LLM 判定（内部方法，调用通用层）
+        # 2. 选择执行策略。Production 默认是历史单次 Judge；
+        # 候选 Role 可显式提供 Draft-only 策略。
         try:
-            raw_result = self._run_llm_judge(trace, context, user_intent)
+            raw_result = self.judge_execution().run(
+                self, trace, user_intent
+            )
         except ValueError as e:
             logger.error(f"[judge_trace] LLM 产出不合规，阻断: {e}")
             raw_result = JudgeResult(
@@ -122,6 +119,10 @@ class _JudgeProtocol(ABC):
             user_intent=user_intent,
             project_judge_context=context
         )
+
+    def judge_execution(self) -> JudgeExecution:
+        """Return this Role's execution strategy; Production is single-pass."""
+        return SinglePassJudgeExecution()
 
     def _validate_judge_output(self, result: JudgeResult) -> JudgeResult:
         """内部方法：校验 LLM 输出格式。通用层 judge_trace 已含校验，这里用于额外自定义校验。"""

@@ -1,0 +1,906 @@
+{
+  "case_index": 3,
+  "completed_rows": [
+    {
+      "case_key": "source-badcase-003",
+      "current": {
+        "actual": {
+          "conditions": [
+            {
+              "field": "orphanType",
+              "match_mode": null,
+              "operator": "MATCH",
+              "value": "在职有效客户"
+            }
+          ],
+          "intent_summary": "存续客户类型为在职有效客户",
+          "query": "在职有效客户",
+          "query_logic": "AND",
+          "robot_text": "存续客户类型为在职有效客户"
+        },
+        "business_expectations": [
+          {
+            "acceptance_criteria": [
+              "字段为orphanType",
+              "操作符为MATCH",
+              "值为在职有效客户",
+              "query_logic为AND"
+            ],
+            "blocking": true,
+            "boundary": {},
+            "downstream_consumer": "下游ES客户搜索",
+            "evidence_refs": [],
+            "expectation_id": "在职单语义正确映射为在职有效客户",
+            "expected_outcome": "parser将「在职单」通过value_mappings映射为orphanType字段的枚举值「在职有效客户」，生成MATCH条件",
+            "priority": "high",
+            "required_capabilities": [
+              "orphanType字段识别",
+              "value_mappings映射",
+              "MATCH操作符"
+            ],
+            "user_intent": "用户输入「在职单」，意图查询孤儿单类型为在职有效客户的客户"
+          }
+        ],
+        "evidence": [
+          "用户输入「在职单」，value_mappings明确将「在职单」映射为「在职有效客户」",
+          "orphanType字段枚举值为[在职有效客户, 纯存续单客户, 非纯存续单客户]，「在职有效客户」为合法枚举",
+          "actual output中conditions正确使用了orphanType字段、MATCH操作符和在职有效客户值",
+          "query_logic为AND，符合单条件查询逻辑",
+          "下游搜索不可用(result_set_verified=false)，但parser条件语义完全正确，可判定为fulfilled"
+        ],
+        "expected": {
+          "code": 0,
+          "conditions": [
+            {
+              "field": "orphanType",
+              "operator": "MATCH",
+              "value": "在职有效客户"
+            }
+          ],
+          "msg": "success",
+          "query": "在职单",
+          "query_logic": "AND",
+          "rewritten_query": "在职有效客户",
+          "robot_text": "存续客户类型为在职有效客户"
+        },
+        "extra": [],
+        "fulfillment_assessments": [
+          {
+            "actual_evidence": [
+              "actual conditions: [{field: orphanType, operator: MATCH, value: 在职有效客户}]",
+              "actual query_logic: AND",
+              "actual intent_summary: 存续客户类型为在职有效客户",
+              "actual query: 在职有效客户"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 1.0,
+            "downstream_impact": "下游ES搜索将使用orphanType MATCH 在职有效客户，能检索到在职有效客户类型的客户列表",
+            "evidence_refs": [],
+            "expectation_id": "在职单语义正确映射为在职有效客户",
+            "expected_evidence": [
+              "用户输入「在职单」",
+              "value_mappings中「在职单」→「在职有效客户」",
+              "orphanType字段枚举包含「在职有效客户」",
+              "期望条件：field=orphanType, operator=MATCH, value=在职有效客户, query_logic=AND"
+            ],
+            "score": 1.0,
+            "status": "fulfilled"
+          }
+        ],
+        "missing": [],
+        "overall_fulfillment": {
+          "blocking_expectations": [
+            "在职单语义正确映射为在职有效客户"
+          ],
+          "status": "fulfilled"
+        },
+        "project_id": "client_search",
+        "reasoning_summary": "用户输入「在职单」，根据value_mappings映射规则，「在职单」应映射为orphanType字段的枚举值「在职有效客户」。actual output正确生成了field=orphanType、operator=MATCH、value=在职有效客户的条件，query_logic为AND，intent_summary和robot_text均准确描述了查询意图。字段、操作符、枚举值、逻辑关系均与用户意图一致，无missing、wrong或extra条件。下游搜索虽不可用，但parser条件语义完全正确，可判定为fulfilled。",
+        "summary": {
+          "assessment_count": 1,
+          "blocking_count": 1,
+          "fulfillment_status": "fulfilled",
+          "is_formal_attribution": true,
+          "primary_failure_dimensions": [],
+          "reason": "fulfilled · 1 blocking expectations all met · 用户输入「在职单」，根据value_mappings映射规则，「在职单」应映射为orphanType字段的枚举值「在职有效客户」。actual output正确生成了field=orphanType、operator=MATCH、value=在职有效客户的条件，query_logic为AND，intent_summary和robot_text均准确描述了查询意图。字段、操作符、枚举值、逻辑关系均与用户意图一致，无missing、wrong或extra条件。下游搜索虽不可用，但parser条件语义完全正确，可判定为fulfilled。",
+          "reason_source": "aggregated_fulfillment"
+        },
+        "trace_id": "client_search:badcase-003:1785239539521",
+        "wrong": []
+      },
+      "current_metrics": {
+        "elapsed_seconds": 15.475894
+      },
+      "current_runtime": {
+        "authority_audit": {},
+        "authority_tool_call_ids": [],
+        "environment": "missing",
+        "environment_snapshot_sha256": ""
+      },
+      "draft": {
+        "actual": {
+          "conditions": [
+            {
+              "field": "orphanType",
+              "match_mode": null,
+              "operator": "MATCH",
+              "value": "在职有效客户"
+            }
+          ],
+          "intent_summary": "存续客户类型为在职有效客户",
+          "query": "在职有效客户",
+          "query_logic": "AND",
+          "robot_text": "存续客户类型为在职有效客户"
+        },
+        "business_expectations": [
+          {
+            "acceptance_criteria": [
+              "字段为orphanType",
+              "操作符为MATCH",
+              "值为在职有效客户",
+              "query_logic为AND"
+            ],
+            "blocking": true,
+            "boundary": {},
+            "downstream_consumer": "下游ES客户搜索",
+            "evidence_refs": [],
+            "expectation_id": "在职单客户类型筛选意图正确解析",
+            "expected_outcome": "parser将「在职单」映射为orphanType字段的MATCH操作，值为「在职有效客户」",
+            "priority": "high",
+            "required_capabilities": [
+              "orphanType字段",
+              "MATCH操作符",
+              "在职单→在职有效客户值映射"
+            ],
+            "user_intent": "用户输入「在职单」，意图筛选客户类型为在职有效客户的客户群体"
+          }
+        ],
+        "evidence": [
+          "用户输入「在职单」属于find-target-customers场景，意图筛选在职有效客户",
+          "capability_manifest中orphanType字段枚举包含「在职有效客户」，value_mappings明确「在职单」→「在职有效客户」",
+          "actual output使用orphanType字段、MATCH操作符、值「在职有效客户」，与用户意图和映射表完全一致",
+          "condition_comparison工具确认wrong/missing/extra均为空",
+          "judge_scope为parser_condition_semantics_only，下游结果集未验证，但parser条件语义正确",
+          {
+            "environment_snapshot_sha256": "8bf5ab0798355e5a88895df7ac153d97bf44a79346c63b2670899454c0ed90df",
+            "source": "authority_runtime",
+            "tool_call_ids": []
+          },
+          {
+            "extra": [],
+            "missing": [],
+            "source": "client_search.condition_compare",
+            "wrong": []
+          }
+        ],
+        "expected": {
+          "code": 0,
+          "conditions": [
+            {
+              "field": "orphanType",
+              "operator": "MATCH",
+              "value": "在职有效客户"
+            }
+          ],
+          "msg": "success",
+          "query": "在职单",
+          "query_logic": "AND",
+          "rewritten_query": "在职有效客户",
+          "robot_text": "存续客户类型为在职有效客户"
+        },
+        "extra": [],
+        "fulfillment_assessments": [
+          {
+            "actual_evidence": [
+              "actual conditions: [{field: orphanType, operator: MATCH, value: 在职有效客户}]",
+              "actual query_logic: AND",
+              "actual intent_summary: 存续客户类型为在职有效客户",
+              "actual robot_text: 存续客户类型为在职有效客户",
+              "字段orphanType正确承载客户类型语义",
+              "操作符MATCH为orphanType唯一支持操作符",
+              "值「在职有效客户」与value_mappings中「在职单」的映射一致"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.95,
+            "downstream_impact": "下游ES可按orphanType=MATCH「在职有效客户」正确检索到在职有效客户群体",
+            "evidence_refs": [],
+            "expectation_id": "在职单客户类型筛选意图正确解析",
+            "expected_evidence": [
+              "用户输入「在职单」，意图筛选在职有效客户",
+              "value_mappings中「在职单」→「在职有效客户」",
+              "orphanType字段支持MATCH操作符，枚举值包含「在职有效客户」",
+              "enhanced_rules中「存量客户类型-全枚举匹配」规则覆盖orphanType枚举匹配"
+            ],
+            "score": 1.0,
+            "status": "fulfilled"
+          }
+        ],
+        "missing": [],
+        "overall_fulfillment": {
+          "blocking_expectations": [
+            "在职单客户类型筛选意图正确解析"
+          ],
+          "status": "fulfilled"
+        },
+        "project_id": "client_search",
+        "reasoning_summary": "用户输入「在职单」意图筛选在职有效客户。根据capability_manifest，orphanType字段承载客户类型语义，value_mappings明确将「在职单」映射为「在职有效客户」，且orphanType支持MATCH操作符。actual output正确输出orphanType=MATCH「在职有效客户」，query_logic为AND，intent_summary和robot_text均准确描述为「存续客户类型为在职有效客户」。字段、操作符、值均与用户意图和映射表一致，无遗漏、无错误、无多余条件。下游结果集虽未验证（judge_scope=parser_condition_semantics_only），但parser条件语义完全正确，可判定fulfilled。",
+        "summary": {
+          "assessment_count": 1,
+          "blocking_count": 1,
+          "fulfillment_status": "fulfilled",
+          "is_formal_attribution": true,
+          "primary_failure_dimensions": [],
+          "reason": "fulfilled · 1 blocking expectations all met · 用户输入「在职单」意图筛选在职有效客户。根据capability_manifest，orphanType字段承载客户类型语义，value_mappings明确将「在职单」映射为「在职有效客户」，且orphanType支持MATCH操作符。actual output正确输出orphanType=MATCH「在职有效客户」，query_logic为AND，intent_summary和robot_text均准确描述为「存续客户类型为在职有效客户」。字段、操作符、值均与用户意图和映射表一致，无遗漏、无错误、无多余条件。下游结果集虽未验证（judge_scope=parser_condition_semantics_only），但parser条件语义完全正确，可判定fulfilled。",
+          "reason_source": "aggregated_fulfillment"
+        },
+        "trace_id": "client_search:badcase-003:1785239539521",
+        "wrong": []
+      },
+      "draft_metrics": {
+        "elapsed_seconds": 113.297338
+      },
+      "draft_runtime": {
+        "authority_audit": {},
+        "authority_tool_call_ids": [],
+        "environment": "ok",
+        "environment_snapshot_sha256": "8bf5ab0798355e5a88895df7ac153d97bf44a79346c63b2670899454c0ed90df"
+      }
+    },
+    {
+      "case_key": "source-badcase-008",
+      "current": {
+        "actual": null,
+        "business_expectations": [],
+        "evidence": [
+          "llm_call_failed"
+        ],
+        "expected": null,
+        "extra": [],
+        "fulfillment_assessments": [],
+        "missing": [],
+        "overall_fulfillment": {
+          "assessment_count": 0,
+          "blocking_expectations": [],
+          "status": "not_evaluable"
+        },
+        "project_id": "client_search",
+        "reasoning_summary": "LLM 调用失败，未做出算法判断: LLM run completed without response content",
+        "summary": {
+          "assessment_count": 0,
+          "blocking_count": 0,
+          "fulfillment_status": "not_evaluable",
+          "is_formal_attribution": false,
+          "primary_failure_dimensions": [],
+          "reason": "not_evaluable · LLM 调用失败，未做出算法判断: LLM run completed without response content",
+          "reason_source": "reasoning_summary"
+        },
+        "trace_id": "client_search:badcase-008:1785239538449",
+        "wrong": []
+      },
+      "current_metrics": {
+        "elapsed_seconds": 437.393781
+      },
+      "current_runtime": {
+        "authority_audit": {},
+        "authority_tool_call_ids": [],
+        "environment": "missing",
+        "environment_snapshot_sha256": ""
+      },
+      "draft": {
+        "actual": null,
+        "business_expectations": [],
+        "evidence": [
+          "llm_call_failed"
+        ],
+        "expected": null,
+        "extra": [],
+        "fulfillment_assessments": [],
+        "missing": [],
+        "overall_fulfillment": {
+          "assessment_count": 0,
+          "blocking_expectations": [],
+          "status": "not_evaluable"
+        },
+        "project_id": "client_search",
+        "reasoning_summary": "LLM 调用失败，未做出算法判断: rpm exhausted",
+        "summary": {
+          "assessment_count": 0,
+          "blocking_count": 0,
+          "fulfillment_status": "not_evaluable",
+          "is_formal_attribution": false,
+          "primary_failure_dimensions": [],
+          "reason": "not_evaluable · LLM 调用失败，未做出算法判断: rpm exhausted",
+          "reason_source": "reasoning_summary"
+        },
+        "trace_id": "client_search:badcase-008:1785239538449",
+        "wrong": []
+      },
+      "draft_metrics": {
+        "elapsed_seconds": 128.106832
+      },
+      "draft_runtime": {
+        "authority_audit": {
+          "authority.client_search.cf072ab120f8": {
+            "environment_snapshot_sha256": "af4c3e9d80bc4fcf7bd3c333c42468eda2fff555a3cabb495b1cdb9e149ecfa0",
+            "request": {
+              "decision_question": "客户搜索产品中，用户口语词\"孤儿单\"在orphanType字段中应映射为哪个枚举值？orphanType字段notes声明\"孤儿单=在职有效客户\"，但value_mappings声明\"孤儿单\"→\"纯存续单客户\"，两者冲突，应以哪个为准？"
+            },
+            "resolution": {
+              "basis_evidence_ref_ids": [
+                "authority-ref-e2dc17b613b09a72",
+                "authority-ref-d125f046d632f817",
+                "authority-ref-3e40692fe7a5ef83"
+              ],
+              "reason": "已加载的三份决定性资料构成完整证据链：\n\n1. 字段定义（field_definitions_args.yaml，authority-ref-e2dc17b613b09a72）是orphanType字段的权威来源，其notes明确声明\"当前口径：孤儿单=在职有效客户；有存续单=纯存续单客户；非存续单=非纯存续单客户；非纯孤儿单=非纯存续单客户\"，且examples中\"孤儿单客户\"→MATCH value=[\"在职有效客户\"]，直接给出意图映射结果。\n\n2. 值映射表（value_mappings，authority-ref-d125f046d632f817）中orphanType段确实存在\"孤儿单: 纯存续单客户\"和\"孤儿单客户: 纯存续单客户\"的映射，与notes口径冲突。\n\n3. 枚举清单（business-field-enums，authority-ref-3e40692fe7a5ef83）确认orphanType合法枚举值仅为\"在职有效客户\"\"纯存续单客户\"\"非纯存续单客户\"三项，\"孤儿单\"本身不是枚举值，必须归一到其中一项。\n\n冲突裁决依据：field_definitions是字段语义与意图映射的权威定义源，notes声明的是\"当前口径\"，examples给出的是实际意图输出；value_mappings是口语别名到标准枚举的辅助映射表，其注释也写明\"标准枚举值以客户信息表格定义为准\"。当两者冲突时，field_definitions的notes/examples作为字段语义权威定义具有决定性，value_mappings中的\"孤儿单→纯存续单客户\"属于与当前口径不一致的残留/错误映射，不应采用。因此\"孤儿单\"应映射为\"在职有效客户\"。",
+              "required_evidence": [],
+              "statement": "用户口语词\"孤儿单\"在orphanType字段中应映射为枚举值\"在职有效客户\"。当notes口径与value_mappings冲突时，应以field_definitions中的notes及examples为准。",
+              "status": "resolved"
+            }
+          }
+        },
+        "authority_tool_call_ids": [
+          "authority.client_search.cf072ab120f8"
+        ],
+        "environment": "ok",
+        "environment_snapshot_sha256": "af4c3e9d80bc4fcf7bd3c333c42468eda2fff555a3cabb495b1cdb9e149ecfa0"
+      }
+    },
+    {
+      "case_key": "source-badcase-013",
+      "current": {
+        "actual": {
+          "conditions": [
+            {
+              "field": "pajjMemberGradeInfo.pajjmemberstatus",
+              "match_mode": null,
+              "operator": "CONTAINS",
+              "value": [
+                "潜客",
+                "意向"
+              ]
+            }
+          ],
+          "intent_summary": "平安居家权益状态包含潜客、意向的客户",
+          "query": "平安居家临界客户",
+          "query_logic": "AND",
+          "robot_text": "平安居家权益状态包含潜客、意向的客户"
+        },
+        "business_expectations": [
+          {
+            "acceptance_criteria": [
+              "字段为 pajjMemberGradeInfo.pajjmemberstatus",
+              "操作符为 CONTAINS",
+              "值为 [潜客, 意向]",
+              "query_logic 为 AND"
+            ],
+            "blocking": true,
+            "boundary": {},
+            "downstream_consumer": "下游ES客户搜索",
+            "evidence_refs": [],
+            "expectation_id": "居家临界客户语义正确解析",
+            "expected_outcome": "parser 应识别「居家临界客户」为平安居家临界客户模式，映射到 pajjMemberGradeInfo.pajjmemberstatus 字段，使用 CONTAINS 操作符，值为 [潜客, 意向]",
+            "priority": "high",
+            "required_capabilities": [
+              "平安居家-临界客户 enhanced rule 匹配",
+              "字段语义映射",
+              "操作符选择",
+              "枚举值归一化"
+            ],
+            "user_intent": "用户查询「居家临界客户」，意图是搜索平安居家权益状态为临界状态（潜客或意向）的客户"
+          }
+        ],
+        "evidence": [
+          "enhanced_rules 中「平安居家-临界客户」规则明确定义：patterns 匹配「居家临界客户」，映射到 pajjMemberGradeInfo.pajjmemberstatus，operator CONTAINS，value [潜客, 意向]",
+          "actual output 的 conditions 与 enhanced rule 完全一致",
+          "application_boundary 表明下游结果集不可用，judge_scope 为 parser_condition_semantics_only，基于 parser 条件语义判断等价性",
+          "字段 pajjMemberGradeInfo.pajjmemberstatus 的枚举值包含 潜客、意向、达标、预达标、维持，其中潜客和意向为临界状态"
+        ],
+        "expected": {
+          "code": 0,
+          "conditions": [
+            {
+              "field": "pajjMemberGradeInfo.pajjmemberstatus",
+              "operator": "CONTAINS",
+              "value": [
+                "潜客",
+                "意向"
+              ]
+            }
+          ],
+          "msg": "success",
+          "query": "居家临界客户",
+          "query_logic": "AND",
+          "rewritten_query": "平安居家临界客户",
+          "robot_text": "平安居家权益状态包含潜客、意向的客户"
+        },
+        "extra": [],
+        "fulfillment_assessments": [
+          {
+            "actual_evidence": [
+              "actual conditions: [{field: pajjMemberGradeInfo.pajjmemberstatus, operator: CONTAINS, value: [潜客, 意向]}]",
+              "query_logic: AND",
+              "intent_summary: 平安居家权益状态包含潜客、意向的客户",
+              "query 被重写为「平安居家临界客户」，语义等价"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 1.0,
+            "downstream_impact": "下游ES搜索将正确检索到平安居家权益状态为潜客或意向的客户，符合用户「居家临界客户」的搜索意图",
+            "evidence_refs": [],
+            "expectation_id": "居家临界客户语义正确解析",
+            "expected_evidence": [
+              "用户查询「居家临界客户」，根据 enhanced_rules 中「平安居家-临界客户」规则（priority 20），应映射到 pajjMemberGradeInfo.pajjmemberstatus 字段",
+              "操作符应为 CONTAINS，值为 [潜客, 意向]",
+              "query_logic 应为 AND（单条件）"
+            ],
+            "score": 1.0,
+            "status": "fulfilled"
+          }
+        ],
+        "missing": [],
+        "overall_fulfillment": {
+          "blocking_expectations": [
+            "居家临界客户语义正确解析"
+          ],
+          "status": "fulfilled"
+        },
+        "project_id": "client_search",
+        "reasoning_summary": "用户查询「居家临界客户」，根据 enhanced_rules 中「平安居家-临界客户」规则（priority 20），该模式应映射到 pajjMemberGradeInfo.pajjmemberstatus 字段，使用 CONTAINS 操作符，值为 [潜客, 意向]。actual output 完全符合该规则：字段、操作符、值均正确，query_logic 为 AND，intent_summary 准确描述了搜索意图。query 被重写为「平安居家临界客户」，语义等价。下游结果集虽不可用，但基于 parser 条件语义和 enhanced rule 的确定性映射，可判定输出完全正确。",
+        "summary": {
+          "assessment_count": 1,
+          "blocking_count": 1,
+          "fulfillment_status": "fulfilled",
+          "is_formal_attribution": true,
+          "primary_failure_dimensions": [],
+          "reason": "fulfilled · 1 blocking expectations all met · 用户查询「居家临界客户」，根据 enhanced_rules 中「平安居家-临界客户」规则（priority 20），该模式应映射到 pajjMemberGradeInfo.pajjmemberstatus 字段，使用 CONTAINS 操作符，值为 [潜客, 意向]。actual output 完全符合该规则：字段、操作符、值均正确，query_logic 为 AND，intent_summary 准确描述了搜索意图。query 被重写为「平安居家临界客户」，语义等价。下游结果集虽不可用，但基于 parser 条件语义和 enhanced rule 的确定性映射，可判定输出完全正确。",
+          "reason_source": "aggregated_fulfillment"
+        },
+        "trace_id": "client_search:badcase-013:1785239539503",
+        "wrong": []
+      },
+      "current_metrics": {
+        "elapsed_seconds": 13.246792
+      },
+      "current_runtime": {
+        "authority_audit": {},
+        "authority_tool_call_ids": [],
+        "environment": "missing",
+        "environment_snapshot_sha256": ""
+      },
+      "draft": {
+        "actual": {
+          "conditions": [
+            {
+              "field": "pajjMemberGradeInfo.pajjmemberstatus",
+              "match_mode": null,
+              "operator": "CONTAINS",
+              "value": [
+                "潜客",
+                "意向"
+              ]
+            }
+          ],
+          "intent_summary": "平安居家权益状态包含潜客、意向的客户",
+          "query": "平安居家临界客户",
+          "query_logic": "AND",
+          "robot_text": "平安居家权益状态包含潜客、意向的客户"
+        },
+        "business_expectations": [
+          {
+            "acceptance_criteria": [
+              "字段为 pajjMemberGradeInfo.pajjmemberstatus",
+              "操作符为 CONTAINS",
+              "值为 [潜客, 意向]",
+              "query_logic 为 AND"
+            ],
+            "blocking": true,
+            "boundary": {},
+            "downstream_consumer": "下游客户搜索服务",
+            "evidence_refs": [],
+            "expectation_id": "检索居家临界客户群体",
+            "expected_outcome": "parser 输出平安居家会员状态字段，值为潜客和意向，使用 CONTAINS 操作符，query_logic 为 AND",
+            "priority": "high",
+            "required_capabilities": [
+              "pajjMemberGradeInfo.pajjmemberstatus 字段",
+              "CONTAINS 操作符",
+              "潜客/意向枚举值"
+            ],
+            "user_intent": "用户想查询平安居家权益状态为临界（潜客、意向）的客户群体"
+          }
+        ],
+        "evidence": [
+          "enhanced_rules「平安居家-临界客户」规则明确将「居家临界客户」映射为 pajjMemberGradeInfo.pajjmemberstatus CONTAINS [潜客, 意向]",
+          "actual output 与 enhanced_rules 规则完全一致：字段、操作符、值均匹配",
+          "capability_manifest 确认 pajjMemberGradeInfo.pajjmemberstatus 枚举包含潜客、意向",
+          "judge_scope=parser_condition_semantics_only，下游结果集未验证，但 parser 条件语义与规则等价，可判定 fulfilled",
+          {
+            "environment_snapshot_sha256": "af4c3e9d80bc4fcf7bd3c333c42468eda2fff555a3cabb495b1cdb9e149ecfa0",
+            "source": "authority_runtime",
+            "tool_call_ids": []
+          },
+          {
+            "extra": [],
+            "missing": [],
+            "source": "client_search.condition_compare",
+            "wrong": []
+          }
+        ],
+        "expected": {
+          "code": 0,
+          "conditions": [
+            {
+              "field": "pajjMemberGradeInfo.pajjmemberstatus",
+              "operator": "CONTAINS",
+              "value": [
+                "潜客",
+                "意向"
+              ]
+            }
+          ],
+          "msg": "ok",
+          "query": "居家临界客户",
+          "query_logic": "AND",
+          "rewritten_query": "平安居家临界客户",
+          "robot_text": "平安居家权益状态包含潜客、意向的客户"
+        },
+        "extra": [],
+        "fulfillment_assessments": [
+          {
+            "actual_evidence": [
+              "actual conditions: [{field: pajjMemberGradeInfo.pajjmemberstatus, operator: CONTAINS, value: [潜客, 意向]}]",
+              "actual query_logic: AND",
+              "actual intent_summary: 平安居家权益状态包含潜客、意向的客户",
+              "actual robot_text: 平安居家权益状态包含潜客、意向的客户",
+              "字段、操作符、值与 enhanced_rules「平安居家-临界客户」规则完全一致",
+              "值 [潜客, 意向] 均在 capability_manifest 枚举范围内"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.95,
+            "downstream_impact": "下游可据此搜索到平安居家权益状态为潜客或意向的临界客户群体，符合用户意图",
+            "evidence_refs": [],
+            "expectation_id": "检索居家临界客户群体",
+            "expected_evidence": [
+              "用户请求：居家临界客户",
+              "enhanced_rules 中「平安居家-临界客户」规则：patterns 匹配 (?:平安居家|居家养老|居家|居养)(?:权益)?临界(?:的客户|客户|会员)?，映射到 pajjMemberGradeInfo.pajjmemberstatus，operator=CONTAINS，value=[潜客, 意向]，priority=20",
+              "capability_manifest 中 pajjMemberGradeInfo.pajjmemberstatus 枚举值：潜客、意向、达标、预达标、维持，共5个，状态互斥",
+              "query_logic 应为 AND"
+            ],
+            "score": 1.0,
+            "status": "fulfilled"
+          }
+        ],
+        "missing": [],
+        "overall_fulfillment": {
+          "blocking_expectations": [
+            "检索居家临界客户群体"
+          ],
+          "status": "fulfilled"
+        },
+        "project_id": "client_search",
+        "reasoning_summary": "用户请求「居家临界客户」属于 find-target-customers 场景。enhanced_rules 中「平安居家-临界客户」规则（priority=20）明确将「居家临界客户」映射为 pajjMemberGradeInfo.pajjmemberstatus 字段、CONTAINS 操作符、值 [潜客, 意向]。actual output 的 conditions、query_logic、intent_summary 与该规则完全一致，字段、操作符、值均在 capability_manifest 枚举范围内。下游结果集虽未验证（judge_scope=parser_condition_semantics_only），但 parser 条件语义与规则等价，可判定 fulfilled。",
+        "summary": {
+          "assessment_count": 1,
+          "blocking_count": 1,
+          "fulfillment_status": "fulfilled",
+          "is_formal_attribution": true,
+          "primary_failure_dimensions": [],
+          "reason": "fulfilled · 1 blocking expectations all met · 用户请求「居家临界客户」属于 find-target-customers 场景。enhanced_rules 中「平安居家-临界客户」规则（priority=20）明确将「居家临界客户」映射为 pajjMemberGradeInfo.pajjmemberstatus 字段、CONTAINS 操作符、值 [潜客, 意向]。actual output 的 conditions、query_logic、intent_summary 与该规则完全一致，字段、操作符、值均在 capability_manifest 枚举范围内。下游结果集虽未验证（judge_scope=parser_condition_semantics_only），但 parser 条件语义与规则等价，可判定 fulfilled。",
+          "reason_source": "aggregated_fulfillment"
+        },
+        "trace_id": "client_search:badcase-013:1785239539503",
+        "wrong": []
+      },
+      "draft_metrics": {
+        "elapsed_seconds": 52.161864
+      },
+      "draft_runtime": {
+        "authority_audit": {},
+        "authority_tool_call_ids": [],
+        "environment": "ok",
+        "environment_snapshot_sha256": "af4c3e9d80bc4fcf7bd3c333c42468eda2fff555a3cabb495b1cdb9e149ecfa0"
+      }
+    },
+    {
+      "case_key": "source-badcase-018",
+      "current": {
+        "actual": {
+          "conditions": [
+            {
+              "field": "vipType",
+              "match_mode": null,
+              "operator": "CONTAINS",
+              "value": [
+                "铂金V1",
+                "铂金V2",
+                "原铂金VIP"
+              ]
+            }
+          ],
+          "intent_summary": "客户VIP等级包含铂金V1、铂金V2、原铂金VIP的客户",
+          "query": "我的铂金客户名单",
+          "query_logic": "OR",
+          "robot_text": "客户VIP等级包含铂金V1、铂金V2、原铂金VIP的客户"
+        },
+        "business_expectations": [
+          {
+            "acceptance_criteria": [
+              "字段为vipType",
+              "操作符为CONTAINS",
+              "值包含铂金V1、铂金V2、原铂金VIP",
+              "query_logic为OR"
+            ],
+            "blocking": true,
+            "boundary": {},
+            "downstream_consumer": "下游ES客户搜索",
+            "evidence_refs": [],
+            "expectation_id": "正确识别铂金客户意图并映射到vipType字段",
+            "expected_outcome": "使用vipType字段，CONTAINS操作符，包含铂金V1、铂金V2、原铂金VIP三个枚举值，逻辑为OR",
+            "priority": "high",
+            "required_capabilities": [
+              "vipType字段",
+              "CONTAINS操作符",
+              "铂金等级枚举值映射"
+            ],
+            "user_intent": "查询所有铂金VIP等级的客户名单"
+          }
+        ],
+        "evidence": [
+          "用户query「我的铂金客户名单」明确表达查询铂金VIP等级客户的意图",
+          "enhanced_rules「寿险VIP-铂金客户」规则（priority=10）精确匹配该query，指定operator=CONTAINS，value=[铂金V1, 铂金V2, 原铂金VIP]",
+          "vipType字段enums完整包含铂金V1、铂金V2、原铂金VIP三个铂金等级枚举值",
+          "actual output的conditions、query_logic、intent_summary、robot_text均与enhanced规则完全一致",
+          "application_boundary标记downstream_result_set_available=false，judge_scope为parser_condition_semantics_only，但parser条件语义完全正确"
+        ],
+        "expected": {
+          "code": 0,
+          "conditions": [
+            {
+              "field": "vipType",
+              "operator": "CONTAINS",
+              "value": [
+                "铂金V1",
+                "铂金V2",
+                "原铂金VIP"
+              ]
+            }
+          ],
+          "msg": "success",
+          "query": "我的铂金客户名单",
+          "query_logic": "OR",
+          "rewritten_query": null,
+          "robot_text": "客户VIP等级包含铂金V1、铂金V2、原铂金VIP的客户"
+        },
+        "extra": [],
+        "fulfillment_assessments": [
+          {
+            "actual_evidence": [
+              "actual conditions: [{field: vipType, operator: CONTAINS, value: [铂金V1, 铂金V2, 原铂金VIP]}]",
+              "actual query_logic: OR",
+              "actual intent_summary: 客户VIP等级包含铂金V1、铂金V2、原铂金VIP的客户",
+              "actual robot_text: 客户VIP等级包含铂金V1、铂金V2、原铂金VIP的客户"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 1.0,
+            "downstream_impact": "下游ES搜索可正确检索到所有铂金等级（铂金V1、铂金V2、原铂金VIP）客户，完全覆盖用户意图",
+            "evidence_refs": [],
+            "expectation_id": "正确识别铂金客户意图并映射到vipType字段",
+            "expected_evidence": [
+              "用户query「我的铂金客户名单」意图为查询铂金VIP等级客户",
+              "enhanced_rules中「寿险VIP-铂金客户」规则：patterns匹配「铂金客户/铂金VIP/铂金会员」，operator=CONTAINS，value=[铂金V1, 铂金V2, 原铂金VIP]",
+              "vipType字段enums包含铂金V1、铂金V2、原铂金VIP三个铂金等级枚举值",
+              "CONTAINS操作符配合OR逻辑可正确检索任一铂金等级客户"
+            ],
+            "score": 1.0,
+            "status": "fulfilled"
+          }
+        ],
+        "missing": [],
+        "overall_fulfillment": {
+          "blocking_expectations": [
+            "正确识别铂金客户意图并映射到vipType字段"
+          ],
+          "status": "fulfilled"
+        },
+        "project_id": "client_search",
+        "reasoning_summary": "用户query「我的铂金客户名单」意图清晰，即查询所有铂金VIP等级客户。enhanced_rules中「寿险VIP-铂金客户」规则精确匹配该query，指定使用vipType字段、CONTAINS操作符、值[铂金V1, 铂金V2, 原铂金VIP]。actual output的conditions、query_logic（OR）、intent_summary和robot_text均与规则完全一致，字段、操作符、枚举值、逻辑关系全部正确。虽然下游结果集未验证（downstream_result_set_available=false），但parser条件语义完全正确，可确保下游ES搜索能检索到所有铂金等级客户。",
+        "summary": {
+          "assessment_count": 1,
+          "blocking_count": 1,
+          "fulfillment_status": "fulfilled",
+          "is_formal_attribution": true,
+          "primary_failure_dimensions": [],
+          "reason": "fulfilled · 1 blocking expectations all met · 用户query「我的铂金客户名单」意图清晰，即查询所有铂金VIP等级客户。enhanced_rules中「寿险VIP-铂金客户」规则精确匹配该query，指定使用vipType字段、CONTAINS操作符、值[铂金V1, 铂金V2, 原铂金VIP]。actual output的conditions、query_logic（OR）、intent_summary和robot_text均与规则完全一致，字段、操作符、枚举值、逻辑关系全部正确。虽然下游结果集未验证（downstream_result_set_available=false），但parser条件语义完全正确，可确保下游ES搜索能检索到所有铂金等级客户。",
+          "reason_source": "aggregated_fulfillment"
+        },
+        "trace_id": "client_search:badcase-018:1785239538429",
+        "wrong": []
+      },
+      "current_metrics": {
+        "elapsed_seconds": 41.070045
+      },
+      "current_runtime": {
+        "authority_audit": {},
+        "authority_tool_call_ids": [],
+        "environment": "missing",
+        "environment_snapshot_sha256": ""
+      },
+      "draft": {
+        "actual": {
+          "conditions": [
+            {
+              "field": "vipType",
+              "match_mode": null,
+              "operator": "CONTAINS",
+              "value": [
+                "铂金V1",
+                "铂金V2",
+                "原铂金VIP"
+              ]
+            }
+          ],
+          "intent_summary": "客户VIP等级包含铂金V1、铂金V2、原铂金VIP的客户",
+          "query": "我的铂金客户名单",
+          "query_logic": "OR",
+          "robot_text": "客户VIP等级包含铂金V1、铂金V2、原铂金VIP的客户"
+        },
+        "business_expectations": [
+          {
+            "acceptance_criteria": [
+              "字段为vipType",
+              "操作符为CONTAINS",
+              "值包含铂金V1、铂金V2、原铂金VIP",
+              "不遗漏任何铂金等级枚举值"
+            ],
+            "blocking": true,
+            "boundary": {},
+            "downstream_consumer": "下游ES客户搜索",
+            "evidence_refs": [],
+            "expectation_id": "铂金客户VIP等级条件正确解析",
+            "expected_outcome": "将「铂金客户」映射为vipType字段，使用CONTAINS操作符，值为铂金V1、铂金V2、原铂金VIP三个枚举值",
+            "priority": "high",
+            "required_capabilities": [
+              "vipType字段",
+              "CONTAINS操作符",
+              "铂金类别枚举展开"
+            ],
+            "user_intent": "查询铂金VIP等级的客户名单"
+          },
+          {
+            "acceptance_criteria": [
+              "conditions数组仅包含vipType条件",
+              "不添加客户类型、孤儿单类型等未表达条件"
+            ],
+            "blocking": false,
+            "boundary": {},
+            "downstream_consumer": "下游ES客户搜索",
+            "evidence_refs": [],
+            "expectation_id": "无多余条件添加",
+            "expected_outcome": "仅输出vipType条件，不添加isBuyInsurance或其他未表达的限制",
+            "priority": "medium",
+            "required_capabilities": [
+              "语义理解"
+            ],
+            "user_intent": "「我的」为领属修饰语，不应产生额外筛选条件"
+          }
+        ],
+        "evidence": [
+          "用户请求「我的铂金客户名单」命中enhanced_rules「寿险VIP-铂金客户」规则",
+          "该规则定义：field=vipType, operator=CONTAINS, value=[铂金V1, 铂金V2, 原铂金VIP]",
+          "vipType字段notes确认铂金会员映射为铂金V1、铂金V2、原铂金VIP",
+          "actual output与规则定义完全一致",
+          "application_boundary: judge_scope=parser_condition_semantics_only, result_set_verified=false",
+          "enum_completeness_evidence: actual_values_all_in_static_registry=true, static_registry_is_closed_set=true, enum_authority_candidate=false",
+          {
+            "environment_snapshot_sha256": "af4c3e9d80bc4fcf7bd3c333c42468eda2fff555a3cabb495b1cdb9e149ecfa0",
+            "source": "authority_runtime",
+            "tool_call_ids": []
+          },
+          {
+            "extra": [],
+            "missing": [],
+            "source": "client_search.condition_compare",
+            "wrong": []
+          }
+        ],
+        "expected": {
+          "code": 0,
+          "conditions": [
+            {
+              "field": "vipType",
+              "operator": "CONTAINS",
+              "value": [
+                "铂金V1",
+                "铂金V2",
+                "原铂金VIP"
+              ]
+            }
+          ],
+          "msg": "ok",
+          "query": "我的铂金客户名单",
+          "query_logic": "OR",
+          "rewritten_query": null,
+          "robot_text": "客户VIP等级包含铂金V1、铂金V2、原铂金VIP的客户"
+        },
+        "extra": [],
+        "fulfillment_assessments": [
+          {
+            "actual_evidence": [
+              "actual conditions: [{field: vipType, operator: CONTAINS, value: [铂金V1, 铂金V2, 原铂金VIP]}]",
+              "actual query_logic: OR",
+              "actual intent_summary: 客户VIP等级包含铂金V1、铂金V2、原铂金VIP的客户",
+              "字段、操作符、值与enhanced_rules及vipType notes完全一致",
+              "三个铂金等级枚举值全部覆盖，无遗漏"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.98,
+            "downstream_impact": "下游ES搜索可正确检索到所有铂金VIP等级客户",
+            "evidence_refs": [],
+            "expectation_id": "铂金客户VIP等级条件正确解析",
+            "expected_evidence": [
+              "用户请求「我的铂金客户名单」，核心筛选意图为铂金VIP等级客户",
+              "enhanced_rules中「寿险VIP-铂金客户」规则：pattern匹配「铂金(?:VIP|客户|会员)?(?:的客户|客户|名单|的人|人|有哪些人|有哪些|的)?」→ field=vipType, operator=CONTAINS, value=[铂金V1, 铂金V2, 原铂金VIP]",
+              "vipType字段notes明确：铂金会员→铂金V1、铂金V2、原铂金VIP",
+              "vipType枚举列表包含铂金V1、铂金V2、原铂金VIP三个值"
+            ],
+            "score": 1.0,
+            "status": "fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "actual conditions数组仅包含1个条件：vipType",
+              "未添加isBuyInsurance、orphanType等未表达条件",
+              "conditions数量与用户表达的核心筛选维度一致"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.98,
+            "downstream_impact": "不会因多余条件缩小客户集合",
+            "evidence_refs": [],
+            "expectation_id": "无多余条件添加",
+            "expected_evidence": [
+              "用户请求中「我的」为领属修饰语，非独立筛选条件",
+              "用户未表达客户类型（客户/准客/用户）、孤儿单类型等额外维度"
+            ],
+            "score": 1.0,
+            "status": "fulfilled"
+          }
+        ],
+        "missing": [],
+        "overall_fulfillment": {
+          "blocking_expectations": [
+            "铂金客户VIP等级条件正确解析"
+          ],
+          "status": "fulfilled"
+        },
+        "project_id": "client_search",
+        "reasoning_summary": "用户请求「我的铂金客户名单」属于find-target-customers场景，核心意图为查询铂金VIP等级客户。enhanced_rules中「寿险VIP-铂金客户」规则明确将「铂金客户」映射为vipType字段CONTAINS操作符，值为[铂金V1, 铂金V2, 原铂金VIP]。actual output的conditions、operator、value与该规则完全一致，三个铂金等级枚举值全部覆盖无遗漏。vipType字段notes也确认铂金会员对应这三个枚举值。用户请求中的「我的」为领属修饰语，actual未添加任何多余条件（如isBuyInsurance、orphanType等），conditions数组仅包含vipType一个条件，符合用户表达的核心筛选维度。query_logic为OR，对于单条件场景语义合理。在parser_condition_semantics_only边界下，基于enhanced_rules、字段定义和枚举能力，actual output的搜索语义与用户意图完全等价，判定为fulfilled。",
+        "summary": {
+          "assessment_count": 2,
+          "blocking_count": 1,
+          "fulfillment_status": "fulfilled",
+          "is_formal_attribution": true,
+          "primary_failure_dimensions": [],
+          "reason": "fulfilled · 1 blocking expectations all met · 用户请求「我的铂金客户名单」属于find-target-customers场景，核心意图为查询铂金VIP等级客户。enhanced_rules中「寿险VIP-铂金客户」规则明确将「铂金客户」映射为vipType字段CONTAINS操作符，值为[铂金V1, 铂金V2, 原铂金VIP]。actual output的conditions、operator、value与该规则完全一致，三个铂金等级枚举值全部覆盖无遗漏。vipType字段notes也确认铂金会员对应这三个枚举值。用户请求中的「我的」为领属修饰语，actual未添加任何多余条件（如isBuyInsurance、orphanType等），conditions数组仅包含vipType一个条件，符合用户表达的核心筛选维度。query_logic为OR，对于单条件场景语义合理。在parser_condition_semantics_only边界下，基于enhanced_rules、字段定义和枚举能力，actual output的搜索语义与用户意图完全等价，判定为fulfilled。",
+          "reason_source": "aggregated_fulfillment"
+        },
+        "trace_id": "client_search:badcase-018:1785239538429",
+        "wrong": []
+      },
+      "draft_metrics": {
+        "elapsed_seconds": 26.932613
+      },
+      "draft_runtime": {
+        "authority_audit": {},
+        "authority_tool_call_ids": [],
+        "environment": "ok",
+        "environment_snapshot_sha256": "af4c3e9d80bc4fcf7bd3c333c42468eda2fff555a3cabb495b1cdb9e149ecfa0"
+      }
+    }
+  ],
+  "current_fingerprint": "47fc6f85f79b57a5ae1e42a571c17c1cd3d4f9c2fdcd2a4b84c739f7a79eac5a",
+  "draft_fingerprint": "ff9950ed5c43bd28ce600d9861b4883d2da73c3be84f113debbbc8280c9e0ed3",
+  "frozen_cases_sha256": "bf9e77ee33b34d912316db83007134ae9cd708987be936cfbb03020ac51844d4",
+  "phase": "case_completed",
+  "project_id": "client_search",
+  "role": "judge",
+  "run_status": "running",
+  "schema_version": 2
+}

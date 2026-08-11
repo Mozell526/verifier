@@ -1,0 +1,175 @@
+{
+  "contract_coverage": [
+    {
+      "evidence": [
+        "001-run.json#rows"
+      ],
+      "source_id": "dimension:downstream-query-consumability"
+    },
+    {
+      "evidence": [
+        "001-run.json#rows"
+      ],
+      "source_id": "dimension:search-intent-preservation"
+    },
+    {
+      "evidence": [
+        "001-run.json#rows"
+      ],
+      "source_id": "expectation:find-target-customers"
+    },
+    {
+      "evidence": [
+        "001-run.json#rows"
+      ],
+      "source_id": "live_boundary"
+    }
+  ],
+  "criteria": [
+    {
+      "criterion_id": "expectation_support",
+      "evidence": [
+        "001-run.json#rows"
+      ],
+      "finding": "Draft 未稳定支撑已声明的业务期望；6 条由 Current fulfilled 变为 Draft not_fulfilled，另有 6 条进入 not_evaluable。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "atomic_pre_actual_expectations",
+      "evidence": [
+        "001-run.json#rows"
+      ],
+      "finding": "本轮未发现根据 actual 临时追加验收点的证据；合同来自冻结输入。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "pre_actual_blocking",
+      "evidence": [
+        "001-run.json#source-badcase-008",
+        "001-run.json#source-badcase-018",
+        "001-run.json#source-badcase-138"
+      ],
+      "finding": "部分 blocking 期望因运行时工具结构化失败进入 not_evaluable，尚不能证明 blocking 语义被稳定执行。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "dimension_coverage",
+      "evidence": [
+        "001-run.json#rows"
+      ],
+      "finding": "Draft 运行虽返回三态，但 Authority/字段资料消费审计不完整，不能证明各评价维度均被正确覆盖。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "fulfilled_external_evidence",
+      "evidence": [
+        "001-run.json#source-badcase-008",
+        "001-run.json#source-badcase-018",
+        "001-run.json#source-badcase-138"
+      ],
+      "finding": "Authority 调用存在结构化输出失败，且成功调用的可审计证据绑定不足；不能把当前 fulfilled 结果全部视为外部证据支撑。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "not_fulfilled_live_boundary",
+      "evidence": [
+        "001-run.json#source-badcase-023",
+        "001-run.json#source-badcase-058",
+        "001-run.json#source-badcase-073",
+        "001-run.json#source-badcase-093",
+        "001-run.json#source-badcase-128",
+        "001-run.json#source-badcase-148"
+      ],
+      "finding": "存在 fulfilled→not_fulfilled，且当前报告不足以区分是 Draft 业务识别还是资料/工具消费失配。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "not_evaluable_evidence_gap",
+      "evidence": [
+        "001-run.json#source-badcase-008",
+        "001-run.json#source-badcase-018",
+        "001-run.json#source-badcase-048",
+        "001-run.json#source-badcase-088",
+        "001-run.json#source-badcase-113",
+        "001-run.json#source-badcase-133",
+        "001-run.json#source-badcase-138"
+      ],
+      "finding": "6 条 not_evaluable 中至少 5 条对应 authority 结构化输出失败；工具失败不能冒充查证后的依据不足。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "missing_output_no_escape",
+      "evidence": [
+        "001-run.json#rows"
+      ],
+      "finding": "当前无法排除部分 not_fulfilled/not_evaluable 是模型输出协议失配或旧工具名导致，而非真实缺输出。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "external_constraint_non_attribution",
+      "evidence": [
+        "001-run.json#rows"
+      ],
+      "finding": "未见明确把外部约束归责给 Live 的统一性证据，但该项不抵消整体无效侧问题。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "authority_anchor_scope",
+      "evidence": [
+        "001-run.json#source-badcase-008",
+        "001-run.json#source-badcase-018",
+        "001-run.json#source-badcase-138"
+      ],
+      "finding": "Authority 失败审计中出现非对象 JSON、缺字段和额外字段；调用结果未形成可验证的 basis evidence 链。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "authority_unresolved_conservatism",
+      "evidence": [
+        "001-run.json#source-badcase-008",
+        "001-run.json#source-badcase-018",
+        "001-run.json#source-badcase-133"
+      ],
+      "finding": "本轮 not_evaluable 主要由工具/结构化输出失败触发，不足以证明是保守且有证据缺口的业务 unresolved。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "no_runtime_authority_investigation",
+      "evidence": [
+        "001-run.json#rows"
+      ],
+      "finding": "未发现把运行时 authority 结果静态回写调查包的证据；但调用协议本身仍需修复。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "no_internal_or_unseen_leakage",
+      "evidence": [
+        "001-run.json#rows"
+      ],
+      "finding": "未发现 unseen case、内部评审信息进入运行输入的证据。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "relative_improvement_no_regression",
+      "evidence": [
+        "001-run.json#rows"
+      ],
+      "finding": "相对 Current 有 6 条 fulfilled→not_fulfilled、6 条→not_evaluable，且本轮 authority/tool 链不完整，不能证明无退化。",
+      "status": "fail"
+    }
+  ],
+  "decision": "insufficient_evidence",
+  "iteration": 1,
+  "project_id": "client_search",
+  "role": "judge",
+  "route": "solidify",
+  "run_report": {
+    "location": "draft/.state/judge/iterations/001-run.json",
+    "location_scope": "project_package",
+    "sha256": "21ef059cbda69774205d4532dd3e316064324626728f3b35f168766d6affe9c3"
+  },
+  "run_report_sha256": "21ef059cbda69774205d4532dd3e316064324626728f3b35f168766d6affe9c3",
+  "schema_version": 1,
+  "solidify_receipt_sha256": "da7abc8b31de3b686ca48e557b774cda9d39e7b46e8919f28d2d1d254c596ee7",
+  "summary": "第一轮 30 条已在 8 路并发下完成，但不能作为业务改善或 promotion 证据：Draft 仅 13 fulfilled、11 not_fulfilled、6 not_evaluable，相对 Current 出现 6 条 fulfilled→not_fulfilled、6 条→not_evaluable；12 条存在 authority 调用且全部为结构化输出失败，authority_tool_failure 不能被当作业务依据。Draft runtime environment 虽为 ok，但 authority 审计显示能力链未形成可用闭环；同时运行期间出现 investigation_search_index 不存在的旧工具名失配，需先修复/重新固化后重跑。"
+}

@@ -1,0 +1,364 @@
+schema_version: 2
+baseline: "20260721"
+purpose: path-semantic migration evidence; not a configuration source
+
+probes:
+  public-command-config: tests/test_config_contract.py::test_resolver_applies_registered_precedence_and_tracks_sources
+  five-root-isolation: tests/test_path_contract.py::test_all_five_roots_move_without_changing_logical_references
+  project-source-config: tests/test_config_path_portability.py::test_project_moves_between_machine_roots_without_yaml_change
+  five-project-machine-portability: tests/test_config_path_portability.py::test_all_real_projects_resolve_equivalently_across_two_machine_layouts
+  route-resolution: tests/test_project_config_contract.py::test_knowledge_route_resolves_registered_repository_and_tracks_source
+  project-dispatch: tests/test_project_layer_dispatch.py::test_project_loader_returns_optional_project_modules
+  local-service-start: tests/test_project_config_contract.py::test_local_service_reuses_health_and_starts_only_when_needed
+  investigation-portable: tests/test_investigation_portable_paths.py::test_v2_manifest_round_trips_and_resolves_logical_paths
+  draft-resume: tests/test_draft_loop.py::test_draft_loop_freezes_current_and_requires_review_between_iterations
+  endpoint-scope: tests/test_endpoint_discovery.py::test_endpoint_discovery_hides_framework_request_param
+  active-registry: tests/test_active_artifacts.py::test_registered_writer_requires_known_family_and_owned_target
+  non-file-types: tests/test_config_path_portability.py::test_project_moves_between_machine_roots_without_yaml_change
+
+entries:
+  - entry_id: public-python-executable
+    project: public
+    historical_location: impl/config.yaml.python.executable
+    semantic_scope: non_file
+    lifecycle: config_input
+    canonical_target:
+      kind: yaml_field
+      value: impl/config.yaml#python.executable
+    consumers: [impl.core.config, run.sh, config-check]
+    probe_id: public-command-config
+    disposition: handoff
+    compatibility: {status: none}
+
+  - entry_id: public-context-records
+    project: public
+    historical_location: impl/data/context_store physical record paths
+    semantic_scope: verifier_repo
+    lifecycle: derived_active
+    canonical_target:
+      kind: logical_path_ref
+      location_scope: verifier_repo
+      field: context record persisted path references
+    consumers: [context replay, context API]
+    probe_id: active-registry
+    disposition: migrate
+    compatibility: {status: removed}
+
+  - entry_id: public-case-pool
+    project: public
+    historical_location: impl/data/case_pools.json resumable case references
+    semantic_scope: verifier_repo
+    lifecycle: derived_active
+    canonical_target:
+      kind: logical_path_ref
+      location_scope: verifier_repo
+      field: case pool persisted path references
+    consumers: [case pool API, evaluation input selection]
+    probe_id: active-registry
+    disposition: migrate
+    compatibility: {status: removed}
+
+  - entry_id: qa-knowledge-route
+    project: QA
+    historical_location: project.source_project pointing at projects/QA
+    semantic_scope: knowledge_route
+    lifecycle: config_input
+    canonical_target:
+      kind: yaml_field
+      value: projects/QA/project.yaml#documents
+    consumers: [ProjectKnowledgeRoute, evals harness initialization]
+    probe_id: route-resolution
+    disposition: split
+    compatibility: {status: removed}
+
+  - entry_id: qa-frozen-mock-cases
+    project: QA
+    historical_location: impl/data/QA/mock_cases.json path-bearing case payloads
+    semantic_scope: verifier_repo
+    lifecycle: derived_active
+    canonical_target:
+      kind: logical_path_ref
+      location_scope: verifier_repo
+      field: frozen MockCase persisted path references
+    consumers: [MockCase loader, evaluation input selection]
+    probe_id: active-registry
+    disposition: migrate
+    compatibility: {status: removed}
+
+  - entry_id: client-search-business-root
+    project: client_search
+    historical_location: source_project and application.external_repo
+    semantic_scope: business_source
+    lifecycle: config_input
+    canonical_target:
+      kind: yaml_field
+      value: impl/projects/client_search/project.yaml#project.resources.source.repository
+    consumers: [ProjectSpec.source_root_path, project tools, Investigation]
+    probe_id: five-project-machine-portability
+    disposition: split
+    compatibility: {status: removed}
+
+  - entry_id: client-search-source-documents
+    project: client_search
+    historical_location: documents.source_* business-repository files
+    semantic_scope: business_source
+    lifecycle: config_input
+    canonical_target:
+      kind: yaml_field
+      value: impl/projects/client_search/project.yaml#project.resources.source.paths
+    consumers: [ProjectSpec.source_path, project tools]
+    probe_id: five-root-isolation
+    disposition: migrate
+    compatibility: {status: removed}
+
+  - entry_id: client-search-route-documents
+    project: client_search
+    historical_location: ../../../projects/client_search/*.md
+    semantic_scope: knowledge_route
+    lifecycle: config_input
+    canonical_target:
+      kind: yaml_field
+      value: projects/client_search/project.yaml#documents
+    consumers: [ProjectKnowledgeRoute, evals harness initialization]
+    probe_id: route-resolution
+    disposition: migrate
+    compatibility: {status: removed}
+
+  - entry_id: client-search-endpoint-manifest
+    project: client_search
+    historical_location: tools/api_discover/_manifest.json source paths
+    semantic_scope: business_source
+    lifecycle: derived_active
+    canonical_target:
+      kind: logical_path_ref
+      location_scope: business_source
+      field: endpoint discovery source references
+    consumers: [load_discovered_tools, config-check registry]
+    probe_id: endpoint-scope
+    disposition: migrate
+    compatibility: {status: removed}
+
+  - entry_id: client-search-investigation
+    project: client_search
+    historical_location: draft Investigation manifest and validation receipt paths
+    semantic_scope: project_package
+    lifecycle: derived_active
+    canonical_target:
+      kind: logical_path_ref
+      location_scope: project_package
+      field: Investigation schema v2 evidence and implementation references
+    consumers: [Investigation validator, Draft role loading, promotion]
+    probe_id: investigation-portable
+    disposition: migrate
+    compatibility:
+      status: retained
+      owner: impl.core.schema.investigation
+      deletion_condition: schema v1 remains historical-only and no active package needs migration
+
+  - entry_id: policy-search-business-root
+    project: policy_search
+    historical_location: policy-search onboarding source repository supplied outside formal project configuration
+    semantic_scope: business_source
+    lifecycle: config_input
+    canonical_target:
+      kind: yaml_field
+      value: impl/projects/policy_search/project.yaml#project.resources.source.repository
+    consumers: [ProjectSpec.source_root_path, project tools, local_service, Investigation]
+    probe_id: project-source-config
+    disposition: split
+    compatibility: {status: removed}
+
+  - entry_id: deerflow-business-root
+    project: deerflow
+    historical_location: source_project and application.external_repo
+    semantic_scope: business_source
+    lifecycle: config_input
+    canonical_target:
+      kind: yaml_field
+      value: impl/projects/deerflow/project.yaml#project.resources.source.repository
+    consumers: [ProjectSpec.source_root_path, Investigation, endpoint discovery]
+    probe_id: five-project-machine-portability
+    disposition: split
+    compatibility: {status: removed}
+
+  - entry_id: deerflow-project-assets
+    project: deerflow
+    historical_location: draft modules, role assets, Investigation package and startup_command
+    semantic_scope: project_package
+    lifecycle: config_input
+    canonical_target:
+      kind: yaml_field
+      value: impl/projects/deerflow/project.yaml#verifier.roles
+    consumers: [project_loader, draft promotion, local_service]
+    probe_id: project-dispatch
+    disposition: split
+    compatibility: {status: removed}
+
+  - entry_id: deerflow-start-script
+    project: deerflow
+    historical_location: application.startup_command absolute external script
+    semantic_scope: project_package
+    lifecycle: config_input
+    canonical_target:
+      kind: yaml_field
+      value: impl/projects/deerflow/project.yaml#runtime.service.local.start_script
+    consumers: [ProjectSpec.local_start_script_path, local_service]
+    probe_id: local-service-start
+    disposition: split
+    compatibility: {status: removed}
+
+  - entry_id: deerflow-route-documents
+    project: deerflow
+    historical_location: ../../../projects/deerflow/*.md
+    semantic_scope: knowledge_route
+    lifecycle: config_input
+    canonical_target:
+      kind: yaml_field
+      value: projects/deerflow/project.yaml#documents
+    consumers: [ProjectKnowledgeRoute, evals harness initialization]
+    probe_id: route-resolution
+    disposition: migrate
+    compatibility: {status: removed}
+
+  - entry_id: deerflow-investigation
+    project: deerflow
+    historical_location: attribute/mock manifest and receipt physical paths
+    semantic_scope: project_package
+    lifecycle: derived_active
+    canonical_target:
+      kind: logical_path_ref
+      location_scope: project_package
+      field: Investigation schema v2 evidence and implementation references
+    consumers: [Investigation validator, Draft role loading, promotion]
+    probe_id: investigation-portable
+    disposition: migrate
+    compatibility:
+      status: retained
+      owner: impl.core.schema.investigation
+      deletion_condition: stale evidence is independently revalidated and schema v1 is historical-only
+
+  - entry_id: deerflow-draft-state
+    project: deerflow
+    historical_location: Draft loop run_report, review evidence and frozen case paths
+    semantic_scope: artifact_package
+    lifecycle: derived_active
+    canonical_target:
+      kind: logical_path_ref
+      location_scope: project_package
+      field: DraftLoopState v2 references
+    consumers: [Draft resume, promotion]
+    probe_id: draft-resume
+    disposition: migrate
+    compatibility: {status: removed}
+
+  - entry_id: marketting-planning-business-root
+    project: marketting-planning
+    historical_location: source_project, common.source.repo and documents.source_*
+    semantic_scope: business_source
+    lifecycle: config_input
+    canonical_target:
+      kind: yaml_field
+      value: impl/projects/marketting-planning/project.yaml#project.resources.source
+    consumers: [ProjectSpec.source_root_path, Attribute source tools, Investigation]
+    probe_id: five-project-machine-portability
+    disposition: split
+    compatibility: {status: removed}
+
+  - entry_id: marketting-planning-route-documents
+    project: marketting-planning
+    historical_location: ../../../projects/marketting-planning/*.md
+    semantic_scope: knowledge_route
+    lifecycle: config_input
+    canonical_target:
+      kind: yaml_field
+      value: projects/marketting-planning/project.yaml#documents
+    consumers: [ProjectKnowledgeRoute, evals harness initialization]
+    probe_id: route-resolution
+    disposition: migrate
+    compatibility: {status: removed}
+
+  - entry_id: marketting-planning-investigation
+    project: marketting-planning
+    historical_location: manifest, receipt and Draft state physical paths
+    semantic_scope: business_source
+    lifecycle: derived_active
+    canonical_target:
+      kind: logical_path_ref
+      location_scope: business_source
+      field: Investigation and Draft active references
+    consumers: [Investigation validator, Draft resume, promotion]
+    probe_id: investigation-portable
+    disposition: migrate
+    compatibility:
+      status: retained
+      owner: business investigation maintainer
+      deletion_condition: narrative observation is re-investigated into a resolvable evidence reference
+
+  - entry_id: marketting-planning-intent-business-root
+    project: marketting-planning-intent
+    historical_location: source_project, common.source.repo and documents.source_*
+    semantic_scope: business_source
+    lifecycle: config_input
+    canonical_target:
+      kind: yaml_field
+      value: impl/projects/marketting-planning-intent/project.yaml#project.resources.source
+    consumers: [ProjectSpec.source_root_path, Attribute source tools, Investigation]
+    probe_id: five-project-machine-portability
+    disposition: split
+    compatibility: {status: removed}
+
+  - entry_id: marketting-planning-intent-route-documents
+    project: marketting-planning-intent
+    historical_location: ../../../projects/marketting-planning-intent/*.md
+    semantic_scope: knowledge_route
+    lifecycle: config_input
+    canonical_target:
+      kind: yaml_field
+      value: projects/marketting-planning-intent/project.yaml#documents
+    consumers: [ProjectKnowledgeRoute, evals harness initialization]
+    probe_id: route-resolution
+    disposition: migrate
+    compatibility: {status: removed}
+
+  - entry_id: marketting-planning-intent-investigation
+    project: marketting-planning-intent
+    historical_location: manifest, receipt and Draft state physical paths
+    semantic_scope: business_source
+    lifecycle: derived_active
+    canonical_target:
+      kind: logical_path_ref
+      location_scope: business_source
+      field: Investigation and Draft active references
+    consumers: [Investigation validator, Draft resume, promotion]
+    probe_id: investigation-portable
+    disposition: migrate
+    compatibility:
+      status: retained
+      owner: business investigation maintainer
+      deletion_condition: stale receipt is revalidated against the current manifest
+
+  - entry_id: historical-iteration-reports
+    project: deerflow
+    historical_location: unreferenced Draft iteration reports and harness reviews
+    semantic_scope: artifact_package
+    lifecycle: derived_historical
+    canonical_target:
+      kind: historical_only
+      value: no formal target until rewritten through an active family
+    consumers: []
+    probe_id: active-registry
+    disposition: handoff
+    compatibility: {status: none}
+
+  - entry_id: non-file-runtime-values
+    project: public
+    historical_location: base_url, HTTP endpoint, model ID, command name and symbol
+    semantic_scope: non_file
+    lifecycle: runtime_only
+    canonical_target:
+      kind: non_file_schema
+      value: url, endpoint, id, command and symbol typed fields
+    consumers: [runtime config, service client, LLM client]
+    probe_id: non-file-types
+    disposition: handoff
+    compatibility: {status: none}

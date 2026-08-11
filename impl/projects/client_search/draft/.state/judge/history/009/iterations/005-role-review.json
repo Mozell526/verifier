@@ -1,0 +1,193 @@
+{
+  "contract_coverage": [
+    {
+      "evidence": [
+        "iterations/005-run.json#rows",
+        "draft/investigation/judge/docs/authority-investigation-report.json"
+      ],
+      "source_id": "authority:enum-value-authority"
+    },
+    {
+      "evidence": [
+        "iterations/005-run.json#rows",
+        "spec/alg/fulfilled.md"
+      ],
+      "source_id": "authority:evaluation-boundary-authority"
+    },
+    {
+      "evidence": [
+        "iterations/005-run.json#rows"
+      ],
+      "source_id": "authority:query-form-equivalence-authority"
+    },
+    {
+      "evidence": [
+        "iterations/005-run.json#rows",
+        "draft/investigation/judge/docs/evidence/judge-authority-resolutions.md"
+      ],
+      "source_id": "authority:semantic-mapping-authority"
+    },
+    {
+      "evidence": [
+        "iterations/005-run.json#rows"
+      ],
+      "source_id": "dimension:downstream-query-consumability"
+    },
+    {
+      "evidence": [
+        "iterations/005-run.json#rows"
+      ],
+      "source_id": "dimension:search-intent-preservation"
+    },
+    {
+      "evidence": [
+        "iterations/005-run.json#rows"
+      ],
+      "source_id": "expectation:find-target-customers"
+    },
+    {
+      "evidence": [
+        "iterations/005-run.json#rows",
+        "spec/alg/fulfilled.md"
+      ],
+      "source_id": "live_boundary"
+    }
+  ],
+  "criteria": [
+    {
+      "criterion_id": "expectation_support",
+      "evidence": [
+        "iterations/005-run.json#rows/source-badcase-148",
+        "iterations/005-run.json#rows/source-badcase-008",
+        "iterations/005-run.json#rows/source-badcase-138"
+      ],
+      "finding": "008/148/028/018/138/093/113 均以物化 resolutions 或 authority 依据为裁决基础；138 组合继承修复后期望派生收敛到 NE 与用户裁决一致；未发现无材料支撑的期望派生。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "atomic_pre_actual_expectations",
+      "evidence": [
+        "iterations/005-run.json#rows"
+      ],
+      "finding": "维度级期望保持原子化（148 姓名/险种拆分、058 年龄上限、138 三维度+AND），未见按 actual 临时合并或改写。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "pre_actual_blocking",
+      "evidence": [
+        "iterations/005-run.json#rows/source-badcase-058"
+      ],
+      "finding": "blocking 汇总与最终状态一致；058 的 NF 是期望级差异（LT vs LTE 17）而非汇总篡改。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "dimension_coverage",
+      "evidence": [
+        "iterations/005-run.json#rows"
+      ],
+      "finding": "差异 case 的关键维度覆盖完整（148 险种、058 年龄边界、073 投保日期、128 产品语义归一）。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "fulfilled_external_evidence",
+      "evidence": [
+        "iterations/005-run.json#rows/source-badcase-028",
+        "iterations/005-run.json#rows/source-badcase-128"
+      ],
+      "finding": "028/018/128 的 fulfilled 均有物化决议/能力清单支撑；128 依据合家福→合家欢归一规则与 MATCH/CONTAINS 边界条款，方向待用户确认但非无据放行。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "not_fulfilled_live_boundary",
+      "evidence": [
+        "iterations/005-run.json#rows/source-badcase-148",
+        "iterations/005-run.json#rows/source-badcase-053",
+        "iterations/005-run.json#rows/source-badcase-058"
+      ],
+      "finding": "148/053/058 的 NF 均为 live 职责内可判定（险种可表达但漏条件、误生成姓名条件、LT 边界更严），不再有 138 式“不可评估维度未输出→NF”的问题；138 已正确继承 NE。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "not_evaluable_evidence_gap",
+      "evidence": [
+        "iterations/005-run.json#rows/source-badcase-008",
+        "iterations/005-run.json#rows/source-badcase-088",
+        "iterations/005-run.json#rows/source-badcase-073"
+      ],
+      "finding": "008/088/073/023 NE 均有真实 authority unresolved 依据，113 NE 为职责外，缺料清单语义一致；093 audit 干净（unresolved 不再抛错）。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "missing_output_no_escape",
+      "evidence": [
+        "iterations/005-run.json#rows/source-badcase-148"
+      ],
+      "finding": "148 actual 漏险种条件未逃脱为 NE，按可表达+决议确认判 NF，符合用户“live 输出偏差→nf”口径。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "external_constraint_non_attribution",
+      "evidence": [
+        "iterations/005-run.json#rows"
+      ],
+      "finding": "未把下游结果集未验证归责为 parser 错误，评价边界保持 parser_condition_semantics_only。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "authority_anchor_scope",
+      "evidence": [
+        "iterations/005-run.json#rows/source-badcase-133",
+        "draft/investigation/judge/docs/evidence/judge-authority-resolutions.md"
+      ],
+      "finding": "133 回归：决议#8 已注入但解读漂移，第4轮读成“机构名不得映射姓名→空条件+透明告知=F”，本轮读成“机构名检索职责外→NE”，且本轮 authority_audit 为空（未触发 resolve）；113 与 133 输出同构但裁决相反（113=NE、133=F），决议在调查产物中的结论粒度不足以固定裁决结果。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "authority_unresolved_conservatism",
+      "evidence": [
+        "iterations/005-run.json#rows/source-badcase-093",
+        "iterations/005-run.json#rows/source-badcase-053"
+      ],
+      "finding": "093 修复验证生效（unresolved 不再落成 tool_failure）；023/073/088 保守 NE 合规；053 的 summary reason 仅含 NE 块但状态为 NF，属 reason 拼接不一致，不影响判定但需修。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "no_runtime_authority_investigation",
+      "evidence": [
+        "iterations/005-run.json#rows"
+      ],
+      "finding": "Judge 只消费物化 resolutions 与 authority.resolve，无 runtime 主动调查或补证。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "no_internal_or_unseen_leakage",
+      "evidence": [
+        "iterations/005-run.json"
+      ],
+      "finding": "未见 unseen/内部 case 泄漏进 prompt；058/073/128 的 current 侧抖动为 LLM 非确定性，非泄漏。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "relative_improvement_no_regression",
+      "evidence": [
+        "iterations/005-run.json"
+      ],
+      "finding": "133 从第4轮 F 回归为 NE（用户已裁决）；5 条方向待用户口径（053/058/073/023/128）；仅 148 为决定性改善；current 侧 058/073/128 无代码变更仍抖动，equality 不稳定。整体未证明优于 Production，且本轮为 max_iterations=5 最后一轮。",
+      "status": "fail"
+    }
+  ],
+  "decision": "insufficient_evidence",
+  "iteration": 5,
+  "project_id": "client_search",
+  "role": "judge",
+  "route": "solidify",
+  "run_report": {
+    "location": "draft/.state/judge/iterations/005-run.json",
+    "location_scope": "project_package",
+    "sha256": "5dc90ade087a74429c89bd35a77ccc0028f155d53bcccc6c58d50f774ba7c077"
+  },
+  "run_report_sha256": "5dc90ade087a74429c89bd35a77ccc0028f155d53bcccc6c58d50f774ba7c077",
+  "schema_version": 1,
+  "solidify_receipt_sha256": "ed463a141e7b35f2c791a39a61cb51034aef6fba79acb016bb1cb7fcdeb1d6be",
+  "summary": "第5轮（093 unresolved 归一修复 + 138 组合期望继承 NE 修复后）：30 条全完成，run_status=completed，3 workers，elapsed 2458s，差异 9 条。机制修复验证生效：093 audit 干净（resolution.status=unresolved、statement 空、reason 并入，不再 tool_failure）；138 陈金秀/别的业务员/平安产品 组合期望继承构成维度 NE（整体 NE，与用户裁决一致）。对齐用户裁决：008 孤儿单 NE（value_mappings vs field_definitions 互斥 unresolved，不再当定论消费）；148 徐晓燕住院医疗保险 NF（planfullname 命中+决议确认险种可表达，live 漏险种条件，决定性改善）；028 近两年成交客户 双方 F（决议#1）；018 铂金客户 双方 F 无退化；113 企业名称 双方 NE（职责外）。回归：133 中银保信 第4轮 draft=F（决议#8：机构名不得映射姓名→空条件+透明告知=F）本轮漂移为 NE（把“禁止映射”读成“职责外”），且本轮 authority_audit 为空（未触发 resolve），同一决议两种解读，权威锚定不稳定。方向待用户口径 5 条：053 权益（字段存在性未定，draft=NF 因 actual 生成姓名条件，reason 拼接仅含 NE 块与状态不一致）、058 17周岁以下（LT17 vs LTE17 增强规则差异，draft 更严 NF，且 current 第4轮 NF→本轮 F 抖动）、073 2025年6月投保（投保日期字段路径缺失，draft 保守 NE，current 第4轮 NE→本轮 NF 抖动）、023 少儿RANGE（field_definitions 仅 MATCH vs 示例 RANGE，draft 保守 NE）、128 合家福（合家福→合家欢 归一+MATCH/CONTAINS 边界放行 draft=F，current 第4轮 NE→本轮 NF、draft 第4轮 NE→本轮 F，双方漂移）。current 侧 058/073/128 无代码变更仍抖动，equality 比较不稳定，必须靠 draft 相对 production 的稳定优势判断。整体尚未证明优于 Production（1 回归 + 5 方向待确认 + 仅 148 决定性改善），且本轮已达 max_iterations=5 上限，为最后一轮。"
+}

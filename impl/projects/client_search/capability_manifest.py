@@ -6,13 +6,75 @@ from typing import Any
 import yaml as _yaml
 
 
-def build_capability_manifest(definitions_path: str | Path | None) -> dict[str, dict[str, Any]]:
-    """Generate the client_search field capability manifest from source YAML."""
+def _load_enum_registry(
+    enums_path: str | Path | list[str | Path] | None,
+) -> dict[str, list[str]]:
+    """Load enum YAML files and return a merged mapping of enum_key -> values list.
+
+    Accepts a single path (backward compatible) or a list of paths; later files
+    merge over earlier ones (later values win for the same key).
+    """
+    paths = _enum_paths(enums_path)
+    registry: dict[str, list[str]] = {}
+    for path in paths:
+        registry.update(_load_enum_file(path))
+    return registry
+
+
+def _enum_paths(
+    enums_path: str | Path | list[str | Path] | None,
+) -> list[Path]:
+    if not enums_path:
+        return []
+    if isinstance(enums_path, (str, Path)):
+        return [Path(enums_path)]
+    return [Path(item) for item in enums_path]
+
+
+def _load_enum_file(path: Path) -> dict[str, list[str]]:
+    if not path.exists():
+        raise FileNotFoundError(f"client_search enum registry not found: {path}")
+    try:
+        data = _yaml.safe_load(path.read_text()) or {}
+    except Exception as exc:
+        raise ValueError(f"client_search enum registry is invalid YAML: {path}") from exc
+    if not isinstance(data, dict):
+        raise ValueError(f"client_search enum registry must be an object: {path}")
+    registry: dict[str, list[str]] = {}
+    for key, entry in data.items():
+        if isinstance(entry, dict):
+            values = entry.get("values")
+            if isinstance(values, list):
+                registry[str(key)] = [str(v) for v in values]
+        elif isinstance(entry, list):
+            # Tolerate flat list format: key: [v1, v2, ...]
+            registry[str(key)] = [str(v) for v in entry]
+    return registry
+
+
+def build_capability_manifest(
+    definitions_path: str | Path | None,
+    enums_path: str | Path | list[str | Path] | None = None,
+) -> dict[str, dict[str, Any]]:
+    """Generate the client_search field capability manifest from source YAML.
+
+    Args:
+        definitions_path: Path to field_definitions YAML.
+        enums_path: Optional path to field_enums YAML. When provided,
+            ``enum_ref`` entries in field definitions are resolved to their
+            actual enum value lists from this file.
+
+    Returns:
+        Mapping of field_name -> capability dict. Backward-compatible:
+        when *enums_path* is omitted the behaviour is identical to before.
+    """
     if not definitions_path:
         return {}
     path = Path(definitions_path)
     if not path.exists():
         return {}
+
+    enum_registry = _load_enum_registry(enums_path)
 
     data = _yaml.safe_load(path.read_text()) or {}
     intents = data.get("intents", []) if isinstance(data, dict) else []
@@ -24,16 +86,80 @@ def build_capability_manifest(definitions_path: str | Path | None) -> dict[str, 
         if not field_name:
             continue
         if field_name not in fields:
+            # Resolve enums: inline "enum" list takes base; enum_ref augments.
+            inline_enums = item.get("enum") or []
+            enum_ref = item.get("enum_ref") or ""
+            ref_enums = enum_registry.get(enum_ref, []) if enum_ref else []
+            # Merge: inline first, then ref values not already present.
+            merged_enums = list(inline_enums)
+            seen = set(str(v) for v in merged_enums)
+            for v in ref_enums:
+                if v not in seen:
+                    merged_enums.append(v)
+                    seen.add(v)
+
             fields[field_name] = {
                 "field": field_name,
                 "operators": set(),
                 "value_types": set(),
                 "description": item.get("description", ""),
                 "definition": item.get("description", ""),
-                "enums": item.get("enum") or [],
+                "enums": merged_enums,
+                "enum_ref": enum_ref,
+                "enum_refs": [enum_ref] if enum_ref else [],
+                "unresolved_enum_refs": (
+                    [enum_ref] if enum_ref and enum_ref not in enum_registry else []
+                ),
+                "show_enum_in_prompt": (
+                    False if item.get("show_enum_in_prompt") is False else True
+                ),
+                "enum_candidate_limit_in_prompt": (
+                    int(item["enum_candidate_limit_in_prompt"])
+                    if item.get("enum_candidate_limit_in_prompt") is not None
+                    else None
+                ),
                 "unit": item.get("unit") or "",
                 "notes": item.get("notes", ""),
+                # Source truth: explicitly unsupported fields must remain visible so
+                # Judge can distinguish "recognizable but not searchable" from
+                # out-of-manifest/unknown capability.
+                "is_supported": item.get("is_supported") is not False,
+                "is_supported_explicit": "is_supported" in item,
             }
+        else:
+            inline_enums = item.get("enum") or []
+            enum_ref = str(item.get("enum_ref") or "")
+            ref_enums = enum_registry.get(enum_ref, []) if enum_ref else []
+            if enum_ref and enum_ref not in fields[field_name]["enum_refs"]:
+                fields[field_name]["enum_refs"].append(enum_ref)
+            if (
+                enum_ref
+                and enum_ref not in enum_registry
+                and enum_ref not in fields[field_name]["unresolved_enum_refs"]
+            ):
+                fields[field_name]["unresolved_enum_refs"].append(enum_ref)
+            known = {str(value) for value in fields[field_name]["enums"]}
+            for value in [*inline_enums, *ref_enums]:
+                normalized = str(value)
+                if normalized not in known:
+                    fields[field_name]["enums"].append(value)
+                    known.add(normalized)
+        if item.get("is_supported") is False:
+            # A field is searchable only when every source declaration permits it.
+            fields[field_name]["is_supported"] = False
+            fields[field_name]["is_supported_explicit"] = True
+        elif "is_supported" in item:
+            fields[field_name]["is_supported_explicit"] = True
+        if item.get("show_enum_in_prompt") is False:
+            fields[field_name]["show_enum_in_prompt"] = False
+        if item.get("enum_candidate_limit_in_prompt") is not None:
+            candidate_limit = int(item["enum_candidate_limit_in_prompt"])
+            current_limit = fields[field_name]["enum_candidate_limit_in_prompt"]
+            fields[field_name]["enum_candidate_limit_in_prompt"] = (
+                candidate_limit
+                if current_limit is None
+                else max(current_limit, candidate_limit)
+            )
         fields[field_name]["operators"].add(item.get("operator", ""))
         fields[field_name]["value_types"].add(item.get("value_type", ""))
 
@@ -41,3 +167,38 @@ def build_capability_manifest(definitions_path: str | Path | None) -> dict[str, 
         field["operators"] = sorted(field["operators"])
         field["value_types"] = sorted(field["value_types"])
     return fields
+
+
+def lean_capability_manifest(
+    manifest: dict[str, dict[str, Any]],
+    *,
+    default_limit: int = 5,
+    threshold: int = 50,
+) -> dict[str, dict[str, Any]]:
+    """Prompt-safe lean manifest: keep field metadata, truncate huge enum lists.
+
+    全量枚举保留在 authority EvidenceSpace / 文件直读通道；prompt 只注入少量
+    候选（enum_candidate_limit_in_prompt 或 default_limit），并标记截断信息
+    （enum_values_truncated / enum_total_count），避免把 planfullname/abbrname
+    等整表（数千条）塞进 judge/attribute prompt。
+    """
+    if not isinstance(manifest, dict):
+        return manifest
+    lean: dict[str, dict[str, Any]] = {}
+    for field, entry in manifest.items():
+        if not isinstance(entry, dict):
+            lean[field] = entry
+            continue
+        out = dict(entry)
+        enums = list(entry.get("enums") or [])
+        candidate_limit = entry.get("enum_candidate_limit_in_prompt")
+        limit = int(candidate_limit) if candidate_limit else default_limit
+        show_all = entry.get("show_enum_in_prompt") is not False
+        if not show_all or len(enums) > threshold:
+            out["enums"] = enums[:limit]
+            out["enum_values_truncated"] = True
+            out["enum_total_count"] = len(enums)
+            out["show_enum_in_prompt"] = False
+            out["enum_candidate_limit_in_prompt"] = limit
+        lean[field] = out
+    return lean

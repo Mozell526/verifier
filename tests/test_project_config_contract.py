@@ -44,7 +44,7 @@ def test_mode_contract_distinguishes_uploaded_output_and_service_projects():
     assert client_search.runtime_mode == "existing_service_required"
     assert client_search.service()["endpoint"] == "/api/v1/client_search_query_parse_no_encipher"
     assert client_search.role_tool_call_limit("attribute") == 8
-    assert client_search.attribution_enabled is True
+    assert client_search.attribution_enabled is False
 
 
 def test_behavioral_fields_have_canonical_semantic_owners():

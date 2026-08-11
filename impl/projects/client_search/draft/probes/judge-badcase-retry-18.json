@@ -1,0 +1,960 @@
+[
+  {
+    "expected_business_outcome": "机器人理解：存续客户类型为孤儿单客户 | 反馈项：1 | 状态：解析正确",
+    "id": "source-badcase-008",
+    "source_case_id": "badcase-008",
+    "trace": {
+      "application_boundary": {
+        "downstream_result_set_available": false,
+        "downstream_status": "not_verified",
+        "judge_scope": "parser_condition_semantics_only",
+        "reason": "application live layer probed downstream customer search before judge/attribute and constrained evaluation scope to parser output semantics.",
+        "result_set_verified": false
+      },
+      "case_id": "badcase-008",
+      "extracted_output": {
+        "conditions": [
+          {
+            "field": "orphanType",
+            "match_mode": null,
+            "operator": "MATCH",
+            "value": "纯存续单客户"
+          }
+        ],
+        "intent_summary": "存续客户类型为纯存续单客户",
+        "query": "纯存续单客户",
+        "query_logic": "AND",
+        "robot_text": "存续客户类型为纯存续单客户"
+      },
+      "input": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "孤儿单"
+      },
+      "normalized_request": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "孤儿单"
+      },
+      "project_id": "client_search",
+      "ready": [],
+      "reference_contract": {},
+      "scenario": "",
+      "status": "ok",
+      "trace_id": "client_search:badcase-008:1785239538449"
+    },
+    "user_intent": "孤儿单"
+  },
+  {
+    "expected_business_outcome": "机器人理解：居家达标客户等级为居家潜客的客户 | 反馈项：2,4 | 标注：平安居家处于潜客、意向的客户 | 状态：已解决",
+    "id": "source-badcase-013",
+    "source_case_id": "badcase-013",
+    "trace": {
+      "application_boundary": {
+        "downstream_result_set_available": false,
+        "downstream_status": "not_verified",
+        "judge_scope": "parser_condition_semantics_only",
+        "reason": "application live layer probed downstream customer search before judge/attribute and constrained evaluation scope to parser output semantics.",
+        "result_set_verified": false
+      },
+      "case_id": "badcase-013",
+      "extracted_output": {
+        "conditions": [
+          {
+            "field": "pajjMemberGradeInfo.pajjmemberstatus",
+            "match_mode": null,
+            "operator": "CONTAINS",
+            "value": [
+              "潜客",
+              "意向"
+            ]
+          }
+        ],
+        "intent_summary": "平安居家权益状态包含潜客、意向的客户",
+        "query": "平安居家临界客户",
+        "query_logic": "AND",
+        "robot_text": "平安居家权益状态包含潜客、意向的客户"
+      },
+      "input": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "居家临界客户"
+      },
+      "normalized_request": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "居家临界客户"
+      },
+      "project_id": "client_search",
+      "ready": [],
+      "reference_contract": {},
+      "scenario": "",
+      "status": "ok",
+      "trace_id": "client_search:badcase-013:1785239539503"
+    },
+    "user_intent": "居家临界客户"
+  },
+  {
+    "expected_business_outcome": "机器人理解：客户添加日≥2024-06-19的客户 | 反馈项：2 | 标注：意图识别不对 | 状态：已解决",
+    "id": "source-badcase-028",
+    "source_case_id": "badcase-028",
+    "trace": {
+      "application_boundary": {
+        "downstream_result_set_available": false,
+        "downstream_status": "not_verified",
+        "judge_scope": "parser_condition_semantics_only",
+        "reason": "application live layer probed downstream customer search before judge/attribute and constrained evaluation scope to parser output semantics.",
+        "result_set_verified": false
+      },
+      "case_id": "badcase-028",
+      "extracted_output": {
+        "conditions": [
+          {
+            "field": "polNoInfo.poleffdate",
+            "match_mode": null,
+            "operator": "RANGE",
+            "value": {
+              "max": "2026-07-28 00:00:00",
+              "min": "2024-07-28 00:00:00"
+            }
+          }
+        ],
+        "intent_summary": "保单生效日在2024-07-28 至 2026-07-28的客户",
+        "query": "近两年成交客户",
+        "query_logic": "AND",
+        "robot_text": "保单生效日在2024-07-28 至 2026-07-28的客户"
+      },
+      "input": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "近两年成交客户"
+      },
+      "normalized_request": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "近两年成交客户"
+      },
+      "project_id": "client_search",
+      "ready": [],
+      "reference_contract": {},
+      "scenario": "",
+      "status": "ok",
+      "trace_id": "client_search:badcase-028:1785239539537"
+    },
+    "user_intent": "近两年成交客户"
+  },
+  {
+    "expected_business_outcome": "机器人理解：提示：投保日期暂不支持搜索，无法进行查询 | 反馈项：2 | 标注：意图识别不对 | 状态：已解决",
+    "id": "source-badcase-038",
+    "source_case_id": "badcase-038",
+    "trace": {
+      "application_boundary": {
+        "downstream_result_set_available": false,
+        "downstream_status": "not_verified",
+        "judge_scope": "parser_condition_semantics_only",
+        "reason": "application live layer probed downstream customer search before judge/attribute and constrained evaluation scope to parser output semantics.",
+        "result_set_verified": false
+      },
+      "case_id": "badcase-038",
+      "extracted_output": {
+        "conditions": [
+          {
+            "field": "isBuyInsurance",
+            "match_mode": null,
+            "operator": "CONTAINS",
+            "value": [
+              "客户",
+              "准客",
+              "用户"
+            ]
+          }
+        ],
+        "intent_summary": "客户类型包含客户、准客、用户的客户",
+        "query": "一年内客户",
+        "query_logic": "OR",
+        "robot_text": "客户类型包含客户、准客、用户的客户"
+      },
+      "input": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "一年内客户"
+      },
+      "normalized_request": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "一年内客户"
+      },
+      "project_id": "client_search",
+      "ready": [],
+      "reference_contract": {},
+      "scenario": "",
+      "status": "ok",
+      "trace_id": "client_search:badcase-038:1785239540647"
+    },
+    "user_intent": "一年内客户"
+  },
+  {
+    "expected_business_outcome": "机器人理解：暂时没判读出这组数据代表什么，已帮您在手机号、客户号、保单号中一起查找匹配的客户 | 反馈项：5 | 标注：意图识别增强，建议提取尾号进行搜索",
+    "id": "source-badcase-048",
+    "source_case_id": "badcase-048",
+    "trace": {
+      "application_boundary": {
+        "downstream_result_set_available": false,
+        "downstream_status": "not_verified",
+        "judge_scope": "parser_condition_semantics_only",
+        "reason": "application live layer probed downstream customer search before judge/attribute and constrained evaluation scope to parser output semantics.",
+        "result_set_verified": false
+      },
+      "case_id": "badcase-048",
+      "extracted_output": {
+        "conditions": [
+          {
+            "field": "clientMobile",
+            "match_mode": "suffix",
+            "operator": "MATCH",
+            "value": "5078"
+          }
+        ],
+        "intent_summary": "客户手机号尾号为5078的客户",
+        "query": "158****5078",
+        "query_logic": "AND",
+        "robot_text": "客户手机号尾号为5078的客户"
+      },
+      "input": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "158****5078"
+      },
+      "normalized_request": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "158****5078"
+      },
+      "project_id": "client_search",
+      "ready": [],
+      "reference_contract": {},
+      "scenario": "",
+      "status": "ok",
+      "trace_id": "client_search:badcase-048:1785239541667"
+    },
+    "user_intent": "158****5078"
+  },
+  {
+    "expected_business_outcome": "机器人理解：客户姓名为权益的客户 | 反馈项：2, 4 | 标注：意图识别不对",
+    "id": "source-badcase-053",
+    "source_case_id": "badcase-053",
+    "trace": {
+      "application_boundary": {
+        "downstream_result_set_available": false,
+        "downstream_status": "not_verified",
+        "judge_scope": "parser_condition_semantics_only",
+        "reason": "application live layer probed downstream customer search before judge/attribute and constrained evaluation scope to parser output semantics.",
+        "result_set_verified": false
+      },
+      "case_id": "badcase-053",
+      "extracted_output": {
+        "conditions": [
+          {
+            "field": "searchClientName",
+            "match_mode": null,
+            "operator": "MATCH",
+            "value": "权益"
+          }
+        ],
+        "intent_summary": "客户姓名为权益的客户",
+        "query": "权益",
+        "query_logic": "AND",
+        "robot_text": "客户姓名为权益的客户"
+      },
+      "input": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "权益"
+      },
+      "normalized_request": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "权益"
+      },
+      "project_id": "client_search",
+      "ready": [],
+      "reference_contract": {},
+      "scenario": "",
+      "status": "ok",
+      "trace_id": "client_search:badcase-053:1785239541684"
+    },
+    "user_intent": "权益"
+  },
+  {
+    "expected_business_outcome": "机器人理解：客户年龄<17并且投保险种简称为少儿的客户 | 反馈项：2, 3 | 标注：意图识别不对 | 状态：当前解析正确，未复现",
+    "id": "source-badcase-058",
+    "source_case_id": "badcase-058",
+    "trace": {
+      "application_boundary": {
+        "downstream_result_set_available": false,
+        "downstream_status": "not_verified",
+        "judge_scope": "parser_condition_semantics_only",
+        "reason": "application live layer probed downstream customer search before judge/attribute and constrained evaluation scope to parser output semantics.",
+        "result_set_verified": false
+      },
+      "case_id": "badcase-058",
+      "extracted_output": {
+        "conditions": [
+          {
+            "field": "clientAge",
+            "match_mode": null,
+            "operator": "LT",
+            "value": 17
+          }
+        ],
+        "intent_summary": "客户年龄<17的客户",
+        "query": "17周岁以下少儿客户名单",
+        "query_logic": "AND",
+        "robot_text": "客户年龄<17的客户"
+      },
+      "input": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "17周岁以下少儿客户名单"
+      },
+      "normalized_request": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "17周岁以下少儿客户名单"
+      },
+      "project_id": "client_search",
+      "ready": [],
+      "reference_contract": {},
+      "scenario": "",
+      "status": "ok",
+      "trace_id": "client_search:badcase-058:1785239544266"
+    },
+    "user_intent": "17周岁以下少儿客户名单"
+  },
+  {
+    "expected_business_outcome": "机器人理解：客户出生日期在1958年并且客户出生日期在1970年并且客户出生日期在1982年的客户 | 反馈项：2 | 标注：意图识别不对 | 状态：已解决",
+    "id": "source-badcase-063",
+    "source_case_id": "badcase-063",
+    "trace": {
+      "application_boundary": {
+        "downstream_result_set_available": false,
+        "downstream_status": "not_verified",
+        "judge_scope": "parser_condition_semantics_only",
+        "reason": "application live layer probed downstream customer search before judge/attribute and constrained evaluation scope to parser output semantics.",
+        "result_set_verified": false
+      },
+      "case_id": "badcase-063",
+      "extracted_output": {
+        "conditions": [
+          {
+            "field": "clientBirthday",
+            "match_mode": null,
+            "operator": "RANGE",
+            "value": {
+              "max": "1958-12-31 00:00:00",
+              "min": "1958-01-01 00:00:00"
+            }
+          },
+          {
+            "field": "clientBirthday",
+            "match_mode": null,
+            "operator": "RANGE",
+            "value": {
+              "max": "1970-12-31 00:00:00",
+              "min": "1970-01-01 00:00:00"
+            }
+          },
+          {
+            "field": "clientBirthday",
+            "match_mode": null,
+            "operator": "RANGE",
+            "value": {
+              "max": "1982-12-31 00:00:00",
+              "min": "1982-01-01 00:00:00"
+            }
+          }
+        ],
+        "intent_summary": "客户出生日期在1958年\n或者客户出生日期在1970年\n或者客户出生日期在1982年的客户",
+        "query": "按1958年1970年1982年搜索客户名单",
+        "query_logic": "OR",
+        "robot_text": "客户出生日期在1958年\n或者客户出生日期在1970年\n或者客户出生日期在1982年的客户"
+      },
+      "input": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "按1958年1970年1982年搜索客户名单"
+      },
+      "normalized_request": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "按1958年1970年1982年搜索客户名单"
+      },
+      "project_id": "client_search",
+      "ready": [],
+      "reference_contract": {},
+      "scenario": "",
+      "status": "ok",
+      "trace_id": "client_search:badcase-063:1785239543207"
+    },
+    "user_intent": "按1958年1970年1982年搜索客户名单"
+  },
+  {
+    "expected_business_outcome": "机器人理解：客户年龄=45并且客户姓名为张和奎的客户 | 反馈项：4 | 标注：语音识别错误，应该是45岁以上客户 | 状态：语音错误，无法自行推断",
+    "id": "source-badcase-068",
+    "source_case_id": "badcase-068",
+    "trace": {
+      "application_boundary": {
+        "downstream_result_set_available": false,
+        "downstream_status": "not_verified",
+        "judge_scope": "parser_condition_semantics_only",
+        "reason": "application live layer probed downstream customer search before judge/attribute and constrained evaluation scope to parser output semantics.",
+        "result_set_verified": false
+      },
+      "case_id": "badcase-068",
+      "extracted_output": {
+        "conditions": [
+          {
+            "field": "searchClientName",
+            "match_mode": null,
+            "operator": "MATCH",
+            "value": "张"
+          },
+          {
+            "field": "searchClientName",
+            "match_mode": null,
+            "operator": "MATCH",
+            "value": "奎"
+          }
+        ],
+        "intent_summary": "客户姓名为张\n或者客户姓名为奎的客户",
+        "query": "45岁以张和奎",
+        "query_logic": "OR",
+        "robot_text": "客户姓名为张\n或者客户姓名为奎的客户"
+      },
+      "input": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "45岁以张和奎"
+      },
+      "normalized_request": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "45岁以张和奎"
+      },
+      "project_id": "client_search",
+      "ready": [],
+      "reference_contract": {},
+      "scenario": "",
+      "status": "ok",
+      "trace_id": "client_search:badcase-068:1785239545170"
+    },
+    "user_intent": "45岁以张和奎"
+  },
+  {
+    "expected_business_outcome": "机器人理解：有客户VIP等级的客户 | 反馈项：2 | 标注：意图识别错误 | 状态：正确意图应该是啥？",
+    "id": "source-badcase-078",
+    "source_case_id": "badcase-078",
+    "trace": {
+      "application_boundary": {
+        "downstream_result_set_available": false,
+        "downstream_status": "not_verified",
+        "judge_scope": "parser_condition_semantics_only",
+        "reason": "application live layer probed downstream customer search before judge/attribute and constrained evaluation scope to parser output semantics.",
+        "result_set_verified": false
+      },
+      "case_id": "badcase-078",
+      "extracted_output": {
+        "conditions": [
+          {
+            "field": "searchClientName",
+            "match_mode": null,
+            "operator": "MATCH",
+            "value": "关爱"
+          },
+          {
+            "field": "clientSex",
+            "match_mode": null,
+            "operator": "MATCH",
+            "value": "女"
+          }
+        ],
+        "intent_summary": "客户姓名为关爱\n并且客户性别为女的客户",
+        "query": "关爱客户",
+        "query_logic": "AND",
+        "robot_text": "客户姓名为关爱\n并且客户性别为女的客户"
+      },
+      "input": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "关爱客户"
+      },
+      "normalized_request": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "关爱客户"
+      },
+      "project_id": "client_search",
+      "ready": [],
+      "reference_contract": {},
+      "scenario": "",
+      "status": "ok",
+      "trace_id": "client_search:badcase-078:1785239546543"
+    },
+    "user_intent": "关爱客户"
+  },
+  {
+    "expected_business_outcome": "机器人理解：准客来源包含综拓、O2O、意健险的客户 | 反馈项：2 | 标注：意图识别错误 | 状态：不支持",
+    "id": "source-badcase-088",
+    "source_case_id": "badcase-088",
+    "trace": {
+      "application_boundary": {
+        "downstream_result_set_available": false,
+        "downstream_status": "not_verified",
+        "judge_scope": "parser_condition_semantics_only",
+        "reason": "application live layer probed downstream customer search before judge/attribute and constrained evaluation scope to parser output semantics.",
+        "result_set_verified": false
+      },
+      "case_id": "badcase-088",
+      "extracted_output": {
+        "conditions": [],
+        "intent_summary": "提示：盘客暂不支持搜索，无法进行查询。",
+        "query": "7月盘客",
+        "query_logic": "AND",
+        "robot_text": "提示：盘客暂不支持搜索，无法进行查询。"
+      },
+      "input": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "7月盘客"
+      },
+      "normalized_request": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "7月盘客"
+      },
+      "project_id": "client_search",
+      "ready": [],
+      "reference_contract": {},
+      "scenario": "",
+      "status": "ok",
+      "trace_id": "client_search:badcase-088:1785239547568"
+    },
+    "user_intent": "7月盘客"
+  },
+  {
+    "expected_business_outcome": "机器人理解：客户号为C826N1的客户 | 反馈项：2 | 标注：意图识别不对，是车牌 | 状态：已解决（车牌号，暂不支持）",
+    "id": "source-badcase-093",
+    "source_case_id": "badcase-093",
+    "trace": {
+      "application_boundary": {
+        "downstream_result_set_available": false,
+        "downstream_status": "not_verified",
+        "judge_scope": "parser_condition_semantics_only",
+        "reason": "application live layer probed downstream customer search before judge/attribute and constrained evaluation scope to parser output semantics.",
+        "result_set_verified": false
+      },
+      "case_id": "badcase-093",
+      "extracted_output": {
+        "conditions": [],
+        "intent_summary": "提示：车牌号暂不支持搜索，无法进行查询。",
+        "query": "贵C826N1",
+        "query_logic": "AND",
+        "robot_text": "提示：车牌号暂不支持搜索，无法进行查询。"
+      },
+      "input": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "贵C826N1"
+      },
+      "normalized_request": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "贵C826N1"
+      },
+      "project_id": "client_search",
+      "ready": [],
+      "reference_contract": {},
+      "scenario": "",
+      "status": "ok",
+      "trace_id": "client_search:badcase-093:1785239547585"
+    },
+    "user_intent": "贵C826N1"
+  },
+  {
+    "expected_business_outcome": "机器人理解：客户号为c00037044862的客户 | 反馈项：5 | 标注：意图识别没有进行大小写转换 | 状态：已解决",
+    "id": "source-badcase-098",
+    "source_case_id": "badcase-098",
+    "trace": {
+      "application_boundary": {
+        "downstream_result_set_available": false,
+        "downstream_status": "not_verified",
+        "judge_scope": "parser_condition_semantics_only",
+        "reason": "application live layer probed downstream customer search before judge/attribute and constrained evaluation scope to parser output semantics.",
+        "result_set_verified": false
+      },
+      "case_id": "badcase-098",
+      "extracted_output": {
+        "conditions": [
+          {
+            "field": "clientNo",
+            "match_mode": null,
+            "operator": "MATCH",
+            "value": "C00037044862"
+          }
+        ],
+        "intent_summary": "客户号为C00037044862的客户",
+        "query": "c00037044862",
+        "query_logic": "AND",
+        "robot_text": "客户号为C00037044862的客户"
+      },
+      "input": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "c00037044862"
+      },
+      "normalized_request": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "c00037044862"
+      },
+      "project_id": "client_search",
+      "ready": [],
+      "reference_contract": {},
+      "scenario": "",
+      "status": "ok",
+      "trace_id": "client_search:badcase-098:1785239547602"
+    },
+    "user_intent": "c00037044862"
+  },
+  {
+    "expected_business_outcome": "机器人理解：被保人手机号为3125的客户 | 反馈项：1 | 标注：语音识别不对、意图识别增加尾号",
+    "id": "source-badcase-108",
+    "source_case_id": "badcase-108",
+    "trace": {
+      "application_boundary": {
+        "downstream_result_set_available": false,
+        "downstream_status": "not_verified",
+        "judge_scope": "parser_condition_semantics_only",
+        "reason": "application live layer probed downstream customer search before judge/attribute and constrained evaluation scope to parser output semantics.",
+        "result_set_verified": false
+      },
+      "case_id": "badcase-108",
+      "extracted_output": {
+        "conditions": [
+          {
+            "field": "polNo",
+            "match_mode": "suffix",
+            "operator": "MATCH",
+            "value": "3125"
+          }
+        ],
+        "intent_summary": "保单号尾号为3125的客户",
+        "query": "尾号保单尾号是。三幺二五",
+        "query_logic": "AND",
+        "robot_text": "保单号尾号为3125的客户"
+      },
+      "input": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "尾号保单尾号是。三幺二五"
+      },
+      "normalized_request": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "尾号保单尾号是。三幺二五"
+      },
+      "project_id": "client_search",
+      "ready": [],
+      "reference_contract": {},
+      "scenario": "",
+      "status": "ok",
+      "trace_id": "client_search:badcase-108:1785239548556"
+    },
+    "user_intent": "尾号保单尾号是。三幺二五"
+  },
+  {
+    "expected_business_outcome": "机器人理解：客户姓名为VIE的客户 | 反馈项：6 | 标注：语音识别错误、意图识别错误",
+    "id": "source-badcase-123",
+    "source_case_id": "badcase-123",
+    "trace": {
+      "application_boundary": {
+        "downstream_result_set_available": false,
+        "downstream_status": "not_verified",
+        "judge_scope": "parser_condition_semantics_only",
+        "reason": "application live layer probed downstream customer search before judge/attribute and constrained evaluation scope to parser output semantics.",
+        "result_set_verified": false
+      },
+      "case_id": "badcase-123",
+      "extracted_output": {
+        "conditions": [
+          {
+            "field": "searchClientName",
+            "match_mode": null,
+            "operator": "MATCH",
+            "value": "VIE"
+          }
+        ],
+        "intent_summary": "客户姓名为VIE的客户",
+        "query": "VIE",
+        "query_logic": "AND",
+        "robot_text": "客户姓名为VIE的客户"
+      },
+      "input": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "VIE。"
+      },
+      "normalized_request": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "VIE。"
+      },
+      "project_id": "client_search",
+      "ready": [],
+      "reference_contract": {},
+      "scenario": "",
+      "status": "ok",
+      "trace_id": "client_search:badcase-123:1785239549633"
+    },
+    "user_intent": "VIE。"
+  },
+  {
+    "expected_business_outcome": "机器人理解：客户姓名为中银保信的客户 | 反馈项：1 | 状态：已解决（当前解析为“未识别到明确查询条件”）",
+    "id": "source-badcase-133",
+    "source_case_id": "badcase-133",
+    "trace": {
+      "application_boundary": {
+        "downstream_result_set_available": false,
+        "downstream_status": "not_verified",
+        "judge_scope": "parser_condition_semantics_only",
+        "reason": "application live layer probed downstream customer search before judge/attribute and constrained evaluation scope to parser output semantics.",
+        "result_set_verified": false
+      },
+      "case_id": "badcase-133",
+      "extracted_output": {
+        "conditions": [],
+        "intent_summary": "未识别到明确查询条件",
+        "query": "中银保信",
+        "query_logic": "AND",
+        "robot_text": "未识别到明确查询条件"
+      },
+      "input": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "中银保信"
+      },
+      "normalized_request": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "中银保信"
+      },
+      "project_id": "client_search",
+      "ready": [],
+      "reference_contract": {},
+      "scenario": "",
+      "status": "ok",
+      "trace_id": "client_search:badcase-133:1785239551634"
+    },
+    "user_intent": "中银保信"
+  },
+  {
+    "expected_business_outcome": "机器人理解：投保人姓名为陈金秀的客户 | 反馈项：3 | 用户反馈：陈金秀投保在别的业务员处的产品 | 标注：意图识别不对，需结合保单数据",
+    "id": "source-badcase-138",
+    "source_case_id": "badcase-138",
+    "trace": {
+      "application_boundary": {
+        "downstream_result_set_available": false,
+        "downstream_status": "not_verified",
+        "judge_scope": "parser_condition_semantics_only",
+        "reason": "application live layer probed downstream customer search before judge/attribute and constrained evaluation scope to parser output semantics.",
+        "result_set_verified": false
+      },
+      "case_id": "badcase-138",
+      "extracted_output": {
+        "conditions": [
+          {
+            "field": "searchClientName",
+            "match_mode": null,
+            "operator": "MATCH",
+            "value": "陈金秀"
+          }
+        ],
+        "intent_summary": "客户姓名为陈金秀的客户",
+        "query": "陈金秀在别的业务员的投保的平安产品",
+        "query_logic": "AND",
+        "robot_text": "客户姓名为陈金秀的客户"
+      },
+      "input": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "陈金秀在别的业务员的投保的平安产品"
+      },
+      "normalized_request": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "陈金秀在别的业务员的投保的平安产品"
+      },
+      "project_id": "client_search",
+      "ready": [],
+      "reference_contract": {},
+      "scenario": "",
+      "status": "ok",
+      "trace_id": "client_search:badcase-138:1785239552470"
+    },
+    "user_intent": "陈金秀在别的业务员的投保的平安产品"
+  },
+  {
+    "expected_business_outcome": "机器人理解：保单号为P1600000000049300214的客户 | 反馈项：2 | 标注：语音识别错误",
+    "id": "source-badcase-143",
+    "source_case_id": "badcase-143",
+    "trace": {
+      "application_boundary": {
+        "downstream_result_set_available": false,
+        "downstream_status": "not_verified",
+        "judge_scope": "parser_condition_semantics_only",
+        "reason": "application live layer probed downstream customer search before judge/attribute and constrained evaluation scope to parser output semantics.",
+        "result_set_verified": false
+      },
+      "case_id": "badcase-143",
+      "extracted_output": {
+        "conditions": [
+          {
+            "field": "polNo",
+            "match_mode": null,
+            "operator": "MATCH",
+            "value": "P16000000000000049300214"
+          }
+        ],
+        "intent_summary": "保单号为P16000000000000049300214的客户",
+        "query": "保单号为P16个049300214。这是什么客户",
+        "query_logic": "AND",
+        "robot_text": "保单号为P16000000000000049300214的客户"
+      },
+      "input": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "保单号为P16个049300214。这是什么客户？"
+      },
+      "normalized_request": {
+        "extra_input_params": {},
+        "session_id": "eval-session",
+        "source": "askbob",
+        "trace_id": "",
+        "user_id": "eval-user",
+        "user_text": "保单号为P16个049300214。这是什么客户？"
+      },
+      "project_id": "client_search",
+      "ready": [],
+      "reference_contract": {},
+      "scenario": "",
+      "status": "ok",
+      "trace_id": "client_search:badcase-143:1785239553714"
+    },
+    "user_intent": "保单号为P16个049300214。这是什么客户？"
+  }
+]

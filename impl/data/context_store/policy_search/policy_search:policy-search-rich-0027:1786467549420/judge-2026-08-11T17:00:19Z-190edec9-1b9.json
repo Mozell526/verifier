@@ -1,0 +1,303 @@
+{
+  "caller": "judge",
+  "created_at": "2026-08-11T17:00:19Z",
+  "elapsed_ms": 69885,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "production"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "f6cc7ba7265410e900a81569e5c3b1561d4292946699ee0638bbc3e0d811808a",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [],
+      "lineage": {
+        "call_id": "",
+        "case_id": "policy-search-rich-0027",
+        "trace_id": "policy_search:policy-search-rich-0027:1786467549420"
+      },
+      "messages": [
+        {
+          "char_count": 7368,
+          "content_sha256": "f5559e2831ea15fd5d0a75f202e64faec2eaf6fc95f6497abac519065bb1f636",
+          "role": "system"
+        },
+        {
+          "char_count": 5642,
+          "content_sha256": "95e6697679dd47e285341e621890bee03dbb1bbe3c1293a1af3987dcbaf552f9",
+          "role": "user"
+        }
+      ],
+      "mode": "production",
+      "output_contract": {
+        "field_names": [
+          "acceptance_criteria",
+          "actual",
+          "actual_evidence",
+          "applicable_product_expectation_ids",
+          "authority_tool_call_ids",
+          "blocking",
+          "boundary",
+          "business_expectations",
+          "code",
+          "downstream_consumer",
+          "downstream_impact",
+          "error_type",
+          "evidence",
+          "evidence_ref",
+          "expectation_id",
+          "expected",
+          "expected_evidence",
+          "expected_outcome",
+          "extra",
+          "filter",
+          "fulfillment_assessments",
+          "incomplete",
+          "kind",
+          "message",
+          "missing",
+          "msg",
+          "priority",
+          "query",
+          "raw",
+          "reasoning_summary",
+          "required_capabilities",
+          "score",
+          "status",
+          "user_intent",
+          "wrong"
+        ],
+        "identity": "impl.core.schema.judge.JudgeLLMOutput",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "1ebd986c8c695abe1e8329086ca3fa881a0eaa83fe0e670d24af6af6d4fad2f0",
+        "sha256": "1ebd986c8c695abe1e8329086ca3fa881a0eaa83fe0e670d24af6af6d4fad2f0"
+      },
+      "project_id": "policy_search",
+      "prompt_char_count": 13010,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 5642,
+        "occurred": false
+      },
+      "role": "judge",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 1725,
+          "content_sha256": "5727bfa7858a8ce05122cd632b62736542f3792c880caa51ab16c7257d1f754b",
+          "order": 0,
+          "role": "judge",
+          "segment_id": "compiled-system",
+          "source": "impl/core/judge.py#judge_trace",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 5642,
+          "content_sha256": "95e6697679dd47e285341e621890bee03dbb1bbe3c1293a1af3987dcbaf552f9",
+          "order": 1,
+          "role": "judge",
+          "segment_id": "case-user-payload",
+          "source": "trace://judge-evidence-view",
+          "stage": "judge"
+        }
+      ],
+      "stage": "judge",
+      "tool_plan": []
+    }
+  },
+  "llm_model": "deepseek-v4-flash-0731",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "你是通用评估系统的 judge agent。\n\n## 核心原则\n只基于当前 RunTrace、项目评判标准和动态检索的知识库内容判断，不继承历史 case。\n首要职责：理解用户/下游消费者的真实业务意图 → 派生 business_expectations → 基于完整执行链路（每轮 output、最终 output、交互过程和停止事实）判断 expectations 的 fulfillment。\n\n## expectation 拆分原则\nbusiness_expectations 的粒度直接决定判断精度。每个 expectation 必须是原子、独立可评价的判断单元：证据充分时判 fulfilled 或 not_fulfilled；确需评价但当前证据不足时按协议判 not_evaluable。\n- 一个 expectation 只描述一个可独立验证的结果维度\n- 多维度意图必须拆成多个 expectation\n- 每个 expectation 必须有明确的 acceptance_criteria\n- 每个 expectation 必须在比较 actual 前确定 blocking：只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true\n- fulfillment_assessments 只判断对应 expectation 的 status 和证据，不得重新定义 blocking\n- expectation_id 必须是描述性的中文短语，禁止使用 E1/E2/exp_01 等占位符 ID\n- reasoning_summary 必须是中文写成的判断依据\n\n## 输出词表\n`fulfillment_assessments[*].status` 必须从以下 3 个值中选择：\n  - fulfilled：该 expectation 完全满足\n  - not_fulfilled：该 expectation 未满足\n  - not_evaluable：当前无法评估\n禁用 failed/passed/incorrect/wrong/met/unmet/partially_fulfilled/partial/success/fail/ok/unknown 等同义词。\n`fulfillment_assessments[*].expected_evidence` 与 `actual_evidence` **必须是数组**（JSON array / list），即使只有一条证据也要用 `[...]` 包裹，不可直接用字符串或对象。\n\n不要输出 overall_fulfillment；公共层会在项目契约补充完成后根据 blocking expectations 确定性派生整体状态。\n\n## 评估规范\n\n\n## 评估边界\n\n\n## 判断标准\n\n\n\n\n你评价的是保单筛选语义是否被完整、可执行且安全地表达。先判断服务依赖是否成功，再比较 query 与 filter。忽略 node_id 命名差异；允许逻辑等价的树。字段、操作符、值、角色、AND/OR/NOT 作用域、日期边界和条件完整性都必须正确。SUCCESS 必须有完整 filter；歧义、条件缺失或越界场景应 UNSUPPORTED 且不得返回部分 filter。业务实现、prompt 和配置是当前能力证据，不是不可质疑的自证。\n## 工具使用原则\n所有工具的用途、调用时机和参数含义以 Agno tool schema 为准；user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息。\n\n## 禁止事项\n- 不要把 reference answer 当作默认主目标（除非 case 明确指定）\n- 不要把 HTTP 状态、run_status、attribute/cluster 结论当作满足依据\n- 不要归因内部代码、配置或 prompt 原因（属于 attribute agent）\n- 分析文字必须使用中文，包括 reasoning_summary 等所有文本字段。\n\n\n## 输出约束：judge 判定输出（自产 reference + fulfillment 判定）\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"business_expectations\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeBusinessExpectationOutput\"\n      },\n      \"minItems\": 1\n    },\n    \"applicable_product_expectation_ids\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"fulfillment_assessments\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeFulfillmentAssessmentOutput\"\n      }\n    },\n    \"expected\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"code\": {\n          \"type\": \"integer\"\n        },\n        \"msg\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"query\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"filter\": {\n          \"type\": [\n            \"object\",\n            \"null\"\n          ]\n        },\n        \"message\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"code\",\n        \"msg\",\n        \"status\",\n        \"query\",\n        \"filter\",\n        \"message\"\n      ]\n    },\n    \"missing\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"wrong\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"extra\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"evidence\": {\n      \"type\": \"array\",\n      \"items\": {}\n    },\n    \"reasoning_summary\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    }\n  },\n  \"additionalProperties\": false,\n  \"$defs\": {\n    \"JudgeBusinessExpectationOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"blocking\": {\n          \"type\": \"boolean\"\n        },\n        \"downstream_consumer\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"user_intent\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected_outcome\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"required_capabilities\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"acceptance_criteria\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"boundary\": {\n          \"type\": \"object\"\n        },\n        \"priority\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"blocking\"\n      ]\n    },\n    \"JudgeFulfillmentAssessmentOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"score\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        },\n        \"expected_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"actual_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"downstream_impact\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"authority_tool_call_ids\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"status\"\n      ]\n    },\n    \"GapItem\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"kind\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"error_type\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected\": {},\n        \"actual\": {},\n        \"evidence_ref\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"raw\": {},\n        \"incomplete\": {\n          \"type\": \"boolean\"\n        }\n      },\n      \"additionalProperties\": false\n    }\n  },\n  \"required\": [\n    \"expected\",\n    \"business_expectations\",\n    \"reasoning_summary\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['business_expectations', 'expected', 'reasoning_summary']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n\n### 嵌套字段子结构约束\n以下字段内部的子结构也必须严格遵守，不可随意编造字段名或类型：\n- **`expected`** 字段 (项目 policy_search 的 expected/live output 结构) 必须符合以下结构：\n  ```json\n  {\n    \"type\": \"object\",\n    \"properties\": {\n      \"code\": {\n        \"type\": \"integer\"\n      },\n      \"msg\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"status\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"query\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"filter\": {\n        \"type\": [\n          \"object\",\n          \"null\"\n        ]\n      },\n      \"message\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"additionalProperties\": false,\n    \"required\": [\n      \"code\",\n      \"msg\",\n      \"status\",\n      \"query\",\n      \"filter\",\n      \"message\"\n    ]\n  }\n  ```\n",
+      "created_at": 1786467549,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "0b79782e-5f38-48fe-911c-7eaaadf3f877",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"user_intent\": \"按投保人名字中的指定文本筛选保单\", \"run_trace\": {\"trace_id\": \"policy_search:policy-search-rich-0027:1786467549420\", \"project_id\": \"policy_search\", \"case_id\": \"policy-search-rich-0027\", \"intent_input\": {\"session_id\": \"policy-search-rich-0027\", \"trace_id\": \"policy-search-rich-0027\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"投保人名字里带陈晓的\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"normalized_request\": {\"session_id\": \"policy-search-rich-0027\", \"trace_id\": \"policy-search-rich-0027\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"投保人名字里带陈晓的\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"final_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"投保人名字里带陈晓的\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"applicant_name\", \"operator\": \"CONTAINS\", \"value\": \"里带陈晓\"}, \"message\": \"解析成功\"}, \"final_output_turn\": 1, \"turns\": [{\"turn_index\": 1, \"request\": {\"session_id\": \"policy-search-rich-0027\", \"trace_id\": \"policy-search-rich-0027\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"投保人名字里带陈晓的\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"extracted_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"投保人名字里带陈晓的\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"applicant_name\", \"operator\": \"CONTAINS\", \"value\": \"里带陈晓\"}, \"message\": \"解析成功\"}, \"call_status\": \"succeeded\", \"runtime_ms\": 6, \"error\": null, \"fallbacks\": [], \"validation\": [], \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"application_boundary\": {\"dependency_status\": \"available\", \"allow_fallback\": false, \"excluded_evidence\": [], \"notes\": \"parser returned an executable filter\"}, \"project_fields\": {\"parse_status\": \"SUCCESS\", \"filter_root_type\": \"PREDICATE\"}}], \"conversation_transcript\": [], \"conversation_summary\": {\"turn_count\": 1, \"final_output_turn\": 1, \"completion_status\": \"completed\", \"stop_reason\": \"single_turn_completed\", \"interaction_controller_status\": \"not_run\", \"interaction_controller_error\": \"\"}, \"stop_reason\": \"single_turn_completed\", \"completion_status\": \"completed\", \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"evidence_refs\": [], \"raw_response_evidence\": null, \"evidence_completeness\": {\"complete\": true, \"missing_evidence\": []}, \"application_boundary\": {\"dependency_status\": \"available\", \"allow_fallback\": false, \"excluded_evidence\": [], \"notes\": \"parser returned an executable filter\"}, \"reference_contract\": {}, \"scenario\": \"atomic_condition\", \"status\": \"ok\", \"error\": null}, \"query\": \"投保人名字里带陈晓的\", \"actual_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"投保人名字里带陈晓的\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"applicant_name\", \"operator\": \"CONTAINS\", \"value\": \"里带陈晓\"}, \"message\": \"解析成功\"}, \"reference_contract\": {}, \"business_evidence_paths\": {\"api_contract\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索算法解析接口文档（智能体对接稿）.md\", \"filter_contract\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索查询语法树协议（首期精简版）.md\", \"technical_design\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索算法解析技术方案（当前实现版）.md\", \"business_config\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/configs/insurance_search_business_config_prd.json\", \"runtime_config\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/configs/insurance_search_runtime_config_prd.json\", \"golden_manifest\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/data/golden_dataset/manifest.json\"}, \"evaluation_dimensions\": [\"field_selection\", \"operator_and_value\", \"logical_scope\", \"time_boundary\", \"condition_completeness\", \"safe_failure\"]}",
+      "created_at": 1786467549,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "e8226eed-9408-4591-8917-6aaea0645a16",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"投保人名字字段识别准确\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索下游系统（policySearch 消费方）\",\n      \"user_intent\": \"按投保人名字中的指定文本筛选保单\",\n      \"expected_outcome\": \"查询被解析为对投保人姓名字段（applicant_name）的文本包含筛选\",\n      \"required_capabilities\": [\"投保人字段识别\", \"applicant_name 映射\"],\n      \"acceptance_criteria\": [\"filter.field 必须为 applicant_name\", \"筛选对象为投保人而非被保人或受益人\"],\n      \"boundary\": {\"说明\": \"投保人对应 applicant，非 beneficiary/holder 语义\"},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"包含筛选文本值准确提取\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索下游系统（policySearch 消费方）\",\n      \"user_intent\": \"筛选投保人名字中包含『陈晓』文本的保单\",\n      \"expected_outcome\": \"operator 为 CONTAINS 且 value 恰为『陈晓』，不掺入自然语言助词\",\n      \"required_capabilities\": [\"文本值抽取\", \"CONTAINS 操作符\"],\n      \"acceptance_criteria\": [\"filter.operator 为 CONTAINS\", \"filter.value 等于『陈晓』\", \"filter.value 不得包含『里带』等引导词\"],\n      \"boundary\": {\"说明\": \"『名字里带X』中的『里』『带』为口语引导词，不属于筛选值\"},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"筛选条件完整可执行输出\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索下游系统（policySearch 消费方）\",\n      \"user_intent\": \"获得可直接执行的完整筛选条件\",\n      \"expected_outcome\": \"语义明确场景返回 SUCCESS，且 filter 为完整可执行的语法树节点而不是空或部分结构\",\n      \"required_capabilities\": [\"filter 语法树生成\", \"状态码正确性\"],\n      \"acceptance_criteria\": [\"code=0 且 status=SUCCESS\", \"filter 为完整 PREDICATE 节点\", \"不得返回空 filter 或残缺条件\"],\n      \"boundary\": {\"说明\": \"歧义、条件缺失或越界场景应返回 UNSUPPORTED 且不得返回部分 filter；本 case query 语义明确，应 SUCCESS\"},\n      \"priority\": \"P0\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"投保人名字字段识别准确\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\"filter.field 等于 applicant_name\"],\n      \"actual_evidence\": [\"final_output.filter.field = applicant_name\", \"filter 结构为 PREDICATE 单条件\"],\n      \"downstream_impact\": \"字段选择正确，下游可按投保人姓名字段检索\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"包含筛选文本值准确提取\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0.0,\n      \"expected_evidence\": [\"filter.operator 等于 CONTAINS\", \"filter.value 等于『陈晓』\"],\n      \"actual_evidence\": [\"filter.value = 『里带陈晓』\", \"query = 『投保人名字里带陈晓的』\"],\n      \"downstream_impact\": \"下游会按文本『里带陈晓』做包含匹配，无法命中姓名含『陈晓』的保单，检索结果集错误，直接阻断用户核心目的\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"筛选条件完整可执行输出\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\"code=0 且 status=SUCCESS\", \"filter 为完整 PREDICATE 节点\"],\n      \"actual_evidence\": [\"code=0, msg=success, status=SUCCESS\", \"filter.type=PREDICATE, field=applicant_name, operator=CONTAINS\"],\n      \"downstream_impact\": \"响应结构完整可执行，值的正确性由『包含筛选文本值准确提取』期望单独判定\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"expected\": {\n    \"code\": 0,\n    \"msg\": \"success\",\n    \"status\": \"SUCCESS\",\n    \"query\": \"投保人名字里带陈晓的\",\n    \"filter\": {\n      \"type\": \"PREDICATE\",\n      \"node_id\": \"n0\",\n      \"field\": \"applicant_name\",\n      \"operator\": \"CONTAINS\",\n      \"value\": \"陈晓\"\n    },\n    \"message\": \"解析成功\"\n  },\n  \"missing\": [],\n  \"wrong\": [\n    {\n      \"kind\": \"operator_and_value\",\n      \"error_type\": \"value_extraction_error\",\n      \"expected\": {\"field\": \"applicant_name\", \"operator\": \"CONTAINS\", \"value\": \"陈晓\"},\n      \"actual\": {\"field\": \"applicant_name\", \"operator\": \"CONTAINS\", \"value\": \"里带陈晓\"},\n      \"evidence_ref\": \"run_trace.final_output.filter\",\n      \"raw\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"applicant_name\", \"operator\": \"CONTAINS\", \"value\": \"里带陈晓\"},\n      \"incomplete\": false\n    }\n  ],\n  \"extra\": [],\n  \"evidence\": [\n    {\"source\": \"intent_input.extra_input_params.policySearchParseArgs.query\", \"value\": \"投保人名字里带陈晓的\"},\n    {\"source\": \"run_trace.final_output\", \"value\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"投保人名字里带陈晓的\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"applicant_name\", \"operator\": \"CONTAINS\", \"value\": \"里带陈晓\"}, \"message\": \"解析成功\"}},\n    {\"source\": \"run_trace.application_boundary.dependency_status\", \"value\": \"available\"}\n  ],\n  \"reasoning_summary\": \"用户意图是按投保人名字中的指定文本筛选保单，query『投保人名字里带陈晓的』语义明确，即投保人姓名包含文本『陈晓』。服务依赖可用（dependency_status=available），返回 SUCCESS 合理。字段识别正确：filter.field=applicant_name 对应投保人；操作符 CONTAINS 正确。但值提取存在阻断性错误：filter.value 为『里带陈晓』，将口语引导词『里带』一并纳入筛选值，正确值应为『陈晓』。该错误会导致下游按错误文本做包含匹配，无法命中目标保单。逻辑作用域、时间边界、条件完整性维度无问题，query 无歧义，不触发 UNSUPPORTED 场景。综合判定：字段识别期望 fulfilled，值提取期望 not_fulfilled，输出结构可执行性期望 fulfilled。\"\n}",
+      "created_at": 1786467549,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "99706475-52e0-4adc-a12b-5e25fa35a102",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 2304,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 4115,
+        "output_tokens": 8289,
+        "provider_metrics": null,
+        "reasoning_tokens": 6671,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 12404
+      },
+      "name": null,
+      "provider_data": {
+        "id": "ea8bc23a-1ae9-46f5-91f9-79b5fef017f0",
+        "model_extra": {
+          "cost": "0"
+        }
+      },
+      "reasoning_content": "我需要分析这个 policy_search 案例。用户意图是\"按投保人名字中的指定文本筛选保单\"，query 是\"投保人名字里带陈晓的\"。\n\n实际输出：\n- status: SUCCESS\n- filter: PREDICATE, field=applicant_name, operator=CONTAINS, value=\"里带陈晓\"\n\n问题很明显：query 是\"投保人名字里带陈晓的\"，意思是投保人名字里包含\"陈晓\"。但实际解析出的 value 是\"里带陈晓\"，把\"名字里带\"中的\"里带\"也包含进去了。这是错误的值提取。\n\n正确解析应该是：\n- field: applicant_name\n- operator: CONTAINS\n- value: \"陈晓\"\n\n实际输出把 value 弄成了\"里带陈晓\"，把自然语言中的\"里带\"两个冗余字也包含进去了。这是一个解析错误。\n\n另外需要考虑：query 是否应该返回 SUCCESS？query\"投保人名字里带陈晓的\"语义明确：投保人名字含\"陈晓\"文本。这是可执行的，应该 SUCCESS。\n\n所以主要 gap 是 wrong：value 应为\"陈晓\"，实际为\"里带陈晓\"。\n\n再检查其他维度：\n- field_selection: applicant_name 正确，投保人名字。\n- operator_and_value: CONTAINS 正确，但 value 错误。\n- logical_scope: 单一条件，无 AND/OR/NOT 问题。\n- time_boundary: 不涉及。\n- condition_completeness: 只有一个条件，完整。\n- safe_failure: 语义清晰，SUCCESS 合理。但需要注意，即使 SUCCESS，返回的 filter 必须是完整正确的。这里 filter 存在（value 错误），所以属于错误返回而非 UNSUPPORTED。\n\n现在我需要构建 business_expectations。用户意图是\"按投保人名字中的指定文本筛选保单\"。这是一个原子条件场景。\n\n拆分成 expectations：\n1. 字段识别准确：筛选字段应为投保人名字（applicant_name）。\n2. 操作符与值正确：CONTAINS 操作符且值为\"陈晓\"（不含\"里带\"等自然语言助词）。\n3. 条件完整性/输出可执行：SUCCESS 时应返回完整可执行的 filter；语义歧义时应 UNSUPPORTED 且不返回部分 filter。\n4. 安全失败：依赖服务可用；不确定场景不得返回部分结果。\n\n这些里哪些 blocking？字段、操作符值直接影响查询结果正确性，是核心。条件完整性也是核心。安全失败一般是 blocking。\n\n我需要设定 blocking：\n- 使用正确字段：blocking true\n- 提取正确查询文本值：blocking true\n- 输出格式/可执行性：blocking true（filter 必须正确完整）\n\n不过，应该尽量原子化。让我定义：\n\nexpectation 1: \"投保人名字字段识别\"\n- blocking: true\n- expected: filter.field = applicant_name\n\nexpectation 2: \"包含文本值准确提取\"\n- blocking: true\n- expected: operator=CONTAINS, value=\"陈晓\"，不得包含\"里带\"等噪声词\n\nexpectation 3: \"筛选条件完整可执行输出\"\n- blocking: true\n- expected: SUCCESS 时返回完整 filter，不得是部分/空 filter；不应因 query 噪声而 UNSUPPORTED。或者说 query 语义明确应 SUCCESS 且 filter 完整。\n\nexpectation 4: \"歧义场景安全失败\"\n- 本 case query 无歧义，安全失败不触发。这个可以设为非 blocking 或也纳入。用户意图已经清晰，不需要 UNSUPPORTED。\n\n嗯，让我考虑是否需要第 4 个 expectation。评估维度里有 safe_failure。安全失败一般运用于服务依赖不可用或 query 歧义。这里服务依赖 available，query 无歧义，所以 safe_failure 未触发，但可以评价为\"在语义明确场景正确返回 SUCCESS 而非错误拒绝\"。这个可以合并到 expectation 3。\n\n我认为定义 3 个 expectation 即可，或者也可以加入第 4 个关于\"SUCCESS 状态合法性与依赖可用性\"。\n\n按照 schema，business_expectations 至少 1 个。applicable_product_expectation_ids 是从产品 expectation 库中选？我没有看到提供的库列表。也许需要从 evaluation_dimensions 派生。我会设置 applicable_product_expectation_ids 为空数组或填维度名？schema 要求它是数组，允许空数组？\"以下字段必须非空\"列表里没有 applicable_product_expectation_ids，所以可以为空数组。但为了有意义，我可以填入 expectation_id 自身？通常这个字段用于关联产品级期望。既然没有给定库，我填与 expectations 一致的 ID 或者留空。我倾向于填入与 expectation_id 相同的标识，表示这些适用。但严谨起见，applicable_product_expectation_ids 指的是预先定义的产品 expectation 的 ID。没有提供时，可以留空 []。\n\n现在 fulfillment_assessments：\n- expectation 1（字段识别）：fulfilled。实际 filter.field = \"applicant_name\"，正确。\n- expectation 2（值提取）：not_fulfilled。实际 value=\"里带陈晓\"，应为\"陈晓\"。\n- expectation 3（完整可执行输出）：部分？输出是 SUCCESS 且 filter 完整（PREDICATE 结构），但 filter 值错误。这里需要仔细：expectation 3 是关于\"完整条件表达\"而不是\"值正确\"。如果 expectation 3 定义为\"SUCCESS 必须包含完整 filter 且不得返回部分 filter\"，那么实际符合——filter 存在且是完整 PREDICATE。但这是否误导？filter 的值错误已在 expectation 2 覆盖。我可以将 expectation 3 定义为\"整体语义正确表达\"？那样就与 2 重叠。\n\n为了避免重叠，我应该把 expectation 3 定义为响应结构层面的可执行性：code=0, status=SUCCESS 时 filter 必须是完整可执行的语法树节点（PREDICATE 结构），而非空/不完整。这个 fulfilled。\n\n不过，等等——如果 value 错误，输出的 filter 虽然结构完整但业务上不可执行/错误。这个错误已经在 expectation 2 中捕获。那么整体判断是什么？公共层会根据 blocking expectations 派生 overall。expectation 2 是 blocking 且 not_fulfilled，所以整体会是失败/部分。\n\n我需要谨慎设置 blocking。我认为 expectation 2 的 blocking=true 是合理的，因为值错误直接导致返回错误保单集，阻断用户核心目的。\n\n现在对于 expected 字段（自产 reference）：schema 要求 code, msg, status, query, filter, message：\n```json\n{\n  \"code\": 0,\n  \"msg\": \"success\",\n  \"status\": \"SUCCESS\",\n  \"query\": \"投保人名字里带陈晓的\",\n  \"filter\": {\n    \"type\": \"PREDICATE\",\n    \"node_id\": \"n0\",\n    \"field\": \"applicant_name\",\n    \"operator\": \"CONTAINS\",\n    \"value\": \"陈晓\"\n  },\n  \"message\": \"解析成功\"\n}\n```\nnode_id 随意，n0 一致即可（忽略 node_id 命名差异）。\n\nmissing: 无缺失条件。[] 可以吗？schema 允许空数组（非 required 非空约束只针对 business_expectations, expected, reasoning_summary）。missing 不在非空强制列表。好。\n\nwrong: \n```json\n[\n  {\n    \"kind\": \"operator_and_value\",\n    \"error_type\": \"value_extraction_error\",\n    \"expected\": {\"field\": \"applicant_name\", \"operator\": \"CONTAINS\", \"value\": \"陈晓\"},\n    \"actual\": {\"field\": \"applicant_name\", \"operator\": \"CONTAINS\", \"value\": \"里带陈晓\"},\n    \"evidence_ref\": \"final_output.filter\",\n    \"raw\": {\"field\": \"applicant_name\", \"operator\": \"CONTAINS\", \"value\": \"里带陈晓\"},\n    \"incomplete\": false\n  }\n]\n```\n\nextra: 可能没有 extra。空数组。\n\nevidence: 数组，放 final_output 等证据对象。可以放实际 filter、turns 等。\n\nreasoning_summary: 中文说明。\n\n现在细化 expectations 的字段：\n\n```json\n{\n  \"expectation_id\": \"筛选字段识别为投保人名字\",\n  \"blocking\": true,\n  \"downstream_consumer\": \"保单检索下游系统（保险搜索接口消费方）\",\n  \"user_intent\": \"按投保人名字中的指定文本筛选保单\",\n  \"expected_outcome\": \"将查询解析为对投保人姓名字段的文本包含筛选\",\n  \"required_capabilities\": [\"字段识别 applicant_name\"],\n  \"acceptance_criteria\": [\"filter.field 等于 applicant_name\"],\n  \"boundary\": {\"排除\": \"受益人或被保人姓名字段不在本意图范围\"},\n  \"priority\": \"P0\"\n}\n```\n\nexpectation 2:\n```json\n{\n  \"expectation_id\": \"包含文本值准确提取\",\n  \"blocking\": true,\n  \"downstream_consumer\": \"保单检索下游系统\",\n  \"user_intent\": \"投保人名字中包含『陈晓』\",\n  \"expected_outcome\": \"CONTAINS 操作符的 value 为『陈晓』，不含自然语言助词\",\n  \"required_capabilities\": [\"文本值抽取\", \"CONTAINS 操作符\"],\n  \"acceptance_criteria\": [\"operator 为 CONTAINS\", \"value 等于『陈晓』\", \"value 不得包含『里带』等提示词\"],\n  \"boundary\": {\"说明\": \"『名字里带X』中的『里』『带』属于自然语言引导词，不应进入筛选值\"},\n  \"priority\": \"P0\"\n}\n```\n\nexpectation 3:\n```json\n{\n  \"expectation_id\": \"筛选条件完整可执行输出\",\n  \"blocking\": true,\n  \"downstream_consumer\": \"保单检索下游系统\",\n  \"user_intent\": \"获得可直接执行的完整筛选条件\",\n  \"expected_outcome\": \"在语义明确的场景返回 SUCCESS 且包含完整可执行的 filter 语法树\",\n  \"required_capabilities\": [\"filter 树生成\"],\n  \"acceptance_criteria\": [\"status=SUCCESS 时 filter 为完整 PREDICATE 节点\", \"filter 不为空或部分结构\"],\n  \"boundary\": {\"排除\": \"歧义或条件缺失场景应返回 UNSUPPORTED，不返回部分 filter\"},\n  \"priority\": \"P0\"\n}\n```\n\nexpectation 3 实际上 fulfilled（结构完整）。但注意：如果值错误但结构完整，expectation 3 fulfilled 是否合理？是的，结构层面它满足。业务错误由 expectation 2 承担。为避免评估矛盾，我在 reasoning 中说明。\n\nfulfillment_assessments:\n\n1. 筛选字段识别为投保人名字: fulfilled\n   - score: 1.0\n   - expected_evidence: [\"filter.field == applicant_name\"]\n   - actual_evidence: [\"final_output.filter.field = applicant_name\"]\n   - downstream_impact: \"无影响，字段选择正确\"\n   - authority_tool_call_ids: []（无工具调用，是 parser 输出。或者可以留空数组）\n\n2. 包含文本值准确提取: not_fulfilled\n   - score: 0.0\n   - expected_evidence: [\"value == 陈晓\"]\n   - actual_evidence: [\"value == 里带陈晓\", \"query = 投保人名字里带陈晓的\"]\n   - downstream_impact: \"下游将按『里带陈晓』作为包含文本检索，无法命中名字含『陈晓』的保单，返回结果集错误，阻断用户核心目标\"\n   - authority_tool_call_ids: []\n\n3. 筛选条件完整可执行输出: fulfilled\n   - score: 1.0\n   - expected_evidence: [\"code=0\", \"status=SUCCESS\", \"filter 为完整 PREDICATE\"]\n   - actual_evidence: [\"code=0\", \"status=SUCCESS\", \"filter.type=PREDICATE\"]\n   - downstream_impact: \"结构可执行，但值的错误由 expectation 2 另行判定\"\n   - authority_tool_call_ids: []\n\napplicable_product_expectation_ids：这个字段我不确定该如何填。既然没有给定产品 expectation 库，我填期望 ID 的数组？或留空？schema 允许空数组。但最安全的做法：填与我自己定义的 expectation_id 相同？\"applicable_product_expectation_ids\" 应该是产品级 expectation 的 ID 列表。如果没有提供任何产品库，填 [] 是合规的。不过 meaningful 起见，我可能把 evaluation_dimensions 映射进去？不行，那些是维度不是 expectation ID。我选择 []。\n\n等等，再考虑：有没有可能\"reference_contract\": {} 是空的，意味着没有 reference。是的。所以我是自产 reference。\n\n还有一点：用户意图给出的是\"按投保人名字中的指定文本筛选保单\"，而 query 是\"投保人名字里带陈晓的\"。语义非常清晰——名字中包含\"陈晓\"。\n\n再仔细看看 value 提取问题：query=\"投保人名字里带陈晓的\"。如果机械地取\"名字\"后面、\"的\"前面的文本，会得到\"里带陈晓\"。正确的语义分析应该去掉\"里带\"（或者把\"里带\"理解为结构助词）。所以 value 应该为\"陈晓\"。\n\n如何证明\"里带\"不是名字的一部分？中文里\"名字里带X\"是\"名字中包含 X\"的口语表达。所以筛选值就是\"陈晓\"。\n\n好。另外检查 field：applicant_name 是否对应\"投保人\"？是的，投保人=applicant。字段选择正确。\n\noperator CONTAINS 正确（'带'=包含）。\n\n时间边界：query 没有时间要求，无需处理。\n\n条件完整性：单条件，完整。\n\n安全失败：query 无歧义，SUCCESS 合理。但返回了错误值——这不算 safe failure 问题，而是正确性错误。\n\n现在构建输出 JSON。\n\n关于 expected.filter 的 node_id：用 \"n0\"。与实际输出一致，但 node_id 差异被允许。\n\n关于 evidence 字段：放什么？可以是实际输出对象和 query。我放：\n- {\"source\": \"user_query\", \"content\": \"投保人名字里带陈晓的\"}\n- {\"source\": \"final_output\", \"content\": {...actual filter...}}\n- {\"source\": \"application_boundary\", \"dependency_status\": \"available\"}\n\n现在，构造 reasoning_summary（中文）：\n\n\"用户意图是按投保人名字中的指定文本筛选保单，query 为『投保人名字里带陈晓的』，语义明确：投保人姓名包含文本『陈晓』。服务依赖可用（dependency_status=available），status=SUCCESS 合理。字段 applicant_name 识别正确，操作符 CONTAINS 正确。但值提取错误：filter.value 为『里带陈晓』，把自然语言助词『里带』一并纳入筛选值；正确值应为『陈晓』。该错误会导致下游按错误文本检索，无法命中目标保单，属于阻断性错误。语音/自然语言中『名字里带X』的『里』『带』只是引导词，不应进入取值。其余维度（逻辑作用域、时间边界、条件完整性）无问题。综合判定：字段识别与输出结构期望 fulfilled，值提取期望 not_fulfilled。\"\n\n需要确认 reasoning_summary 是\"判断依据\"，以及 must be 中文。OK。\n\n对于 expected 字段的 message：\"解析成功\"。\n\n关于 status 字段：expected status 为 \"SUCCESS\"，code 0，msg \"success\"。\n\n关于 filter 里的 node_id：无所谓。\n\n现在，让我再想想 expectation 数量与粒度。也许应包含\"安全失败\"expectation 作为非 blocking，用于覆盖\"歧义、条件缺失或越界场景应 UNSUPPORTED 且不得返回部分 filter\"。因为本 case 无歧义，评价为 fulfilled（正确处理：在语义明确场景返回 SUCCESS 且 filter 完整）。但 expectation 3 已经覆盖了。增加第 4 个 expectation 会不会造成重叠？可以不增加，用 3 个即可。但评估维度含 safe_failure，我可以把它并入 expectation 3 的 boundary 说明里。\n\n然而，从严格角度看，安全失败的 acceptance 是\"当出现歧义/条件缺失/越界时返回 UNSUPPORTED，而不是 SUCCESS 带错误 filter\"。本 case 无歧义，所以这条 criterion 未被触发，可以视为满足（避免了误判场景）。但如果将 safe_failure 作为独立 expectation，它的判定会基于\"没有触发不安全行为\"。这有点微妙：没有歧义时，safe_failure 期望是 fulfilled（因为没有发生不安全失败）。\n\n我决定保持 3 个 expectation，把 safe_failure 作为 expectation 3 的 boundary 和 acceptance 的一部分。这是合理的。\n\n但等一下，blocking 设置：expectation 3 blocking=true。如果公共层根据 blocking expectations 派生 overall，且只有 expectation 2 not_fulfilled，那么整体失败。OK。\n\n还有一个问题：expectation 1 是否 blocking？字段识别错误会阻断核心目标，所以 blocking=true。expectation 2 blocking=true。expectation 3 blocking=true。全部 blocking 也可以。不过如果全部 blocking，公共层会严格。由于 expectation 1 和 3 fulfilled，只有 2 失败，总体仍失败，正确。\n\n现在关于 score：schema 允许 number 或 null。我给 1.0 / 0.0。fulfilled=1.0，not_fulfilled=0.0。\n\nauthority_tool_call_ids：空数组即可。没有工具调用。\n\n现在，检查 GapItem 结构：\n- kind: \"operator_and_value\"\n- error_type: \"value_extraction_error\"\n- expected: {\"field\": \"applicant_name\", \"operator\": \"CONTAINS\", \"value\": \"陈晓\"}\n- actual: {\"field\": \"applicant_name\", \"operator\": \"CONTAINS\", \"value\": \"里带陈晓\"}\n- evidence_ref: \"run_trace.final_output.filter\"\n- raw: 完整 filter 对象\n- incomplete: false\n\nmissing 数组：空 []。合理，因为条件没有缺失，只是值错误。\n\nextra 数组：空 []。没有多余条件。\n\nevidence 数组：\n```json\n[\n  {\"source\": \"intent_input.extra_input_params.policySearchParseArgs.query\", \"value\": \"投保人名字里带陈晓的\"},\n  {\"source\": \"run_trace.final_output\", \"value\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"投保人名字里带陈晓的\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"applicant_name\", \"operator\": \"CONTAINS\", \"value\": \"里带陈晓\"}, \"message\": \"解析成功\"}},\n  {\"source\": \"run_trace.application_boundary.dependency_status\", \"value\": \"available\"}\n]\n```\n\n现在，expected 里 filter.node_id 用 \"n0\"。不过 node_id 差异被忽略，所以什么值都行。用 \"n0\"。\n\n也考虑 expected 的 query 保留原文：\"投保人名字里带陈晓的\"。\n\n现在再想一遍是否有其他问题：CONTAINS 操作符对中文文本的语义。含\"陈晓\"名字，比如\"陈晓明\"、\"陈晓丽\"。CONTAINS 正确，不能用 EQUALS。所以 operator 没问题。\n\n最后，JSON 输出格式：必须合法 JSON，中文引号“”或转义。在 JSON 内部，字符串里的中文引号没问题。英文双引号必须转义，但我尽量避免在字符串内容中使用英文双引号。\n\n检查必填：business_expectations, expected, reasoning_summary。fulfillment_assessments 不是 required 顶层？schema required: [\"expected\", \"business_expectations\", \"reasoning_summary\"]。但 fulfillment_assessments 也应该输出（虽然不强制）。是的，我应该输出它，否则评估无意义。哦等等，required 只有三个，但\"必须包含 required 列表中的所有字段\"，其他字段可选。但为了评估完整性，我必须包含 applicable_product_expectation_ids、fulfillment_assessments、missing、wrong、extra、evidence。它们都是 schema properties，additionalProperties false，所以可以包含。\n\n好，现在正式构造 JSON。\n\n一个细节：business_expectations 的 required 只有 [\"expectation_id\", \"blocking\"]，但其他字段最好都填上。我填全。\n\n现在写：\n\n```json\n{\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"投保人名字字段识别准确\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索下游系统（policySearch 消费方）\",\n      \"user_intent\": \"按投保人名字中的指定文本筛选保单\",\n      \"expected_outcome\": \"查询被解析为对投保人姓名字段（applicant_name）的文本包含筛选\",\n      \"required_capabilities\": [\"投保人字段识别\", \"applicant_name 映射\"],\n      \"acceptance_criteria\": [\"filter.field 必须为 applicant_name\", \"筛选对象为投保人而非被保人或受益人\"],\n      \"boundary\": {\"说明\": \"投保人对应 applicant，非 beneficiary/holder 语义\"},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"包含筛选文本值准确提取\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索下游系统（policySearch 消费方）\",\n      \"user_intent\": \"筛选投保人名字中包含『陈晓』文本的保单\",\n      \"expected_outcome\": \"operator 为 CONTAINS 且 value 恰为『陈晓』，不掺入自然语言助词\",\n      \"required_capabilities\": [\"文本值抽取\", \"CONTAINS 操作符\"],\n      \"acceptance_criteria\": [\"filter.operator 为 CONTAINS\", \"filter.value 等于『陈晓』\", \"filter.value 不得包含『里带』等引导词\"],\n      \"boundary\": {\"说明\": \"『名字里带X』中的『里』『带』为口语引导词，不属于筛选值\"},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"筛选条件完整可执行输出\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索下游系统（policySearch 消费方）\",\n      \"user_intent\": \"获得可直接执行的完整筛选条件\",\n      \"expected_outcome\": \"语义明确场景返回 SUCCESS，且 filter 为完整可执行的语法树节点而不是空/部分结构\",\n      \"required_capabilities\": [\"filter 语法树生成\", \"状态码正确性\"],\n      \"acceptance_criteria\": [\"code=0 且 status=SUCCESS\", \"filter 为完整 PREDICATE 节点\", \"不得返回空 filter 或残缺条件\"],\n      \"boundary\": {\"说明\": \"歧义、条件缺失或越界场景应返回 UNSUPPORTED 且不得返回部分 filter；本 case query 语义明确，应 SUCCESS\"},\n      \"priority\": \"P0\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"投保人名字字段识别准确\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\"filter.field 等于 applicant_name\"],\n      \"actual_evidence\": [\"final_output.filter.field = applicant_name\", \"filter 结构为 PREDICATE 单条件\"],\n      \"downstream_impact\": \"字段选择正确，下游可按投保人姓名字段检索\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"包含筛选文本值准确提取\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0.0,\n      \"expected_evidence\": [\"filter.operator 等于 CONTAINS\", \"filter.value 等于『陈晓』\"],\n      \"actual_evidence\": [\"filter.value = 『里带陈晓』\", \"query = 『投保人名字里带陈晓的』\"],\n      \"downstream_impact\": \"下游会按文本『里带陈晓』做包含匹配，无法命中姓名含『陈晓』的保单，检索结果集错误，直接阻断用户核心目的\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"筛选条件完整可执行输出\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\"code=0 且 status=SUCCESS\", \"filter 为完整 PREDICATE 节点\"],\n      \"actual_evidence\": [\"code=0, msg=success, status=SUCCESS\", \"filter.type=PREDICATE, field=applicant_name, operator=CONTAINS\"],\n      \"downstream_impact\": \"响应结构完整可执行，值的正确性由『包含筛选文本值准确提取』期望单独判定\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"expected\": {\n    \"code\": 0,\n    \"msg\": \"success\",\n    \"status\": \"SUCCESS\",\n    \"query\": \"投保人名字里带陈晓的\",\n    \"filter\": {\n      \"type\": \"PREDICATE\",\n      \"node_id\": \"n0\",\n      \"field\": \"applicant_name\",\n      \"operator\": \"CONTAINS\",\n      \"value\": \"陈晓\"\n    },\n    \"message\": \"解析成功\"\n  },\n  \"missing\": [],\n  \"wrong\": [\n    {\n      \"kind\": \"operator_and_value\",\n      \"error_type\": \"value_extraction_error\",\n      \"expected\": {\"field\": \"applicant_name\", \"operator\": \"CONTAINS\", \"value\": \"陈晓\"},\n      \"actual\": {\"field\": \"applicant_name\", \"operator\": \"CONTAINS\", \"value\": \"里带陈晓\"},\n      \"evidence_ref\": \"run_trace.final_output.filter\",\n      \"raw\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"applicant_name\", \"operator\": \"CONTAINS\", \"value\": \"里带陈晓\"},\n      \"incomplete\": false\n    }\n  ],\n  \"extra\": [],\n  \"evidence\": [\n    {\"source\": \"intent_input.extra_input_params.policySearchParseArgs.query\", \"value\": \"投保人名字里带陈晓的\"},\n    {\"source\": \"run_trace.final_output\", \"value\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"投保人名字里带陈晓的\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"applicant_name\", \"operator\": \"CONTAINS\", \"value\": \"里带陈晓\"}, \"message\": \"解析成功\"}},\n    {\"source\": \"run_trace.application_boundary.dependency_status\", \"value\": \"available\"}\n  ],\n  \"reasoning_summary\": \"用户意图是按投保人名字中的指定文本筛选保单，query『投保人名字里带陈晓的』语义明确，即投保人姓名包含文本『陈晓』。服务依赖可用（dependency_status=available），返回 SUCCESS 合理。字段识别正确：filter.field=applicant_name 对应投保人；操作符 CONTAINS 正确。但值提取存在阻断性错误：filter.value 为『里带陈晓』，将口语引导词『里带』一并纳入筛选值，正确值应为『陈晓』。该错误会导致下游按错误文本做包含匹配，无法命中目标保单。逻辑作用域、时间边界、条件完整性维度无问题，query 无歧义，不触发 UNSUPPORTED 场景。综合判定：字段识别期望 fulfilled，值提取期望 not_fulfilled，输出结构可执行性期望 fulfilled。\"\n}\n```\n\n检查一下：\n- 顶层字段：business_expectations, applicable_product_expectation_ids, fulfillment_assessments, expected, missing, wrong, extra, evidence, reasoning_summary。都在 schema properties 中。\n- additionalProperties false：没有多余字段。\n- status 值在允许词表内：fulfilled, not_fulfilled, fulfilled。OK。\n- expected_evidence 和 actual_evidence 都是数组。OK。\n- expected 结构包含所有 required 字段，无额外字段。OK。\n- reasoning_summary 非空。OK。\n- business_expectations 每个都有 expectation_id 和 blocking，且其他字段合规。OK。\n- wrong/missing/extra 的 gap item 结构符合 GapItem 子结构。OK。\n\n一个小问题：business_expectations 里 acceptance_criteria 是数组，元素是 string。OK。boundary 是 object。OK。\n\n再考虑 \"applicable_product_expectation_ids\": []。schema 没有非空约束，OK。\n\n还有一个点：用户 prompt 的\"判断标准\"提到：\"SUCCESS 必须有完整 filter；歧义、条件缺失或越界场景应 UNSUPPORTED 且不得返回部分 filter。\" 实际 SUCCESS 有完整 filter（结构上），但值错误。这个值错误已在 wrong 中体现。\n\n也许我应该把 expectation 3 的预期设定为\"SUCCESS 时 filter 必须完整且正确\"？但那样与 expectation 2 重叠。为了清晰，我保持 expectation 3 关于结构完整性。而值的正确性由 expectation 2 负责。这样两个 blocking 期望分别覆盖结构和值，公共层可以准确判断。\n\n不过，如果有人认为 expectation 3 应该包含\"filter 业务正确\"，那我或许应该把 expectation 3 定义为\"query 语义被完整且正确地表达为可执行 filter\"。Hmm。让我重新审视判断标准：\"先判断服务依赖是否成功，再比较 query 与 filter\"。这暗示整体比较 query 与 filter 是一个核心。也许 expectation 结构应该围绕\"query 语义是否完整映射到 filter\"。\n\n另一种拆分：\n1. 字段语义正确（applicant_name）\n2. 文本值与操作符正确（CONTAINS + 陈晓）\n3. 完整性与安全失败（无缺失、无多余、歧义场景安全处理）\n\n这与我当前的拆分一致。OK。\n\n关于 missing 和 extra：条件无缺失无多余，两个空数组。合理。\n\n关于 evidence 的第二个元素直接嵌入整个 final_output，OK。\n\n现在最终确认 JSON 合法性：需要确保字符串里的中文引号“”没问题。所有英文双引号作为 JSON 结构使用。值中的文本不包含未转义的英文双引号。\n\n检查 wrong 里的 expected/actual 对象使用英文双引号作为 JSON key 是合法的。OK。\n\n最后输出。",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "policy_search",
+  "prompt_size": 17485,
+  "record_id": "190edec9-1b90-46fa-bd40-e7b540bdce75",
+  "response": {
+    "content": "{\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"投保人名字字段识别准确\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索下游系统（policySearch 消费方）\",\n      \"user_intent\": \"按投保人名字中的指定文本筛选保单\",\n      \"expected_outcome\": \"查询被解析为对投保人姓名字段（applicant_name）的文本包含筛选\",\n      \"required_capabilities\": [\"投保人字段识别\", \"applicant_name 映射\"],\n      \"acceptance_criteria\": [\"filter.field 必须为 applicant_name\", \"筛选对象为投保人而非被保人或受益人\"],\n      \"boundary\": {\"说明\": \"投保人对应 applicant，非 beneficiary/holder 语义\"},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"包含筛选文本值准确提取\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索下游系统（policySearch 消费方）\",\n      \"user_intent\": \"筛选投保人名字中包含『陈晓』文本的保单\",\n      \"expected_outcome\": \"operator 为 CONTAINS 且 value 恰为『陈晓』，不掺入自然语言助词\",\n      \"required_capabilities\": [\"文本值抽取\", \"CONTAINS 操作符\"],\n      \"acceptance_criteria\": [\"filter.operator 为 CONTAINS\", \"filter.value 等于『陈晓』\", \"filter.value 不得包含『里带』等引导词\"],\n      \"boundary\": {\"说明\": \"『名字里带X』中的『里』『带』为口语引导词，不属于筛选值\"},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"筛选条件完整可执行输出\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索下游系统（policySearch 消费方）\",\n      \"user_intent\": \"获得可直接执行的完整筛选条件\",\n      \"expected_outcome\": \"语义明确场景返回 SUCCESS，且 filter 为完整可执行的语法树节点而不是空或部分结构\",\n      \"required_capabilities\": [\"filter 语法树生成\", \"状态码正确性\"],\n      \"acceptance_criteria\": [\"code=0 且 status=SUCCESS\", \"filter 为完整 PREDICATE 节点\", \"不得返回空 filter 或残缺条件\"],\n      \"boundary\": {\"说明\": \"歧义、条件缺失或越界场景应返回 UNSUPPORTED 且不得返回部分 filter；本 case query 语义明确，应 SUCCESS\"},\n      \"priority\": \"P0\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"投保人名字字段识别准确\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\"filter.field 等于 applicant_name\"],\n      \"actual_evidence\": [\"final_output.filter.field = applicant_name\", \"filter 结构为 PREDICATE 单条件\"],\n      \"downstream_impact\": \"字段选择正确，下游可按投保人姓名字段检索\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"包含筛选文本值准确提取\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0.0,\n      \"expected_evidence\": [\"filter.operator 等于 CONTAINS\", \"filter.value 等于『陈晓』\"],\n      \"actual_evidence\": [\"filter.value = 『里带陈晓』\", \"query = 『投保人名字里带陈晓的』\"],\n      \"downstream_impact\": \"下游会按文本『里带陈晓』做包含匹配，无法命中姓名含『陈晓』的保单，检索结果集错误，直接阻断用户核心目的\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"筛选条件完整可执行输出\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\"code=0 且 status=SUCCESS\", \"filter 为完整 PREDICATE 节点\"],\n      \"actual_evidence\": [\"code=0, msg=success, status=SUCCESS\", \"filter.type=PREDICATE, field=applicant_name, operator=CONTAINS\"],\n      \"downstream_impact\": \"响应结构完整可执行，值的正确性由『包含筛选文本值准确提取』期望单独判定\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"expected\": {\n    \"code\": 0,\n    \"msg\": \"success\",\n    \"status\": \"SUCCESS\",\n    \"query\": \"投保人名字里带陈晓的\",\n    \"filter\": {\n      \"type\": \"PREDICATE\",\n      \"node_id\": \"n0\",\n      \"field\": \"applicant_name\",\n      \"operator\": \"CONTAINS\",\n      \"value\": \"陈晓\"\n    },\n    \"message\": \"解析成功\"\n  },\n  \"missing\": [],\n  \"wrong\": [\n    {\n      \"kind\": \"operator_and_value\",\n      \"error_type\": \"value_extraction_error\",\n      \"expected\": {\"field\": \"applicant_name\", \"operator\": \"CONTAINS\", \"value\": \"陈晓\"},\n      \"actual\": {\"field\": \"applicant_name\", \"operator\": \"CONTAINS\", \"value\": \"里带陈晓\"},\n      \"evidence_ref\": \"run_trace.final_output.filter\",\n      \"raw\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"applicant_name\", \"operator\": \"CONTAINS\", \"value\": \"里带陈晓\"},\n      \"incomplete\": false\n    }\n  ],\n  \"extra\": [],\n  \"evidence\": [\n    {\"source\": \"intent_input.extra_input_params.policySearchParseArgs.query\", \"value\": \"投保人名字里带陈晓的\"},\n    {\"source\": \"run_trace.final_output\", \"value\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"投保人名字里带陈晓的\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"applicant_name\", \"operator\": \"CONTAINS\", \"value\": \"里带陈晓\"}, \"message\": \"解析成功\"}},\n    {\"source\": \"run_trace.application_boundary.dependency_status\", \"value\": \"available\"}\n  ],\n  \"reasoning_summary\": \"用户意图是按投保人名字中的指定文本筛选保单，query『投保人名字里带陈晓的』语义明确，即投保人姓名包含文本『陈晓』。服务依赖可用（dependency_status=available），返回 SUCCESS 合理。字段识别正确：filter.field=applicant_name 对应投保人；操作符 CONTAINS 正确。但值提取存在阻断性错误：filter.value 为『里带陈晓』，将口语引导词『里带』一并纳入筛选值，正确值应为『陈晓』。该错误会导致下游按错误文本做包含匹配，无法命中目标保单。逻辑作用域、时间边界、条件完整性维度无问题，query 无歧义，不触发 UNSUPPORTED 场景。综合判定：字段识别期望 fulfilled，值提取期望 not_fulfilled，输出结构可执行性期望 fulfilled。\"\n}",
+    "metrics": {
+      "cache_read_tokens": 2304,
+      "cache_write_tokens": 0,
+      "input_tokens": 4115,
+      "output_tokens": 8289,
+      "reasoning_tokens": 6671,
+      "total_tokens": 12404
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 69885,
+          "endpoint": "fallback1",
+          "model": "deepseek-v4-flash-0731",
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "selected_endpoint": "fallback1",
+      "selected_model": "deepseek-v4-flash-0731",
+      "stage": ""
+    }
+  },
+  "trace_id": "policy_search:policy-search-rich-0027:1786467549420"
+}

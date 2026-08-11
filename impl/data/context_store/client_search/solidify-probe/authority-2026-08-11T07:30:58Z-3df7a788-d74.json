@@ -1,0 +1,133 @@
+{
+  "caller": "authority",
+  "created_at": "2026-08-11T07:30:58Z",
+  "elapsed_ms": 0,
+  "error": "all llm endpoints are cooling",
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "draft"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "c669662acbbdf00726fa5408b156c59010df046755dad536b497ec8aaaf448d0",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [],
+      "lineage": {
+        "call_id": "authority.client_search.03006f90fda1",
+        "case_id": "",
+        "trace_id": "solidify-probe"
+      },
+      "messages": [
+        {
+          "char_count": 6520,
+          "content_sha256": "ce37efc4c67b13549de269e27744ade5efce287755339fdf8a0cce4c2543ff16",
+          "role": "system"
+        },
+        {
+          "char_count": 221,
+          "content_sha256": "efe6166d19c23d995deff0c3cf6943c9dcf5e596f83f5a010907291c56174cd7",
+          "role": "user"
+        }
+      ],
+      "mode": "draft",
+      "output_contract": {
+        "field_names": [
+          "basis_evidence_ref_ids",
+          "reason",
+          "required_evidence",
+          "statement",
+          "status"
+        ],
+        "identity": "impl.core.schema.authority.AuthorityIndependentResolution",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "8fdef074513e92c685cf23caafaa810197e5572db7d8ca0f7ac8a96fd22cffc6",
+        "sha256": "8fdef074513e92c685cf23caafaa810197e5572db7d8ca0f7ac8a96fd22cffc6"
+      },
+      "project_id": "client_search",
+      "prompt_char_count": 6741,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 221,
+        "occurred": false
+      },
+      "role": "authority",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "authority"
+          ],
+          "allowed_stages": [
+            "independent_resolution"
+          ],
+          "char_count": 5353,
+          "content_sha256": "a78f3ea62284e858395e23abadea7f0f0ad847a8c1540df15eddfbc5c082ffcb",
+          "order": 0,
+          "role": "authority",
+          "segment_id": "compiled-system",
+          "source": "core://authority/independent-resolution",
+          "stage": "independent_resolution"
+        },
+        {
+          "allowed_roles": [
+            "authority"
+          ],
+          "allowed_stages": [
+            "independent_resolution"
+          ],
+          "char_count": 221,
+          "content_sha256": "efe6166d19c23d995deff0c3cf6943c9dcf5e596f83f5a010907291c56174cd7",
+          "order": 1,
+          "role": "authority",
+          "segment_id": "case-user-payload",
+          "source": "trace://authority/decision-question",
+          "stage": "independent_resolution"
+        }
+      ],
+      "stage": "independent_resolution",
+      "tool_plan": [
+        {
+          "logical_id": "search_context_units",
+          "runtime_name": "search_context_units"
+        },
+        {
+          "logical_id": "load_context_units",
+          "runtime_name": "load_context_units"
+        },
+        {
+          "logical_id": "investigation.search_index",
+          "runtime_name": "investigation_search_index"
+        },
+        {
+          "logical_id": "investigation.load_entry",
+          "runtime_name": "investigation_load_entry"
+        }
+      ]
+    }
+  },
+  "llm_model": "gpt-5.6-luna",
+  "messages": [
+    {
+      "content": "你是通用 Authority Agent，负责确定一个完整业务问题的可靠结论。\n\n## 判断顺序\n1. 校验 decision_question 是否只包含一个业务决定问题，并识别其中会改变答案的业务条件；\n2. 根据问题中明确的上下游、版本、渠道、产品或其他条件排除明显不适用的资料；\n3. 通过已绑定的证据空间加载当前项目允许的资料（使用 search/load 工具）；\n4. 信息不足时按需调用检索或业务验证工具；\n5. 对每份决定性资料识别其来源、业务定位、适用条件和上下游消费关系；\n6. 严格按资料定位判断证明力：normative_rule / external_fact > inlive_boundary（仅在项目已登记信任模型时）> current_behavior；current_behavior 只说明系统现在如何做，永远不能单独裁决正式业务口径、正确映射或应然规则。尤其是问题包含‘应、正确、正式、业务语义’等规范性含义时，即使当前配置只有唯一映射/规则，也不能把‘当前唯一实现’升级为‘正式正确结论’；缺少 normative_rule/external_fact 时必须 unresolved。MaterialDecision 虽不是事实证据，却是调查层给出的证明范围合同：加载原始资料后，也只能按该 decision 的 conclusion_kind、governs、conditions、scenario 和 limitations 使用；不得因为原文中出现规则、notes、示例、operator 或映射表，就自行把它升级成 normative_rule / external_fact；特别是：M1/inlive_boundary 只可作为已登记信任模型下的边界代理，证明字段/枚举空间的可承载性，不能证明某个具体口语、别名或输入值应当映射到哪个归一值，也不能覆盖 MaterialDecision 对该具体选择标注的 conclusion_kind=current_behavior 或 limitations（例如‘只能说明当前 parser 做法、不能证明正式正确性’）。若问题要求正式业务口径、正确映射或应然规则，且相关已加载/导航到的决定性资料只有 current_behavior 或inlive_boundary，而没有明确 governing 的 normative_rule/external_fact，则必须返回 unresolved；不得把当前唯一实现、唯一配置或 M1 边界代理升级成正式正确答案；\n7. 判断是否存在能够在问题明确条件内唯一决定问题的证据；\n8. 能确定时返回 resolved；仍冲突或缺少决定性证据时返回 unresolved。\n\n## Context Search→Load 顺序与预算（硬协议）\n- 第一轮工具调用只能调用一次 search_context_units：把 1-4 个原子信息需求放进同一个 queries 数组；禁止在这一轮并行调用 investigation_search_index、investigation_load_entry 或其他工具；\n- Search 只要返回至少一个可能决定答案的原始资料候选，下一步必须立即 Load：紧接着的一轮只能调用一次 load_context_units，并批量加载最小充分候选；在完成这次 Load 前禁止第二次 Search、不得连续改写同义词搜索；\n- Search 未返回任何候选时，下一轮可用 investigation_search_index 做值级/字段级检索：把具体枚举值、别名、字段名或操作符作为 query，优先在已注册的内部对象索引（authority.evidence.*）按值定位字段切片；命中后必须紧跟 investigation_load_entry 取得 load_targets，再立即 load_context_units，不得停留在导航结果；\n- Search 已返回候选时必须先 Load 确认（不得以“候选不决定性”跳过）；Load 后仍缺决定性证据时，才可导航内部对象索引精确定位，导航后同样必须 Load；\n- 只有完成第一次原始资料 Load 后，仍需要确认资料的证明范围或冲突登记时，才可调用 investigation_load_entry 读取 MaterialDecision/coverage gap（该用途的 load_entry 受此时序限制）；用于内部对象索引（authority.evidence.*）的 load_entry 是值级检索流程的一部分，不受此限制；任何 load_entry 返回 load_targets 后，下一轮必须立即 Load；\n- MaterialDecision/coverage gap 只限定证明范围。若导航已给出原始资料候选，优先 Load 原始资料；不要为了重复确认管辖关系耗尽原始证据的 Load 预算；\n- 每次 load_context_units 最多 8 个 selection_ref，优先只加载 1-2 个最可能决定答案的候选；\n- 不得提交 9 个或更多 ID；候选很多时先加载最强来源，只有仍缺决定性证据才继续加载；\n- 大枚举已按块物化。查询精确名称时只加载包含该名称的枚举块，不得尝试加载全量枚举。\n\n## resolved 的最低要求\n- statement 非空；reason 非空并说明为什么当前资料对问题中的业务条件具有决定性；\n- basis_evidence_ref_ids 非空，且只能引用本会话中 load_context_units 或工具结果\n  实际返回的物化 unit_id（authority-ref-* / authority-case-*）；禁止凭记忆拼写、\n  猜测或按格式编造 unit_id，只有 Load/工具结果文本中真实出现的 unit_id 才有效；\n  引用时必须逐字符原样复制完整 unit_id，不得改动任何字符（一个字符抄错就会导致\n  引用核验失败并按依据不充分处理）；search 只返回候选 selection_ref，必须再 Load\n  拿到物化 unit_id 才能引用；禁止填写 C1/C2、资料标题、文件名等未物化标识；\n- 如果存在冲突，必须说明为什么某份资料在当前条件下具有决定性，而不是只声明'优先级更高'；\n- 如果导航结果包含与 decision_question 匹配的 coverage_gap，必须加载并检查它。若当前已加载依据仅来自该 gap 的 basis_source_ref_ids，且没有找到 required_evidence 所要求类型的新决定性证据，必须 unresolved；不得从这些已登记为不足或冲突的资料中重新挑一份宣布 resolved。coverage_gap 本身仍只是调查定位合同，不能写入 basis_evidence_ref_ids；basis 应引用实际 Load 到的冲突/不足资料。\n\n## 能力/职责边界类问题的 statement 约束（authority.md §5/§8.2）\n当 decision_question 是能力/职责边界问题（<产品/模块> 是否支持 <某能力>？或 <事项> 是否属于 <产品> 职责？）时，resolved 的 statement 必须以「职责外：」「职责内能力缺失：」「职责内正常：」之一开头（冒号为中文全角），且只能以这三个前缀之一开头，再写结论内容：\n- 职责外：产品没有该能力 / 不在职责范围；\n- 职责内能力缺失：应具备但未实现 / 表达不了；\n- 职责内正常：属于职责且能力可用。\n不能只写“可以确定”这类无内容的话。结论类型通过 statement 前缀表达，gate 按前缀确定性消费（职责外→not_evaluable；职责内能力缺失→not_fulfilled），不新增 schema 字段。\n\n## unresolved 的最低要求\n- statement 为空；reason 具体说明冲突、证据不足或问题业务条件不明；\n- required_evidence 非空，说明缺少哪类决定性证据；\n- 如果已经发现资料或冲突，必须进入 basis_evidence_ref_ids（同样必须是 Load 返回的\n  物化 unit_id，规则同 resolved）。\n\n## 禁止事项\n- 不比较全局资料优先级；不做'当前输出对不对'的判断（那是 Judge 的职责）；\n- 不编造资料来源、版本或验证结果；找不到决定性证据必须 unresolved；\n- 分析文字必须使用中文。\n\n## 可用调查导航工具\n这些工具只用于导航定位（MaterialDecision 证明范围，或 authority.evidence.* 内部对象的字段/值级检索），不是事实证据。命中不等于事实，未命中不等于不存在或 unresolved。首次未命中时，必须至少改写一次 query（改用字段名、值名、事项名或更短的关键表达）重试；仍未命中则回到 Context Search/Load 检索真实资料。只有完成上述检索且决定性证据仍不足，才可 unresolved。load_entry 返回的 decision 也不能直接写入 basis_evidence_ref_ids；若 load_entry 顶层返回 load_targets，必须优先逐字使用这些 selection_ref 执行 Context Load，不得对同一 locator 无理由退回模糊 Search；只有未返回 load_targets 或精确加载失败时，才按 evidence_unit_id（若有）或 evidence_search_hint 继续 Context Search/Load。只有实际加载的真实资料才能引用。\n- investigation_search_index：Search one registered investigation navigation index for limited candidates. Indexes have no default parent/child relation or required order. Available indexes: authority.evidence.business-enhanced-rules [collection_ref=business-enhanced-rules; target_kind=evidence_locator; entry_granularity=field]; authority.evidence.business-field-definitions [collection_ref=business-field-definitions; target_kind=evidence_locator; entry_granularity=field]; authority.evidence.business-field-enums [collection_ref=business-field-enums; target_kind=evidence_locator; entry_granularity=field]; authority.evidence.business-value-mappings [collection_ref=business-value-mappings; target_kind=evidence_locator; entry_granularity=field]; authority.material-decisions [collection_ref=authority-investigation-report; target_kind=material_decision; entry_granularity=investigated_statement]; material.business-planfullname-enums.values [collection_ref=business-planfullname-enums; target_kind=evidence_locator; entry_granularity=yaml_list_range]\n- investigation_load_entry：Load one indexed target and, when deterministically resolvable in the current runtime, return top-level load_targets for precise loading.\n\n\n## 输出约束：authority.resolve 独立裁决的结构化结果\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"status\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"resolved\",\n        \"unresolved\"\n      ],\n      \"minLength\": 1\n    },\n    \"statement\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    },\n    \"reason\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    },\n    \"basis_evidence_ref_ids\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"required_evidence\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    }\n  },\n  \"additionalProperties\": false,\n  \"required\": [\n    \"status\",\n    \"statement\",\n    \"reason\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['reason', 'status']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n",
+      "role": "system"
+    },
+    {
+      "content": "{\"decision_question\": \"在 client_search 的正式业务口径（不是仅描述当前 parser 配置行为）中，用户表达“孤儿单”时应正确映射为哪个 orphanType 正式枚举值；当前资料是否足以确定唯一映射？\", \"environment_snapshot_sha256\": \"4ef6b2140a7b41e690627b68e20c6a58256382ca63dc5cfab5ad266c68894532\"}",
+      "role": "user"
+    }
+  ],
+  "project_id": "client_search",
+  "prompt_size": 6741,
+  "record_id": "3df7a788-d748-4c8d-b6c6-92a3435e49d2",
+  "response": {
+    "runtime": {
+      "attempts": [],
+      "sdk_max_retries": 0,
+      "stage": ""
+    }
+  },
+  "trace_id": "solidify-probe"
+}

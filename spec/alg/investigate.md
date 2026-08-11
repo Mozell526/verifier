@@ -218,6 +218,7 @@ impl/projects/<project>/draft/context_builders/
 from dataclasses import dataclass, field
 
 from impl.core.schema.evidence import EvidenceRef
+from impl.core.schema.investigation_key_index import InvestigationKeyIndex
 
 
 @dataclass
@@ -229,7 +230,8 @@ class InvestigationManifest:
 
     evidence_refs: list[EvidenceRef] = field(default_factory=list)
     tool_requirements: list["ToolRequirement"] = field(default_factory=list)
-    artifacts: dict[str, str] = field(default_factory=dict)
+    artifact_refs: list["InvestigationArtifactRef"] = field(default_factory=list)
+    key_indexes: list[InvestigationKeyIndex] = field(default_factory=list)
 
     unresolved_reason: str = ""
 ```
@@ -244,10 +246,11 @@ class InvestigationManifest:
 | `source_revision` | 本次调查对应的项目 commit、版本或内容 hash | 判断调查是否过期 |
 | `evidence_refs` | 输入输出、函数、API、文档、trace 和实验等来源引用，以开放 `kind` 区分 | Role 导航、Solidify 选路和 Review 核对 |
 | `tool_requirements` | 调查确认需要的验证能力；实现可能已存在，也可能仍待 Solidify 完成 | Solidify 复用、包装或新建 VerifiableTool |
-| `artifacts` | `相对路径 → 用途`，登记 ROLE.md 必需产物和项目扩展产物 | 保持公共 schema 稳定，并让 Solidify、Review 和 promotion 找到实际文件 |
+| `artifact_refs` | 带逻辑路径与用途的 artifact 登记，承载 ROLE.md 必需产物和项目扩展产物 | 让 Solidify、Review 和 promotion 找到实际文件 |
+| `key_indexes` | 可选的通用导航索引集合；每个 Index 登记集合、目标类型、粒度、适合的召回通路，entry 保存资料派生的 retrieval projection、可选 exact key 与到真实目标的导航引用 | Solidify/Core 物化 exact、lexical、embedding 等已声明通路；Runtime 通过 Catalog 选择 Index，再经 `search_index / load_entry` 有限发现并加载真实对象；Catalog、projection、entry 和检索分数都不作为证据或结论 |
 | `unresolved_reason` | ROLE.md 要求但无法确认的材料、问题或验证能力 | 限制 Draft 结论与 promotion 范围 |
 
-`overview.md` 的位置由调查包目录协议固定，因此不在 manifest 重复保存路径。其余文件全部登记到 `artifacts`，具体文件形状由 1.7 和对应 ROLE.md 决定。真实来源统一使用已有 `EvidenceRef`，通过开放 `kind` 区分，不再为不同 Role 创建平行字段。
+`overview.md` 的位置由调查包目录协议固定，因此不在 manifest 重复保存路径。其余文件全部登记到 `artifact_refs`，具体文件形状由 1.7 和对应 ROLE.md 决定；需要有限导航的大型集合或调查对象集合可以按 `spec/alg/investigate-keyindex.md` 登记到 `key_indexes`。真实来源统一使用已有 `EvidenceRef`，通过开放 `kind` 区分，不再为不同 Role 创建平行字段。
 
 公共 validator 只负责 schema、Role 身份、路径、引用真实性和可执行入口等结构事实。调查语义是否完整由 manifest 的 `role` 选择对应 ROLE.md 判断；例如 Attribute 可以要求业务 trace、关键函数/API 和验证 Tool，而 Judge 不应被迫读取内部实现。ROLE.md 要求但当前无法获得的材料或能力必须写入 `unresolved_reason`。`InvestigationManifest` 不存储候选 Role 改法、current/draft 分数或 Review 结论，这些继续由现有候选文件、Draft Loop 的协议运行事实和 DraftReport 承担。
 
@@ -529,6 +532,8 @@ Judge 调查必须：
 
 Judge 的 `EvidenceRef` 应指向用户输入、可观察业务输出、reference、外部业务契约或可公开验收规则，并明确每项材料支持哪个验收边界；内部源码、内部 trace 和 Attribute 结论默认不是 Judge 证据。需要执行验证时，`ToolRequirement` 登记 semantic comparator、外部业务 API 检查或输出协议校验，并说明它如何改变 fulfilled/not_fulfilled/not_evaluable 判断。
 
+Judge 涉及“多份业务资料对同一判断点说法不一致”或“外部验收标准能否唯一决定结论”时，按 `spec/alg/investigate-authority-judge.md` 做权威调查：以 `materials` 为第一组织维度，逐份资料声明它在什么 `conclusion_kind + scenario + conditions` 组合内直接决定什么（`governs`），`related_to` 只列仅相关事项；需求侧方向（可选）时用于识别“哪些业务事项 × 条件当前没有唯一决定资料”，以**覆盖缺口**（Coverage Gap）记录缺什么料、为什么缺、未来什么证据可解除（`spec/alg/investigate-authority-judge.md` §11、§13）。覆盖缺口是材料层的确定性事实，不是 Harness AI 对业务问题的结论；调查侧不产出任何“问题→结论”配对，运行时也不回写任何结论（`authority.md` §6、§14.2）。该权威调查报告按 `spec/alg/investigate-authority-judge.md` §15 登记 `docs/authority-investigation-report.json`（结构化真相源）及其确定性渲染 `docs/authority-investigation-report.md`，并分别以 `judge_authority_investigation_report_json` / `judge_authority_investigation_report_markdown` 登记到 Manifest `artifact_refs`。报告是导航摘要，不复制文件内容、不含任何 case 的 actual/score/verdict；物化后的原始资料才可进入运行时 `basis_evidence_ref_ids`。权威调查的运行时综合与 Gate 规则见 `spec/alg/authority.md`。
+
 Judge 没有强制文件名。可在 `overview.md` 清楚表达时不新增 artifact；业务契约或状态边界较大时，才可登记 `docs/business-contract.md`、`docs/acceptance-boundaries.md` 等长文档。Solidify 将稳定的业务契约和验收边界注册为 Judge 可见的 mandatory ContextUnit；Judge 每次运行时在调用 LLM 前确定性装载这些材料，不要求 Judge Agent 自行 Search/Load。当前 case 的用户输入、可观察输出和 reference 仍由 Judge 请求显式传入，不伪装成静态项目知识。Context policy 必须阻止 Judge 读取内部源码、内部 trace 和 Attribute 候选调查包；不得把 Attribute 的业务执行链作为 Judge 证据。
 
 ### 1.7.3 Mock：调查有效场景空间
@@ -592,10 +597,18 @@ Investigate 必须先读取 `DraftConfig.role` 对应的 ROLE.md，再决定调�
 
 - 新项目初始化：按对应 ROLE.md 调查目标相关对象、关键边界、必需产物和基础验证能力；
 - 存量项目更新：读取已有调查包，只重查 source revision 变化和当前 objective 相关部分；
-- 调查包来源版本变化时标记过期，但不在项目启动时自动调用 AI 重写；
+- 调查包来源版本变化时记录 drift，但不自动判定调查包失效，也不自动调用 AI 重写；
 - 初始化和更新都由用户手动触发 Draft。
 
 ## 1.9 Schema 流与固化
+
+核心交接物是**证据空间及其导航资产**：调查资料物化为可寻址、可追溯的 ContextUnit，
+并在确有发现或上下文规模问题时形成对应 Collection、Key-Index、资料派生的 retrieval
+projection、适合的召回通路和 `target_ref`；交接物不是一段结论摘要。调查侧能定的是
+“每份资料在什么条件下决定什么”（MaterialDecision）以及“这些资料对象如何被可靠找到和
+加载”；某个业务问题的最终结论由 Runtime 在证据空间内裁决。调查侧不产出、Runtime 也不
+回写任何“问题→结论”配对；同一任务内按 `decision_question` 去重，跨 case 复用只发生在
+证据空间与只读导航资产（`authority.md` §6、§7）。
 
 完整数据流：
 
@@ -614,10 +627,17 @@ Investigate 必须先读取 `DraftConfig.role` 对应的 ROLE.md，再决定调�
   ToolRequirement
     ├── existing ToolImplementationRef
     └── implementation gap
+  可选 KeyIndexes
+    ├── Collection / entry 粒度
+    ├── source-derived retrieval projection / exact keys
+    ├── supported/default retrieval channels
+    └── target_ref / locator
         ↓
 /draft solidify：Harness AI 按协议实现候选
   validate manifest
   将调查文档落为有 Role 权限的 ContextUnit 注册实现
+  按 KeyIndex 声明物化 exact map、lexical index、embedding vector 等派生检索资产
+  注册受权限约束的 Target Resolver，并验证 entry 能加载对应真实对象
   按 Role 声明 mandatory 注入或受控 Search/Load 的消费方式
   复用、包装或新建 Draft VerifiableTool
   为可执行 requirement 填入 ToolImplementationRef
@@ -643,6 +663,56 @@ Investigate 必须先读取 `DraftConfig.role` 对应的 ROLE.md，再决定调�
 ```
 
 这条流只新增调查交接所需的 `InvestigationManifest`、`ToolRequirement`、薄代码引用 `ToolImplementationRef`，以及 Production/Draft 共用的薄能力映射 `RoleAssetMapping`。Solidify 的输出就是现有项目协议认识的候选文件，并将 requirement 的实现入口补回 manifest；不新增 `SolidifyResult`、`CandidateArtifact`、单轮 `TestResult`、`ReviewResult` 或 PromotionManifest 作为顶层阶段概念。Draft Loop 内部继续使用现有 RoleResult、原始运行记录、检查结果和 DraftReport。
+
+### Key-Index 策略探索与召回资产固化
+
+Key-Index 是调查结论，不是按资料类型预设的必需产物。调查层发现 Collection 存在上下文规模、
+内部对象定位或 Runtime 有限导航压力时，应先 profile 真实结构、稳定标识、可加载边界和消费
+目标，再提出并比较候选策略：
+
+```text
+是否建 Index
+entry object boundary / granularity
+source-derived retrieval projection / exact keys
+supported/default retrieval channels
+target_ref / locator
+成本、覆盖限制与更新风险
+```
+
+字段、枚举值、规则、映射、章节或 statement 只是不具约束力的候选对象示例；不得把它们写成
+资料类型到 Index 策略的固定映射。同一 Collection 可以有多个独立 Index，也可以得出：
+
+```text
+selected    候选通过冻结实验和语义审查，交给 Solidify
+no_index    普通 Search / Load 更合适
+unresolved  当前缺少合格的对象边界、资料、定位能力或验证条件
+```
+
+候选实验必须先冻结比较集，并按资料实际情况覆盖稳定标识、源术语、未复制源 example 的改写、
+歧义/多对象问题、无关/不支持问题及 Search 后真实 Load。校验分别覆盖：
+
+1. **retrieval**：真实与边界对象能否在加载预算内召回；
+2. **rejectability**：无关或资料不支持的 query 只产生可拒绝候选，不把 embedding top-k、
+   rerank score 或 SearchHit 解释成事实；
+3. **target resolution**：命中 entry 后能否确定性加载 locator 对应的真实 ContextUnit；
+4. **loaded context quality**：加载内容是否足以支持领域 Agent 判断，是否过碎、过大或语义混杂；
+5. **source derivation**：projection、exact key 与 entry 边界能否回指真实资料，是否混入 case
+   特化表达、答案词或资料中不存在的同义词；
+6. **cost**：Entry 数、projection 长度/截断、重复、重建和运行时加载成本是否合理。
+
+调查层负责提出候选与语义审查，确定性 Builder 按候选从真实来源生成实验 Entry。Harness AI
+不得根据 badcase、reference answer 或未来问题补写 `search_text`、`use_when`、recommended
+query、固定路由或 `next_index_key`，也不得在未冻结测试集上反复补词后自证。搜索命中但
+`load_targets=0` 不算通过，不能用静默全库模糊 fallback 掩盖调查资产断链。
+
+召回通路按资料情况选择而非全项目强制；exact、lexical、embedding、结构化过滤或其他通路
+都只是导航信号。调查包保存 `selected` 策略的稳定 projection、exact key、locator、通路声明
+及比较结论，不要求保存向量本身；Solidify/Core 只按已选策略物化检索资产并使用通用
+`search_index / load_entry` Tool 暴露，不临场发明策略。`no_index` 继续普通读取，`unresolved`
+进入调查缺口而不是强建低质量 Index。
+
+MaterialDecision 可以先导航到能决定事项的 Collection；当 Collection 需要更细导航时，Runtime
+结合 Catalog 与当前子问题现场选择零个、一个或多个已验证 Index，不固化父子执行链。
 
 ### ContextUnit 固化
 
@@ -674,6 +744,27 @@ Judge/Mock 采用 mandatory 注入不是把全部调查包塞入 Prompt。Solidi
 mandatory ContextUnit 缺失、内容解析失败或被 Role policy 拒绝时，Role 必须暴露配置/环境错误并阻断本次运行，不能回退到未注册文件、空提示或模型猜测。现有 Judge/Mock 直接读取的 `evaluation.md`、`judge_boundary.md`、`mock`、`application` 等项目资料是迁移输入：Solidify 应将真正需要的内容注册为稳定 ContextUnit，再由统一 runtime 装载；迁移完成后不得长期保留“直接文件加载”和“ContextUnit”两套相互竞争的真相源。
 
 静态项目知识与当前 case 输入必须分开：ContextUnit 承载可跨 case 复用、带来源和权限的项目资料；用户输入、业务响应、reference 和本轮动态结果继续通过 Role 请求或运行时动态 ContextUnit 进入。各 Role 的调查包仍可使用本协议的 EvidenceRef 记录真实来源；只有 Attribute 会在运行时按 `spec/alg/attribution-schema.md` 将选中的 ContextUnit 材料登记为归因 EvidenceRef。Judge/Mock 加载 ContextUnit 本身不产生运行时归因 EvidenceRef，也不触发 Finalization。
+
+### Key-index 目标固化
+
+调查层 Builder 为 Key-index 生成 `target_ref` 时，只登记稳定逻辑目标，例如
+EvidenceRef 的 `source_ref_id`、对象标识、资料内部 locator 或容器位置；不得写入某次
+Runtime 的 ContextUnit ID、selection_ref 或其他临时加载地址。Solidify 负责把真实资料
+物化为 ContextUnit；Runtime Target Resolver 再根据当前项目、Role、调查快照、权限和
+实际物化关系，把稳定 `target_ref` 确定性解析为零到多个可加载目标。调查层不预先决定
+Runtime 的物理加载地址，Resolver 也不得通过模糊搜索猜测目标。详见
+`spec/alg/investigate-keyindex.md` §6.4。
+
+每个 Index 还必须登记：被索引集合的稳定 `collection_ref`、目标类型 `target_kind` 与
+entry 粒度 `entry_granularity`。`collection_ref` 必须回到 manifest 中已登记的真实集合；
+这三个字段必须与 Builder 实际读取的集合和输出目标一致，并由 Validator 校验。Core 根据
+当前项目、Role、调查快照与权限将这些字段暴露为 Index Catalog，Runtime 先发现和选择
+Index，再构造 `search_index` 调用。
+
+调查层不得为 Runtime 预编排索引执行路线：不登记 `next_index`、`use_when`、priority、
+recommended query、自然语言同义词路由或 case 问题/答案词。Runtime 可以使用零个、一个
+或多个 Index，但只读消费调查资产，不修改 Catalog、Index 或调查包，也不把现场检索结果
+回写为全局资产。
 
 ### Tool 固化
 
@@ -710,13 +801,15 @@ Solidify 是 Harness AI 的工程判断阶段，而不是从 manifest 到代码�
 
 Draft Loop 是持续的数据驱动优化过程，不是一次 Test 后接一次最终 Review。
 
+Runtime 判出 unresolved 时的 `required_evidence` 作为本 case 的缺料记录（not_evaluable 的 reason / required_evidence），per-case 记录、由评测报告汇总；调查侧覆盖缺口的 `required_evidence` 说明缺什么证据。Runtime 不直接驱动调查层：补查只由用户看到报告层共性后**手动触发**（`authority.md` §8.5、`spec/alg/investigate-authority-judge.md` §13、§17），形成“缺料记录 → 报告汇总 → 人手动补查 → 重新可裁”的闭环。
+
 ```text
 冻结 Current、objective、review 和 iteration cases
 → 运行 Current，确认 objective 对应的真实 gap
 → 协议在相同条件下运行 frozen Current / Draft revision N
 → 收集多源评估
 → Draft Skill 判断 Draft 是否真正优于 frozen Current 且无退化
-   ├── 调查不足 → 补充 Investigate
+   ├── 调查不足 / 报告层显示共性缺料 → 用户手动触发补充 Investigate（Runtime 只提醒，不自动补查）
    ├── 候选实现不足 → 修改 Solidify 产物
    ├── 协议或环境失败 → 暴露 blocker
    └── Draft 被证明更优 → promotion-only checks
@@ -1089,7 +1182,7 @@ Investigate 在以下情况停止并报告：
 - `--check` 只打印配置解析结果，不生成清单；`--apply` 只执行校验、move/copy、关闭开关和 production 最小回归；
 - Candidate path 不再被其他启用中的 Draft Role 使用时 move，否则 copy；搬运不按 Tool/Context 类型分支，不得合并、改写或生成候选内容；
 - 人工确认后由协议代码按一致版本晋升，失败时从临时事务备份恢复 Role、资产和 `project.yaml`；
-- source revision 变化时提示更新调查包，不自动调用 AI。
+- source revision 变化时只记录 drift；是否更新调查包由用户启动 Draft 后决定，不自动触发 Draft 或 AI 更新。
 
 ### Task 9：更新 Evals onboarding
 

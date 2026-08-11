@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import io
 import json
 import urllib.error
 from pathlib import Path
@@ -8,7 +9,7 @@ from typing import Any
 import pytest
 
 from impl.core.live_protocol import RealServiceLive
-from impl.core.live_transport import LiveTransport
+from impl.core.live_transport import LiveHTTPStatusError, LiveTransport
 from impl.core.schema import ProjectSpec
 from impl.projects.deerflow.live import DeerflowLive
 from impl.projects.client_search.live import ClientSearchLive
@@ -109,6 +110,30 @@ def test_live_transport_keeps_failed_optional_exchange_out_of_raw_response(monke
     validate_real_transport(transport, request)
     assert transport.raw_responses() == [{"answer": "main"}]
     assert transport.exchanges[-1].error
+
+
+def test_live_transport_preserves_http_error_status_and_body(monkeypatch):
+    payload = {"detail": [{"loc": ["body", "args", "contexts"], "msg": "Field required"}]}
+
+    def fake_urlopen(_request, timeout=0):
+        raise urllib.error.HTTPError(
+            "http://live.test/run",
+            422,
+            "Unprocessable Content",
+            {"Content-Type": "application/json"},
+            io.BytesIO(json.dumps(payload).encode("utf-8")),
+        )
+
+    monkeypatch.setattr("impl.core.live_transport.urllib.request.urlopen", fake_urlopen)
+    transport = LiveTransport()
+
+    with pytest.raises(LiveHTTPStatusError, match=r"HTTP 422.*Field required") as caught:
+        transport.post("http://live.test/run", json_body={"args": {}})
+
+    assert caught.value.status_code == 422
+    assert caught.value.response == payload
+    assert transport.exchanges[0].status_code == 422
+    assert transport.exchanges[0].response == payload
 
 
 def test_client_search_succeeds_when_optional_downstream_is_unavailable(monkeypatch):

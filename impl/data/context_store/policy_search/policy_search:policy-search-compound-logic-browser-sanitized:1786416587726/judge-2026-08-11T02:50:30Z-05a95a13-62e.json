@@ -1,0 +1,306 @@
+{
+  "caller": "judge",
+  "created_at": "2026-08-11T02:50:30Z",
+  "elapsed_ms": 42551,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "production"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "fd896d968451e401e0e885e9de38e63d55e6730503d00dfce61779ed0f25937b",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [],
+      "lineage": {
+        "call_id": "",
+        "case_id": "policy-search-compound-logic-browser-sanitized",
+        "trace_id": "policy_search:policy-search-compound-logic-browser-sanitized:1786416587726"
+      },
+      "messages": [
+        {
+          "char_count": 7368,
+          "content_sha256": "f5559e2831ea15fd5d0a75f202e64faec2eaf6fc95f6497abac519065bb1f636",
+          "role": "system"
+        },
+        {
+          "char_count": 6403,
+          "content_sha256": "e97e969d0b2fefe7be72b2ad4313bc52a0ba744979379a2783c5b7ef3d6a6884",
+          "role": "user"
+        }
+      ],
+      "mode": "production",
+      "output_contract": {
+        "field_names": [
+          "acceptance_criteria",
+          "actual",
+          "actual_evidence",
+          "applicable_product_expectation_ids",
+          "authority_tool_call_ids",
+          "blocking",
+          "boundary",
+          "business_expectations",
+          "code",
+          "downstream_consumer",
+          "downstream_impact",
+          "error_type",
+          "evidence",
+          "evidence_ref",
+          "expectation_id",
+          "expected",
+          "expected_evidence",
+          "expected_outcome",
+          "extra",
+          "filter",
+          "fulfillment_assessments",
+          "incomplete",
+          "kind",
+          "message",
+          "missing",
+          "msg",
+          "priority",
+          "query",
+          "raw",
+          "reasoning_summary",
+          "required_capabilities",
+          "score",
+          "status",
+          "user_intent",
+          "wrong"
+        ],
+        "identity": "impl.core.schema.judge.JudgeLLMOutput",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "1ebd986c8c695abe1e8329086ca3fa881a0eaa83fe0e670d24af6af6d4fad2f0",
+        "sha256": "1ebd986c8c695abe1e8329086ca3fa881a0eaa83fe0e670d24af6af6d4fad2f0"
+      },
+      "project_id": "policy_search",
+      "prompt_char_count": 13771,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 6403,
+        "occurred": false
+      },
+      "role": "judge",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 1725,
+          "content_sha256": "5727bfa7858a8ce05122cd632b62736542f3792c880caa51ab16c7257d1f754b",
+          "order": 0,
+          "role": "judge",
+          "segment_id": "compiled-system",
+          "source": "impl/core/judge.py#judge_trace",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 6403,
+          "content_sha256": "e97e969d0b2fefe7be72b2ad4313bc52a0ba744979379a2783c5b7ef3d6a6884",
+          "order": 1,
+          "role": "judge",
+          "segment_id": "case-user-payload",
+          "source": "trace://judge-evidence-view",
+          "stage": "judge"
+        }
+      ],
+      "stage": "judge",
+      "tool_plan": []
+    }
+  },
+  "llm_model": "gpt-5.6-luna",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "你是通用评估系统的 judge agent。\n\n## 核心原则\n只基于当前 RunTrace、项目评判标准和动态检索的知识库内容判断，不继承历史 case。\n首要职责：理解用户/下游消费者的真实业务意图 → 派生 business_expectations → 基于完整执行链路（每轮 output、最终 output、交互过程和停止事实）判断 expectations 的 fulfillment。\n\n## expectation 拆分原则\nbusiness_expectations 的粒度直接决定判断精度。每个 expectation 必须是原子、独立可评价的判断单元：证据充分时判 fulfilled 或 not_fulfilled；确需评价但当前证据不足时按协议判 not_evaluable。\n- 一个 expectation 只描述一个可独立验证的结果维度\n- 多维度意图必须拆成多个 expectation\n- 每个 expectation 必须有明确的 acceptance_criteria\n- 每个 expectation 必须在比较 actual 前确定 blocking：只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true\n- fulfillment_assessments 只判断对应 expectation 的 status 和证据，不得重新定义 blocking\n- expectation_id 必须是描述性的中文短语，禁止使用 E1/E2/exp_01 等占位符 ID\n- reasoning_summary 必须是中文写成的判断依据\n\n## 输出词表\n`fulfillment_assessments[*].status` 必须从以下 3 个值中选择：\n  - fulfilled：该 expectation 完全满足\n  - not_fulfilled：该 expectation 未满足\n  - not_evaluable：当前无法评估\n禁用 failed/passed/incorrect/wrong/met/unmet/partially_fulfilled/partial/success/fail/ok/unknown 等同义词。\n`fulfillment_assessments[*].expected_evidence` 与 `actual_evidence` **必须是数组**（JSON array / list），即使只有一条证据也要用 `[...]` 包裹，不可直接用字符串或对象。\n\n不要输出 overall_fulfillment；公共层会在项目契约补充完成后根据 blocking expectations 确定性派生整体状态。\n\n## 评估规范\n\n\n## 评估边界\n\n\n## 判断标准\n\n\n\n\n你评价的是保单筛选语义是否被完整、可执行且安全地表达。先判断服务依赖是否成功，再比较 query 与 filter。忽略 node_id 命名差异；允许逻辑等价的树。字段、操作符、值、角色、AND/OR/NOT 作用域、日期边界和条件完整性都必须正确。SUCCESS 必须有完整 filter；歧义、条件缺失或越界场景应 UNSUPPORTED 且不得返回部分 filter。业务实现、prompt 和配置是当前能力证据，不是不可质疑的自证。\n## 工具使用原则\n所有工具的用途、调用时机和参数含义以 Agno tool schema 为准；user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息。\n\n## 禁止事项\n- 不要把 reference answer 当作默认主目标（除非 case 明确指定）\n- 不要把 HTTP 状态、run_status、attribute/cluster 结论当作满足依据\n- 不要归因内部代码、配置或 prompt 原因（属于 attribute agent）\n- 分析文字必须使用中文，包括 reasoning_summary 等所有文本字段。\n\n\n## 输出约束：judge 判定输出（自产 reference + fulfillment 判定）\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"business_expectations\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeBusinessExpectationOutput\"\n      },\n      \"minItems\": 1\n    },\n    \"applicable_product_expectation_ids\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"fulfillment_assessments\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeFulfillmentAssessmentOutput\"\n      }\n    },\n    \"expected\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"code\": {\n          \"type\": \"integer\"\n        },\n        \"msg\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"query\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"filter\": {\n          \"type\": [\n            \"object\",\n            \"null\"\n          ]\n        },\n        \"message\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"code\",\n        \"msg\",\n        \"status\",\n        \"query\",\n        \"filter\",\n        \"message\"\n      ]\n    },\n    \"missing\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"wrong\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"extra\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"evidence\": {\n      \"type\": \"array\",\n      \"items\": {}\n    },\n    \"reasoning_summary\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    }\n  },\n  \"additionalProperties\": false,\n  \"$defs\": {\n    \"JudgeBusinessExpectationOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"blocking\": {\n          \"type\": \"boolean\"\n        },\n        \"downstream_consumer\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"user_intent\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected_outcome\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"required_capabilities\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"acceptance_criteria\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"boundary\": {\n          \"type\": \"object\"\n        },\n        \"priority\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"blocking\"\n      ]\n    },\n    \"JudgeFulfillmentAssessmentOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"score\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        },\n        \"expected_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"actual_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"downstream_impact\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"authority_tool_call_ids\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"status\"\n      ]\n    },\n    \"GapItem\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"kind\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"error_type\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected\": {},\n        \"actual\": {},\n        \"evidence_ref\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"raw\": {},\n        \"incomplete\": {\n          \"type\": \"boolean\"\n        }\n      },\n      \"additionalProperties\": false\n    }\n  },\n  \"required\": [\n    \"expected\",\n    \"business_expectations\",\n    \"reasoning_summary\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['business_expectations', 'expected', 'reasoning_summary']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n\n### 嵌套字段子结构约束\n以下字段内部的子结构也必须严格遵守，不可随意编造字段名或类型：\n- **`expected`** 字段 (项目 policy_search 的 expected/live output 结构) 必须符合以下结构：\n  ```json\n  {\n    \"type\": \"object\",\n    \"properties\": {\n      \"code\": {\n        \"type\": \"integer\"\n      },\n      \"msg\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"status\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"query\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"filter\": {\n        \"type\": [\n          \"object\",\n          \"null\"\n        ]\n      },\n      \"message\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"additionalProperties\": false,\n    \"required\": [\n      \"code\",\n      \"msg\",\n      \"status\",\n      \"query\",\n      \"filter\",\n      \"message\"\n    ]\n  }\n  ```\n",
+      "created_at": 1786416592,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "f598dded-d632-484d-ba6d-55223a5210b9",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"user_intent\": \"筛选甲客户或乙客户作为投保人、今年生效且保额不少于五十万元的保单\", \"run_trace\": {\"trace_id\": \"policy_search:policy-search-compound-logic-browser-sanitized:1786416587726\", \"project_id\": \"policy_search\", \"case_id\": \"policy-search-compound-logic-browser-sanitized\", \"intent_input\": {\"session_id\": \"verifier-policy-compound-browser\", \"trace_id\": \"verifier-policy-compound-browser\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"甲客户或乙客户作为投保人，今年生效且保额不低于50万的保单\", \"currentTime\": \"2026-08-11 10:30:00\", \"agentCode\": \"VERIFIER_TEST\"}, \"args\": {\"contexts\": []}}}, \"normalized_request\": {\"session_id\": \"verifier-policy-compound-browser\", \"trace_id\": \"verifier-policy-compound-browser\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"甲客户或乙客户作为投保人，今年生效且保额不低于50万的保单\", \"currentTime\": \"2026-08-11 10:30:00\", \"agentCode\": \"VERIFIER_TEST\"}, \"args\": {\"contexts\": []}}}, \"final_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"甲客户或乙客户作为投保人，今年生效且保额不低于50万的保单\", \"filter\": {\"type\": \"AND\", \"node_id\": \"n0\", \"children\": [{\"type\": \"OR\", \"node_id\": \"n1\", \"children\": [{\"type\": \"PREDICATE\", \"node_id\": \"n2\", \"field\": \"applicant_name\", \"operator\": \"CONTAINS\", \"value\": \"甲客户\"}, {\"type\": \"PREDICATE\", \"node_id\": \"n3\", \"field\": \"applicant_name\", \"operator\": \"CONTAINS\", \"value\": \"乙客户\"}]}, {\"type\": \"PREDICATE\", \"node_id\": \"n4\", \"field\": \"pol_effective_date_term\", \"operator\": \"BETWEEN\", \"range\": {\"lower\": \"2026-01-01\", \"upper\": \"2027-01-01\", \"include_lower\": true, \"include_upper\": false}}, {\"type\": \"PREDICATE\", \"node_id\": \"n5\", \"field\": \"sum_ins\", \"operator\": \"GTE\", \"value\": 500000}]}, \"message\": \"解析成功\"}, \"final_output_turn\": 1, \"turns\": [{\"turn_index\": 1, \"request\": {\"session_id\": \"verifier-policy-compound-browser\", \"trace_id\": \"verifier-policy-compound-browser\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"甲客户或乙客户作为投保人，今年生效且保额不低于50万的保单\", \"currentTime\": \"2026-08-11 10:30:00\", \"agentCode\": \"VERIFIER_TEST\"}, \"args\": {\"contexts\": []}}}, \"extracted_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"甲客户或乙客户作为投保人，今年生效且保额不低于50万的保单\", \"filter\": {\"type\": \"AND\", \"node_id\": \"n0\", \"children\": [{\"type\": \"OR\", \"node_id\": \"n1\", \"children\": [{\"type\": \"PREDICATE\", \"node_id\": \"n2\", \"field\": \"applicant_name\", \"operator\": \"CONTAINS\", \"value\": \"甲客户\"}, {\"type\": \"PREDICATE\", \"node_id\": \"n3\", \"field\": \"applicant_name\", \"operator\": \"CONTAINS\", \"value\": \"乙客户\"}]}, {\"type\": \"PREDICATE\", \"node_id\": \"n4\", \"field\": \"pol_effective_date_term\", \"operator\": \"BETWEEN\", \"range\": {\"lower\": \"2026-01-01\", \"upper\": \"2027-01-01\", \"include_lower\": true, \"include_upper\": false}}, {\"type\": \"PREDICATE\", \"node_id\": \"n5\", \"field\": \"sum_ins\", \"operator\": \"GTE\", \"value\": 500000}]}, \"message\": \"解析成功\"}, \"call_status\": \"succeeded\", \"runtime_ms\": 30, \"error\": null, \"fallbacks\": [], \"validation\": [], \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"application_boundary\": {\"dependency_status\": \"available\", \"allow_fallback\": false, \"excluded_evidence\": [], \"notes\": \"parser returned an executable filter\"}, \"project_fields\": {\"parse_status\": \"SUCCESS\", \"filter_root_type\": \"AND\"}}], \"conversation_transcript\": [], \"conversation_summary\": {\"turn_count\": 1, \"final_output_turn\": 1, \"completion_status\": \"completed\", \"stop_reason\": \"single_turn_completed\", \"interaction_controller_status\": \"not_run\", \"interaction_controller_error\": \"\"}, \"stop_reason\": \"single_turn_completed\", \"completion_status\": \"completed\", \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"evidence_refs\": [], \"raw_response_evidence\": null, \"evidence_completeness\": {\"complete\": true, \"missing_evidence\": []}, \"application_boundary\": {\"dependency_status\": \"available\", \"allow_fallback\": false, \"excluded_evidence\": [], \"notes\": \"parser returned an executable filter\"}, \"reference_contract\": {}, \"scenario\": \"compound_logic\", \"status\": \"ok\", \"error\": null}, \"query\": \"甲客户或乙客户作为投保人，今年生效且保额不低于50万的保单\", \"actual_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"甲客户或乙客户作为投保人，今年生效且保额不低于50万的保单\", \"filter\": {\"type\": \"AND\", \"node_id\": \"n0\", \"children\": [{\"type\": \"OR\", \"node_id\": \"n1\", \"children\": [{\"type\": \"PREDICATE\", \"node_id\": \"n2\", \"field\": \"applicant_name\", \"operator\": \"CONTAINS\", \"value\": \"甲客户\"}, {\"type\": \"PREDICATE\", \"node_id\": \"n3\", \"field\": \"applicant_name\", \"operator\": \"CONTAINS\", \"value\": \"乙客户\"}]}, {\"type\": \"PREDICATE\", \"node_id\": \"n4\", \"field\": \"pol_effective_date_term\", \"operator\": \"BETWEEN\", \"range\": {\"lower\": \"2026-01-01\", \"upper\": \"2027-01-01\", \"include_lower\": true, \"include_upper\": false}}, {\"type\": \"PREDICATE\", \"node_id\": \"n5\", \"field\": \"sum_ins\", \"operator\": \"GTE\", \"value\": 500000}]}, \"message\": \"解析成功\"}, \"reference_contract\": {}, \"business_evidence_paths\": {\"api_contract\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索算法解析接口文档（智能体对接稿）.md\", \"filter_contract\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索查询语法树协议（首期精简版）.md\", \"technical_design\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索算法解析技术方案（当前实现版）.md\", \"business_config\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/configs/insurance_search_business_config_prd.json\", \"runtime_config\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/configs/insurance_search_runtime_config_prd.json\", \"golden_manifest\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/data/golden_dataset/manifest.yaml\"}, \"evaluation_dimensions\": [\"field_selection\", \"operator_and_value\", \"logical_scope\", \"time_boundary\", \"condition_completeness\", \"safe_failure\"]}",
+      "created_at": 1786416592,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "59f6825e-4a03-4e27-964f-11108e380ebd",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\n  \"expected\": {\n    \"code\": 0,\n    \"msg\": \"success\",\n    \"status\": \"SUCCESS\",\n    \"query\": \"甲客户或乙客户作为投保人，今年生效且保额不低于50万的保单\",\n    \"filter\": {\n      \"type\": \"AND\",\n      \"node_id\": \"n0\",\n      \"children\": [\n        {\n          \"type\": \"OR\",\n          \"node_id\": \"n1\",\n          \"children\": [\n            {\n              \"type\": \"PREDICATE\",\n              \"node_id\": \"n2\",\n              \"field\": \"applicant_name\",\n              \"operator\": \"CONTAINS\",\n              \"value\": \"甲客户\"\n            },\n            {\n              \"type\": \"PREDICATE\",\n              \"node_id\": \"n3\",\n              \"field\": \"applicant_name\",\n              \"operator\": \"CONTAINS\",\n              \"value\": \"乙客户\"\n            }\n          ]\n        },\n        {\n          \"type\": \"PREDICATE\",\n          \"node_id\": \"n4\",\n          \"field\": \"pol_effective_date_term\",\n          \"operator\": \"BETWEEN\",\n          \"range\": {\n            \"lower\": \"2026-01-01\",\n            \"upper\": \"2027-01-01\",\n            \"include_lower\": true,\n            \"include_upper\": false\n          }\n        },\n        {\n          \"type\": \"PREDICATE\",\n          \"node_id\": \"n5\",\n          \"field\": \"sum_ins\",\n          \"operator\": \"GTE\",\n          \"value\": 500000\n        }\n      ]\n    },\n    \"message\": \"解析成功\"\n  },\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"服务依赖正常且解析返回成功状态\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索下游筛选引擎\",\n      \"user_intent\": \"用户期望系统能正常解析查询语义并返回可执行的筛选条件\",\n      \"expected_outcome\": \"算法服务依赖可用，请求与输出均通过校验，返回 status=SUCCESS 且包含完整 filter\",\n      \"required_capabilities\": [\"服务依赖探测\", \"请求输出结构校验\", \"查询解析\"],\n      \"acceptance_criteria\": [\"dependency_status 为 available\", \"validate_request 与 validate_output 均 succeeded\", \"status 为 SUCCESS\", \"filter 非空且结构合法\"],\n      \"boundary\": {\"允许\": [\"fallback 记录为空\", \"单轮完成\"]},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"投保人为甲或乙客户的或逻辑\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索下游筛选引擎\",\n      \"user_intent\": \"筛选投保人属于甲客户或乙客户的保单\",\n      \"expected_outcome\": \"生成字段 applicant_name 上对甲客户与乙客户两个条件的 OR 组合，且该 OR 只覆盖投保人维度\",\n      \"required_capabilities\": [\"投保人字段识别\", \"OR 逻辑组合\"],\n      \"acceptance_criteria\": [\"存在 OR 节点且包含两个谓词\", \"两个谓词的 field 均为 applicant_name\", \"值分别为甲客户与乙客户\"],\n      \"boundary\": {\"允许\": [\"node_id 命名差异\", \"客户名匹配操作符采用包含匹配\"]},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"今年生效的时间边界正确\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索下游筛选引擎\",\n      \"user_intent\": \"筛选生效日期落在2026年内的保单\",\n      \"expected_outcome\": \"生成生效日期时间段谓词，区间为 [2026-01-01, 2027-01-01)，下界包含、上界不包含\",\n      \"required_capabilities\": [\"生效日期字段识别\", \"时间区间解析\", \"年份边界计算\"],\n      \"acceptance_criteria\": [\"字段为生效日期相关字段\", \"operator 为 BETWEEN\", \"lower=2026-01-01 且 include_lower=true\", \"upper=2027-01-01 且 include_upper=false\"],\n      \"boundary\": {\"当前时间\": \"2026-08-11\", \"今年定义为\": \"2026-01-01 至 2026-12-31（含）\"},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"保额不少于五十万的条件\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索下游筛选引擎\",\n      \"user_intent\": \"筛选保额大于等于50万元的保单\",\n      \"expected_outcome\": \"生成 sum_ins 字段上 GTE 500000 的谓词\",\n      \"required_capabilities\": [\"保额字段识别\", \"数值比较操作符映射\", \"中文金额单位换算\"],\n      \"acceptance_criteria\": [\"field 为 sum_ins\", \"operator 为 GTE\", \"value 为 500000\"],\n      \"boundary\": {\"金额单位\": \"元\", \"五十万\": \"500000\"},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"三条件的与组合及完整性\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索下游筛选引擎\",\n      \"user_intent\": \"同时满足投保人、生效时间与保额三个约束\",\n      \"expected_outcome\": \"根节点为 AND，包含上述 OR 投保人条件、时间条件、保额条件三个子节点，无遗漏、无歧义\",\n      \"required_capabilities\": [\"AND 逻辑组合\", \"条件完整性保障\"],\n      \"acceptance_criteria\": [\"根节点 type 为 AND\", \"children 数量为3\", \"三个子节点分别对应投保人OR、时间、保额\", \"OR 作用域仅限投保人维度\"],\n      \"boundary\": {\"允许\": [\"node_id 命名差异\"]},\n      \"priority\": \"P0\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [\n    \"服务依赖正常且解析返回成功状态\",\n    \"投保人为甲或乙客户的或逻辑\",\n    \"今年生效的时间边界正确\",\n    \"保额不少于五十万的条件\",\n    \"三条件的与组合及完整性\"\n  ],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"服务依赖正常且解析返回成功状态\",\n      \"status\": \"fulfilled\",\n      \"score\": 1,\n      \"expected_evidence\": [\"dependency_status=available\", \"validate_request 与 validate_output 均 succeeded\", \"status=SUCCESS 且 filter 完整非空\"],\n      \"actual_evidence\": [\"application_boundary.dependency_status=available\", \"execution_trace 两个阶段均 succeeded\", \"final_output.status=SUCCESS\", \"filter 为完整 AND 树且包含3个子节点\"],\n      \"downstream_impact\": \"下游可正常消费完整 filter 执行检索\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"投保人为甲或乙客户的或逻辑\",\n      \"status\": \"fulfilled\",\n      \"score\": 1,\n      \"expected_evidence\": [\"OR 节点包含 applicant_name CONTAINS 甲客户 与 applicant_name CONTAINS 乙客户 两个谓词\", \"OR 仅嵌套在根 AND 下作为投保人维度条件\"],\n      \"actual_evidence\": [\"filter.children[0] 为 OR 节点 n1，含 n2(applicant_name CONTAINS 甲客户) 与 n3(applicant_name CONTAINS 乙客户)\", \"该 OR 与时间、保额条件并列于根 AND 下\"],\n      \"downstream_impact\": \"投保人为甲或乙任一客户即可命中，与用户语义一致\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"今年生效的时间边界正确\",\n      \"status\": \"fulfilled\",\n      \"score\": 1,\n      \"expected_evidence\": [\"生效日期时段 BETWEEN [2026-01-01, 2027-01-01)\", \"include_lower=true, include_upper=false\"],\n      \"actual_evidence\": [\"filter.children[1] 为 pol_effective_date_term BETWEEN，range.lower=2026-01-01 且 include_lower=true，range.upper=2027-01-01 且 include_upper=false\", \"对照 currentTime=2026-08-11，该区间恰为 2026 全年\"],\n      \"downstream_impact\": \"生效日期落在 2026-01-01 至 2026-12-31 的保单均可命中，边界正确\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"保额不少于五十万的条件\",\n      \"status\": \"fulfilled\",\n      \"score\": 1,\n      \"expected_evidence\": [\"sum_ins GTE 500000\"],\n      \"actual_evidence\": [\"filter.children[2] 为 sum_ins GTE value=500000\", \"五十万对应数值 500000，GTE 表达不少于语义\"],\n      \"downstream_impact\": \"保额 >= 50 万元的保单可命中，符合用户要求\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"三条件的与组合及完整性\",\n      \"status\": \"fulfilled\",\n      \"score\": 1,\n      \"expected_evidence\": [\"根节点 AND 含3个子节点：投保人OR、时间BETWEEN、保额GTE\", \"无缺失条件、无歧义分支\"],\n      \"actual_evidence\": [\"根节点 n0 为 AND，children 恰好3个：n1(OR 投保人)、n4(时间)、n5(保额)\", \"query 中三个约束全部表达，无额外条件\"],\n      \"downstream_impact\": \"三个约束同时生效，筛选结果与用户意图一致\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"missing\": [],\n  \"wrong\": [],\n  \"extra\": [],\n  \"evidence\": [\n    {\n      \"stage\": \"live_schema.validate_request\",\n      \"status\": \"succeeded\"\n    },\n    {\n      \"stage\": \"live_schema.validate_output\",\n      \"status\": \"succeeded\"\n    },\n    {\n      \"dependency_status\": \"available\",\n      \"allow_fallback\": false\n    },\n    {\n      \"final_output_status\": \"SUCCESS\",\n      \"filter_root_type\": \"AND\"\n    }\n  ],\n  \"reasoning_summary\": \"查询「甲客户或乙客户作为投保人，今年生效且保额不低于50万的保单」包含三个约束：投保人（甲或乙）、生效时间（今年，即基于当前时间 2026-08-11 的 2026 年）、保额（不低于50万，即 ≥500000 元）。实际返回的 filter 以 AND 为根节点，子节点一为 OR，包含 applicant_name CONTAINS 甲客户 与 applicant_name CONTAINS 乙客户，精确表达了投保人维度的或逻辑且作用域正确；子节点二为 pol_effective_date_term BETWEEN [2026-01-01, 2027-01-01)，下界含上界不含，恰好覆盖 2026 全年，日期边界正确；子节点三为 sum_ins GTE 500000，正确表达了保额不少于五十万。三个条件以 AND 组合且无缺失、无歧义，服务依赖可用、输出校验通过、返回 SUCCESS 与完整 filter，符合安全失败要求。node_id 差异不影响逻辑等价，客户名使用 CONTAINS 在缺少精确匹配契约证据下可容忍，不构成语义错误。故各期望均判定为 fulfilled，无缺失、错误或多余条件。\"\n}",
+      "created_at": 1786416592,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "ba20b366-4c36-4dad-91d7-8898acb9ed24",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 2304,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 4477,
+        "output_tokens": 4984,
+        "provider_metrics": null,
+        "reasoning_tokens": 2415,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 9461
+      },
+      "name": null,
+      "provider_data": {
+        "id": "4b219ce0-0172-4eae-a1e7-f0686b5c68c6",
+        "model_extra": {
+          "cost": "0"
+        }
+      },
+      "reasoning_content": "好的，这是一个保单筛选语义评估的任务。需要判断查询\"筛选甲客户或乙客户作为投保人、今年生效且保额不少于五十万元的保单\"的解析结果是否正确。\n\n我先来分析这个查询的语义：\n1. 投保人是甲客户或乙客户（OR关系）\n2. 今年生效（当前时间是2026-08-11，\"今年\"即2026年）\n3. 保额不少于50万（GTE 500000）\n\n这三个条件应该是AND关系。\n\n看实际输出：\n- filter是AND根节点\n- 子节点1是OR，包含 applicant_name CONTAINS 甲客户 和 applicant_name CONTAINS 乙客户\n- 子节点2是 pol_effective_date_term BETWEEN 2026-01-01 到 2027-01-01，包含下界不包含上界\n- 子节点3是 sum_ins GTE 500000\n\n这里有个疑问：pol_effective_date_term 这个字段名。在项目文档中，可能会有一个 pol_effective_date 字段。让我看看 business_evidence_paths 提供的文档。不过我没有实际读取文档内容。根据系统提示，知识库内容会动态提供，但我这里似乎没有附上知识库内容。\n\n让我根据已有信息判断。查询中说\"今年生效\"，生效通常指的是保单生效日期。字段名 pol_effective_date_term 中的 \"term\" 后缀可能表示这是一个时间段字段（介于某两个日期之间）。这个字段配合 BETWEEN 操作符，表达了\"生效日期在2026年内\"的语义，因为下界是2026-01-01（含），上界是2027-01-01（不含），恰好是2026年全年。\n\n关于\"今年\"的理解：当前时间是2026-08-11，\"今年\"就是2026年。区间[2026-01-01, 2027-01-01)恰好覆盖2026年全年，这是正确的。不过需要注意，有的实现可能用[2026-01-01, 2026-08-11]表示\"今年到目前为止\"。这里如果查询是\"今年生效\"，从语义上通常理解为2026年全年生效的保单，即生效日期落在2026-01-01到2026-12-31之间。所以[2026-01-01, 2027-01-01)是正确的。\n\n关于保额：50万 = 500000元。GTE 500000 正确。\n\n关于投保人：甲客户或乙客户作为投保人，OR关系放在AND根节点下，与另外两个条件构成AND，正确。\n\n一个潜在问题：applictant_name 使用 CONTAINS 而非 EQUALS。\"甲客户\"和\"乙客户\"是客户名称，如果姓名恰好包含\"甲客户\"三个字的其他客户会被误匹配。但考虑到这是测试数据，客户名可能就是\"甲客户\"\"乙客户\"。不过严格来说，用户说\"甲客户或乙客户作为投保人\"，应当精确匹配姓名。但许多系统对名称使用CONTAINS作为模糊匹配策略，这在业务配置中可能是标准做法。这里需要判断是否为错误。\n\n让我看下判断标准：\"字段、操作符、值、角色、AND/OR/NOT 作用域、日期边界和条件完整性都必须正确。\" CONTAINS vs EQUALS 属于操作符选择问题。在没有明确的字段能力清单的情况下，名称匹配通常有两种策略。考虑到\"甲客户\"\"乙客户\"这种测试名字，CONTAINS 带来的差异在测试数据上不会显现，但从语义严谨性来看，EQUALS 更准确。不过我不应该过度发挥，需要看看有没有相关知识库信息。\n\n这里没有提供知识库的附加内容。business_evidence_paths 指向了文档位置，但实际内容没有附上。所以我只能根据常识和 run_trace 判断。\n\n实际上，很多保单搜索系统对客户名称使用包含匹配是常见的，因为用户输入可能不完整。而且用户说的是\"甲客户\"这个称呼，CONTAINS 能匹配到。我认为这个可以接受，或者至少不是必须定为 wrong 的。\n\n再看日期字段名称 pol_effective_date_term。在其他 case 中可能用 pol_effective_date。但判断标准说\"忽略 node_id 命名差异；允许逻辑等价的树\"。字段名是否等价需要看协议定义。pol_effective_date_term 看起来是\"生效日期-时间段\"的意思，配合 BETWEEN range 使用，逻辑上等价于 pol_effective_date BETWEEN ...。所以应该没问题。\n\n综合来看，这个解析是正确的：\n- AND(OR(applicant_name CONTAINS 甲客户, applicant_name CONTAINS 乙客户), pol_effective_date_term BETWEEN [2026-01-01, 2027-01-01), sum_ins GTE 500000)\n\n业务期望拆分：\n1. 服务依赖成功且返回 SUCCESS：期望依赖可用、解析成功返回完整 filter。\n2. 投保人条件：甲客户或乙客户作为投保人，OR 语义正确。\n3. 生效时间：今年（2026年）生效，日期区间 [2026-01-01, 2027-01-01) 正确。\n4. 保额条件：不低于50万，GTE 500000 正确。\n5. 逻辑组合：三个条件 AND 组合，OR 只作用于两个投保人之间，作用域正确。\n6. 完整性：SUCCESS 必须包含完整 filter，无歧义、无条件缺失。\n\n这些期望应该全部 fulfilled。\n\nexpected 字段需要符合 policy_search 的 live output 结构。这里自产 reference，应该与正确结果一致：\n```json\n{\n  \"code\": 0,\n  \"msg\": \"success\",\n  \"status\": \"SUCCESS\",\n  \"query\": \"甲客户或乙客户作为投保人，今年生效且保额不低于50万的保单\",\n  \"filter\": { ... },  // 正确的filter\n  \"message\": \"解析成功\"\n}\n```\n\nmissing/wrong/extra 都应为空数组。\n\nreasoning_summary 用中文写。\n\n关于 blocking：哪个期望是 blocking？投保人条件、时间条件、保额条件是核心业务语义，如果缺失会阻断核心目的，设为 blocking true。服务依赖成功也是基础，设为 blocking。逻辑组合也很关键。我认为核心的条件期望都是 blocking。\n\n关于操作符 CONTAINS vs EQUALS 的考量：我在实际判断中需要权衡。既然用户明确说\"甲客户\"，作为精确的客户标识，EQUALS 更严格。但 CONTAINS 也不会漏掉\"甲客户\"本人，只是可能多匹配。考虑到项目常见做法，我倾向于不把这点当作 wrong，因为无明确证据表明项目要求精确匹配。不过，如果知识库里有说明，应当遵循。\n\n我注意到系统的判断标准里说\"字段、操作符、值、角色、AND/OR/NOT 作用域、日期边界和条件完整性都必须正确\"。操作符方面，CONTAINS 是合理的包含匹配，在缺少字段能力清单的情况下我接受它。但严谨一点的话，可以把这个作为非 blocking 期望的一部分来评估，或者不提。\n\n让我把期望设计得清晰些：\n1. expectation_id: \"服务依赖与解析状态成功\"，blocking: true\n2. expectation_id: \"投保人为甲或乙客户的或逻辑\"，blocking: true\n3. expectation_id: \"今年生效的时间边界\"，blocking: true\n4. expectation_id: \"保额不低于五十万的条件\"，blocking: true\n5. expectation_id: \"三条件的与组合完整性\"，blocking: true\n\n每个都 fulfilled。\n\nexpected_evidence 和 actual_evidence 用数组。\n\nexpected.filter 我构造正确的 filter 树，与 actual 相同（因为 actual 是正确的）。\n\n关于 node_id：允许差异，所以 expected 中我可以用 generic 的 node_id 或者直接用相同的。既然允许逻辑等价，我直接使用实际输出的结构作为 expected 即可，因为实际输出就是正确的。\n\noutput 中的 expected 结构要求所有字段：code, msg, status, query, filter, message。\n\n现在写 business_expectations 数组。每个元素需要 expectation_id, blocking，以及其他可选字段如 downstream_consumer, user_intent, expected_outcome, required_capabilities, acceptance_criteria, boundary, priority。\n\nfulfillment_assessments 数组：每个都含 expectation_id, status, score, expected_evidence, actual_evidence, downstream_impact, authority_tool_call_ids。\n\nauthority_tool_call_ids：没有工具调用，这里留空数组。\n\nscore：可以用 1 或 null。既然完全满足，给 1 吧。score 类型是 number 或 null。\n\n最后检查 JSON 格式。final answer 只输出 JSON，不输出 markdown。\n\n再仔细检查一下日期：当前时间 2026-08-11，\"今年\"是2026年。查询\"今年生效\"——保单生效日期在2026年内。[2026-01-01, 2027-01-01) 包含2026-01-01 至 2026-12-31，正确。include_lower=true, include_upper=false 正确。\n\n保额：50万=500000，GTE 正确。\"不少于\"即大于等于。\n\n投保人 OR：正确。整个 OR 在 AND 内，与时间、保额条件 AND。正确。\n\n逻辑有些微妙之处：如果是\"甲客户或乙客户作为投保人\"这个条件，然后\"今年生效\"和\"保额不低于50万\"也必须满足，所以根节点 AND 是正确的。\n\n服务依赖：live_schema.validate_request succeeded, validate_output succeeded, dependency_status available, 无 fallback。基础正常。\n\n关于\"今年生效\"的另一种解释：也可以是\"今年内生效的保单\"，即生效日期在2026-01-01到2026-12-31之间。与上面的理解一致。\n\n我认为全部 fulfilled，expected 与实际一致，missing/wrong/extra 为空。\n\nreasoning_summary 需要中文，简要说明判断依据。\n\n还需要考虑知识库内容。我注意到系统提到\"动态检索的知识库内容\"，但这次没有附上具体文档内容，只有文件路径。所以我基于 run_trace 自身和通用保险语义判断。\n\n关于 CONTAINS 的考虑，我在 reasoning_summary 里可以说明：在缺少字段能力清单的情况下，CONTAINS 作为客户名称匹配符在业务上可接受（能命中\"甲客户\"本人），不构成语义错误。\n\n不过我再想想，是否应该将 applicant_name 的操作符问题看作必要 concern。用户意图是筛选\"甲客户或乙客户\"作为投保人。如果姓名中存在\"甲客户服务部\"之类，CONTAINS 会误匹配。但这是测试数据集，且项目普遍采用 CONTAINS 也不无可能。系统提示说\"业务实现、prompt 和配置是当前能力证据，不是不可质疑的自证\"。这暗示如果要质疑操作符，需要依据。我没有足够证据证明 EQUALS 是必需的。因此不质疑。\n\n好的，输出 JSON。注意：\n- 首字符 {，末字符 }\n- 无 markdown\n- 字段齐全\n\n关于 business_expectations，我至少需要1个，这里给5个。\n\nfulfillment_assessments 应该与 expectations 一一对应，5个。\n\nexpected.filter 用实际输出相同的结构。为表述一致性，使用同样的 node_id 也行。node_id 可以不同，我用 n0-n5 即可。\n\n现在写 final JSON。",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "policy_search",
+  "prompt_size": 20937,
+  "record_id": "05a95a13-62ec-46ab-acd4-37148d77bcc7",
+  "response": {
+    "content": "{\n  \"expected\": {\n    \"code\": 0,\n    \"msg\": \"success\",\n    \"status\": \"SUCCESS\",\n    \"query\": \"甲客户或乙客户作为投保人，今年生效且保额不低于50万的保单\",\n    \"filter\": {\n      \"type\": \"AND\",\n      \"node_id\": \"n0\",\n      \"children\": [\n        {\n          \"type\": \"OR\",\n          \"node_id\": \"n1\",\n          \"children\": [\n            {\n              \"type\": \"PREDICATE\",\n              \"node_id\": \"n2\",\n              \"field\": \"applicant_name\",\n              \"operator\": \"CONTAINS\",\n              \"value\": \"甲客户\"\n            },\n            {\n              \"type\": \"PREDICATE\",\n              \"node_id\": \"n3\",\n              \"field\": \"applicant_name\",\n              \"operator\": \"CONTAINS\",\n              \"value\": \"乙客户\"\n            }\n          ]\n        },\n        {\n          \"type\": \"PREDICATE\",\n          \"node_id\": \"n4\",\n          \"field\": \"pol_effective_date_term\",\n          \"operator\": \"BETWEEN\",\n          \"range\": {\n            \"lower\": \"2026-01-01\",\n            \"upper\": \"2027-01-01\",\n            \"include_lower\": true,\n            \"include_upper\": false\n          }\n        },\n        {\n          \"type\": \"PREDICATE\",\n          \"node_id\": \"n5\",\n          \"field\": \"sum_ins\",\n          \"operator\": \"GTE\",\n          \"value\": 500000\n        }\n      ]\n    },\n    \"message\": \"解析成功\"\n  },\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"服务依赖正常且解析返回成功状态\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索下游筛选引擎\",\n      \"user_intent\": \"用户期望系统能正常解析查询语义并返回可执行的筛选条件\",\n      \"expected_outcome\": \"算法服务依赖可用，请求与输出均通过校验，返回 status=SUCCESS 且包含完整 filter\",\n      \"required_capabilities\": [\"服务依赖探测\", \"请求输出结构校验\", \"查询解析\"],\n      \"acceptance_criteria\": [\"dependency_status 为 available\", \"validate_request 与 validate_output 均 succeeded\", \"status 为 SUCCESS\", \"filter 非空且结构合法\"],\n      \"boundary\": {\"允许\": [\"fallback 记录为空\", \"单轮完成\"]},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"投保人为甲或乙客户的或逻辑\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索下游筛选引擎\",\n      \"user_intent\": \"筛选投保人属于甲客户或乙客户的保单\",\n      \"expected_outcome\": \"生成字段 applicant_name 上对甲客户与乙客户两个条件的 OR 组合，且该 OR 只覆盖投保人维度\",\n      \"required_capabilities\": [\"投保人字段识别\", \"OR 逻辑组合\"],\n      \"acceptance_criteria\": [\"存在 OR 节点且包含两个谓词\", \"两个谓词的 field 均为 applicant_name\", \"值分别为甲客户与乙客户\"],\n      \"boundary\": {\"允许\": [\"node_id 命名差异\", \"客户名匹配操作符采用包含匹配\"]},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"今年生效的时间边界正确\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索下游筛选引擎\",\n      \"user_intent\": \"筛选生效日期落在2026年内的保单\",\n      \"expected_outcome\": \"生成生效日期时间段谓词，区间为 [2026-01-01, 2027-01-01)，下界包含、上界不包含\",\n      \"required_capabilities\": [\"生效日期字段识别\", \"时间区间解析\", \"年份边界计算\"],\n      \"acceptance_criteria\": [\"字段为生效日期相关字段\", \"operator 为 BETWEEN\", \"lower=2026-01-01 且 include_lower=true\", \"upper=2027-01-01 且 include_upper=false\"],\n      \"boundary\": {\"当前时间\": \"2026-08-11\", \"今年定义为\": \"2026-01-01 至 2026-12-31（含）\"},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"保额不少于五十万的条件\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索下游筛选引擎\",\n      \"user_intent\": \"筛选保额大于等于50万元的保单\",\n      \"expected_outcome\": \"生成 sum_ins 字段上 GTE 500000 的谓词\",\n      \"required_capabilities\": [\"保额字段识别\", \"数值比较操作符映射\", \"中文金额单位换算\"],\n      \"acceptance_criteria\": [\"field 为 sum_ins\", \"operator 为 GTE\", \"value 为 500000\"],\n      \"boundary\": {\"金额单位\": \"元\", \"五十万\": \"500000\"},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"三条件的与组合及完整性\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索下游筛选引擎\",\n      \"user_intent\": \"同时满足投保人、生效时间与保额三个约束\",\n      \"expected_outcome\": \"根节点为 AND，包含上述 OR 投保人条件、时间条件、保额条件三个子节点，无遗漏、无歧义\",\n      \"required_capabilities\": [\"AND 逻辑组合\", \"条件完整性保障\"],\n      \"acceptance_criteria\": [\"根节点 type 为 AND\", \"children 数量为3\", \"三个子节点分别对应投保人OR、时间、保额\", \"OR 作用域仅限投保人维度\"],\n      \"boundary\": {\"允许\": [\"node_id 命名差异\"]},\n      \"priority\": \"P0\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [\n    \"服务依赖正常且解析返回成功状态\",\n    \"投保人为甲或乙客户的或逻辑\",\n    \"今年生效的时间边界正确\",\n    \"保额不少于五十万的条件\",\n    \"三条件的与组合及完整性\"\n  ],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"服务依赖正常且解析返回成功状态\",\n      \"status\": \"fulfilled\",\n      \"score\": 1,\n      \"expected_evidence\": [\"dependency_status=available\", \"validate_request 与 validate_output 均 succeeded\", \"status=SUCCESS 且 filter 完整非空\"],\n      \"actual_evidence\": [\"application_boundary.dependency_status=available\", \"execution_trace 两个阶段均 succeeded\", \"final_output.status=SUCCESS\", \"filter 为完整 AND 树且包含3个子节点\"],\n      \"downstream_impact\": \"下游可正常消费完整 filter 执行检索\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"投保人为甲或乙客户的或逻辑\",\n      \"status\": \"fulfilled\",\n      \"score\": 1,\n      \"expected_evidence\": [\"OR 节点包含 applicant_name CONTAINS 甲客户 与 applicant_name CONTAINS 乙客户 两个谓词\", \"OR 仅嵌套在根 AND 下作为投保人维度条件\"],\n      \"actual_evidence\": [\"filter.children[0] 为 OR 节点 n1，含 n2(applicant_name CONTAINS 甲客户) 与 n3(applicant_name CONTAINS 乙客户)\", \"该 OR 与时间、保额条件并列于根 AND 下\"],\n      \"downstream_impact\": \"投保人为甲或乙任一客户即可命中，与用户语义一致\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"今年生效的时间边界正确\",\n      \"status\": \"fulfilled\",\n      \"score\": 1,\n      \"expected_evidence\": [\"生效日期时段 BETWEEN [2026-01-01, 2027-01-01)\", \"include_lower=true, include_upper=false\"],\n      \"actual_evidence\": [\"filter.children[1] 为 pol_effective_date_term BETWEEN，range.lower=2026-01-01 且 include_lower=true，range.upper=2027-01-01 且 include_upper=false\", \"对照 currentTime=2026-08-11，该区间恰为 2026 全年\"],\n      \"downstream_impact\": \"生效日期落在 2026-01-01 至 2026-12-31 的保单均可命中，边界正确\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"保额不少于五十万的条件\",\n      \"status\": \"fulfilled\",\n      \"score\": 1,\n      \"expected_evidence\": [\"sum_ins GTE 500000\"],\n      \"actual_evidence\": [\"filter.children[2] 为 sum_ins GTE value=500000\", \"五十万对应数值 500000，GTE 表达不少于语义\"],\n      \"downstream_impact\": \"保额 >= 50 万元的保单可命中，符合用户要求\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"三条件的与组合及完整性\",\n      \"status\": \"fulfilled\",\n      \"score\": 1,\n      \"expected_evidence\": [\"根节点 AND 含3个子节点：投保人OR、时间BETWEEN、保额GTE\", \"无缺失条件、无歧义分支\"],\n      \"actual_evidence\": [\"根节点 n0 为 AND，children 恰好3个：n1(OR 投保人)、n4(时间)、n5(保额)\", \"query 中三个约束全部表达，无额外条件\"],\n      \"downstream_impact\": \"三个约束同时生效，筛选结果与用户意图一致\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"missing\": [],\n  \"wrong\": [],\n  \"extra\": [],\n  \"evidence\": [\n    {\n      \"stage\": \"live_schema.validate_request\",\n      \"status\": \"succeeded\"\n    },\n    {\n      \"stage\": \"live_schema.validate_output\",\n      \"status\": \"succeeded\"\n    },\n    {\n      \"dependency_status\": \"available\",\n      \"allow_fallback\": false\n    },\n    {\n      \"final_output_status\": \"SUCCESS\",\n      \"filter_root_type\": \"AND\"\n    }\n  ],\n  \"reasoning_summary\": \"查询「甲客户或乙客户作为投保人，今年生效且保额不低于50万的保单」包含三个约束：投保人（甲或乙）、生效时间（今年，即基于当前时间 2026-08-11 的 2026 年）、保额（不低于50万，即 ≥500000 元）。实际返回的 filter 以 AND 为根节点，子节点一为 OR，包含 applicant_name CONTAINS 甲客户 与 applicant_name CONTAINS 乙客户，精确表达了投保人维度的或逻辑且作用域正确；子节点二为 pol_effective_date_term BETWEEN [2026-01-01, 2027-01-01)，下界含上界不含，恰好覆盖 2026 全年，日期边界正确；子节点三为 sum_ins GTE 500000，正确表达了保额不少于五十万。三个条件以 AND 组合且无缺失、无歧义，服务依赖可用、输出校验通过、返回 SUCCESS 与完整 filter，符合安全失败要求。node_id 差异不影响逻辑等价，客户名使用 CONTAINS 在缺少精确匹配契约证据下可容忍，不构成语义错误。故各期望均判定为 fulfilled，无缺失、错误或多余条件。\"\n}",
+    "metrics": {
+      "cache_read_tokens": 2304,
+      "cache_write_tokens": 0,
+      "input_tokens": 4477,
+      "output_tokens": 4984,
+      "reasoning_tokens": 2415,
+      "total_tokens": 9461
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 1970,
+          "error": "Unknown model error",
+          "error_type": "RuntimeError",
+          "status": "failed"
+        },
+        {
+          "attempt": 2,
+          "elapsed_ms": 38569,
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "stage": ""
+    }
+  },
+  "trace_id": "policy_search:policy-search-compound-logic-browser-sanitized:1786416587726"
+}

@@ -1,0 +1,303 @@
+{
+  "caller": "judge",
+  "created_at": "2026-08-11T17:10:37Z",
+  "elapsed_ms": 71100,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "production"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "b79912106966050726fa2728a502ac1947419b912ff0ef1d7481bc0c40b90a3b",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [],
+      "lineage": {
+        "call_id": "",
+        "case_id": "policy-search-rich-0069",
+        "trace_id": "policy_search:policy-search-rich-0069:1786468165761"
+      },
+      "messages": [
+        {
+          "char_count": 7368,
+          "content_sha256": "f5559e2831ea15fd5d0a75f202e64faec2eaf6fc95f6497abac519065bb1f636",
+          "role": "system"
+        },
+        {
+          "char_count": 5623,
+          "content_sha256": "8c98f75eea796360063356da1372a5a0990c5a9fac5f6d4617e61b7092b0f8ef",
+          "role": "user"
+        }
+      ],
+      "mode": "production",
+      "output_contract": {
+        "field_names": [
+          "acceptance_criteria",
+          "actual",
+          "actual_evidence",
+          "applicable_product_expectation_ids",
+          "authority_tool_call_ids",
+          "blocking",
+          "boundary",
+          "business_expectations",
+          "code",
+          "downstream_consumer",
+          "downstream_impact",
+          "error_type",
+          "evidence",
+          "evidence_ref",
+          "expectation_id",
+          "expected",
+          "expected_evidence",
+          "expected_outcome",
+          "extra",
+          "filter",
+          "fulfillment_assessments",
+          "incomplete",
+          "kind",
+          "message",
+          "missing",
+          "msg",
+          "priority",
+          "query",
+          "raw",
+          "reasoning_summary",
+          "required_capabilities",
+          "score",
+          "status",
+          "user_intent",
+          "wrong"
+        ],
+        "identity": "impl.core.schema.judge.JudgeLLMOutput",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "1ebd986c8c695abe1e8329086ca3fa881a0eaa83fe0e670d24af6af6d4fad2f0",
+        "sha256": "1ebd986c8c695abe1e8329086ca3fa881a0eaa83fe0e670d24af6af6d4fad2f0"
+      },
+      "project_id": "policy_search",
+      "prompt_char_count": 12991,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 5623,
+        "occurred": false
+      },
+      "role": "judge",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 1725,
+          "content_sha256": "5727bfa7858a8ce05122cd632b62736542f3792c880caa51ab16c7257d1f754b",
+          "order": 0,
+          "role": "judge",
+          "segment_id": "compiled-system",
+          "source": "impl/core/judge.py#judge_trace",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 5623,
+          "content_sha256": "8c98f75eea796360063356da1372a5a0990c5a9fac5f6d4617e61b7092b0f8ef",
+          "order": 1,
+          "role": "judge",
+          "segment_id": "case-user-payload",
+          "source": "trace://judge-evidence-view",
+          "stage": "judge"
+        }
+      ],
+      "stage": "judge",
+      "tool_plan": []
+    }
+  },
+  "llm_model": "deepseek-v4-flash-0731",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "你是通用评估系统的 judge agent。\n\n## 核心原则\n只基于当前 RunTrace、项目评判标准和动态检索的知识库内容判断，不继承历史 case。\n首要职责：理解用户/下游消费者的真实业务意图 → 派生 business_expectations → 基于完整执行链路（每轮 output、最终 output、交互过程和停止事实）判断 expectations 的 fulfillment。\n\n## expectation 拆分原则\nbusiness_expectations 的粒度直接决定判断精度。每个 expectation 必须是原子、独立可评价的判断单元：证据充分时判 fulfilled 或 not_fulfilled；确需评价但当前证据不足时按协议判 not_evaluable。\n- 一个 expectation 只描述一个可独立验证的结果维度\n- 多维度意图必须拆成多个 expectation\n- 每个 expectation 必须有明确的 acceptance_criteria\n- 每个 expectation 必须在比较 actual 前确定 blocking：只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true\n- fulfillment_assessments 只判断对应 expectation 的 status 和证据，不得重新定义 blocking\n- expectation_id 必须是描述性的中文短语，禁止使用 E1/E2/exp_01 等占位符 ID\n- reasoning_summary 必须是中文写成的判断依据\n\n## 输出词表\n`fulfillment_assessments[*].status` 必须从以下 3 个值中选择：\n  - fulfilled：该 expectation 完全满足\n  - not_fulfilled：该 expectation 未满足\n  - not_evaluable：当前无法评估\n禁用 failed/passed/incorrect/wrong/met/unmet/partially_fulfilled/partial/success/fail/ok/unknown 等同义词。\n`fulfillment_assessments[*].expected_evidence` 与 `actual_evidence` **必须是数组**（JSON array / list），即使只有一条证据也要用 `[...]` 包裹，不可直接用字符串或对象。\n\n不要输出 overall_fulfillment；公共层会在项目契约补充完成后根据 blocking expectations 确定性派生整体状态。\n\n## 评估规范\n\n\n## 评估边界\n\n\n## 判断标准\n\n\n\n\n你评价的是保单筛选语义是否被完整、可执行且安全地表达。先判断服务依赖是否成功，再比较 query 与 filter。忽略 node_id 命名差异；允许逻辑等价的树。字段、操作符、值、角色、AND/OR/NOT 作用域、日期边界和条件完整性都必须正确。SUCCESS 必须有完整 filter；歧义、条件缺失或越界场景应 UNSUPPORTED 且不得返回部分 filter。业务实现、prompt 和配置是当前能力证据，不是不可质疑的自证。\n## 工具使用原则\n所有工具的用途、调用时机和参数含义以 Agno tool schema 为准；user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息。\n\n## 禁止事项\n- 不要把 reference answer 当作默认主目标（除非 case 明确指定）\n- 不要把 HTTP 状态、run_status、attribute/cluster 结论当作满足依据\n- 不要归因内部代码、配置或 prompt 原因（属于 attribute agent）\n- 分析文字必须使用中文，包括 reasoning_summary 等所有文本字段。\n\n\n## 输出约束：judge 判定输出（自产 reference + fulfillment 判定）\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"business_expectations\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeBusinessExpectationOutput\"\n      },\n      \"minItems\": 1\n    },\n    \"applicable_product_expectation_ids\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"fulfillment_assessments\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeFulfillmentAssessmentOutput\"\n      }\n    },\n    \"expected\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"code\": {\n          \"type\": \"integer\"\n        },\n        \"msg\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"query\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"filter\": {\n          \"type\": [\n            \"object\",\n            \"null\"\n          ]\n        },\n        \"message\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"code\",\n        \"msg\",\n        \"status\",\n        \"query\",\n        \"filter\",\n        \"message\"\n      ]\n    },\n    \"missing\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"wrong\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"extra\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"evidence\": {\n      \"type\": \"array\",\n      \"items\": {}\n    },\n    \"reasoning_summary\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    }\n  },\n  \"additionalProperties\": false,\n  \"$defs\": {\n    \"JudgeBusinessExpectationOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"blocking\": {\n          \"type\": \"boolean\"\n        },\n        \"downstream_consumer\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"user_intent\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected_outcome\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"required_capabilities\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"acceptance_criteria\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"boundary\": {\n          \"type\": \"object\"\n        },\n        \"priority\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"blocking\"\n      ]\n    },\n    \"JudgeFulfillmentAssessmentOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"score\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        },\n        \"expected_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"actual_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"downstream_impact\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"authority_tool_call_ids\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"status\"\n      ]\n    },\n    \"GapItem\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"kind\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"error_type\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected\": {},\n        \"actual\": {},\n        \"evidence_ref\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"raw\": {},\n        \"incomplete\": {\n          \"type\": \"boolean\"\n        }\n      },\n      \"additionalProperties\": false\n    }\n  },\n  \"required\": [\n    \"expected\",\n    \"business_expectations\",\n    \"reasoning_summary\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['business_expectations', 'expected', 'reasoning_summary']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n\n### 嵌套字段子结构约束\n以下字段内部的子结构也必须严格遵守，不可随意编造字段名或类型：\n- **`expected`** 字段 (项目 policy_search 的 expected/live output 结构) 必须符合以下结构：\n  ```json\n  {\n    \"type\": \"object\",\n    \"properties\": {\n      \"code\": {\n        \"type\": \"integer\"\n      },\n      \"msg\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"status\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"query\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"filter\": {\n        \"type\": [\n          \"object\",\n          \"null\"\n        ]\n      },\n      \"message\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"additionalProperties\": false,\n    \"required\": [\n      \"code\",\n      \"msg\",\n      \"status\",\n      \"query\",\n      \"filter\",\n      \"message\"\n    ]\n  }\n  ```\n",
+      "created_at": 1786468165,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "5e961ea7-a9f4-4dcd-ae3c-b8727e01488c",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"user_intent\": \"筛选投被保人是否本人为本人的保单\", \"run_trace\": {\"trace_id\": \"policy_search:policy-search-rich-0069:1786468165761\", \"project_id\": \"policy_search\", \"case_id\": \"policy-search-rich-0069\", \"intent_input\": {\"session_id\": \"policy-search-rich-0069\", \"trace_id\": \"policy-search-rich-0069\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"找本人的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"normalized_request\": {\"session_id\": \"policy-search-rich-0069\", \"trace_id\": \"policy-search-rich-0069\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"找本人的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"final_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"找本人的保单\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"app_ins_relationship_desc\", \"operator\": \"EQ\", \"value\": \"本人\"}, \"message\": \"解析成功\"}, \"final_output_turn\": 1, \"turns\": [{\"turn_index\": 1, \"request\": {\"session_id\": \"policy-search-rich-0069\", \"trace_id\": \"policy-search-rich-0069\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"找本人的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"extracted_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"找本人的保单\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"app_ins_relationship_desc\", \"operator\": \"EQ\", \"value\": \"本人\"}, \"message\": \"解析成功\"}, \"call_status\": \"succeeded\", \"runtime_ms\": 5, \"error\": null, \"fallbacks\": [], \"validation\": [], \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"application_boundary\": {\"dependency_status\": \"available\", \"allow_fallback\": false, \"excluded_evidence\": [], \"notes\": \"parser returned an executable filter\"}, \"project_fields\": {\"parse_status\": \"SUCCESS\", \"filter_root_type\": \"PREDICATE\"}}], \"conversation_transcript\": [], \"conversation_summary\": {\"turn_count\": 1, \"final_output_turn\": 1, \"completion_status\": \"completed\", \"stop_reason\": \"single_turn_completed\", \"interaction_controller_status\": \"not_run\", \"interaction_controller_error\": \"\"}, \"stop_reason\": \"single_turn_completed\", \"completion_status\": \"completed\", \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"evidence_refs\": [], \"raw_response_evidence\": null, \"evidence_completeness\": {\"complete\": true, \"missing_evidence\": []}, \"application_boundary\": {\"dependency_status\": \"available\", \"allow_fallback\": false, \"excluded_evidence\": [], \"notes\": \"parser returned an executable filter\"}, \"reference_contract\": {}, \"scenario\": \"atomic_condition\", \"status\": \"ok\", \"error\": null}, \"query\": \"找本人的保单\", \"actual_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"找本人的保单\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"app_ins_relationship_desc\", \"operator\": \"EQ\", \"value\": \"本人\"}, \"message\": \"解析成功\"}, \"reference_contract\": {}, \"business_evidence_paths\": {\"api_contract\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索算法解析接口文档（智能体对接稿）.md\", \"filter_contract\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索查询语法树协议（首期精简版）.md\", \"technical_design\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索算法解析技术方案（当前实现版）.md\", \"business_config\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/configs/insurance_search_business_config_prd.json\", \"runtime_config\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/configs/insurance_search_runtime_config_prd.json\", \"golden_manifest\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/data/golden_dataset/manifest.json\"}, \"evaluation_dimensions\": [\"field_selection\", \"operator_and_value\", \"logical_scope\", \"time_boundary\", \"condition_completeness\", \"safe_failure\"]}",
+      "created_at": 1786468165,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "6b680beb-a9ef-4c82-978c-d6e9469ae4c3",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\n  \"expected\": {\n    \"code\": 0,\n    \"msg\": \"success\",\n    \"status\": \"SUCCESS\",\n    \"query\": \"找本人的保单\",\n    \"filter\": {\n      \"type\": \"PREDICATE\",\n      \"node_id\": \"n0\",\n      \"field\": \"app_ins_relationship_desc\",\n      \"operator\": \"EQ\",\n      \"value\": \"本人\"\n    },\n    \"message\": \"解析成功\"\n  },\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"服务依赖可用且解析执行成功\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单搜索语法树执行器\",\n      \"user_intent\": \"解析服务必须在线可用并产出可执行的筛选结果\",\n      \"expected_outcome\": \"依赖可用，返回 SUCCESS 且 filter 为完整可执行的谓词节点\",\n      \"required_capabilities\": [\"在线解析服务可用性\", \"生成可执行 filter\"],\n      \"acceptance_criteria\": [\n        \"dependency_status 为 available\",\n        \"status 为 SUCCESS\",\n        \"filter 为完整 PREDICATE 节点\",\n        \"call_status 为 succeeded\"\n      ],\n      \"boundary\": {\n        \"依赖不可用时的安全行为\": \"不得返回部分 filter，应安全失败\"\n      },\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"投被保关系字段选择准确\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"语法树执行器与保单检索模块\",\n      \"user_intent\": \"用户想筛投被保关系为“本人”的保单，必须使用关系维度字段而非姓名维度字段\",\n      \"expected_outcome\": \"filter.field 使用 app_ins_relationship_desc 表达投被保关系\",\n      \"required_capabilities\": [\"投被保关系字段识别\", \"关系值枚举映射\"],\n      \"acceptance_criteria\": [\n        \"field 为 app_ins_relationship_desc\",\n        \"未使用投保人或被保人姓名字段表达该关系语义\"\n      ],\n      \"boundary\": {\n        \"字段混淆\": \"若用 insurant/insured 名称字段则视为错误\"\n      },\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"操作符与值表达精确\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索模块\",\n      \"user_intent\": \"语义为“投被保关系等于本人”，需要用精确相等匹配\",\n      \"expected_outcome\": \"operator 为 EQ，value 为 本人\",\n      \"required_capabilities\": [\"枚举值_EQ比较\"],\n      \"acceptance_criteria\": [\n        \"operator 为 EQ\",\n        \"value 为 本人\"\n      ],\n      \"boundary\": {\n        \"模糊匹配\": \"若使用 CONTAINS/LIKE 或错误值则视为缺陷\"\n      },\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"条件完整无歧义无越界\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"语法树执行器\",\n      \"user_intent\": \"“找本人的保单”在给定业务意图下语义明确，应完整表达单一原子条件，不缺失、不越界\",\n      \"expected_outcome\": \"返回单个 PREDICATE 条件，完整覆盖投被保关系=本人的语义\",\n      \"required_capabilities\": [\"原子条件解析\", \"歧义识别\"],\n      \"acceptance_criteria\": [\n        \"filter 仅含一个谓词且无 AND/OR 分支\",\n        \"不存在缺失的必填条件\",\n        \"不存在越界或超出 query 语义的条件\"\n      ],\n      \"boundary\": {\n        \"歧义情形\": \"若 query 存在多义且无上下文消歧，应返回 UNSUPPORTED，不得返回部分 filter\"\n      },\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"响应契约合规\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"上游智能体对接方\",\n      \"user_intent\": \"响应结构必须符合保单搜索解析接口契约，便于下游稳定消费\",\n      \"expected_outcome\": \"code/msg/status/query/filter/message 字段齐全且格式正确\",\n      \"required_capabilities\": [\"契约序列化\"],\n      \"acceptance_criteria\": [\n        \"code 为 0\",\n        \"msg 为 success\",\n        \"status 为 SUCCESS\",\n        \"query 回显原查询\",\n        \"filter 为 PREDICATE 节点\",\n        \"message 非空\"\n      ],\n      \"boundary\": {},\n      \"priority\": \"P1\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"服务依赖可用且解析执行成功\",\n      \"status\": \"fulfilled\",\n      \"score\": null,\n      \"expected_evidence\": [\n        \"dependency_status=available\",\n        \"status=SUCCESS\",\n        \"filter 为完整 PREDICATE 节点\"\n      ],\n      \"actual_evidence\": [\n        \"application_boundary.dependency_status = available\",\n        \"final_output.status = SUCCESS\",\n        \"final_output.filter = {\\\"type\\\":\\\"PREDICATE\\\",\\\"field\\\":\\\"app_ins_relationship_desc\\\",\\\"operator\\\":\\\"EQ\\\",\\\"value\\\":\\\"本人\\\"}\",\n        \"turn.call_status = succeeded\"\n      ],\n      \"downstream_impact\": \"下游可安全执行该 filter，检索投被保关系为“本人”的保单\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"投被保关系字段选择准确\",\n      \"status\": \"fulfilled\",\n      \"score\": null,\n      \"expected_evidence\": [\n        \"field=app_ins_relationship_desc\"\n      ],\n      \"actual_evidence\": [\n        \"filter.field = app_ins_relationship_desc\"\n      ],\n      \"downstream_impact\": \"检索在投被保关系维度精确限定为“本人”，避免误用姓名维度产生偏差\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"操作符与值表达精确\",\n      \"status\": \"fulfilled\",\n      \"score\": null,\n      \"expected_evidence\": [\n        \"operator=EQ\",\n        \"value=本人\"\n      ],\n      \"actual_evidence\": [\n        \"filter.operator = EQ\",\n        \"filter.value = 本人\"\n      ],\n      \"downstream_impact\": \"精确匹配投被保关系为“本人”的保单记录，查询结果准确\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"条件完整无歧义无越界\",\n      \"status\": \"fulfilled\",\n      \"score\": null,\n      \"expected_evidence\": [\n        \"单个 PREDICATE 条件完整覆盖“投被保关系=本人”语义\",\n        \"无缺失条件、无越界条件\"\n      ],\n      \"actual_evidence\": [\n        \"filter 为单 PREDICATE 节点，无 AND/OR 分支\",\n        \"query 语义“找本人的保单”与用户意图“投被保关系为本人”一致，无需 UNSUPPORTED\",\n        \"scenario 为 atomic_condition，单条件表达完整\"\n      ],\n      \"downstream_impact\": \"无歧义地筛出投被保关系为“本人”的保单，结果无遗漏也无多余限定\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"响应契约合规\",\n      \"status\": \"fulfilled\",\n      \"score\": null,\n      \"expected_evidence\": [\n        \"code=0\",\n        \"msg=success\",\n        \"status=SUCCESS\",\n        \"query=找本人的保单\",\n        \"message 非空\"\n      ],\n      \"actual_evidence\": [\n        \"final_output.code = 0\",\n        \"final_output.msg = success\",\n        \"final_output.status = SUCCESS\",\n        \"final_output.query = 找本人的保单\",\n        \"final_output.message = 解析成功\"\n      ],\n      \"downstream_impact\": \"上游可稳定解析响应并继续消费筛选结果\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"missing\": [],\n  \"wrong\": [],\n  \"extra\": [],\n  \"evidence\": [\n    {\n      \"evidence_type\": \"final_output\",\n      \"data\": {\n        \"code\": 0,\n        \"msg\": \"success\",\n        \"status\": \"SUCCESS\",\n        \"query\": \"找本人的保单\",\n        \"filter\": {\n          \"type\": \"PREDICATE\",\n          \"field\": \"app_ins_relationship_desc\",\n          \"operator\": \"EQ\",\n          \"value\": \"本人\"\n        },\n        \"message\": \"解析成功\"\n      }\n    },\n    {\n      \"evidence_type\": \"application_boundary\",\n      \"data\": {\n        \"dependency_status\": \"available\",\n        \"allow_fallback\": false,\n        \"notes\": \"parser returned an executable filter\"\n      }\n    },\n    {\n      \"evidence_type\": \"project_fields\",\n      \"data\": {\n        \"parse_status\": \"SUCCESS\",\n        \"filter_root_type\": \"PREDICATE\"\n      }\n    },\n    {\n      \"evidence_type\": \"scenario\",\n      \"data\": \"atomic_condition\"\n    }\n  ],\n  \"reasoning_summary\": \"用户意图为筛选“投被保关系为本人”的保单，query 为“找本人的保单”。服务依赖状态为 available，解析执行成功且返回完整 filter，满足执行前提。filter 使用 app_ins_relationship_desc 字段表达投被保关系维度，操作符 EQ、值“本人”与语义精确对应；该意图为单一原子条件，无缺失、无歧义、无越界，因此返回 SUCCESS 并给出完整谓词是正确行为，无需 UNSUPPORTED。响应结构中 code=0、msg=success、status=SUCCESS、query 回显、filter 为 PREDICATE 节点、message 非空，符合接口契约。综上，各 expectation 均满足，无 missing/wrong/extra 差异。\"\n}",
+      "created_at": 1786468165,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "e47652a1-2960-471b-9c5d-25b3e66beed9",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 2304,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 4075,
+        "output_tokens": 7639,
+        "provider_metrics": null,
+        "reasoning_tokens": 5420,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 11714
+      },
+      "name": null,
+      "provider_data": {
+        "id": "bdc2a627-82ec-40bf-9fd5-68908638d215",
+        "model_extra": {
+          "cost": "0"
+        }
+      },
+      "reasoning_content": "我需要判断这个保单筛选案例。用户意图是\"筛选投被保人是否本人为本人的保单\"，实际query是\"找本人的保单\"。\n\n首先，分析用户意图：\"筛选投被保人是否本人为本人的保单\" —— 这个意图表达比较别扭，直译是筛选\"投保人和被保人是否本人\"的保单，即投保人与被保人的关系为本人。\"找本人的保单\"这个query对应的语义是\"找投保人是本人的保单\"或\"找被保人是本人的保单\"。\n\n实际输出的filter是：field=app_ins_relationship_desc, operator=EQ, value=\"本人\"。这表示\"投保人与被保人关系为本人\"，即投保人和被保人是同一个人（本人）。\n\n等等，这里需要理清楚。\"找本人的保单\"通常可以理解为：\n1. 投保人是本人的保单（insurer = 本人）\n2. 被保人是本人的保单（insured = 本人）\n3. 投保人和被保人都是本人（app_ins_relationship = 本人，即投保人与被保人关系为本人）\n\n用户意图是\"筛选投被保人是否本人为本人的保单\" —— 这里\"投被保人是否本人\"可能指\"投保人和被保人是否都是本人\"，即关系为本人。\n\n实际output用的是app_ins_relationship_desc = \"本人\"。这个字段描述的是投保人与被保人的关系。如果关系是\"本人\"，意味着投保人就是被保人，且为操作者本人。\n\n在保单搜索场景中，\"找本人的保单\"可能更常见的理解是\"投保人是我的保单\"或者\"被保人是我的保单\"。这里agentCode是A12345678，context是verifier。\n\n考虑到原子条件场景（scenario: atomic_condition），并且当前能力清单（user prompt中提到\"所有工具的用途、调用时机和参数含义以 Agno tool schema 为准；user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息\"），但我没有看到完整的字段能力清单。不过从 output 中看到 filter 使用 app_ins_relationship_desc 字段。\n\n让我推理：在保险领域，\"投被保人是否本人为本人的保单\" —— 这个可能是测试用例的名称，描述意图是筛选\"投保人和被保人都是本人\"的保单。如果投被保人关系为\"本人\"，说明投保人=被保人=本人，这是合理的。\n\n但\"找本人的保单\"如果按字面理解为\"找投保人是本人的保单\"，则应使用 insurant（投保人）= 本人 或被保人 = 本人。实际输出使用的是 relationship 字段。\n\n嗯，这里需要仔细斟酌。让我看看 known capabilities。evaluation_dimensions 包括 field_selection, operator_and_value, logical_scope, time_boundary, condition_completeness, safe_failure。\n\n从 case 标题 \"policy-search-rich-0069\"，user_intent 是\"筛选投被保人是否本人为本人的保单\"。\n\n关键点：保单搜索中，\"本人\"通常表示操作者自己。app_ins_relationship_desc 字段描述投保人与被保人的关系。当值为\"本人\"时，表示投保人即为被保人本人。但这并不直接等价于\"投保人是操作者本人\"或\"被保人是操作者本人\"。\n\n不过，在保险业务中，\"投被保人关系为本人\"通常指的是投保人与被保人同为人，且通常就是保单的主人（操作者）。这个关系为\"本人\"意味着保单的投保人和被保人是同一个人。\n\n\"找本人的保单\" —— 用户想找自己名下的保单。是自己作为投保人的保单，还是自己作为被保人的保单，还是两者都是？\n\n在保险查询场景中，通常\"找本人的保单\"最自然的理解是：投保人是本人（即我买的保险）。但也有可能理解成被保人是本人。\n\n而 app_ins_relationship_desc = \"本人\" 表示投保人与被保人关系是本人，即投被保同一人。这个filter要求保单的投保人和被保人是同一个人（关系为本人）。这其实是一个更强的条件：不仅要是本人，而且投被保必须一致。\n\n但是用户意图 \"筛选投被保人是否本人为本人的保单\" —— 这个表述似乎就是说\"投保人和被保人是否都是本人\"的保单，即投被保关系为本人。\n\n让我重读：\"筛选投被保人是否本人为本人的保单\"。可能是有语病的自动生成描述，意思是\"筛选投保人/被保人是本人的保单\"或者\"筛选投被保人为本人的保单\"。\n\n实际上，这个描述更像\"筛选投被保人（关系）是否本人\"——即投被保关系为本人。\n\n考虑到：\n1. 输出filter是 app_ins_relationship_desc EQ \"本人\"\n2. 这是atomic_condition场景\n3. 查询是\"找本人的保单\"\n\n我认为输出的filter是合理的：app_ins_relationship_desc = \"本人\" 表示投保人与被保人的关系为本人，即这张保单是\"本人\"的保单（投被保同一人）。这在保险筛选语义中通常被接受为\"本人保单\"（即投保人为自己的保单）。\n\n但是等等，另一个可能的正确理解是：找投保人为本人的保单应该用字段如 insurant_name = \"本人\" 或用 agentCode 关联。在保险业务中，\"本人\"通常通过 agentCode（代理人）或当前用户身份来解析，而不是直接值\"本人\"。\n\n从提供的 output 看，filter.value = \"本人\"，field = app_ins_relationship_desc。这表示在数据中，app_ins_relationship_desc 这个枚举字段存在\"本人\"这个值，表示投保人与被保人关系为本人。\n\n我认为这个输出是正确的。原因：\n- 用户查询\"找本人的保单\"在保单搜索场景中可解释为\"投被保关系为本人\"的保单（即我给自己买的保单）\n- 输出filter准确表达了这一语义：app_ins_relationship_desc = \"本人\"\n\n不过，需要检查是否有歧义。\"找本人的保单\"也可以理解为\"被保人是本人的保单\"或\"投保人是本人的保单\"。但输出选择了投被保关系为本人，这其实是一个更严格的语义。\n\n嗯，让我再从另一个角度思考。作为 judge，我需要：\n1. 判断服务依赖是否成功 —— 是的，dependency_status = \"available\"，parser returned an executable filter\n2. 比较 query 与 filter —— query=\"找本人的保单\"，filter=app_ins_relationship_desc EQ \"本人\"\n\n关键问题：在字段能力清单中，是否有更合适的字段来表达\"本人\"？比如：\n- 投被保关系字段 app_ins_relationship_desc\n- 投保人字段\n- 被保人字段\n\n如果能力清单里有\"投保人=本人\"或\"被保人=本人\"的字段，那么这里的输出可能选择不同。但根据输出，使用的是关系字段。\n\n用户意图：\"筛选投被保人是否本人为本人的保单\"。这句话我理解为\"筛选投保人、被保人是否为本人，即本人是本人的保单\"——即投保人和被保人都是本人。这正好对应 app_ins_relationship_desc = \"本人\"（投被保关系为本人）。\n\n实际上，再仔细看：\"投被保人是否本人为本人的保单\"可能被解析为\"投被保人是否本人\" + \"为本人\" 的保单，意思是：投被保人和本人的关系。这有点绕。\n\n让我用比较合理的解读：用户想筛选的是\"投保人与被保人都是本人\"的保单，即投被保关系为\"本人\"。这是保险业务中\"本人保单\"的标准表达之一。输出filter = app_ins_relationship_desc EQ \"本人\" 完全表达了这一语义。\n\n我认为这个 case 的 filter 是正确的。SUCCESS + 完整filter，正确处理。\n\n不过也要考虑：query\"找本人的保单\"是否要求\"投保人是本人\"？在保险代理场景中，agentCode=A12345678，用户是代理人，想找自己的保单。此时\"本人的保单\"可能指\"投保人是自己\"（作为投保人的保单）或\"被保人是自己\"（作为被保人的保单），也可能指投被保关系为本人。\n\n由于这是一个\"rich\"测试集，通常测试的是语义理解能力。用户意图明确写着\"筛选投被保人是否本人为本人的保单\"，说明期望是筛选\"投被保关系为本人\"的保单。这与输出一致。\n\n因此，我认为：\n- 服务依赖成功：fulfilled\n- 字段选择正确：app_ins_relationship_desc 用于表达投被保关系\n- 操作符EQ和值\"本人\"正确\n- 条件完整性：单一原子条件，完整\n- 无歧义需要UNSUPPORTED：我认为\"找本人的保单\"在给定的用户意图下（投被保关系本人）是明确的\n\n所以最终判断应全部 fulfilled。\n\n但等等，我需要检查是否有潜在的\"歧义\"问题。原则说\"歧义、条件缺失或越界场景应 UNSUPPORTED且不得返回部分 filter\"。这里查询\"找本人的保单\"是否存在歧义？如果\"本人\"能唯一映射到 app_ins_relationship_desc = \"本人\"，则不歧义。但如果\"本人的保单\"可能指投保人=本人或被保人=本人等多个字段，则存在歧义，应返回UNSUPPORTED。\n\n让我搜索记忆中关于此项目的知识。这是\"保单搜索算法解析\"项目。相关字段可能包括：\n- app_ins_relationship_desc（投被保关系）\n- 可能还有 insured_name, appnt_name 等\n\n如果系统能力中，\"本人\"只通过投被保关系表达，或者这个case的意图明确指定投被保关系为本人，那么输出就是对的。\n\n在该case中，用户意图明确是\"筛选投被保人是否本人为本人的保单\"，即投被保关系为本人。所以filter精确表达了它。\n\n此外，atomic_condition scenario 也表明这是一个单条件测试。\n\n考虑到业务角度：\"投被保人是否本人\" —— 如果用户本人（操作者）是投保人也是被保人，那么这张保单就是\"本人的保单\"。输出filter app_ins_relationship_desc=\"本人\" 意味着投被保人为同一人。但严格说，这并没有验证\"投被保人就是操作者本人\"，只验证了\"投保人=被保人（关系为本人）\"。不过，在保险数据模型中，app_ins_relationship=\"本人\"通常在业务上就是指客户给本人投保，即被保人是客户本人。\n\n好，我认为输出是正确的。让我构建输出。\n\nbusiness_expectations 拆解：\n1. 服务依赖成功（dependency availability）—— 判断能否将服务输出视为有效结果。blocking: true\n2. 字段选择正确：投被保关系字段表达\"本人\"\n3. 操作符与值正确：EQ + \"本人\"\n4. 条件完整性与歧义处理：单一原子条件完整，无歧义，返回SUCCESS给出完整filter\n5. 响应结构契约：code/msg/status/query/filter/message 格式正确\n\n但是参照schema，business_expectations 需要 expectation_id, blocking 必填。其他可选。\n\n我需要给出：\n- expected（根据self-produced reference 或 case 中目标的期望）：这里 reference_contract 是空 {}，所以我自己推导 expected。expected 结构是 policy_search 项目 live output 结构：code,msg,status,query,filter,message。\n\nexpected 应该是：\n{\n  \"code\": 0,\n  \"msg\": \"success\",\n  \"status\": \"SUCCESS\",\n  \"query\": \"找本人的保单\",\n  \"filter\": {\"type\":\"PREDICATE\",\"field\":\"app_ins_relationship_desc\",\"operator\":\"EQ\",\"value\":\"本人\"},\n  \"message\": \"解析成功\"\n}\n\n- missing/wrong/extra：无 gap，应为空数组\n- evidence：列出证据\n- reasoning_summary：中文\n\n- fulfillment_assessments：对应每个 expectation\n\n- applicable_product_expectation_ids：这是什么？项目契约的预期ID。由于没有明确给出，可能为空数组或相关ID。schema只要求是数组。我可以给 [\"policy_parse_success\"] 或者空。由于 reference_contract 是空的，没有预期的 product expectation ID，我给空数组或不给？schema说 fulfillment_assessments 必填，但 applicable_product_expectation_ids 在 required 里没有列出。不过强约束只说必须包含 required 列表字段。required 是 [\"expected\", \"business_expectations\", \"reasoning_summary\"]。所以 applicable_product_expectation_ids 和 fulfillment_assessments 不是严格必填？但 schema properties 里有它们。为了完整性，我还是提供。\n\n关于适用的产品期望ID，因为没有背景，我给一个描述性ID比如 [\"policy_search_executable_filter\"]？但这可能不合适。也许可以用 case 相关。实际上我不确定，给空数组也可以？schema 没 minItems。不过为了稳健，我给 []？还是给一个有意义的。我觉得这里不给也行，但既然定义了字段，最好输出。我给 [] 吧，因为没有明确的 reference 契约。\n\n嗯，等等。applicable_product_expectation_ids 的语义是\"适用的产品期望ID\"。这可能指从 golden manifest 或项目契约中声明的期望ID。由于 reference_contract 为空，我没有这些信息。给空数组是合理的。\n\n好，现在详细构建 business_expectations：\n\n1. expectation_id: \"服务依赖可用且返回完整filter\"\n   - blocking: true\n   - downstream_consumer: 保单搜索解析接口下游（语法树执行器）\n   - user_intent: 需要服务能正常解析并返回可执行的结果\n   - expected_outcome: 依赖可用，解析成功，返回 SUCCESS 和 filter\n   - acceptance_criteria: dependency_status=available，status=SUCCESS，filter 非空\n   - priority: high\n\n2. expectation_id: \"投被保关系为本人的筛选语义正确表达\"\n   - blocking: true\n   - user_intent: \"筛选投被保人是否本人为本人的保单\"即表达投被保关系为本人\n   - expected_outcome: filter 使用投被保关系字段且值为“本人”\n   - acceptance_criteria: field=app_ins_relationship_desc, operator=EQ, value=本人\n   - priority: high\n\n3. expectation_id: \"操作符与值准确性\"\n   - 这个可以合并到2。也许拆开：字段选择 vs 操作符值。拆开更原子。\n   - expectation: 操作符EQ和值\"本人\"正确表达语义\n   \n4. expectation_id: \"歧义与安全失败处理\"\n   - blocking: false（此case无歧义，不需要UNSUPPORTED；但如果出现歧义，阻塞用户核心目的——其实歧义处理是安全底线，blocking可能true。不过此case输出SUCCESS，是安全有效的，所以这条只是确认没有歧义场景触发）\n   - expected_outcome: 查询语义明确无歧义，应直接返回SUCCESS完整filter，不得返回部分或不完整filter\n   \n5. expectation_id: \"响应契约合规\"\n   - blocking: false（格式问题不阻塞用户核心目的？其实如果filter结构错了就阻塞。但这里结构正确。响应契约是项目契约，可能是blocking。不过按原则\"只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true\"。响应契约格式属于项目强契约，所以 blocking 可为 true。但为了简洁，可以合并到服务依赖那条。）\n\n让我精简为4个expectation：\n1. 服务依赖可用与解析状态成功（blocking: true）\n2. 投被保关系字段选择正确（blocking: true）\n3. 操作符与值准确表达“本人”（blocking: true）\n4. 条件完整性无歧义超范围且响应契约合规（blocking: false）？  这里混合了两个维度。拆开：\n4. 查询语义无歧义、无越界，无缺失条件（blocking: true——因为歧义时应UNSUPPORTED，返回错误filter会误导下游）\n5. 响应结构契约合规（code=0, msg=success, status=SUCCESS, query回显, filter结构, message）（blocking: false）\n\n嗯，5个也行。原子性更好。\n\n不过，fulfillment_assessments 需要逐一对应。让我定义：\n\nexpectation 1: 服务依赖可用与执行成功\n- downstream_consumer: 语法树执行器\n- user_intent: 获得可执行的筛选结果\n- expected_outcome: 返回 SUCCESS 且 filter 完整可执行\n- required_capabilities: 解析服务的在线可用性\n- acceptance_criteria: [\"dependency_status=available\", \"status=SUCCESS\", \"filter 为完整谓词节点\"]\n- boundary: 若依赖不可用需 fallback 或安全失败\n- priority: P0\n- blocking: true\n\nexpectation 2: 投被保关系字段选择准确\n- user_intent: “本人”关系表达投被保关系\n- expected_outcome: filter.field=app_ins_relationship_desc\n- acceptance_criteria: [\"field == app_ins_relationship_desc\", \"不使用投保人或被保人名称字段来表达此语义\"]\n- blocking: true\n\nexpectation 3: 操作符和值准确\n- user_intent: 语义为“关系等于本人”\n- expected_outcome: operator=EQ, value=本人\n- acceptance_criteria: [\"operator == EQ\", \"value == 本人\"]\n- blocking: true\n\nexpectation 4: 条件完整性且无歧义\n- user_intent: 查询无歧义，不应返回部分filter\n- expected_outcome: 单原子条件完整覆盖意图，不缺失、不越界\n- acceptance_criteria: [\"查询“找本人的保单”在业务配置下唯一映射到投被保关系=本人\", \"filter只有一个谓词且无缺失条件\"]\n- blocking: true\n\nexpectation 5: 响应契约与字段格式合规\n- user_intent: 下游按契约消费\n- expected_outcome: code/msg/status/query/filter/message 齐全且格式正确\n- acceptance_criteria: [\"code=0\", \"msg=success\", \"status=SUCCESS\", \"query回显原query\", \"filter为PREDICATE节点\", \"message非空\"]\n- blocking: false（格式虽重要但不阻断核心筛选目的……不过按\"项目强契约\"可能blocking。我认为响应契约属于项目强契约，会影响下游消费。但此处只是为了判断质量，不是核心语义。我标记 false）\n\n好，现在 fulfillment_assessments：\n\nexpectation 1: status=fulfilled\n- expected_evidence: [\"dependency_status=available\", \"status=SUCCESS\", \"filter 为 PREDICATE 节点\"]\n- actual_evidence: [\"application_boundary.dependency_status = available\", \"final_output.status = SUCCESS\", \"filter = {type: PREDICATE, field: app_ins_relationship_desc, operator: EQ, value: 本人}\", \"call_status = succeeded\"]\n- downstream_impact: 下游可安全执行该 filter\n- authority_tool_call_ids: []（没有工具调用，纯解析）\n\nexpectation 2: fulfilled\n- expected_evidence: [\"field=app_ins_relationship_desc\"]\n- actual_evidence: [\"filter.field = app_ins_relationship_desc\"]\n- downstream_impact: 正确限定投被保关系维度，避免误用名称字段\n- authority_tool_call_ids: []\n\nexpectation 3: fulfilled\n- expected_evidence: [\"operator=EQ\", \"value=本人\"]\n- actual_evidence: [\"filter.operator = EQ\", \"filter.value = 本人\"]\n- downstream_impact: 精确匹配投被保关系为“本人”的保单\n\nexpectation 4: fulfilled\n- expected_evidence: [\"单个 PREDICATE 条件完整覆盖意图\", \"无缺失或越界条件\"]\n- actual_evidence: [\"filter 为单 PREDICATE 节点\", \"node_id n0 无 AND/OR 分支\", \"意图“投被保关系为本人”已完整表达\"]\n- downstream_impact: 无歧义，筛选结果准确\n\nexpectation 5: fulfilled\n- expected_evidence: [\"code=0\", \"msg=success\", \"status=SUCCESS\", \"query=找本人的保单\", \"message非空\"]\n- actual_evidence: [\"code=0\", \"msg=success\", \"status=SUCCESS\", \"query=找本人的保单\", \"message=解析成功\"]\n- downstream_impact: 下游可正常消费响应\n\nexpected 字段：\n{\n  \"code\": 0,\n  \"msg\": \"success\",\n  \"status\": \"SUCCESS\",\n  \"query\": \"找本人的保单\",\n  \"filter\": {\"type\":\"PREDICATE\",\"node_id\":\"n0\",\"field\":\"app_ins_relationship_desc\",\"operator\":\"EQ\",\"value\":\"本人\"},\n  \"message\": \"解析成功\"\n}\n\nmissing: []\nwrong: []\nextra: []\nevidence: 列出关键证据对象：\n- {\"evidence_type\": \"final_output\", \"data\": {...}}\n- {\"evidence_type\": \"application_boundary\", \"data\": {\"dependency_status\": \"available\", ...}}\n- {\"evidence_type\": \"project_fields\", \"data\": {\"parse_status\": \"SUCCESS\", \"filter_root_type\": \"PREDICATE\"}}\n- {\"evidence_type\": \"scenario\", \"data\": \"atomic_condition\"}\n\nreasoning_summary：中文说明判断过程。\n\n关于 user_intent 与 query 的一致性：user_intent 说\"筛选投被保人是否本人为本人的保单\"，query 是\"找本人的保单\"。两者都指向投被保关系为本人。输出filter完全匹配。\n\n有一个细节需要再考虑：值\"本人\"。在数据库中，\"本人\"作为枚举值存在于 app_ins_relationship_desc 中吗？我没有看到字段能力清单。但从输出本身看，系统返回了这个filter，且业务配置应该是支持的（business_config PRD）。在没有相反证据的情况下，我认为这与能力一致。\n\n另外，关于歧义：\"找本人的保单\" 可能在其他场景指\"投保人是本人\"（insurant=本人）或\"被保人是本人\"。但本项目case的意图已明确为\"投被保关系为本人\"，且业务配置可能将\"本人的保单\"映射到投被保关系。这是atomic_condition场景，query很短，表达单一语义。我判断无歧义。\n\n不过，等等。让我再想想 \"投被保人是否本人为本人的保单\" 这个中文。拆解：\"投被保人\"（投保人和被保人）\"是否本人\"（是不是本人）\"为本人\"（是本人）\"的保单\"。这有点像\"筛选 投保人/被保人是否为本人（即本人投保被保）的保单\"，即投被保关系为本人。输出正好是 app_ins_relationship_desc=本人。吻合。\n\n另一个解释：\"投被保人是否本人\" —— 也许意图是\"投保人是否为被保人本人\"，即投被保同一人。同样对应关系字段=本人。吻合。\n\n好，结论是 fulfilled。\n\n关于 blocking 设置，我上面已经决定。但按原则，blocking 只应设 true 当会阻断核心目的。expectation 5（响应契约合规）属于项目强契约，可考虑 true。但为了避免过度阻断，我设 false，因为核心筛选语义已正确，契约字段非空且可用。嗯，但\"项目强契约\"包括协议格式。如果格式不对，下游无法消费。这里格式正确，blocking 与否只影响派生整体状态。我认为把契约设为 blocking=false 合理，因为它只是终端展示质量，不影响已正确的筛选结果。\n\n也可以把 expectation 5 合并到 1。但保持原子性，我保留5个。\n\napplicable_product_expectation_ids：由于 reference_contract 为空且没有明确指出，我给空数组 []。但也许应该给描述性ID。schema 要求 items 是 string minLength 1，空数组是允许的。好，我用 []。\n\n等等，还要考虑是否为每个 assessment 提供 score。score 类型 number|null。我可以给 1.0（完全满足），或 null。给 1.0 表示满分。嗯，score 语义不明确，给 null 更安全？还是给数值？没有明确要求填 score。我填 null 以避免误导。\n\nexpected_evidence 和 actual_evidence 必须是数组。\n\n最终 JSON 要合法，注意转义。我会直接构建。\n\n再检查 expected 的 filter：允许 object 或 null。我给出实际 filter，但 node_id 是否包含？expected 是自产 reference，应与 actual 一致。我包含 node_id n0。\n\nreasoning_summary 中文，总结：\n- 服务依赖可用（dependency_status=available），解析执行成功（SUCCESS），filter完整\n- query“找本人的保单”在业务意图（投被保关系为本人）下，映射为 app_ins_relationship_desc EQ \"本人\"，字段、操作符、值均准确\n- 单原子条件，无缺失、无歧义、无越界，无需UNSUPPORTED\n- 响应契约合规\n- 无 missing/wrong/extra gap\n\n好，输出。注意首字符 { 末字符 }，无代码围栏。\n\n让我构造 final JSON。",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "policy_search",
+  "prompt_size": 19698,
+  "record_id": "240d2da0-870e-4fe6-91d7-da881cbc14ac",
+  "response": {
+    "content": "{\n  \"expected\": {\n    \"code\": 0,\n    \"msg\": \"success\",\n    \"status\": \"SUCCESS\",\n    \"query\": \"找本人的保单\",\n    \"filter\": {\n      \"type\": \"PREDICATE\",\n      \"node_id\": \"n0\",\n      \"field\": \"app_ins_relationship_desc\",\n      \"operator\": \"EQ\",\n      \"value\": \"本人\"\n    },\n    \"message\": \"解析成功\"\n  },\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"服务依赖可用且解析执行成功\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单搜索语法树执行器\",\n      \"user_intent\": \"解析服务必须在线可用并产出可执行的筛选结果\",\n      \"expected_outcome\": \"依赖可用，返回 SUCCESS 且 filter 为完整可执行的谓词节点\",\n      \"required_capabilities\": [\"在线解析服务可用性\", \"生成可执行 filter\"],\n      \"acceptance_criteria\": [\n        \"dependency_status 为 available\",\n        \"status 为 SUCCESS\",\n        \"filter 为完整 PREDICATE 节点\",\n        \"call_status 为 succeeded\"\n      ],\n      \"boundary\": {\n        \"依赖不可用时的安全行为\": \"不得返回部分 filter，应安全失败\"\n      },\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"投被保关系字段选择准确\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"语法树执行器与保单检索模块\",\n      \"user_intent\": \"用户想筛投被保关系为“本人”的保单，必须使用关系维度字段而非姓名维度字段\",\n      \"expected_outcome\": \"filter.field 使用 app_ins_relationship_desc 表达投被保关系\",\n      \"required_capabilities\": [\"投被保关系字段识别\", \"关系值枚举映射\"],\n      \"acceptance_criteria\": [\n        \"field 为 app_ins_relationship_desc\",\n        \"未使用投保人或被保人姓名字段表达该关系语义\"\n      ],\n      \"boundary\": {\n        \"字段混淆\": \"若用 insurant/insured 名称字段则视为错误\"\n      },\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"操作符与值表达精确\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索模块\",\n      \"user_intent\": \"语义为“投被保关系等于本人”，需要用精确相等匹配\",\n      \"expected_outcome\": \"operator 为 EQ，value 为 本人\",\n      \"required_capabilities\": [\"枚举值_EQ比较\"],\n      \"acceptance_criteria\": [\n        \"operator 为 EQ\",\n        \"value 为 本人\"\n      ],\n      \"boundary\": {\n        \"模糊匹配\": \"若使用 CONTAINS/LIKE 或错误值则视为缺陷\"\n      },\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"条件完整无歧义无越界\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"语法树执行器\",\n      \"user_intent\": \"“找本人的保单”在给定业务意图下语义明确，应完整表达单一原子条件，不缺失、不越界\",\n      \"expected_outcome\": \"返回单个 PREDICATE 条件，完整覆盖投被保关系=本人的语义\",\n      \"required_capabilities\": [\"原子条件解析\", \"歧义识别\"],\n      \"acceptance_criteria\": [\n        \"filter 仅含一个谓词且无 AND/OR 分支\",\n        \"不存在缺失的必填条件\",\n        \"不存在越界或超出 query 语义的条件\"\n      ],\n      \"boundary\": {\n        \"歧义情形\": \"若 query 存在多义且无上下文消歧，应返回 UNSUPPORTED，不得返回部分 filter\"\n      },\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"响应契约合规\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"上游智能体对接方\",\n      \"user_intent\": \"响应结构必须符合保单搜索解析接口契约，便于下游稳定消费\",\n      \"expected_outcome\": \"code/msg/status/query/filter/message 字段齐全且格式正确\",\n      \"required_capabilities\": [\"契约序列化\"],\n      \"acceptance_criteria\": [\n        \"code 为 0\",\n        \"msg 为 success\",\n        \"status 为 SUCCESS\",\n        \"query 回显原查询\",\n        \"filter 为 PREDICATE 节点\",\n        \"message 非空\"\n      ],\n      \"boundary\": {},\n      \"priority\": \"P1\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"服务依赖可用且解析执行成功\",\n      \"status\": \"fulfilled\",\n      \"score\": null,\n      \"expected_evidence\": [\n        \"dependency_status=available\",\n        \"status=SUCCESS\",\n        \"filter 为完整 PREDICATE 节点\"\n      ],\n      \"actual_evidence\": [\n        \"application_boundary.dependency_status = available\",\n        \"final_output.status = SUCCESS\",\n        \"final_output.filter = {\\\"type\\\":\\\"PREDICATE\\\",\\\"field\\\":\\\"app_ins_relationship_desc\\\",\\\"operator\\\":\\\"EQ\\\",\\\"value\\\":\\\"本人\\\"}\",\n        \"turn.call_status = succeeded\"\n      ],\n      \"downstream_impact\": \"下游可安全执行该 filter，检索投被保关系为“本人”的保单\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"投被保关系字段选择准确\",\n      \"status\": \"fulfilled\",\n      \"score\": null,\n      \"expected_evidence\": [\n        \"field=app_ins_relationship_desc\"\n      ],\n      \"actual_evidence\": [\n        \"filter.field = app_ins_relationship_desc\"\n      ],\n      \"downstream_impact\": \"检索在投被保关系维度精确限定为“本人”，避免误用姓名维度产生偏差\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"操作符与值表达精确\",\n      \"status\": \"fulfilled\",\n      \"score\": null,\n      \"expected_evidence\": [\n        \"operator=EQ\",\n        \"value=本人\"\n      ],\n      \"actual_evidence\": [\n        \"filter.operator = EQ\",\n        \"filter.value = 本人\"\n      ],\n      \"downstream_impact\": \"精确匹配投被保关系为“本人”的保单记录，查询结果准确\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"条件完整无歧义无越界\",\n      \"status\": \"fulfilled\",\n      \"score\": null,\n      \"expected_evidence\": [\n        \"单个 PREDICATE 条件完整覆盖“投被保关系=本人”语义\",\n        \"无缺失条件、无越界条件\"\n      ],\n      \"actual_evidence\": [\n        \"filter 为单 PREDICATE 节点，无 AND/OR 分支\",\n        \"query 语义“找本人的保单”与用户意图“投被保关系为本人”一致，无需 UNSUPPORTED\",\n        \"scenario 为 atomic_condition，单条件表达完整\"\n      ],\n      \"downstream_impact\": \"无歧义地筛出投被保关系为“本人”的保单，结果无遗漏也无多余限定\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"响应契约合规\",\n      \"status\": \"fulfilled\",\n      \"score\": null,\n      \"expected_evidence\": [\n        \"code=0\",\n        \"msg=success\",\n        \"status=SUCCESS\",\n        \"query=找本人的保单\",\n        \"message 非空\"\n      ],\n      \"actual_evidence\": [\n        \"final_output.code = 0\",\n        \"final_output.msg = success\",\n        \"final_output.status = SUCCESS\",\n        \"final_output.query = 找本人的保单\",\n        \"final_output.message = 解析成功\"\n      ],\n      \"downstream_impact\": \"上游可稳定解析响应并继续消费筛选结果\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"missing\": [],\n  \"wrong\": [],\n  \"extra\": [],\n  \"evidence\": [\n    {\n      \"evidence_type\": \"final_output\",\n      \"data\": {\n        \"code\": 0,\n        \"msg\": \"success\",\n        \"status\": \"SUCCESS\",\n        \"query\": \"找本人的保单\",\n        \"filter\": {\n          \"type\": \"PREDICATE\",\n          \"field\": \"app_ins_relationship_desc\",\n          \"operator\": \"EQ\",\n          \"value\": \"本人\"\n        },\n        \"message\": \"解析成功\"\n      }\n    },\n    {\n      \"evidence_type\": \"application_boundary\",\n      \"data\": {\n        \"dependency_status\": \"available\",\n        \"allow_fallback\": false,\n        \"notes\": \"parser returned an executable filter\"\n      }\n    },\n    {\n      \"evidence_type\": \"project_fields\",\n      \"data\": {\n        \"parse_status\": \"SUCCESS\",\n        \"filter_root_type\": \"PREDICATE\"\n      }\n    },\n    {\n      \"evidence_type\": \"scenario\",\n      \"data\": \"atomic_condition\"\n    }\n  ],\n  \"reasoning_summary\": \"用户意图为筛选“投被保关系为本人”的保单，query 为“找本人的保单”。服务依赖状态为 available，解析执行成功且返回完整 filter，满足执行前提。filter 使用 app_ins_relationship_desc 字段表达投被保关系维度，操作符 EQ、值“本人”与语义精确对应；该意图为单一原子条件，无缺失、无歧义、无越界，因此返回 SUCCESS 并给出完整谓词是正确行为，无需 UNSUPPORTED。响应结构中 code=0、msg=success、status=SUCCESS、query 回显、filter 为 PREDICATE 节点、message 非空，符合接口契约。综上，各 expectation 均满足，无 missing/wrong/extra 差异。\"\n}",
+    "metrics": {
+      "cache_read_tokens": 2304,
+      "cache_write_tokens": 0,
+      "input_tokens": 4075,
+      "output_tokens": 7639,
+      "reasoning_tokens": 5420,
+      "total_tokens": 11714
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 71097,
+          "endpoint": "fallback1",
+          "model": "deepseek-v4-flash-0731",
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "selected_endpoint": "fallback1",
+      "selected_model": "deepseek-v4-flash-0731",
+      "stage": ""
+    }
+  },
+  "trace_id": "policy_search:policy-search-rich-0069:1786468165761"
+}

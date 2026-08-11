@@ -5,11 +5,11 @@ python:
 
 server:
   host: 127.0.0.1
-  port: 8020
+  port: 8022
 
 uat:
   host: 127.0.0.1
-  port: 8021
+  port: 8023
 
 browser:
   driver_path: chromedriver
@@ -20,10 +20,8 @@ llm:
   model: deepseek-v4-pro
   base_url: https://api.deepseek.com/v1
   temperature: 0
-  reasoning_effort: max
+  reasoning_effort: high
   request_timeout_seconds: 600
-  max_attempts: 2
-  retry_delay_seconds: 2
   capabilities:
     json_mode: true
     tool_calls: true
@@ -79,6 +77,7 @@ attribute:
     judge_gap_chars: 1500
     judge_reasoning_chars: 2000
 
+# 请通过.env环境变量指定下述绑定配置
 environment:
   variables:
     PYTHON_EXECUTABLE:
@@ -157,6 +156,48 @@ environment:
       required: false
       secret: false
       description: 临时覆盖 live_stub 角色的 LLM model
+
+    LLM_FALLBACK_1_BASE_URL:
+      bind: llm.fallback_1.base_url
+      type: url
+      required: false
+      secret: false
+      description: 备用 LLM 端点 1 的 base URL（主端点不可用时自动降级）
+
+    LLM_FALLBACK_1_MODEL:
+      bind: llm.fallback_1.model
+      type: string
+      required: false
+      secret: false
+      description: 备用 LLM 端点 1 的 model
+
+    LLM_FALLBACK_1_API_KEY:
+      bind: llm.fallback_1.api_key
+      type: string
+      required: false
+      secret: true
+      description: 备用 LLM 端点 1 的 API Key
+
+    LLM_FALLBACK_2_BASE_URL:
+      bind: llm.fallback_2.base_url
+      type: url
+      required: false
+      secret: false
+      description: 备用 LLM 端点 2 的 base URL（主端点与备1不可用时自动降级）
+
+    LLM_FALLBACK_2_MODEL:
+      bind: llm.fallback_2.model
+      type: string
+      required: false
+      secret: false
+      description: 备用 LLM 端点 2 的 model
+
+    LLM_FALLBACK_2_API_KEY:
+      bind: llm.fallback_2.api_key
+      type: string
+      required: false
+      secret: true
+      description: 备用 LLM 端点 2 的 API Key
 
     BAILIAN_API_KEY:
       bind: embedding.api_key

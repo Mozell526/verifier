@@ -20,7 +20,7 @@ from impl.core.schema import (
     SingleTurnCase,
     TraceExecutionContext,
 )
-from impl.projects.client_search.capability_manifest import build_capability_manifest
+from impl.projects.client_search.capability_manifest import build_capability_manifest, lean_capability_manifest
 
 _SERVICE_LOCK = threading.Lock()
 
@@ -69,6 +69,10 @@ def source_config_paths(spec: ProjectSpec) -> Dict[str, str]:
     return {
         "source_field_definitions": spec.source_path("field_definitions"),
         "source_field_enums": spec.source_path("field_enums"),
+        "source_planfullname_enums": spec.source_path("planfullname_enums"),
+        "source_abbrname_enums": spec.source_path("abbrname_enums"),
+        "source_claimplancodename_enums": spec.source_path("claimplancodename_enums"),
+        "source_profname_enums": spec.source_path("profname_enums"),
         "source_value_mappings": spec.source_path("value_mappings"),
         "source_enhanced_rules": spec.source_path("enhanced_rules"),
     }
@@ -78,10 +82,31 @@ def external_boundary_sources(spec: ProjectSpec) -> Dict[str, Any]:
     return {"config_paths": source_config_paths(spec)}
 
 
-def capability_manifest(spec: ProjectSpec) -> dict:
+def capability_manifest(spec: ProjectSpec, *, full: bool = False) -> dict:
+    """共享层能力清单。
+
+    - full=False（默认）：prompt-safe lean 版本，超大枚举只保留少量候选并标记
+      enum_values_truncated / enum_total_count；全量枚举由 authority EvidenceSpace
+      或文件直读提供（spec/alg/authority.md §4.2 EvidenceSpace/Materializer）。
+    - full=True：完整枚举清单，供 draft 命中检测等需要全量值的确定性逻辑使用。
+    """
     try:
         config_paths = source_config_paths(spec)
-        return build_capability_manifest(config_paths.get("source_field_definitions"))
+        enum_paths = [
+            config_paths.get("source_field_enums"),
+            config_paths.get("source_planfullname_enums"),
+            config_paths.get("source_abbrname_enums"),
+            config_paths.get("source_claimplancodename_enums"),
+            config_paths.get("source_profname_enums"),
+        ]
+        enum_paths = [path for path in enum_paths if path]
+        manifest = build_capability_manifest(
+            config_paths.get("source_field_definitions"),
+            enums_path=enum_paths,
+        )
+        if full:
+            return manifest
+        return lean_capability_manifest(manifest)
     except Exception:
         return {}
 

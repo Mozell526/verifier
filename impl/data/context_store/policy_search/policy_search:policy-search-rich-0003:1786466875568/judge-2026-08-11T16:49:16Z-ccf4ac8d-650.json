@@ -1,0 +1,303 @@
+{
+  "caller": "judge",
+  "created_at": "2026-08-11T16:49:16Z",
+  "elapsed_ms": 80462,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "production"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "e414b521abc93c73054f2112d8f98d8979832ef8ea53e785f0717a04878c9280",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [],
+      "lineage": {
+        "call_id": "",
+        "case_id": "policy-search-rich-0003",
+        "trace_id": "policy_search:policy-search-rich-0003:1786466875568"
+      },
+      "messages": [
+        {
+          "char_count": 7368,
+          "content_sha256": "f5559e2831ea15fd5d0a75f202e64faec2eaf6fc95f6497abac519065bb1f636",
+          "role": "system"
+        },
+        {
+          "char_count": 5576,
+          "content_sha256": "13c173c8e77633f3036e9fee1ce08d370d6dca735b4ddb8458451e677e5ddcfe",
+          "role": "user"
+        }
+      ],
+      "mode": "production",
+      "output_contract": {
+        "field_names": [
+          "acceptance_criteria",
+          "actual",
+          "actual_evidence",
+          "applicable_product_expectation_ids",
+          "authority_tool_call_ids",
+          "blocking",
+          "boundary",
+          "business_expectations",
+          "code",
+          "downstream_consumer",
+          "downstream_impact",
+          "error_type",
+          "evidence",
+          "evidence_ref",
+          "expectation_id",
+          "expected",
+          "expected_evidence",
+          "expected_outcome",
+          "extra",
+          "filter",
+          "fulfillment_assessments",
+          "incomplete",
+          "kind",
+          "message",
+          "missing",
+          "msg",
+          "priority",
+          "query",
+          "raw",
+          "reasoning_summary",
+          "required_capabilities",
+          "score",
+          "status",
+          "user_intent",
+          "wrong"
+        ],
+        "identity": "impl.core.schema.judge.JudgeLLMOutput",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "1ebd986c8c695abe1e8329086ca3fa881a0eaa83fe0e670d24af6af6d4fad2f0",
+        "sha256": "1ebd986c8c695abe1e8329086ca3fa881a0eaa83fe0e670d24af6af6d4fad2f0"
+      },
+      "project_id": "policy_search",
+      "prompt_char_count": 12944,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 5576,
+        "occurred": false
+      },
+      "role": "judge",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 1725,
+          "content_sha256": "5727bfa7858a8ce05122cd632b62736542f3792c880caa51ab16c7257d1f754b",
+          "order": 0,
+          "role": "judge",
+          "segment_id": "compiled-system",
+          "source": "impl/core/judge.py#judge_trace",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 5576,
+          "content_sha256": "13c173c8e77633f3036e9fee1ce08d370d6dca735b4ddb8458451e677e5ddcfe",
+          "order": 1,
+          "role": "judge",
+          "segment_id": "case-user-payload",
+          "source": "trace://judge-evidence-view",
+          "stage": "judge"
+        }
+      ],
+      "stage": "judge",
+      "tool_plan": []
+    }
+  },
+  "llm_model": "deepseek-v4-flash-0731",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "你是通用评估系统的 judge agent。\n\n## 核心原则\n只基于当前 RunTrace、项目评判标准和动态检索的知识库内容判断，不继承历史 case。\n首要职责：理解用户/下游消费者的真实业务意图 → 派生 business_expectations → 基于完整执行链路（每轮 output、最终 output、交互过程和停止事实）判断 expectations 的 fulfillment。\n\n## expectation 拆分原则\nbusiness_expectations 的粒度直接决定判断精度。每个 expectation 必须是原子、独立可评价的判断单元：证据充分时判 fulfilled 或 not_fulfilled；确需评价但当前证据不足时按协议判 not_evaluable。\n- 一个 expectation 只描述一个可独立验证的结果维度\n- 多维度意图必须拆成多个 expectation\n- 每个 expectation 必须有明确的 acceptance_criteria\n- 每个 expectation 必须在比较 actual 前确定 blocking：只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true\n- fulfillment_assessments 只判断对应 expectation 的 status 和证据，不得重新定义 blocking\n- expectation_id 必须是描述性的中文短语，禁止使用 E1/E2/exp_01 等占位符 ID\n- reasoning_summary 必须是中文写成的判断依据\n\n## 输出词表\n`fulfillment_assessments[*].status` 必须从以下 3 个值中选择：\n  - fulfilled：该 expectation 完全满足\n  - not_fulfilled：该 expectation 未满足\n  - not_evaluable：当前无法评估\n禁用 failed/passed/incorrect/wrong/met/unmet/partially_fulfilled/partial/success/fail/ok/unknown 等同义词。\n`fulfillment_assessments[*].expected_evidence` 与 `actual_evidence` **必须是数组**（JSON array / list），即使只有一条证据也要用 `[...]` 包裹，不可直接用字符串或对象。\n\n不要输出 overall_fulfillment；公共层会在项目契约补充完成后根据 blocking expectations 确定性派生整体状态。\n\n## 评估规范\n\n\n## 评估边界\n\n\n## 判断标准\n\n\n\n\n你评价的是保单筛选语义是否被完整、可执行且安全地表达。先判断服务依赖是否成功，再比较 query 与 filter。忽略 node_id 命名差异；允许逻辑等价的树。字段、操作符、值、角色、AND/OR/NOT 作用域、日期边界和条件完整性都必须正确。SUCCESS 必须有完整 filter；歧义、条件缺失或越界场景应 UNSUPPORTED 且不得返回部分 filter。业务实现、prompt 和配置是当前能力证据，不是不可质疑的自证。\n## 工具使用原则\n所有工具的用途、调用时机和参数含义以 Agno tool schema 为准；user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息。\n\n## 禁止事项\n- 不要把 reference answer 当作默认主目标（除非 case 明确指定）\n- 不要把 HTTP 状态、run_status、attribute/cluster 结论当作满足依据\n- 不要归因内部代码、配置或 prompt 原因（属于 attribute agent）\n- 分析文字必须使用中文，包括 reasoning_summary 等所有文本字段。\n\n\n## 输出约束：judge 判定输出（自产 reference + fulfillment 判定）\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"business_expectations\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeBusinessExpectationOutput\"\n      },\n      \"minItems\": 1\n    },\n    \"applicable_product_expectation_ids\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"fulfillment_assessments\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeFulfillmentAssessmentOutput\"\n      }\n    },\n    \"expected\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"code\": {\n          \"type\": \"integer\"\n        },\n        \"msg\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"query\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"filter\": {\n          \"type\": [\n            \"object\",\n            \"null\"\n          ]\n        },\n        \"message\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"code\",\n        \"msg\",\n        \"status\",\n        \"query\",\n        \"filter\",\n        \"message\"\n      ]\n    },\n    \"missing\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"wrong\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"extra\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"evidence\": {\n      \"type\": \"array\",\n      \"items\": {}\n    },\n    \"reasoning_summary\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    }\n  },\n  \"additionalProperties\": false,\n  \"$defs\": {\n    \"JudgeBusinessExpectationOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"blocking\": {\n          \"type\": \"boolean\"\n        },\n        \"downstream_consumer\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"user_intent\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected_outcome\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"required_capabilities\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"acceptance_criteria\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"boundary\": {\n          \"type\": \"object\"\n        },\n        \"priority\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"blocking\"\n      ]\n    },\n    \"JudgeFulfillmentAssessmentOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"score\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        },\n        \"expected_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"actual_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"downstream_impact\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"authority_tool_call_ids\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"status\"\n      ]\n    },\n    \"GapItem\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"kind\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"error_type\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected\": {},\n        \"actual\": {},\n        \"evidence_ref\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"raw\": {},\n        \"incomplete\": {\n          \"type\": \"boolean\"\n        }\n      },\n      \"additionalProperties\": false\n    }\n  },\n  \"required\": [\n    \"expected\",\n    \"business_expectations\",\n    \"reasoning_summary\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['business_expectations', 'expected', 'reasoning_summary']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n\n### 嵌套字段子结构约束\n以下字段内部的子结构也必须严格遵守，不可随意编造字段名或类型：\n- **`expected`** 字段 (项目 policy_search 的 expected/live output 结构) 必须符合以下结构：\n  ```json\n  {\n    \"type\": \"object\",\n    \"properties\": {\n      \"code\": {\n        \"type\": \"integer\"\n      },\n      \"msg\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"status\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"query\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"filter\": {\n        \"type\": [\n          \"object\",\n          \"null\"\n        ]\n      },\n      \"message\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"additionalProperties\": false,\n    \"required\": [\n      \"code\",\n      \"msg\",\n      \"status\",\n      \"query\",\n      \"filter\",\n      \"message\"\n    ]\n  }\n  ```\n",
+      "created_at": 1786466880,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "6de1ba51-4931-4299-9fc1-6ec5bff41a3c",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"user_intent\": \"筛选来源渠道为寿险的保单\", \"run_trace\": {\"trace_id\": \"policy_search:policy-search-rich-0003:1786466875568\", \"project_id\": \"policy_search\", \"case_id\": \"policy-search-rich-0003\", \"intent_input\": {\"session_id\": \"policy-search-rich-0003\", \"trace_id\": \"policy-search-rich-0003\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"找寿险的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"normalized_request\": {\"session_id\": \"policy-search-rich-0003\", \"trace_id\": \"policy-search-rich-0003\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"找寿险的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"final_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"找寿险的保单\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"pol_source\", \"operator\": \"EQ\", \"value\": \"寿险\"}, \"message\": \"解析成功\"}, \"final_output_turn\": 1, \"turns\": [{\"turn_index\": 1, \"request\": {\"session_id\": \"policy-search-rich-0003\", \"trace_id\": \"policy-search-rich-0003\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"找寿险的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"extracted_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"找寿险的保单\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"pol_source\", \"operator\": \"EQ\", \"value\": \"寿险\"}, \"message\": \"解析成功\"}, \"call_status\": \"succeeded\", \"runtime_ms\": 116, \"error\": null, \"fallbacks\": [], \"validation\": [], \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"application_boundary\": {\"dependency_status\": \"available\", \"allow_fallback\": false, \"excluded_evidence\": [], \"notes\": \"parser returned an executable filter\"}, \"project_fields\": {\"parse_status\": \"SUCCESS\", \"filter_root_type\": \"PREDICATE\"}}], \"conversation_transcript\": [], \"conversation_summary\": {\"turn_count\": 1, \"final_output_turn\": 1, \"completion_status\": \"completed\", \"stop_reason\": \"single_turn_completed\", \"interaction_controller_status\": \"not_run\", \"interaction_controller_error\": \"\"}, \"stop_reason\": \"single_turn_completed\", \"completion_status\": \"completed\", \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"evidence_refs\": [], \"raw_response_evidence\": null, \"evidence_completeness\": {\"complete\": true, \"missing_evidence\": []}, \"application_boundary\": {\"dependency_status\": \"available\", \"allow_fallback\": false, \"excluded_evidence\": [], \"notes\": \"parser returned an executable filter\"}, \"reference_contract\": {}, \"scenario\": \"atomic_condition\", \"status\": \"ok\", \"error\": null}, \"query\": \"找寿险的保单\", \"actual_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"找寿险的保单\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"pol_source\", \"operator\": \"EQ\", \"value\": \"寿险\"}, \"message\": \"解析成功\"}, \"reference_contract\": {}, \"business_evidence_paths\": {\"api_contract\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索算法解析接口文档（智能体对接稿）.md\", \"filter_contract\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索查询语法树协议（首期精简版）.md\", \"technical_design\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索算法解析技术方案（当前实现版）.md\", \"business_config\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/configs/insurance_search_business_config_prd.json\", \"runtime_config\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/configs/insurance_search_runtime_config_prd.json\", \"golden_manifest\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/data/golden_dataset/manifest.json\"}, \"evaluation_dimensions\": [\"field_selection\", \"operator_and_value\", \"logical_scope\", \"time_boundary\", \"condition_completeness\", \"safe_failure\"]}",
+      "created_at": 1786466880,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "37249eb1-4fda-49ca-a727-3f23a17f82dd",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"来源渠道字段映射正确\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单查询执行引擎\",\n      \"user_intent\": \"筛选来源渠道为寿险的保单，即“寿险”指保单来源渠道 pol_source 的取值\",\n      \"expected_outcome\": \"query 中的“寿险”被解析为 pol_source 字段的等值条件，而非映射到险种类型等其他字段\",\n      \"required_capabilities\": [\"字段映射\", \"pol_source 来源渠道识别\"],\n      \"acceptance_criteria\": [\"filter.field 为 pol_source\", \"未引入与来源渠道无关的字段\"],\n      \"boundary\": {\n        \"query_ambiguity\": \"“寿险”在通用保险语境可能指人寿保险险种，但本 case 评测意图已明确为来源渠道；按用户意图判定\"\n      },\n      \"priority\": \"high\"\n    },\n    {\n      \"expectation_id\": \"筛选操作符与取值正确\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"查询编译/执行层\",\n      \"user_intent\": \"对来源渠道施加“等于寿险”的筛选\",\n      \"expected_outcome\": \"operator=EQ，value=“寿险”，与 query 语义一致\",\n      \"required_capabilities\": [\"EQ 等值操作符\", \"取值原样还原\"],\n      \"acceptance_criteria\": [\"operator 为 EQ\", \"value 为“寿险”\"],\n      \"boundary\": {},\n      \"priority\": \"high\"\n    },\n    {\n      \"expectation_id\": \"条件完整且逻辑作用域无歧义\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"查询执行引擎\",\n      \"user_intent\": \"query 仅表达一个来源渠道筛选条件，不涉及多条件组合\",\n      \"expected_outcome\": \"filter 为单节点 PREDICATE，无缺失条件、无额外条件、无 AND/OR/NOT 组合歧义\",\n      \"required_capabilities\": [\"单条件解析\", \"PREDICATE 语法树构造\"],\n      \"acceptance_criteria\": [\"filter 仅含一个条件节点\", \"树中无逻辑组合运算符\", \"叶节点的字段/操作符/值完整\"],\n      \"boundary\": {},\n      \"priority\": \"high\"\n    },\n    {\n      \"expectation_id\": \"语义可表达时返回 SUCCESS 且提供完整过滤器\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"调用方应用/智能体\",\n      \"user_intent\": \"查询语义明确且可被完整表达时，应成功返回完整可执行的 filter\",\n      \"expected_outcome\": \"status=SUCCESS、code=0，filter 为完整且非空的过滤树，不返回部分 filter，不误报 UNSUPPORTED\",\n      \"required_capabilities\": [\"解析成功路径\", \"安全失败契约\"],\n      \"acceptance_criteria\": [\"status 为 SUCCESS\", \"code 为 0\", \"filter 为有效 PREDICATE 对象\"],\n      \"boundary\": {\n        \"dependency_status\": \"available\",\n        \"allow_fallback\": false\n      },\n      \"priority\": \"high\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"来源渠道字段映射正确\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\"filter.field 为 pol_source\"],\n      \"actual_evidence\": [\"final_output.filter = {\\\"type\\\":\\\"PREDICATE\\\",\\\"node_id\\\":\\\"n0\\\",\\\"field\\\":\\\"pol_source\\\",\\\"operator\\\":\\\"EQ\\\",\\\"value\\\":\\\"寿险\\\"}\", \"turn 1 extracted_output 与 final_output 完全一致\"],\n      \"downstream_impact\": \"查询将按来源渠道 pol_source=寿险 过滤保单，符合用户核心意图\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"筛选操作符与取值正确\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\"operator 为 EQ\", \"value 为“寿险”\"],\n      \"actual_evidence\": [\"final_output.filter.operator = EQ\", \"final_output.filter.value = 寿险\"],\n      \"downstream_impact\": \"执行层可编译为 pol_source = '寿险' 的等值条件，结果集正确\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"条件完整且逻辑作用域无歧义\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\"filter 为单节点 PREDICATE\", \"无逻辑组合运算符\", \"不缺失、不额外增加条件\"],\n      \"actual_evidence\": [\"final_output.filter.type = PREDICATE 且仅一个节点\", \"query 仅含“寿险”一个条件，filter 无 AND/OR/NOT 节点\"],\n      \"downstream_impact\": \"查询树可直接执行，无逻辑歧义\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"语义可表达时返回 SUCCESS 且提供完整过滤器\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\"status=SUCCESS\", \"code=0\", \"filter 非空且完整\"],\n      \"actual_evidence\": [\"final_output.status = SUCCESS\", \"final_output.code = 0\", \"final_output.filter 为完整 PREDICATE 对象\", \"turn 1 call_status = succeeded，无 fallback\"],\n      \"downstream_impact\": \"调用方获得完整可执行过滤条件，无需回退或二次交互\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"expected\": {\n    \"code\": 0,\n    \"msg\": \"success\",\n    \"status\": \"SUCCESS\",\n    \"query\": \"找寿险的保单\",\n    \"filter\": {\n      \"type\": \"PREDICATE\",\n      \"field\": \"pol_source\",\n      \"operator\": \"EQ\",\n      \"value\": \"寿险\"\n    },\n    \"message\": \"解析成功\"\n  },\n  \"missing\": [],\n  \"wrong\": [],\n  \"extra\": [],\n  \"evidence\": [\n    {\n      \"source\": \"final_output\",\n      \"value\": {\n        \"code\": 0,\n        \"msg\": \"success\",\n        \"status\": \"SUCCESS\",\n        \"query\": \"找寿险的保单\",\n        \"filter\": {\n          \"type\": \"PREDICATE\",\n          \"node_id\": \"n0\",\n          \"field\": \"pol_source\",\n          \"operator\": \"EQ\",\n          \"value\": \"寿险\"\n        },\n        \"message\": \"解析成功\"\n      }\n    },\n    {\n      \"source\": \"application_boundary\",\n      \"value\": {\n        \"dependency_status\": \"available\",\n        \"allow_fallback\": false,\n        \"notes\": \"parser returned an executable filter\"\n      }\n    },\n    {\n      \"source\": \"turn_1_call_status\",\n      \"value\": \"succeeded\"\n    },\n    {\n      \"source\": \"evidence_completeness\",\n      \"value\": {\n        \"complete\": true,\n        \"missing_evidence\": []\n      }\n    }\n  ],\n  \"reasoning_summary\": \"用户意图为筛选来源渠道为寿险的保单，query“找寿险的保单”在本 case 评测语境中明确指向来源渠道 pol_source=寿险。服务依赖可用（dependency_status=available），解析链路单轮成功（call_status=succeeded，无 fallback、无证据缺失）。实际输出为 SUCCESS，filter 为单节点 PREDICATE：field=pol_source、operator=EQ、value=寿险，与 query 语义完全一致，无缺失条件、无额外条件、无逻辑作用域歧义、无时间边界误用。语义可完整表达且返回了完整 filter，符合安全失败契约，未误报 UNSUPPORTED 或返回部分 filter。因此四个 blocking expectation 全部 fulfilled，missing/wrong/extra 均无。\"\n}",
+      "created_at": 1786466880,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "c3402383-55a6-4678-be8c-3d693e443af1",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 2304,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 4078,
+        "output_tokens": 8734,
+        "provider_metrics": null,
+        "reasoning_tokens": 6938,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 12812
+      },
+      "name": null,
+      "provider_data": {
+        "id": "846efe4d-0ae1-45bd-aebb-2f5ce40dd9ed",
+        "model_extra": {
+          "cost": "0"
+        }
+      },
+      "reasoning_content": "我需要分析这个 case。用户意图是\"筛选来源渠道为寿险的保单\"，query 是\"找寿险的保单\"。\n\n首先我需要理解业务能力。query 是\"找寿险的保单\"，实际输出 filter 是 pol_source EQ \"寿险\"。\n\n让我先思考这个 case 的正确性。用户说\"找寿险的保单\"，这个 query 是模糊的。\"寿险\"可能指：\n1. 保单来源渠道（pol_source）为\"寿险\"\n2. 保单类型（险种）为人寿保险\n\n在保险业务中，\"寿险\"通常指人寿保险（险种），即保险产品类型。而\"来源渠道\"（pol_source）通常指保单是通过哪个渠道销售的（如银保、个险、经代等）。\n\n但等等，在项目 knowledge base 中，可能 pol_source 的取值包含\"寿险\"？我需要根据知识库判断。让我看可用信息。\n\n评价维度包括 field_selection, operator_and_value, logical_scope, time_boundary, condition_completeness, safe_failure。\n\n这个问题本质上是：query \"找寿险的保单\" 应该映射到哪个字段？是 pol_source（来源渠道）还是产品险种类型？\n\n用户意图明确写了\"筛选来源渠道为寿险的保单\"，即意图是 pol_source EQ 寿险。这个 case 是评测系统给的，user_intent 就是\"筛选来源渠道为寿险的保单\"。所以业务意图是来源渠道为寿险。\n\n但是 query 是\"找寿险的保单\"。这需要判断实际输出是否正确表达了意图。\n\n嗯，这里有个矛盾点。user_intent 说的是\"筛选来源渠道为寿险的保单\"，这是一个评测的 ground truth 意图。也就是说，在评测设定中，\"寿险\"这里指的是来源渠道（pol_source）。那么 query \"找寿险的保单\" 应该解析为 pol_source EQ \"寿险\"。\n\n实际输出正是 pol_source EQ \"寿险\"，status SUCCESS。\n\n不过我需要思考：query \"找寿险的保单\" 本身是有歧义的。在没有上下文的情况下，\"寿险\"更可能指险种（人寿保险）。但如果业务配置中 pol_source 的可能取值包含\"寿险\"这样的渠道，那么这就是正确的。\n\n我感到需要查看知识库。但这里没有提供知识库内容。business_evidence_paths 指向文档，但没有具体内容。所以我要基于 user prompt 中提供的信息判断。\n\n等等，这个 case 的描述说\"user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息\"。但当前 prompt 没有提供字段能力清单。所以这可能是一个需要靠推理判断的 case。\n\n让我更仔细地考虑。评价维度里有 field_selection。用户意图声明为\"筛选来源渠道为寿险的保单\"，即评测设计者确认意图就是 pol_source。那么 actual output 匹配。\n\n但等等——我需要判断到底哪一个是对的呢？作为 judge，我应该先判断服务依赖是否成功（dependency_status: available），然后比较 query 与 filter。\n\n关键问题：query \"找寿险的保单\" 解析为 pol_source EQ \"寿险\"，在语义上是否正确？\n\n在保险领域：\n- 保单来源渠道（pol_source）通常指销售渠道，例如：个险渠道、银保渠道、电销渠道、网销渠道、经代渠道等。寿险公司本身可以被看作一个来源渠道？在某些集团化运营场景中，保单可能来源于\"寿险\"（相对财险、健康险）子公司。这在保险集团里是合理的：父母公司有寿险子公司和财险子公司，来源渠道可能是\"寿险\"或\"财险\"。\n- 险种（product_type / risk_type）可能是\"人寿保险\"。\n\n如果项目定义了 pol_source 的值域包含\"寿险\"，那么该解析正确。\n\n我假设在这个评测环境中，用户意图\"筛选来源渠道为寿险的保单\"就是标准。实际输出与意图完全一致：\n- field: pol_source（来源渠道）✓\n- operator: EQ（等于）✓\n- value: \"寿险\" ✓\n- 无逻辑作用域问题（单条件）\n- 无时间边界\n- 条件完整（一个条件）\n- safe_failure：成功解析且有完整 filter\n\n所以这是一个完全正确、语义被完整表达的 case。status SUCCESS，filter 完整。\n\n不过我需要谨慎：有没有可能意图应该拆成多个 expectation？用户意图就是\"筛选来源渠道为寿险的保单\"，这是单一原子意图。可以拆成一个 expectation 或多个维度。\n\n让我设计 business_expectations。按照拆解原则，一个期望可以覆盖一个可独立验证的结果维度。这里可以拆成：\n1. 字段选择正确性：筛选字段应为 pol_source（来源渠道）\n2. 操作符与值正确性：operator 应为 EQ，value 应为\"寿险\"\n3. 逻辑作用域正确性：单条件，无嵌套，AND/OR/NOT 作用域无歧义\n4. 时间边界正确性：无时间条件，不应引入额外时间条件\n5. 条件完整性正确性：无遗漏条件（既然 query 只提到一个条件，那么仅此一个）\n6. 安全失败正确性：既然能完整解析，应返回 SUCCESS 且完整 filter，不应返回部分 filter\n\n但这些是否都是独立 expectation？我认为可以合理拆成几个。但注意不要过度拆分。原子且独立可评价。\n\n我认为合理的拆分为：\n- expectation: 来源渠道字段正确映射：query 中\"寿险\"应映射到 pol_source 字段\n- expectation: 筛选操作符与取值正确：pol_source EQ \"寿险\"\n- expectation: 无歧义应成功且过滤条件完整：query 无语义歧义，应返回 SUCCESS 完整 filter\n\n或者更细一点。让我定义 blocking。\n\n我倾向于设 3-4 个 expectation：\n\n1. \"来源渠道筛选字段映射正确\"（blocking: true）— 用户核心意图是把\"寿险\"理解为来源渠道 pol_source，而不是险种类型等其他字段。downstream_consumer: 保险查询引擎查询执行器；user_intent: query \"找寿险的保单\" 中的\"寿险\"指来源渠道；expected_outcome: filter 使用 pol_source 字段。\n\n2. \"操作符与值表达正确\"（blocking: true）— pol_source EQ \"寿险\"，值应为\"寿险\"而非\"人寿保险\"或\"寿险渠道\"等。downstream_consumer: 查询执行器。expected: {\"type\":\"PREDICATE\",\"field\":\"pol_source\",\"operator\":\"EQ\",\"value\":\"寿险\"}。\n\n3. \"条件完整性与作用域无歧义\"（blocking: true）— query 仅含一个筛选条件，filter 不应包含额外条件，也不应缺失；单条件无逻辑作用域问题。actual: 仅一个 PREDICATE 节点。\n\n4. \"解析成功与安全失败\"（blocking: true 或 false）— 当语义可完整表达时应返回 SUCCESS 且不得返回部分 filter。这里 SUCCESS 且 filter 完整。blocking 我设为 true，因为安全失败是项目契约。\n\n嗯，不过我要小心。blocking 的语义：缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true。字段映射错误、操作符值错误都直接阻断查询结果正确性，所以 blocking。条件完整性也阻断。解析成功（status code）也是项目强契约。可能这些都可以是 blocking。\n\n但现在我担心一个问题：这个 query \"找寿险的保单\" 真的没有歧义吗？在真实保险业务中，\"寿险\"通常就是人寿保险险种。所以按险种类型筛选也是合理理解。如果项目能力清单里没有\"险种类型\"字段，而 pol_source 取值中存在 \"寿险\"渠道，那么这个解析正确。如果项目能力清单中险种字段存在，那么\"寿险\"应该映射到险种字段。\n\n由于 prompt 中未提供字段能力清单，我需要基于 user_intent 作为事实依据。user_intent 明确说\"筛选来源渠道为寿险的保单\"，因此在评测语境中，意图被定义为 pol_source EQ 寿险。这解决了歧义问题：意图就是来源渠道。\n\n所以 actual output 是 fulfilled。\n\n我会给出 expected（reference）：\n```json\n{\n  \"code\": 0,\n  \"msg\": \"success\",\n  \"status\": \"SUCCESS\",\n  \"query\": \"找寿险的保单\",\n  \"filter\": {\"type\": \"PREDICATE\", \"field\": \"pol_source\", \"operator\": \"EQ\", \"value\": \"寿险\"},\n  \"message\": \"解析成功\"\n}\n```\n\nactual output 与之完全一致。\n\n然后 fulfillment_assessments 每个都 fulfilled。expected_evidence 和 actual_evidence 用数组。\n\n让我构造这些。\n\n先梳理一下 final_output：\n- code: 0\n- msg: \"success\"\n- status: \"SUCCESS\"\n- query: \"找寿险的保单\"\n- filter: {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"pol_source\", \"operator\": \"EQ\", \"value\": \"寿险\"}\n- message: \"解析成功\"\n\nturn 1 extracted_output 与 final_output 一致。call_status: succeeded。execution_trace 只有 validate_request 和 validate_output，均 succeeded。dependency_status: available。stop_reason: single_turn_completed。\n\n所以服务依赖成功。没有 fallback。没有证据缺失。\n\n现在构建 business_expectations：\n\nExpectation 1: 来源渠道字段选择正确\n- expectation_id: \"来源渠道字段映射正确\"\n- blocking: true\n- downstream_consumer: \"保单查询引擎执行器\"\n- user_intent: \"筛选来源渠道为寿险的保单，即按保单来源渠道 pol_source 匹配值为“寿险”\"\n- expected_outcome: \"query 中的“寿险”被映射为 pol_source 字段，而不是误映射到险种类型等其他字段\"\n- required_capabilities: [\"来源渠道字段识别\", \"选择器 pol_source\"]\n- acceptance_criteria: [\"filter 的 field 为 pol_source\", \"未引入其他字段\"]\n- boundary: {\"query_ambiguity\": \"“寿险”在业务语境中可能指险种，但本 case 的评测意图明确为来源渠道\"}\n- priority: \"high\"\n\nExpectation 2: 操作符与值正确\n- expectation_id: \"筛选操作符与取值正确\"\n- blocking: true\n- downstream_consumer: \"查询执行器/数据库查询编译层\"\n- user_intent: \"对来源渠道施加等值筛选，值为“寿险”\"\n- expected_outcome: \"operator 为 EQ，value 为“寿险”，与 query 语义一致\"\n- required_capabilities: [\"等值操作符 EQ\", \"值原样还原\"]\n- acceptance_criteria: [\"operator == EQ\", \"value == 寿险\"]\n- boundary: {}\n- priority: \"high\"\n\nExpectation 3: 条件完整性与逻辑作用域\n- expectation_id: \"条件完整且逻辑作用域无歧义\"\n- blocking: true\n- downstream_consumer: \"查询执行器\"\n- user_intent: \"query 仅表达一个来源渠道为寿险的筛选条件，无需其它条件或组合逻辑\"\n- expected_outcome: \"filter 为单节点 PREDICATE，不缺失条件、不引入额外条件，无 AND/OR/NOT 组合歧义\"\n- required_capabilities: [\"单条件解析\", \"PREDICATE 树构造\"]\n- acceptance_criteria: [\"filter 仅含一个条件节点\", \"node 间无逻辑运算符组合\", \"树结构与语义等价\"]\n- boundary: {}\n- priority: \"high\"\n\nExpectation 4: 成功解析与安全失败\n- expectation_id: \"语义可表达时返回 SUCCESS 且提供完整 filter\"\n- blocking: true\n- downstream_consumer: \"调用方（智能体/业务应用）\"\n- user_intent: \"查询语义明确且可完整表达，应成功返回完整过滤条件\"\n- expected_outcome: \"status=SUCCESS，filter 非空且完整，不返回部分 filter，不误报 UNSUPPORTED\"\n- required_capabilities: [\"解析成功路径\", \"完整过滤器输出\"]\n- acceptance_criteria: [\"status 为 SUCCESS\", \"code 为 0\", \"filter 为有效对象且完整\"]\n- boundary: {\"dependency_status\": \"available\"}\n- priority: \"high\"\n\n好，4 个 expectation。或者我可以合并 3 和 4？不，它们是独立维度。schema 要求 minItems 1，可以。\n\n现在 applicable_product_expectation_ids：这个是什么？可能用于标记适用的产品 expectation。这个 case 没有特殊产品 expectation，可以为空数组或包含一些 id。schema 类型是数组。没有额外说明，我设置为 []。\n\nfulfillment_assessments：\n\n1. 来源渠道字段映射正确\n- status: fulfilled\n- score: 1.0（可选）\n- expected_evidence: [\"filter.field == pol_source\"]\n- actual_evidence: [\"final_output.filter = {\\\"type\\\":\\\"PREDICATE\\\",\\\"field\\\":\\\"pol_source\\\",\\\"operator\\\":\\\"EQ\\\",\\\"value\\\":\\\"寿险\\\"}\", \"user_intent 明确为来源渠道为寿险\"]\n- downstream_impact: \"查询将按 pol_source=寿险 正确筛选保单\"\n- authority_tool_call_ids: [] （没有工具调用，或者可以不填？required 只要求 expectation_id 和 status。我可以给出空的 authority_tool_call_ids）\n\n2. 筛选操作符与取值正确\n- status: fulfilled\n- score: 1.0\n- expected_evidence: [\"operator 为 EQ\", \"value 为“寿险”\"]\n- actual_evidence: [\"final_output.filter.operator = EQ\", \"final_output.filter.value = 寿险\"]\n- downstream_impact: \"等值匹配 pol_source=寿险，结果集正确\"\n\n3. 条件完整且逻辑作用域无歧义\n- status: fulfilled\n- score: 1.0\n- expected_evidence: [\"filter 为单 PREDICATE 节点，无逻辑组合\", \"不包含额外条件\"]\n- actual_evidence: [\"final_output.filter 为单节点 PREDICATE（node_id n0）\", \"query 仅含一个条件“寿险”\"]\n- downstream_impact: \"执行引擎可直接将 PREDICATE 编译为 WHERE pol_source = '寿险'，无歧义\"\n\n4. 成功解析与安全失败\n- status: fulfilled\n- score: 1.0\n- expected_evidence: [\"status=SUCCESS\", \"code=0\", \"filter 非空完整\"]\n- actual_evidence: [\"final_output.status = SUCCESS\", \"final_output.code = 0\", \"final_output.filter 为完整 PREDICATE 对象\", \"turn 1 call_status = succeeded\"]\n- downstream_impact: \"调用方获得可执行的完整过滤条件，无需回退\"\n\nmissing / wrong / extra：都应为空数组 []。\n\nevidence：可以放一些关键证据数组。我放 final_output 和 trace 信息片段。或者留空？evidence 是数组，可以为空，但不强制非空。我放几个证据对象。\n\nreasoning_summary：中文，说明判断依据。\n\n让我写 reasoning_summary：\n\"用户意图为筛选来源渠道为寿险的保单，query '找寿险的保单' 在评测语境中明确指向来源渠道 pol_source=寿险。服务依赖可用（dependency_status=available），解析链路单轮成功（call_status=succeeded，无 fallback）。实际输出为 SUCCESS，filter 为单节点 PREDICATE：field=pol_source、operator=EQ、value=寿险，与 query 语义完全一致，无缺失条件、无额外条件、无逻辑作用域歧义、无时间边界误用。语义可完整表达且返回了完整 filter，符合安全失败契约。综合四个 blocking expectation 全部 fulfilled。\"\n\nexpected 字段：\n```json\n{\n  \"code\": 0,\n  \"msg\": \"success\",\n  \"status\": \"SUCCESS\",\n  \"query\": \"找寿险的保单\",\n  \"filter\": {\"type\": \"PREDICATE\", \"field\": \"pol_source\", \"operator\": \"EQ\", \"value\": \"寿险\"},\n  \"message\": \"解析成功\"\n}\n```\n\n注意 expected.filter 中我是否保留 node_id？reference 中可以不保留 node_id，因为评价规范说忽略 node_id 命名差异。我会写 {\"type\":\"PREDICATE\",\"field\":\"pol_source\",\"operator\":\"EQ\",\"value\":\"寿险\"}。\n\n现在考虑一个潜在问题：这个 case 的 user_intent 和 query 之间存在语义映射的挑战。judge 应该基于用户意图评估。既然评测提供了明确的 user_intent（来源渠道为寿险），那么 actual 正确。\n\n但是等等，我需要重新审视 prompt 中的指引：\"你评价的是保单筛选语义是否被完整、可执行且安全地表达。先判断服务依赖是否成功，再比较 query 与 filter。\"\n\n所以流程：\n1. 服务依赖成功？是的，dependency_status=available，execution_trace 都 succeeded。\n2. 比较 query 与 filter。query \"找寿险的保单\" → filter pol_source EQ 寿险。\n\n这里的关键歧义判断：在没有知识库内容支撑的情况下，\"寿险\"是否真的等于来源渠道？在中文保险行业，寿险（人寿保险）是一种险种。来源渠道（pol_source）的常见取值是：个险、银保、团险、经代、电销、网销、收展等。没有\"寿险\"这个渠道。\n\n但是，用户意图既然明确了\"来源渠道为寿险\"，这表明评测环境定义 pol_source 的取值包含\"寿险\"。这是一个评测构建的 case（policy-search-rich-0003），scenario 是 atomic_condition。在 atomic_condition 场景中，指令应该是用一个条件筛选。query \"找寿险的保单\"。\n\n嗯，我觉得需要更谨慎。让我考虑另一个角度：可能这个 case 是被设计为测试\"寿险\"是作为产品类型还是来源渠道的字段选择。但是给定的 user_intent 明确说\"筛选来源渠道为寿险的保单\"。这说明 ground truth 就是 pol_source=寿险。用户意图是评测者定义的，我应以它为准。\n\n不过，还有一种可能性：这个评测给 user_intent 只是为了说明业务意图，而 query 是实际用户输入。judge 需要检查输出是否满足该意图。输出确实满足。\n\n因此总的来说，所有 expectation fulfilled。\n\n关于 score：schema 里 score 可以是 number 或 null。我给 1.0。或者不给？score 不是 required。我可以给 1.0 或不给。为了简洁，我给 1.0 表示满分。或者干脆省略 score？allow 字段是 optional。让我给 score: 1.0，表示完全满足。\n\nauthority_tool_call_ids：没有工具调用。我设为 []。虽然不是 required，但既然有工具使用原则，给空的没问题。\n\n现在关于 applicable_product_expectation_ids：我不太确定这个字段的用途。schema 里是数组 string。没有更多说明。我设为 [] 空数组。它不是 required，但包含在输出中比较好。\n\n现在组织 JSON。注意必须只输出 JSON，无 markdown。\n\n让我再检查 expected 的 required：code, msg, status, query, filter, message。都给出。\n\n注意 JSON 内的字符串引号转义：reasoning_summary 中用中文引号引“寿险”没问题。expected_evidence 和 actual_evidence 中的 JSON 字符串，我用中文引号或转义。例如 actual_evidence 里我写：\"final_output.filter 为 {\\\"type\\\":\\\"PREDICATE\\\",\\\"field\\\":\\\"pol_source\\\",\\\"operator\\\":\\\"EQ\\\",\\\"value\\\":\\\"寿险\\\"}\"。需要转义双引号。或者我用单引号风格？JSON 字符串只允许双引号，内部引号需转义。我会转义，或避免在字符串内使用 JSON 表示，改用描述：\"final_output.filter.field = pol_source\" 等。但为了证据准确性，我可以写带转义的 JSON。\n\n让我写实际证据：\n- \"final_output: {code:0, msg:success, status:SUCCESS, query:找寿险的保单, filter:{type:PREDICATE, field:pol_source, operator:EQ, value:寿险}, message:解析成功}\" — 用冒号而非双引号，避免转义。但这样不太规范。我可以用转义。\n\n我采用转义写法，干净些。\n\n现在写最终 JSON。\n\nbusiness_expectations 中 user_intent、expected_outcome 等字段要写清楚。required_capabilities 数组。acceptance_criteria 数组。boundary 对象。\n\n让我列出：\n\nExpectation 1:\n{\n  \"expectation_id\": \"来源渠道字段映射正确\",\n  \"blocking\": true,\n  \"downstream_consumer\": \"保单查询执行引擎\",\n  \"user_intent\": \"筛选来源渠道为寿险的保单，即“寿险”指保单来源渠道 pol_source 的取值\",\n  \"expected_outcome\": \"query 中的“寿险”被解析为 pol_source 字段的等值条件，而非映射到险种类型等其他字段\",\n  \"required_capabilities\": [\"字段映射\", \"pol_source 来源渠道识别\"],\n  \"acceptance_criteria\": [\"filter.field 为 pol_source\", \"未引入与来源渠道无关的字段\"],\n  \"boundary\": {\"query_ambiguity\": \"“寿险”在通用保险语境可能指人寿保险险种，但本 case 评测意图已明确为来源渠道；按用户意图判定\"},\n  \"priority\": \"high\"\n}\n\nExpectation 2:\n{\n  \"expectation_id\": \"筛选操作符与取值正确\",\n  \"blocking\": true,\n  \"downstream_consumer\": \"查询编译/执行层\",\n  \"user_intent\": \"对来源渠道施加“等于寿险”的筛选\",\n  \"expected_outcome\": \"operator=EQ，value=“寿险”，与 query 语义一致\",\n  \"required_capabilities\": [\"EQ 等值操作符\", \"值原样还原\"],\n  \"acceptance_criteria\": [\"operator 为 EQ\", \"value 为“寿险”\"],\n  \"boundary\": {},\n  \"priority\": \"high\"\n}\n\nExpectation 3:\n{\n  \"expectation_id\": \"条件完整且逻辑作用域无歧义\",\n  \"blocking\": true,\n  \"downstream_consumer\": \"查询执行引擎\",\n  \"user_intent\": \"query 仅表达一个来源渠道筛选条件，不涉及多条件组合\",\n  \"expected_outcome\": \"filter 为单节点 PREDICATE，无缺失条件、无额外条件、无 AND/OR/NOT 组合歧义\",\n  \"required_capabilities\": [\"单条件解析\", \"PREDICATE 语法树构造\"],\n  \"acceptance_criteria\": [\"filter 仅含一个条件节点\", \"树中无逻辑组合运算符\", \"叶子节点的字段/操作符/值完整\"],\n  \"boundary\": {},\n  \"priority\": \"high\"\n}\n\nExpectation 4:\n{\n  \"expectation_id\": \"语义可表达时返回 SUCCESS 且提供完整过滤器\",\n  \"blocking\": true,\n  \"downstream_consumer\": \"调用方应用/智能体\",\n  \"user_intent\": \"查询语义明确且可被完整表达时，应成功返回完整可执行的 filter\",\n  \"expected_outcome\": \"status=SUCCESS、code=0，filter 为完整且非空的过滤树，不返回部分 filter，不误报 UNSUPPORTED\",\n  \"required_capabilities\": [\"解析成功路径\", \"安全失败契约\"],\n  \"acceptance_criteria\": [\"status 为 SUCCESS\", \"code 为 0\", \"filter 为有效 PREDICATE 对象\"],\n  \"boundary\": {\"dependency_status\": \"available\", \"allow_fallback\": false},\n  \"priority\": \"high\"\n}\n\nfulfillment_assessments 对应 4 个。\n\n1:\n{\n  \"expectation_id\": \"来源渠道字段映射正确\",\n  \"status\": \"fulfilled\",\n  \"score\": 1.0,\n  \"expected_evidence\": [\"filter.field 为 pol_source\"],\n  \"actual_evidence\": [\"final_output.filter = {\\\"type\\\":\\\"PREDICATE\\\",\\\"node_id\\\":\\\"n0\\\",\\\"field\\\":\\\"pol_source\\\",\\\"operator\\\":\\\"EQ\\\",\\\"value\\\":\\\"寿险\\\"}\", \"turn 1 extracted_output 与 final_output 一致\"],\n  \"downstream_impact\": \"查询将按来源渠道 pol_source=寿险 过滤保单，符合用户核心意图\",\n  \"authority_tool_call_ids\": []\n}\n\n2:\n{\n  \"expectation_id\": \"筛选操作符与取值正确\",\n  \"status\": \"fulfilled\",\n  \"score\": 1.0,\n  \"expected_evidence\": [\"operator 为 EQ\", \"value 为“寿险”\"],\n  \"actual_evidence\": [\"final_output.filter.operator = EQ\", \"final_output.filter.value = 寿险\"],\n  \"downstream_impact\": \"执行层可编译为 pol_source = '寿险' 的等值条件，结果集正确\",\n  \"authority_tool_call_ids\": []\n}\n\n3:\n{\n  \"expectation_id\": \"条件完整且逻辑作用域无歧义\",\n  \"status\": \"fulfilled\",\n  \"score\": 1.0,\n  \"expected_evidence\": [\"filter 为单节点 PREDICATE\", \"无逻辑组合运算符\", \"不缺失、不额外增加条件\"],\n  \"actual_evidence\": [\"final_output.filter.type = PREDICATE 且仅一个节点\", \"query 仅含“寿险”一个条件，filter 无 AND/OR/NOT 节点\"],\n  \"downstream_impact\": \"查询树可直接执行，无逻辑歧义\",\n  \"authority_tool_call_ids\": []\n}\n\n4:\n{\n  \"expectation_id\": \"语义可表达时返回 SUCCESS 且提供完整过滤器\",\n  \"status\": \"fulfilled\",\n  \"score\": 1.0,\n  \"expected_evidence\": [\"status=SUCCESS\", \"code=0\", \"filter 非空且完整\"],\n  \"actual_evidence\": [\"final_output.status = SUCCESS\", \"final_output.code = 0\", \"final_output.filter 为完整 PREDICATE 对象\", \"call_status = succeeded，无 fallback\"],\n  \"downstream_impact\": \"调用方获得完整可执行过滤条件，无需回退或二次交互\",\n  \"authority_tool_call_ids\": []\n}\n\nmissing: []，wrong: []，extra: []。\n\nevidence：数组，放关键证据。可以是 final_output 对象和 dependency 信息。我放：\n[\n  {\"source\": \"final_output\", \"value\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"找寿险的保单\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"pol_source\", \"operator\": \"EQ\", \"value\": \"寿险\"}, \"message\": \"解析成功\"}},\n  {\"source\": \"application_boundary\", \"value\": {\"dependency_status\": \"available\", \"allow_fallback\": false, \"notes\": \"parser returned an executable filter\"}},\n  {\"source\": \"turn_1_call_status\", \"value\": \"succeeded\"},\n  {\"source\": \"evidence_completeness\", \"value\": {\"complete\": true, \"missing_evidence\": []}}\n]\n\nreasoning_summary 如前。\n\n最终检查 JSON 合法性。注意不能有 trailing comma。确保所有 required 字段。\n\n关于 business_expectations 的 required 是 expectation_id 和 blocking。其他可选，但我都给了。\n\n现在，还有一个细节：我需要确认 user_intent 中文描述。schema 里 user_intent: \"string\"。OK。\n\n关于 expected_evidence 与 actual_evidence 必须是数组。是的。\n\n最后，我要做一个再思考：是否存在一种可能，这个 case 的正确预期其实是 UNSUPPORTED，因为 query 歧义（无法确定\"寿险\"是来源渠道还是险种）？评价规范说\"歧义、条件缺失或越界场景应 UNSUPPORTED 且不得返回部分 filter\"。\n\n嗯。这里需要认真考虑。\"找寿险的保单\" 中的\"寿险\"在中文保险语境下，通常是指人寿保险（险种），而不是来源渠道。如果项目支持险种字段（如 product_name 或 insurance_type），那么 query 应该映射到险种字段，而非 pol_source。如果 pol_source 的值域里没有\"寿险\"，那这个解析就是错误的——它应该 UNSUPPORTED 或映射到险种。\n\n但 user_intent 明确写\"筛选来源渠道为寿险的保单\"。这很矛盾。如果项目中的正确答案是\"来源渠道为寿险\"，那说明评测认为\"寿险\"可以作为来源渠道取值。\n\n作为一个 judge，我该如何处理？指引说\"只基于当前 RunTrace、项目评判标准和动态检索的知识库内容判断\"。当前没有知识库内容。business_evidence_paths 指向文件但内容未提供。\n\n\"不要把 reference answer 当作默认主目标（除非 case 明确指定）\"。user_intent 在这里是评测提供的意图描述，可以认为是 case 明确指定的目标。\n\n所以我的判断依据是 user_intent：筛选来源渠道为寿险的保单。output 实现了它。因此 fulfilled。\n\n不过，我可以把歧义问题记录在 expectation 的 boundary 里，说明按评测意图判定。我已经这样做了。\n\n另一个角度：也许这个 case 想测试的是\"寿险\"应作为来源渠道值，因为某些保险公司（如平安集团）的销售体系中，保单来源渠道可能是\"寿险\"（相对于\"产险\"）。在集团综合金融场景，来源渠道可以分产险、寿险、养老险、健康险。所以 \"来源渠道为寿险\" 在保险集团场景下完全合理。\n\n好，结论不变：全部 fulfilled。\n\n现在，关于 expected.filter 是否包含 node_id：评价规范说忽略 node_id 命名差异。我在 expected 中不写 node_id，actual 中写了 n0，这不构成 gap。\n\n再想想 authority_tool_call_ids：这个字段可能是用于指示哪些工具调用是裁决依据。这里没有工具调用，所以 []。\n\napplicable_product_expectation_ids：我不确定是否应为空。schema 允许空数组。我设为 []。\n\n现在输出最终 JSON。\n\n等等，还有一点：schema 的 JudgeBusinessExpectationOutput required 只有 expectation_id 和 blocking，但我给了所有字段。OK。\n\n关于 score，schema 允许 number 或 null。我给 1.0。这表示满分。合理。\n\n让我想一下是否应该把 expectation 数量减少到 2-3 个更简洁？规范说粒度直接决定判断精度，要求原子。4 个独立维度是合理的。不过 expectation 3 和 4 有一点重叠：条件完整性与成功解析。但它们确实是不同维度：3 是树的内容完整性，4 是状态码和安全失败。可以保留。\n\n嗯，或许我还可以把\"服务依赖成功\"作为一个 expectation？指引说\"先判断服务依赖是否成功，再比较 query 与 filter\"。服务依赖成功是前提，可以放进 reasoning_summary 和 evidence，也可作为 expectation。我把它并入 expectation 4（安全失败/成功路径）。也可以单独一个。我倾向不单独拆，因为在 reasoning 中已处理，且评估维度里没有单独的\"依赖\"维度。\n\n不过再想想，如果服务依赖失败，那输出可能不可信。这里依赖 available。我在 expectation 4 的 boundary 里写了 dependency_status。\n\n最后确认 JSON 结构无误，特别是转义。我会写：\n\nactual_evidence 里：\n\"final_output.filter = {\\\"type\\\":\\\"PREDICATE\\\",\\\"node_id\\\":\\\"n0\\\",\\\"field\\\":\\\"pol_source\\\",\\\"operator\\\":\\\"EQ\\\",\\\"value\\\":\\\"寿险\\\"}\"\n\n这是合法的 JSON 字符串。\n\nreasoning_summary 中不要包含未转义双引号。我使用中文引号“寿险”。\n\n好，准备输出。",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "policy_search",
+  "prompt_size": 18168,
+  "record_id": "ccf4ac8d-6507-464e-aea5-dfa472ca2659",
+  "response": {
+    "content": "{\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"来源渠道字段映射正确\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单查询执行引擎\",\n      \"user_intent\": \"筛选来源渠道为寿险的保单，即“寿险”指保单来源渠道 pol_source 的取值\",\n      \"expected_outcome\": \"query 中的“寿险”被解析为 pol_source 字段的等值条件，而非映射到险种类型等其他字段\",\n      \"required_capabilities\": [\"字段映射\", \"pol_source 来源渠道识别\"],\n      \"acceptance_criteria\": [\"filter.field 为 pol_source\", \"未引入与来源渠道无关的字段\"],\n      \"boundary\": {\n        \"query_ambiguity\": \"“寿险”在通用保险语境可能指人寿保险险种，但本 case 评测意图已明确为来源渠道；按用户意图判定\"\n      },\n      \"priority\": \"high\"\n    },\n    {\n      \"expectation_id\": \"筛选操作符与取值正确\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"查询编译/执行层\",\n      \"user_intent\": \"对来源渠道施加“等于寿险”的筛选\",\n      \"expected_outcome\": \"operator=EQ，value=“寿险”，与 query 语义一致\",\n      \"required_capabilities\": [\"EQ 等值操作符\", \"取值原样还原\"],\n      \"acceptance_criteria\": [\"operator 为 EQ\", \"value 为“寿险”\"],\n      \"boundary\": {},\n      \"priority\": \"high\"\n    },\n    {\n      \"expectation_id\": \"条件完整且逻辑作用域无歧义\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"查询执行引擎\",\n      \"user_intent\": \"query 仅表达一个来源渠道筛选条件，不涉及多条件组合\",\n      \"expected_outcome\": \"filter 为单节点 PREDICATE，无缺失条件、无额外条件、无 AND/OR/NOT 组合歧义\",\n      \"required_capabilities\": [\"单条件解析\", \"PREDICATE 语法树构造\"],\n      \"acceptance_criteria\": [\"filter 仅含一个条件节点\", \"树中无逻辑组合运算符\", \"叶节点的字段/操作符/值完整\"],\n      \"boundary\": {},\n      \"priority\": \"high\"\n    },\n    {\n      \"expectation_id\": \"语义可表达时返回 SUCCESS 且提供完整过滤器\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"调用方应用/智能体\",\n      \"user_intent\": \"查询语义明确且可被完整表达时，应成功返回完整可执行的 filter\",\n      \"expected_outcome\": \"status=SUCCESS、code=0，filter 为完整且非空的过滤树，不返回部分 filter，不误报 UNSUPPORTED\",\n      \"required_capabilities\": [\"解析成功路径\", \"安全失败契约\"],\n      \"acceptance_criteria\": [\"status 为 SUCCESS\", \"code 为 0\", \"filter 为有效 PREDICATE 对象\"],\n      \"boundary\": {\n        \"dependency_status\": \"available\",\n        \"allow_fallback\": false\n      },\n      \"priority\": \"high\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"来源渠道字段映射正确\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\"filter.field 为 pol_source\"],\n      \"actual_evidence\": [\"final_output.filter = {\\\"type\\\":\\\"PREDICATE\\\",\\\"node_id\\\":\\\"n0\\\",\\\"field\\\":\\\"pol_source\\\",\\\"operator\\\":\\\"EQ\\\",\\\"value\\\":\\\"寿险\\\"}\", \"turn 1 extracted_output 与 final_output 完全一致\"],\n      \"downstream_impact\": \"查询将按来源渠道 pol_source=寿险 过滤保单，符合用户核心意图\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"筛选操作符与取值正确\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\"operator 为 EQ\", \"value 为“寿险”\"],\n      \"actual_evidence\": [\"final_output.filter.operator = EQ\", \"final_output.filter.value = 寿险\"],\n      \"downstream_impact\": \"执行层可编译为 pol_source = '寿险' 的等值条件，结果集正确\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"条件完整且逻辑作用域无歧义\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\"filter 为单节点 PREDICATE\", \"无逻辑组合运算符\", \"不缺失、不额外增加条件\"],\n      \"actual_evidence\": [\"final_output.filter.type = PREDICATE 且仅一个节点\", \"query 仅含“寿险”一个条件，filter 无 AND/OR/NOT 节点\"],\n      \"downstream_impact\": \"查询树可直接执行，无逻辑歧义\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"语义可表达时返回 SUCCESS 且提供完整过滤器\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\"status=SUCCESS\", \"code=0\", \"filter 非空且完整\"],\n      \"actual_evidence\": [\"final_output.status = SUCCESS\", \"final_output.code = 0\", \"final_output.filter 为完整 PREDICATE 对象\", \"turn 1 call_status = succeeded，无 fallback\"],\n      \"downstream_impact\": \"调用方获得完整可执行过滤条件，无需回退或二次交互\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"expected\": {\n    \"code\": 0,\n    \"msg\": \"success\",\n    \"status\": \"SUCCESS\",\n    \"query\": \"找寿险的保单\",\n    \"filter\": {\n      \"type\": \"PREDICATE\",\n      \"field\": \"pol_source\",\n      \"operator\": \"EQ\",\n      \"value\": \"寿险\"\n    },\n    \"message\": \"解析成功\"\n  },\n  \"missing\": [],\n  \"wrong\": [],\n  \"extra\": [],\n  \"evidence\": [\n    {\n      \"source\": \"final_output\",\n      \"value\": {\n        \"code\": 0,\n        \"msg\": \"success\",\n        \"status\": \"SUCCESS\",\n        \"query\": \"找寿险的保单\",\n        \"filter\": {\n          \"type\": \"PREDICATE\",\n          \"node_id\": \"n0\",\n          \"field\": \"pol_source\",\n          \"operator\": \"EQ\",\n          \"value\": \"寿险\"\n        },\n        \"message\": \"解析成功\"\n      }\n    },\n    {\n      \"source\": \"application_boundary\",\n      \"value\": {\n        \"dependency_status\": \"available\",\n        \"allow_fallback\": false,\n        \"notes\": \"parser returned an executable filter\"\n      }\n    },\n    {\n      \"source\": \"turn_1_call_status\",\n      \"value\": \"succeeded\"\n    },\n    {\n      \"source\": \"evidence_completeness\",\n      \"value\": {\n        \"complete\": true,\n        \"missing_evidence\": []\n      }\n    }\n  ],\n  \"reasoning_summary\": \"用户意图为筛选来源渠道为寿险的保单，query“找寿险的保单”在本 case 评测语境中明确指向来源渠道 pol_source=寿险。服务依赖可用（dependency_status=available），解析链路单轮成功（call_status=succeeded，无 fallback、无证据缺失）。实际输出为 SUCCESS，filter 为单节点 PREDICATE：field=pol_source、operator=EQ、value=寿险，与 query 语义完全一致，无缺失条件、无额外条件、无逻辑作用域歧义、无时间边界误用。语义可完整表达且返回了完整 filter，符合安全失败契约，未误报 UNSUPPORTED 或返回部分 filter。因此四个 blocking expectation 全部 fulfilled，missing/wrong/extra 均无。\"\n}",
+    "metrics": {
+      "cache_read_tokens": 2304,
+      "cache_write_tokens": 0,
+      "input_tokens": 4078,
+      "output_tokens": 8734,
+      "reasoning_tokens": 6938,
+      "total_tokens": 12812
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 75942,
+          "endpoint": "fallback1",
+          "model": "deepseek-v4-flash-0731",
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "selected_endpoint": "fallback1",
+      "selected_model": "deepseek-v4-flash-0731",
+      "stage": ""
+    }
+  },
+  "trace_id": "policy_search:policy-search-rich-0003:1786466875568"
+}

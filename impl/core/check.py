@@ -768,6 +768,30 @@ def check_chain(
         if not has_fulfillment_record:
             protocol_gaps.append("JudgeResult missing fulfillment_assessments/overall_fulfillment for the selected evaluation boundary.")
         overall_status = (judge.overall_fulfillment or {}).get("status") if isinstance(judge.overall_fulfillment, dict) else ""
+        for assessment in judge.fulfillment_assessments or []:
+            assessment_id = str(
+                assessment.get("expectation_id")
+                if isinstance(assessment, dict)
+                else getattr(assessment, "expectation_id", "")
+            )
+            assessment_status = str(
+                assessment.get("status")
+                if isinstance(assessment, dict)
+                else getattr(assessment, "status", "")
+            ).strip().lower()
+            assessment_score = (
+                assessment.get("score")
+                if isinstance(assessment, dict)
+                else getattr(assessment, "score", None)
+            )
+            if assessment_status == "not_fulfilled" and assessment_score == 1.0:
+                consistency_gaps.append(
+                    f"FulfillmentAssessment {assessment_id or '(unknown)'} is not_fulfilled but score is 1.0."
+                )
+            if assessment_status == "fulfilled" and assessment_score == 0.0:
+                consistency_gaps.append(
+                    f"FulfillmentAssessment {assessment_id or '(unknown)'} is fulfilled but score is 0.0."
+                )
         gaps = judge_expected_actual_gaps(judge)
         if overall_status == "not_fulfilled" and not primary_signal.get("fulfillment_assessments") and not (gaps.get("missing") or gaps.get("wrong") or gaps.get("extra")):
             protocol_gaps.append("Not-fulfilled JudgeResult should identify failing fulfillment_assessments or missing/wrong/extra output.")

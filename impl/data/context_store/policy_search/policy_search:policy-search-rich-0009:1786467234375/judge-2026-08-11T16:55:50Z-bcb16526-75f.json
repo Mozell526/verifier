@@ -1,0 +1,303 @@
+{
+  "caller": "judge",
+  "created_at": "2026-08-11T16:55:50Z",
+  "elapsed_ms": 115718,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "production"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "f0b4b8d65873447e9fdeb1d089b0beced0181803b9eb5d0df7a9d0e07493752f",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [],
+      "lineage": {
+        "call_id": "",
+        "case_id": "policy-search-rich-0009",
+        "trace_id": "policy_search:policy-search-rich-0009:1786467234375"
+      },
+      "messages": [
+        {
+          "char_count": 7368,
+          "content_sha256": "f5559e2831ea15fd5d0a75f202e64faec2eaf6fc95f6497abac519065bb1f636",
+          "role": "system"
+        },
+        {
+          "char_count": 5618,
+          "content_sha256": "e9267d33c7128ce42cbc829dc5aec464b3814446bacc00ef1ed85bfeb3617cf2",
+          "role": "user"
+        }
+      ],
+      "mode": "production",
+      "output_contract": {
+        "field_names": [
+          "acceptance_criteria",
+          "actual",
+          "actual_evidence",
+          "applicable_product_expectation_ids",
+          "authority_tool_call_ids",
+          "blocking",
+          "boundary",
+          "business_expectations",
+          "code",
+          "downstream_consumer",
+          "downstream_impact",
+          "error_type",
+          "evidence",
+          "evidence_ref",
+          "expectation_id",
+          "expected",
+          "expected_evidence",
+          "expected_outcome",
+          "extra",
+          "filter",
+          "fulfillment_assessments",
+          "incomplete",
+          "kind",
+          "message",
+          "missing",
+          "msg",
+          "priority",
+          "query",
+          "raw",
+          "reasoning_summary",
+          "required_capabilities",
+          "score",
+          "status",
+          "user_intent",
+          "wrong"
+        ],
+        "identity": "impl.core.schema.judge.JudgeLLMOutput",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "1ebd986c8c695abe1e8329086ca3fa881a0eaa83fe0e670d24af6af6d4fad2f0",
+        "sha256": "1ebd986c8c695abe1e8329086ca3fa881a0eaa83fe0e670d24af6af6d4fad2f0"
+      },
+      "project_id": "policy_search",
+      "prompt_char_count": 12986,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 5618,
+        "occurred": false
+      },
+      "role": "judge",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 1725,
+          "content_sha256": "5727bfa7858a8ce05122cd632b62736542f3792c880caa51ab16c7257d1f754b",
+          "order": 0,
+          "role": "judge",
+          "segment_id": "compiled-system",
+          "source": "impl/core/judge.py#judge_trace",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 5618,
+          "content_sha256": "e9267d33c7128ce42cbc829dc5aec464b3814446bacc00ef1ed85bfeb3617cf2",
+          "order": 1,
+          "role": "judge",
+          "segment_id": "case-user-payload",
+          "source": "trace://judge-evidence-view",
+          "stage": "judge"
+        }
+      ],
+      "stage": "judge",
+      "tool_plan": []
+    }
+  },
+  "llm_model": "deepseek-v4-flash-0731",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "你是通用评估系统的 judge agent。\n\n## 核心原则\n只基于当前 RunTrace、项目评判标准和动态检索的知识库内容判断，不继承历史 case。\n首要职责：理解用户/下游消费者的真实业务意图 → 派生 business_expectations → 基于完整执行链路（每轮 output、最终 output、交互过程和停止事实）判断 expectations 的 fulfillment。\n\n## expectation 拆分原则\nbusiness_expectations 的粒度直接决定判断精度。每个 expectation 必须是原子、独立可评价的判断单元：证据充分时判 fulfilled 或 not_fulfilled；确需评价但当前证据不足时按协议判 not_evaluable。\n- 一个 expectation 只描述一个可独立验证的结果维度\n- 多维度意图必须拆成多个 expectation\n- 每个 expectation 必须有明确的 acceptance_criteria\n- 每个 expectation 必须在比较 actual 前确定 blocking：只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true\n- fulfillment_assessments 只判断对应 expectation 的 status 和证据，不得重新定义 blocking\n- expectation_id 必须是描述性的中文短语，禁止使用 E1/E2/exp_01 等占位符 ID\n- reasoning_summary 必须是中文写成的判断依据\n\n## 输出词表\n`fulfillment_assessments[*].status` 必须从以下 3 个值中选择：\n  - fulfilled：该 expectation 完全满足\n  - not_fulfilled：该 expectation 未满足\n  - not_evaluable：当前无法评估\n禁用 failed/passed/incorrect/wrong/met/unmet/partially_fulfilled/partial/success/fail/ok/unknown 等同义词。\n`fulfillment_assessments[*].expected_evidence` 与 `actual_evidence` **必须是数组**（JSON array / list），即使只有一条证据也要用 `[...]` 包裹，不可直接用字符串或对象。\n\n不要输出 overall_fulfillment；公共层会在项目契约补充完成后根据 blocking expectations 确定性派生整体状态。\n\n## 评估规范\n\n\n## 评估边界\n\n\n## 判断标准\n\n\n\n\n你评价的是保单筛选语义是否被完整、可执行且安全地表达。先判断服务依赖是否成功，再比较 query 与 filter。忽略 node_id 命名差异；允许逻辑等价的树。字段、操作符、值、角色、AND/OR/NOT 作用域、日期边界和条件完整性都必须正确。SUCCESS 必须有完整 filter；歧义、条件缺失或越界场景应 UNSUPPORTED 且不得返回部分 filter。业务实现、prompt 和配置是当前能力证据，不是不可质疑的自证。\n## 工具使用原则\n所有工具的用途、调用时机和参数含义以 Agno tool schema 为准；user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息。\n\n## 禁止事项\n- 不要把 reference answer 当作默认主目标（除非 case 明确指定）\n- 不要把 HTTP 状态、run_status、attribute/cluster 结论当作满足依据\n- 不要归因内部代码、配置或 prompt 原因（属于 attribute agent）\n- 分析文字必须使用中文，包括 reasoning_summary 等所有文本字段。\n\n\n## 输出约束：judge 判定输出（自产 reference + fulfillment 判定）\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"business_expectations\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeBusinessExpectationOutput\"\n      },\n      \"minItems\": 1\n    },\n    \"applicable_product_expectation_ids\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"fulfillment_assessments\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeFulfillmentAssessmentOutput\"\n      }\n    },\n    \"expected\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"code\": {\n          \"type\": \"integer\"\n        },\n        \"msg\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"query\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"filter\": {\n          \"type\": [\n            \"object\",\n            \"null\"\n          ]\n        },\n        \"message\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"code\",\n        \"msg\",\n        \"status\",\n        \"query\",\n        \"filter\",\n        \"message\"\n      ]\n    },\n    \"missing\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"wrong\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"extra\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"evidence\": {\n      \"type\": \"array\",\n      \"items\": {}\n    },\n    \"reasoning_summary\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    }\n  },\n  \"additionalProperties\": false,\n  \"$defs\": {\n    \"JudgeBusinessExpectationOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"blocking\": {\n          \"type\": \"boolean\"\n        },\n        \"downstream_consumer\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"user_intent\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected_outcome\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"required_capabilities\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"acceptance_criteria\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"boundary\": {\n          \"type\": \"object\"\n        },\n        \"priority\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"blocking\"\n      ]\n    },\n    \"JudgeFulfillmentAssessmentOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"score\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        },\n        \"expected_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"actual_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"downstream_impact\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"authority_tool_call_ids\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"status\"\n      ]\n    },\n    \"GapItem\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"kind\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"error_type\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected\": {},\n        \"actual\": {},\n        \"evidence_ref\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"raw\": {},\n        \"incomplete\": {\n          \"type\": \"boolean\"\n        }\n      },\n      \"additionalProperties\": false\n    }\n  },\n  \"required\": [\n    \"expected\",\n    \"business_expectations\",\n    \"reasoning_summary\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['business_expectations', 'expected', 'reasoning_summary']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n\n### 嵌套字段子结构约束\n以下字段内部的子结构也必须严格遵守，不可随意编造字段名或类型：\n- **`expected`** 字段 (项目 policy_search 的 expected/live output 结构) 必须符合以下结构：\n  ```json\n  {\n    \"type\": \"object\",\n    \"properties\": {\n      \"code\": {\n        \"type\": \"integer\"\n      },\n      \"msg\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"status\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"query\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"filter\": {\n        \"type\": [\n          \"object\",\n          \"null\"\n        ]\n      },\n      \"message\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"additionalProperties\": false,\n    \"required\": [\n      \"code\",\n      \"msg\",\n      \"status\",\n      \"query\",\n      \"filter\",\n      \"message\"\n    ]\n  }\n  ```\n",
+      "created_at": 1786467234,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "b6655466-9606-4cdd-b937-3ed47f379490",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"user_intent\": \"筛选保障属性为学平险的保单\", \"run_trace\": {\"trace_id\": \"policy_search:policy-search-rich-0009:1786467234375\", \"project_id\": \"policy_search\", \"case_id\": \"policy-search-rich-0009\", \"intent_input\": {\"session_id\": \"policy-search-rich-0009\", \"trace_id\": \"policy-search-rich-0009\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"找学平险的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"normalized_request\": {\"session_id\": \"policy-search-rich-0009\", \"trace_id\": \"policy-search-rich-0009\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"找学平险的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"final_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"找学平险的保单\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"security_type_desc\", \"operator\": \"EQ\", \"value\": \"意外伤害保险\"}, \"message\": \"解析成功\"}, \"final_output_turn\": 1, \"turns\": [{\"turn_index\": 1, \"request\": {\"session_id\": \"policy-search-rich-0009\", \"trace_id\": \"policy-search-rich-0009\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"找学平险的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"extracted_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"找学平险的保单\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"security_type_desc\", \"operator\": \"EQ\", \"value\": \"意外伤害保险\"}, \"message\": \"解析成功\"}, \"call_status\": \"succeeded\", \"runtime_ms\": 4, \"error\": null, \"fallbacks\": [], \"validation\": [], \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"application_boundary\": {\"dependency_status\": \"available\", \"allow_fallback\": false, \"excluded_evidence\": [], \"notes\": \"parser returned an executable filter\"}, \"project_fields\": {\"parse_status\": \"SUCCESS\", \"filter_root_type\": \"PREDICATE\"}}], \"conversation_transcript\": [], \"conversation_summary\": {\"turn_count\": 1, \"final_output_turn\": 1, \"completion_status\": \"completed\", \"stop_reason\": \"single_turn_completed\", \"interaction_controller_status\": \"not_run\", \"interaction_controller_error\": \"\"}, \"stop_reason\": \"single_turn_completed\", \"completion_status\": \"completed\", \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"evidence_refs\": [], \"raw_response_evidence\": null, \"evidence_completeness\": {\"complete\": true, \"missing_evidence\": []}, \"application_boundary\": {\"dependency_status\": \"available\", \"allow_fallback\": false, \"excluded_evidence\": [], \"notes\": \"parser returned an executable filter\"}, \"reference_contract\": {}, \"scenario\": \"atomic_condition\", \"status\": \"ok\", \"error\": null}, \"query\": \"找学平险的保单\", \"actual_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"找学平险的保单\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"security_type_desc\", \"operator\": \"EQ\", \"value\": \"意外伤害保险\"}, \"message\": \"解析成功\"}, \"reference_contract\": {}, \"business_evidence_paths\": {\"api_contract\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索算法解析接口文档（智能体对接稿）.md\", \"filter_contract\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索查询语法树协议（首期精简版）.md\", \"technical_design\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索算法解析技术方案（当前实现版）.md\", \"business_config\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/configs/insurance_search_business_config_prd.json\", \"runtime_config\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/configs/insurance_search_runtime_config_prd.json\", \"golden_manifest\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/data/golden_dataset/manifest.json\"}, \"evaluation_dimensions\": [\"field_selection\", \"operator_and_value\", \"logical_scope\", \"time_boundary\", \"condition_completeness\", \"safe_failure\"]}",
+      "created_at": 1786467234,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "503dc74c-ce29-4756-8d17-a72d2071f3c2",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"服务依赖与解析链路可用\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"保单搜索过滤器执行方\",\n      \"user_intent\": \"确认查询可以被正常解析执行\",\n      \"expected_outcome\": \"解析服务可用，请求校验与输出校验均通过，链路无阻断\",\n      \"required_capabilities\": [\"request_validation\", \"output_validation\"],\n      \"acceptance_criteria\": [\n        \"运行轨迹中服务依赖状态为 available\",\n        \"解析调用 call_status 为 succeeded\",\n        \"存在可消费的最终输出\"\n      ],\n      \"boundary\": {\n        \"scope\": \"仅评估服务可用性，不涉及 filter 语义正确性\"\n      },\n      \"priority\": \"medium\"\n    },\n    {\n      \"expectation_id\": \"保障属性字段映射正确\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索执行引擎\",\n      \"user_intent\": \"按保障属性维度筛选保单\",\n      \"expected_outcome\": \"过滤器根节点使用表示“保障属性”的字段\",\n      \"required_capabilities\": [\"field_mapping\", \"predicate_building\"],\n      \"acceptance_criteria\": [\n        \"filter.field 与业务契约中保障属性字段一致\",\n        \"字段选择没有混入其他维度\"\n      ],\n      \"boundary\": {\n        \"scope\": \"仅评估字段选择，不包含值映射是否正确\"\n      },\n      \"priority\": \"high\"\n    },\n    {\n      \"expectation_id\": \"学平险取值语义精确且无范围放大\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索结果集消费者\",\n      \"user_intent\": \"寻找保障属性为“学平险”的保单\",\n      \"expected_outcome\": \"过滤器取值精确表达“学平险”（学生平安保险）语义，不扩大到一般意外伤害保险\",\n      \"required_capabilities\": [\"value_mapping\", \"semantic_equivalence\", \"negative_capability\"],\n      \"acceptance_criteria\": [\n        \"filter.value 语义等价于“学平险/学生平安保险”\",\n        \"不得以“意外伤害保险”等更广类别替代“学平险”\",\n        \"若无法精确表达，应输出 UNSUPPORTED 且 filter 为 null\"\n      ],\n      \"boundary\": {\n        \"value_semantics\": \"学平险是意外伤害保险大类下的细分学生保障产品，不等于一般意外伤害保险\"\n      },\n      \"priority\": \"high\"\n    },\n    {\n      \"expectation_id\": \"条件完整性与安全失败\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"最终结果消费方\",\n      \"user_intent\": \"SUCCESS 时必须提供完整可执行的条件，无法表达时必须安全失败\",\n      \"expected_outcome\": \"不得返回携带不完整或近似条件的 SUCCESS\",\n      \"required_capabilities\": [\"condition_completeness\", \"unsupported_handling\"],\n      \"acceptance_criteria\": [\n        \"SUCCESS 返回的 filter 必须完整覆盖用户查询语义\",\n        \"存在歧义或条件缺失时 status 必须为 UNSUPPORTED\",\n        \"UNSUPPORTED 时不得返回部分 filter\"\n      ],\n      \"boundary\": {},\n      \"priority\": \"high\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [\n    \"policy-search-filter-field-semantics\",\n    \"policy-search-value-completeness-safety\"\n  ],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"服务依赖与解析链路可用\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\n        \"服务依赖状态为 available\",\n        \"解析调用状态为 succeeded\",\n        \"最终输出结构完整\"\n      ],\n      \"actual_evidence\": [\n        \"application_boundary.dependency_status: available\",\n        \"turns[0].call_status: succeeded\",\n        \"final_output: code=0, status=SUCCESS\"\n      ],\n      \"downstream_impact\": \"服务链路正常，不存在依赖阻断问题。\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"保障属性字段映射正确\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\n        \"filter.field 为保障属性对应字段\",\n        \"过滤器根节点类型为 PREDICATE\"\n      ],\n      \"actual_evidence\": [\n        \"final_output.filter.field: security_type_desc\",\n        \"final_output.filter.type: PREDICATE\"\n      ],\n      \"downstream_impact\": \"字段维度正确，检索将按保障属性维度执行。\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"学平险取值语义精确且无范围放大\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0.0,\n      \"expected_evidence\": [\n        \"filter.value 语义等于“学平险/学生平安保险”\",\n        \"或无法精确表达时返回 UNSUPPORTED 且 filter 为 null\"\n      ],\n      \"actual_evidence\": [\n        \"final_output.filter.value: 意外伤害保险\",\n        \"filter 中缺少对学生/平安维度的约束\",\n        \"status 为 SUCCESS，未走 UNSUPPORTED 路径\"\n      ],\n      \"downstream_impact\": \"下游将按“意外伤害保险”召回所有意外险保单，范围远大于学平险，产生大量非目标结果。\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"条件完整性与安全失败\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0.0,\n      \"expected_evidence\": [\n        \"SUCCESS 时 filter 条件完整覆盖“学平险”语义\",\n        \"无法覆盖时 status 为 UNSUPPORTED 且不返回部分 filter\"\n      ],\n      \"actual_evidence\": [\n        \"status=SUCCESS\",\n        \"filter 仅表达“意外伤害保险”近似语义，未表达学平险完整语义\",\n        \"既没有返回 UNSUPPORTED，也没有返回 null filter\"\n      ],\n      \"downstream_impact\": \"消费者会误以为已正确完成学平险检索，实际结果集会包含大量非学平险意外伤害保单。\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"expected\": {\n    \"code\": 1,\n    \"msg\": \"unsupported\",\n    \"status\": \"UNSUPPORTED\",\n    \"query\": \"找学平险的保单\",\n    \"filter\": null,\n    \"message\": \"学平险为意外伤害保险大类下的细分学生保障产品，无法在保障属性字段内精确表达，应转为 UNSUPPORTED\"\n  },\n  \"missing\": [\n    {\n      \"kind\": \"condition_missing\",\n      \"error_type\": \"missing_specific_product_constraint\",\n      \"expected\": {\n        \"constraint\": \"仅筛选满足学平险（学生平安保险）语义的保单\"\n      },\n      \"actual\": {\n        \"filter\": {\n          \"field\": \"security_type_desc\",\n          \"operator\": \"EQ\",\n          \"value\": \"意外伤害保险\"\n        }\n      },\n      \"evidence_ref\": \"final_output.filter\",\n      \"incomplete\": true\n    }\n  ],\n  \"wrong\": [\n    {\n      \"kind\": \"semantic_value\",\n      \"error_type\": \"value_equivalence_error\",\n      \"expected\": {\n        \"field\": \"security_type_desc\",\n        \"value\": \"学平险（学生平安保险）\",\n        \"alternative\": \"UNSUPPORTED\"\n      },\n      \"actual\": {\n        \"field\": \"security_type_desc\",\n        \"value\": \"意外伤害保险\"\n      },\n      \"evidence_ref\": \"final_output.filter.value\",\n      \"incomplete\": true\n    }\n  ],\n  \"extra\": [\n    {\n      \"kind\": \"scope_expansion\",\n      \"error_type\": \"over_broad_category\",\n      \"expected\": \"仅覆盖学平险保单的窄范围\",\n      \"actual\": \"覆盖所有意外伤害保险保单（含旅行意外、运动意外、综合意外等非学平险保单）\",\n      \"evidence_ref\": \"final_output.filter\",\n      \"incomplete\": false\n    }\n  ],\n  \"evidence\": [\n    {\n      \"source\": \"user_intent\",\n      \"value\": \"筛选保障属性为学平险的保单\"\n    },\n    {\n      \"source\": \"query\",\n      \"value\": \"找学平险的保单\"\n    },\n    {\n      \"source\": \"final_output\",\n      \"value\": {\n        \"code\": 0,\n        \"msg\": \"success\",\n        \"status\": \"SUCCESS\",\n        \"query\": \"找学平险的保单\",\n        \"filter\": {\n          \"type\": \"PREDICATE\",\n          \"node_id\": \"n0\",\n          \"field\": \"security_type_desc\",\n          \"operator\": \"EQ\",\n          \"value\": \"意外伤害保险\"\n        },\n        \"message\": \"解析成功\"\n      }\n    },\n    {\n      \"source\": \"application_boundary\",\n      \"value\": {\n        \"dependency_status\": \"available\",\n        \"notes\": \"parser returned an executable filter\"\n      }\n    }\n  ],\n  \"reasoning_summary\": \"本例解析用户查询“找学平险的保单”，意图是筛选保障属性为学平险的保单。服务链路可用，最终输出为 SUCCESS，过滤器使用 security_type_desc 字段表示保障属性，字段选择正确。关键问题在于取值语义：学平险是“学生平安保险”，属于意外伤害保险大类下的细分学生保障产品，而解析器将其直接映射为一般“意外伤害保险”，丢失了“学生/平安”这一层产品语义，导致过滤范围扩大至所有意外伤害保单（包括旅行意外、运动意外、综合意外等非学平险保单），条件不完整。按照规范，歧义或无法精确表达时不得返回 SUCCESS+部分 filter，应转为 UNSUPPORTED 且 filter 为 null。因此，服务可用性与字段选择期望满足，学平险取值语义精确性以及条件完整性/安全失败期望未满足。\"\n}",
+      "created_at": 1786467234,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "31874464-63d7-49e7-b621-ec2d63b53ae1",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 2304,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 4092,
+        "output_tokens": 11433,
+        "provider_metrics": null,
+        "reasoning_tokens": 9213,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 15525
+      },
+      "name": null,
+      "provider_data": {
+        "id": "55e4e4fa-1060-417c-8650-b5c767fb4e67",
+        "model_extra": {
+          "cost": "0"
+        }
+      },
+      "reasoning_content": "好的，我需要作为评判代理来评估这次保单搜索查询的分析结果。让我仔细理解用户意图、运行轨迹以及判断标准。\n\n用户意图是“筛选保障属性为学平险的保单”，查询是“找学平险的保单”。实际输出返回了过滤器，其字段为“security_type_desc”，操作符为“EQ”，值为“意外伤害保险”（意外伤害保险）。\n\n我需要首先理解“学平险”是什么。学平险（学生平安保险）是一种特定类型的保险产品。用户的意图是将保障属性筛选为“学平险”。然而，系统返回了“意外伤害保险”。\n\n现在，问题在于：学平险是否等同于意外伤害保险？通常来说，学平险是学生平安保险的简称，其在保障属性（security_type_desc）中应有自己的类别。实际上，在许多保险数据库中，“学平险”可能注册为一个具体的保险计划属性，或者可能映射到“意外伤害保险”。让我根据提示中提供的信息仔细思考。\n\n提示信息说明：\n- 判断成功：必须检查服务依赖是否成功、筛选条件的正确性、字段、操作符、值、角色、布尔作用域、日期边界以及条件完整性。SUCCESS 必须包含完整筛选条件；模糊查询、条件缺失或越界场景应标记为 UNSUPPORTED，且不得返回部分筛选条件。\n\n因此，如果“学平险”未能精确映射到“意外伤害保险”，这就会是一个值映射错误。让我查看提示中是否提供了业务配置证据。系统提供了 business_config 路径，但其内容未包含在此处。我应该根据我的领域知识进行推理。\n\n学平险（学生平安保险）是中国保险市场中常见的特定产品类型。从分类学角度，学平险通常属于意外伤害保险公司还是属于其专属类别？在保险分类中，学平险经常被归类为意外伤害保险（意外伤害保险），其覆盖内容包括意外身故、残疾和医疗费用报销。然而，从严谨的业务视角来看，“学平险”是一个产品名称/计划名称，而非保障属性，而“保障属性”字段（security_type_desc）可能只有固定值。\n\n由于我无法访问业务配置内容，我需要将给定证据视为可靠来源。但是，判断标准说明“业务实现、提示词和配置是当前能力证据，不算不可挑战的自证”。这意味着我需要推理，而不仅仅是接受配置内容。\n\n让我更仔细地考虑“学平险”的语义。学平险 = 学生平安保险。在保险分类中，其通常与“学生儿童意外伤害保险”相关联或视为等同。从监管层面来看，学生平安保险（学平险）通常被归类为意外伤害保险或包含在责任保险的范围内，但通常被认为是意外伤害保险的一种。\n\n然而，在有效的保单搜索场景中，用户明确选择“学平险”，而不是“意外伤害保险”。是否存在保险公司将学平险作为单独的保障属性？在典型的财产保险公司数据模型中，主要险种（险种）通常按主要险种代码（例如：意外伤害、健康保险、机动车辆保险）分类，“学平险”可能是“意外伤害”类别下的产品名称。\n\n基于我的领域知识：\n- 保障属性（Security_type_desc）的字典通常包括：意外伤害保险、健康保险、人寿保险等。\n- 学平险（学生平安保险）通常属于意外伤害保险类别。\n\n那么将“学平险”映射到“意外伤害保险”是否正确？在中文保险搜索语境中，“学平险”被理解为一种具体的保障计划，而非通用的意外伤害保险。这可能会产生歧义——例如，有些学平险包含疾病住院医疗责任，这部分会使其归属健康保险类别。因此，严格的映射应仅为“学平险”或明确的意外伤害产品名称。将“学平险”截断为“意外伤害保险”会丢失产品特定性，并且可能包含所有意外伤害保险保单，而不仅仅是学生意外保障。\n\n事实上，让我以更具体的标准来思考：判断标准说“必须比较查询和筛选条件。忽略 node_id 命名差异；允许逻辑等价树。字段、操作符、值、角色、AND/OR/NOT 作用域、日期边界和条件完整性均须正确。SUCCESS 状态必须有完整筛选条件；歧义、缺失条件或越界场景应标记为 UNSUPPORTED 且不得返回部分筛选条件。”\n\n因此这里的关键评估是：“学平险”这个值映射到“意外伤害保险”是否语义等价/正确，或者这是否是歧义，应当标记为 UNSUPPORTED？\n\n有两个主要观点：\n1. 学平险是一种学生意外伤害保险，因此被索引在“意外伤害保险”类别下。映射是合理的。\n2. 学平险是一个特定产品名称，属于意外伤害保险类别，但作为筛选器，“学平险”查询应匹配其精确名称，而不是扩展到全部意外伤害保险。\n\n让我考虑标准普尔配置的实际做法。在许多保险系统（如 PRD 配置）中，会存在关键词到字段/值的映射。类似的案例通常结果如下：\n- “学平险” → 保障属性匹配 “意外伤害保险”\n\n其实，让我重新读取提示中的一句重要内容：“业务实现、提示词和配置都是当前能力的证据，而非不可挑战的自证。”这暗示我应该考虑配置文件中如“security_type_desc”所定义的内容，但不应无条件接受。\n\n由于我没有配置内容，我需要分析这是什么概念。让我考虑这个业务案例的特定动态细节：\n- 查询：“找学平险的保单”（寻找学平险保单）\n- 用户意图：“筛选保障属性为学平险的保单”（筛选出保障属性为学平险的保单）\n- 过滤器值：“意外伤害保险”\n\n是否“学平险”在业务配置中被定义为等同于“意外伤害保险”？让我思考“学平险”的典型分类。在中国保险市场，学平险是保险公司针对学生的保护保险。其保障内容通常包含：\n1. 意外身故/伤残\n2. 意外医疗费用\n3. 住院医疗（包括疾病情况）\n\n在保险分类（监管分类）中，学平险通常被归类为短期健康保险/意外伤害保险的组合。主要险种类别（保障属性）通常按监管类别进行区分。通常，学平险的监管分类为“意外伤害保险”。\n\n然而，从用户意图和业务逻辑的角度来看，如果保险数据中“security_type_desc”字段将“学平险”列为一个明确的产品类别，那么用户意图就是精确查找“学平险”。将其转换为“意外伤害保险”会引入误报——包括所有通用意外险保单（例如旅行意外险、旅行意外保险），这些并不是学平险。\n\n由于我作为评判，没有配置内容，但我可以看出“学平险” ≠ “意外伤害保险”。它们是不同粒度的语义。让我构建一个可辩护的评判。\n\n让我考虑可用的分类类别。在保障属性字典中，通常与意外伤害相关的属性值为“意外伤害保险”。如果“学平险”是一个产品集，那么它应通过产品名或特定的保障属性值来匹配，而不是通过通用类别。\n\n提示中要求“首要职责：理解用户/下游消费者的真实业务意图 → 派生业务期望”。并且“不要把 reference answer 当作默认主目标”。这里没有 reference answer，因此我需要凭能力进行评判。\n\n出于遵循正常化/标准化的分析评判惯例，让我考虑典型的“学平险”范围。我日常知识，保险精算和保险产品领域知识：\n学平险在中国保险监管框架中通常被分类为“意外伤害保险”，主要保障意外和部分医疗费用。银保监会 C 类分类将学平险代码归类于意外伤害人身保险。\n\n不过，让我仔细查看用户意图“筛选保障属性为学平险的保单”。如果用户意图将保障属性筛选为“学平险”，意味着字段为 security_type_desc，而期望值为“学平险”。系统输出为“意外伤害保险”。这意味着系统认为“学平险”在语义上等同于“意外伤害保险”。\n\n是否有证据说明“学平险”等同于“意外伤害保险”？让我们思考。在保险业务系统中：\n- 附加险（险种）类别：学平险 = 学生平安保险，通常作为单独的险种类别或产品线类别。\n- 在中国监管代码数据库中，学平险主要险种代码为 SCX（人身意外伤害保险）。\n\n从保险分类角度，“学平险”和“意外伤害保险”可能被视为不同的产品特征。例如：\n- 意外伤害保险（用户保险）\n- 意外伤害保险（团体/个人）\n- 学平险（学生）\n\n事实上，在许多财产保险公司系统中，学平险的产品类别字段显示为“意外伤害保险”，因为监管属性强制要求这样分类。\n\n好的，让我用更稳定的视角看待这个案例。该案例可能被设计为验证关键字“学平险”的正确映射。在一个合规的配置中，通常会有一个同义词列表，其中“学平险” →“意外伤害保险”作为保障属性。这是一个简化的归一化，其合理性也取决于上下文。\n\n那么，根据严格的评判标准，该映射是否可辩护？让我考虑潜在的下游影响：如果过滤器为“security_type_desc EQ 意外伤害保险”，则会检索所有保险类型为意外伤害的保单，而不仅仅是学平险。在搜索上下文（agentCode A12345678，搜索保单）中，这会产生严重的过度检索。用户正在寻找特定保单——学平险保单。保险产品“学平险”本质上是有限的，且子类别明确。将其扩展为每个意外伤害保险保单都是过度搜索。\n\n然而，有些系统将“学平险”存储为“险种名称”（产品名称）而不是“保障属性”（安全性）。但用户意图明确为“保障属性”，因此系统应在 security_type_desc 中匹配，或标记为 UNSUPPORTED（如果无法在该字段中表示）。\n\n让我考虑是否将“学平险”解析为“意外伤害保险”是可预见的可接受业务行为。在中文险种命名中：\n- “学平险”作为通用名称。\n- 没有标注“学生”关键词就无法过滤“意外伤害保险”。\n\n实际上，从可操作性来看：如果一个代理人查询“学平险保单”，而数据中保险类型是“意外伤害保险”，且存在“学平险”附加险名称，那么对这种扩展的依赖程度就较小。更准确的方法是将其映射至“学平险”作为产品名称。\n\n好的，我需要决定评判的方向。让我权衡。此处的提示信息是“筛选保障属性为学平险的保单”，查询为“找学平险的保单”。实际输出：\n- status: SUCCESS\n- Code: 0\n- filter: security_type_desc = 意外伤害保险\n\n常见关于“学平险”的保险知识：\n学平险全称“学生平安保险”，属于人身意外伤害保险（平安保险类别为意外伤害保险）。一般而言，保险公司投保时“险种”为“学生平安保险”，其保障类别分类可能属于“意外伤害保险”，也可能包含健康保障类别。\n\n实际上，让我搜索我对该领域的记忆。在中国保险市场，学平险通常属于“意外伤害保险”（责任分类：意外伤害责任），因为其主要保障意外事故。但在财务分类中它们可以归入短期健康保险或意外伤害保险。财产保险公司（P&C 保险公司）销售学平险，其以“学平险”储存在非车险类别，例如意外伤害保险（PA：意外伤害保险）。\n\n由于财产保险公司的保障属性（保障属性）对于学平险通常是“意外伤害保险”，查询“找学平险的保单”→映射到 security_type 意外伤害保险是合理且语义等价的，取决于学平险是否属于意外伤害保险类别。在许多系统实现中，这是正常行为，因为其他交叉保障属性不存在概念。\n\n然而，在严格的语义评判中，该映射忽略了“学生”维度：并非所有“意外伤害保险”都是“学平险”（意外伤害保险包含旅行意外险、运动意外、综合意外险等）。如果用户要求“学平险”，那么搜索“意外伤害保险”会返回所有意外伤害保险保单，无法分离出学平险。这是显著的差异。\n\n但标准是“允许逻辑等价树”。这里并非逻辑等价——而是值映射，可能不完全等价。\n\n对于执行正确性，评估字段和值：如果学平险是学生意外伤害保险，将其存储在“意外伤害保险”分类下，那么在业务领域中等价查询应针对“意外伤害保险”，但如果没有额外的“学生”产品名称条件，该筛选条件不精确。“SUCCESS 不应有部分筛选条件；歧义应导致 UNSUPPORTED”。\n\n我认为这是有歧义/不精确之处。让我考虑保险类型的粒度。并非所有“意外伤害保险”保单都是学平险。因此，SUCCESS 对“security_type_desc = 意外伤害保险”的读取不能正确执行用户意图“学平险保单”。用户会收到所有意外伤害保险保单，包括旅行意外险、意外保险等。这不符合用户意图。\n\n但是，另一种观点是“学平险”不是监管类别，而是产品名称，而“security_type_desc”是监管类别字段。如果配置将学平险归类为“意外伤害保险”，那么在所有学平险保单都符合“意外伤害保险”的前提下，这个映射在业务上可接受。不过，它也会捕获其他意外险保单，造成过度检索。用户下游需要可能接受过度检索？不理想。\n\n让我查看是否有参考标准可遵循。根据 prompt，商业案例（insurance_search_business_config_prd.json）可能包含同义词。由于我没有看到其内容，我必须根据推断来评估。\n\n实际在许多保险搜索系统中：\n- 学平险 → 保障属性 = 意外伤害保险\n- 业务配置可能明确包含该同义词映射：“学平险” →“意外伤害保险”\n\n该特定案例来自一个基准测试集（policy-search dataset，带 case_id）。这些案例通常是正确生成的设计。被评定为正确的生成很可能是“学平险” →“意外伤害保险”，因为这是“学平险”是“意外伤害保险”的映射，这就是系统设计。\n\n然而，对于我的评估，我需要确定所判定答案是否正确。让我直接给出评估：\n\n选项 A：过滤器正确 —— 学平险在分类学上属于意外伤害保险类别（学生意外险），且配置支持该同义词。\n选项 B：过滤器不正确 —— “学平险”是一个特定的产品类别，与“意外伤害保险”不同；“意外伤害保险”过滤器的过度检索会导致结果超出预期的学平险，因此应为 UNSUPPORTED 或 filtering 中对“学平险”进行精确断言。\n\n让我们通过检查“学平险”属于哪类产品，进一步细化。学生平安保险包含：\n- 保障：意外身故、意外残疾、意外医疗和住院医疗。\n- 保险公司将学平险注册为“短期健康保险”和“意外伤害保险”责任。\n\n从分类角度（政策部分），学平险的最主要大类是“意外伤害保险”？\n\n观察：在银保监会的数据代码中，学平险属于 C 类代码分类类别中的人寿保险范畴内吗？让我回忆 2021/2023 年的保险统计数据表：财产保险公司人身意外伤害保险保费中的保险种类：短期意外险、学平险、乘客人身意外险等。是的，学平险是意外伤害保险的一个子类别！在官方统计表中，意外伤害保险的明细项包括“学生无保险”“旅行意外伤害保险”“团体意外伤害保险”等。这证实监管分类将“学平险”放置在“意外伤害保险”之下。\n\n从统计/分类透视来看，匹配任何意外险保单会超出范围，但“学平险”确实是意外险中的一个子类别，因此“security_type_desc = 意外伤害保险”并不会错误地排除学平险保单（所有学平险均属于意外伤害险）；然而会产生过度检索（非学平险意外险保单会被返回）。\n\n现在，为了用户意图“学平险保单”，返回所有意外险保单是部分正确/过度检索的——并非精确获得。\n\n现在，判断标准“条件完整性”：SUCCESS 必须完整：不缺失条件。该预测缺失额外限制条件，无法直接匹配学平险与意外伤害险。\n\n不过，如果字段 system 只有 security_type_desc，而 PRD/配置包含同义词“学平险=意外伤害保险”，那是否能被视为可执行？这取决于架构和配置。由于用户特意提到“保障属性为学平险”，期望应描述为“security_type_desc EQ 学平险”（如果字段中有该值）或 UNSUPPORTED（如果未定义）。\n\n让我转向一个清晰的业务思考：用户在概念层面指定了一个精确值。系统以语义不同的值响应。对于下游消费者，返回“意外伤害保险”会导致不精确结果。因此，错误为：值不正确（“学平险”≠“意外伤害保险”），并且缺少“学生平安”约束。\n\n因此，根据标准中的“运营/价值验证”，该输出包含明显的 value mismatch。因此它应为 NOT fulfilled（失败）。\n\n不过，我应该考虑到，也许测试数据集将正确过滤器定义为“意外伤害保险”。case_id 是 policy-search-rich-0009，是一个“rich”的随机案例，随机化字段/值组合。“rich”表示案例是以随机生成的格式生成的，正确性由配置定义。在随机生成的案例中，“学平险”是一个与“意外伤害保险”绑定输入，作为预设的语义等价对。\n\n不过，作为评判，使用已知的保险分类，我判断错误，即“意外伤害保险”并不限于“学平险”。让我检查替代解释：也许保险公司将“保障属性”存储为“意外伤害保险”，而“学平险”是一个完全不同的产品。查询将按product_code/product_name进行匹配，而不通过security_type_desc。如果架构没有产品名称或附加字段，那么通过“意外伤害保险”对“学平险”进行归一化可能是系统检索该信息的最精确方式。然而，如果系统能够进行产品名称搜索，则应为“学平险”添加查询。\n\n根据所见补充，我只处理“security_type_desc”过滤器。作为评判，我应该比较并识别缺失或错误之处。\n\n让我构建更仔细的论证：\n\n用户意图：按“学平险”（学生平安保险）筛选。“学平险”是具有特定目标群体（学生）和保障组合（意外+医疗）的产品。\n实际过滤器：security_type_desc = 意外伤害保险（意外伤害保险）。\n- 该类别是一种意外险，但相比“学平险”更广泛——包括旅行、部分单次意外伤害险等非学平险保单。\n- 没有字段限制确保“学生”“平安”或产品名称等。\n因此，filter 输出并未表达查询中“学平险”的语义；此操作属于过度检索。将该 query 判定为具有特定产品语义的 SUCCESS 并不充分；在无法精确匹配“学平险”的情况下，应返回 UNSUPPORTED。（标准：“歧义、条件缺失或越界场景应 UNSUPPORTED 且不得返回部分过滤器”。因此，由于无法完整表达“学平险”，该 parser 应返回 UNSUPPORTED。）\n\n预期（自产）：code=0, msg=success, status=SUCCESS, query=“找学平险的保单”，filter 应反映“学平险”的值或无法表示时的结构。我可以提供一个能表示产品/类别的过滤器，或一个 UNSUPPORTED 预期。由于我们正在评估实际输出，指定预期 output 结构：status=UNSUPPORTED，message=无法将“学平险”精确映射到支持字段，或 SUCCESS and filter: security_type_desc = 学平险（如果字典允许）。\n由于字典中是否有“学平险”值尚不明确，我会定义一个预期过滤器，其中包括针对“学平险”的精确值，并描述合理预期：当“学平险”未作为受支持的值时，应返回 UNSUPPORTED 而非调用“意外伤害保险”。\n\n现在，关于 business_expectations 的设计。Expectations：\n1. 服务依赖成功（服务可用且响应为 SUCCESS）。blocking？若依赖失败，则无法评估;但这是运行真实性。Blocking=false。\n2. 字段选择正确（用于“保障属性”的 security_type_desc 字段）。该字段正确。Blocking=true，因为这是查询执行的核心。\n3. 值处理正确（“学平险”转换为受支持的属性，等待——这包含上面）。\n4. query-到-filter 保真性/条件完整性：过滤器须将用户 intent “学平险” 的语义完全表达出来，不得扩大范围（blocking=true）。这是最关键的一点。\n5. 安全失败：当意图无法以受支持值表示时，返回 UNSUPPORTED，不得静默返回部分过滤器（blocking=true）。\n\n所以我认为核心过滤器不满足条件完整性/价值正确性期望。\n\n不过等等，我需要再仔细思考一下“学平险”是否真的属于“意外伤害保险”并因此正确。在监管分类中：\n- “学平险”属于业务分类中的“意外人生伤亡医疗费”？\n- 官方代码：学生平安意外伤害保险（1060103）的主要险类代码为“意外伤害保险”？\n让我们用正式术语来认可‘security_type_desc’本身。‘学平险’被记忆与保险分类中的‘意外伤害保险’相同——保险公司的‘险种’代码有‘学平险’，而“意外伤害保险”是险类。一个术语是产品，另一个是类别。用户询问特定产品，而产品是类别‘意外伤害保险’的子集。返回类别不会丢失学平险保单，会增加非学平险意外险保单。这是过度检索。\n\n在下游搜保场景，过度检索的代价相对较低，但会混淆/误导用户。而评估标准在语义上严格要求。\n\n我认为正确做法是：确认输出值错误（应为“学平险”或 UNSUPPORTED），因此失败。\n\n同时，我要定义用户意图：按“保障属性=学平险”过滤。这是明确的意图。Expectation ID：如“保障属性字段选择正确”“学平险值映射语义精确”“条件完整性：不得有部分/不完整筛选”“歧义时安全失败”。\n\n现在，评估 Fulfillments：\n- 服务依赖可用：已履行。\n- 字段选择：已履行（security_type_desc 恰当地代表“保障属性”）。\n- 值正确性/条件完整性：未履行。“学平险”（特定产品）无法通过过滤条件“意外伤害保险”表达（过度检索）。system 本应返回 UNSUPPORTED 而当它进行了扩展时，或者如 supported 则使用精确值。\n- 安全失败：未履行（SUCCESS 静默扩大了查询范围）。\n\n将所有情形放入统一或分开的 expectations 中。我们先设计：\n\nExpectation 1：服务依赖可用（blocking=false）。Acceptance：允许在无输出时使用依赖链；actual evidence：dependency_status=available，call_status=succeeded。状态 fulfilled。\n\nExpectation 2：保障属性-条件按正确字段输出（blocking=true）。Acceptance：字段表示‘security’。actual：field=security_type_desc 符合“保障属性”。状态 fulfilled。\n\nExpectation 3：“学平险”作为值被完整表达，不得扩大范围（blocking=true）。Acceptance：过滤器值精确表示学平险，或当非法时返回 UNSUPPORTED 且不附带（部分）过滤器。actual：value 意外伤害保险，是不精确的类扩展；因此未履行。Expectation 4：超过可解析边界时安全失败（blocking=true）。Acceptance：如不在支持值内则返回 UNSUPPORTED。actual：SUCCESS 导致静默扩大范围，未履行。\n\n那么是否要定义一个 unified blocking expectation？或许合并 3 和 4：精确值语义（blocking）。同时保留安全失败（blocking）。很好。\n\n现在 expected 输出结构：按 JSON schema：\n{\n  \"code\": 0,\n  \"msg\": \"success\",\n  \"status\": \"UNSUPPORTED\",\n  \"query\": \"找学平险的保单\",\n  \"filter\": null,\n  \"message\": \"学平险是意外伤害保险下的细分产品，当前安全属性无法精确表达，请补充产品或保障名称条件\"\n}\n\nHmm，不过预期值是否应该是 UNSUPPORTED？如果我配置为 UNSUPPORTED，这表明 parser 不应将学平险转换为意外伤害保险。考虑到“过滤策略”契约，预期值是一种“合理答案的预期”，是用户的“自产参考”。可以，将其定义为 UNSUPPORTED 更符合严格原则。\n\n但让我再次审视：“学平险”是“安全属性字典”中的值吗？在真实的保险字典中，安全性是一个“险类”属性，可能仅包含通用类别。‘学平险’很可能不是险类，而是产品。因此，parser 不能通过该字段精确表达“学平险”。它必须返回 UNSUPPORTED。意外伤害保险的使用在功能上有效，但在语义上错误/过度检索。\n\n让我对预期输出进行细化：\n- 状态：SUCCESS，筛选条件：security_type=学平险？或者如果系统有产品名称字段？“学平险”可以作为一种产品名称值。这里的信息中没有提及产品名称字段。因此不能筛选 name。最佳回应为 UNSUPPORTED。\n\n因此，expected：\n{\n  code: 0? or non-zero? For UNSUPPORTED，协议可能需要 code=UNSUPPORTED 或 code=1。我们不知道代码语义。设定：code=0? 根据契约，UNSUPPORTED 可能返回 code=1/msg='无法解析'。由于未指定实际 UNSUPPORTED 代码，给定 schema 需要 code=intteger。我可以设置 code=1，msg=...，status=UNSUPPORTED，filter=null，message=... 。\n但若实际成功场景为 code=0，UNSUPPORTED 可能是 code=1。由于不属于关键，我将 code 定义为 1（非零）和一个说明性 message。或者，仅期望 status=UNSUPPORTED。\n\nOK，gaps：\n\nmissing（expected 不得缺失）：\n- kind: 'semantic'，error_type: 'value_mismatch'，expected: security_type_desc=学平险（或 UNSUPPORTED）actual: security_type_desc=意外伤害保险。\n- missing: 用于“学平险”的约束（学生/意外保障）——通过‘UNSUPPORTED’安全响应缺失。\n\nextra：\n- extra constraint 意外伤害保险仅在结果中扩展——是实际语义扩展。kind: 'scope'，error_type: 'overexpansion'，expected：精确的学平险范围或 UNSUPPORTED，actual：扩大到所有意外伤害保险。\n\nwrong：\n- 值错误：学平险 != 意外伤害保险。或列出具体的不匹配：expected value 学平险；actual值意外伤害保险。\n\n让我谨慎处理 kinds。定义：kind: 'value_mismatch' 和 error_type: 'over_broad'。\nMissing item：{'kind': 'condition_missing', 'error_type': 'missing_precise_value', 'expected': {'field': 'security_type_desc', 'value': '学平险'}, 'actual': '无（已扩展为类别值）', 'evidence_ref': 'final_output.filter.value', 'incomplete': True}\nWrong item：{'kind': 'semantic_value', 'error_type': 'value_equivalence_error', 'expected': '代表“学平险”的表达，学生保险', 'actual': '意外伤害保险（包含非学平险意外险）', 'evidence_ref': 'final_output.filter', 'incomplete': True}\nExtra item：{'kind': 'scope_expansion', 'error_type': 'over_broad_filter', 'expected': '仅学生平安保险产品', 'actual': '所有意外伤害保险保单', 'evidence_ref': 'final_output.filter'}\n\n或者将 missing 作为保留的空数组，而 wrong 包含主要项。我会填充所有三个，每个对应一个不同角度。\n\nevidence：['final_output: {\"code\":0,...,\"filter\":{...}}', 'intent_input.extra_input_params.policySearchParseArgs.query: 找学平险的保单', \"user_intent: 筛选保障属性为学平险的保单\", 'application_boundary.dependency_status: available']\n\nreasoning：使用中文撰写。描述：服务正常，字段正确，但值“学平险”（学生平安保险）不是通用的“意外伤害保险”。学平险是意外险的一个细分（针对学生的）：将其解析为“意外伤害保险”将导致过度检索（旅行意外险、运动意外、综合意外险等均会返回），无法满足用户对“学平险”的精确意图。根据规范，不能精确表达时，应返回 UNSUPPORTED 而非 SUCCESS 和部分条件。“意外伤害保险”未表达出“学生”和“平安”的语义约束。因此 condition-value 和 condition-completeness expectations 不满足。\n\n现在，让我再次重新考虑映射是否可接受。我希望在给出否定评判前确保公平。在一些保险数据库中，学平险 = 意外伤害保险，属于‘学生平安意外伤害保险’类别，而‘意外伤害保险’是监管分类。但一个用户搜索“学平险”的保单。意外伤害保险是集合，学平险是子集。如果查询解析器只支持安全性属性，那么支持“学平险”意味着“意外伤害保险+产品名=学平险”多个条件。由于该模型不支持产品名，则 SUCCESS 具有不完整条件。这是不安全的。是的，否定。\n\n但等等，是否有些系统实际上在字典中定义“学平险”为同义词，与“意外伤害险”完全相同？这取决于字典范围。用户意图明确“保障属性为学平险”，也就是说用户可以表达‘学平险’的概念，而系统映射到‘意外伤害保险’，因为它是最接近的类别。从搜索召回角度，好的搜索引擎过度检索可接受？但对于“打开保单列表”动作，用户需要精确的学平险保单。\n\n我将坚守：不正确。\n\n现在构建 JSON。\n\nbusiness_expectations：\n1. expectation_id: 服务依赖与解析状态可用（blocking=false）\n   downstream_consumer: 保单搜索解析服务（filter 消费者）\n   user_intent: 确认该查询可被解析。\n   expected_outcome: 解析服务可用并返回可解析的输出。\n   required_capabilities: [] 或 ['request_validation']\n   acceptance_criteria: [\"Trace 中 provider 服务状态为可用的\",\"解析链路正常返回\",\"无 fallback 阻断\"]\n   boundary: {\"scope\": \"仅服务可用性，不涉及 filter 语义内容\"}\n   priority: \"medium\"\n\n2. expectation_id: 保障属性字段与用户意图一致（blocking=true）\n   downstream_consumer: filter 执行引擎\n   user_intent: 按保障属性筛选。\n   expected_outcome: 生成以保障属性为根过滤字段的条件树。\n   required_capabilities:['FILTER','FIELD_MAPPING']\n   acceptance_criteria: ['filter 中 field 表达任务要求的“保障属性”字段', '字段 spelling/身份一致']\n   boundary: {scope: '字段选择，不包含值映射'}\n   priority: high\n\n3. expectation_id: 学平险值被精确表达且无范围放大（blocking=true）\n   downstream_consumer: 保单检索结果集消费者\n   user_intent: 是“学平险”的保障，不是“意外伤害保险”大类。\n   expected_outcome: 查询语义被精确映射（学生平安类保障），无法精确表达时不应返回错误 status=SUCCESS 的近似条件。\n   required_capabilities: ['VOCABULARY_SEMANTICS','VALUE_MAPPING','NEGATIVE_CAPABILITY']\n   acceptance_criteria: ['filter 值必须等价于“学平险”（学生平安险）', '输出不含事实性类别扩展（如意外伤害保险）', '存在歧义或无法精确表达时必须为 UNSUPPORTED 且 filter 为 null']\n   boundary: {'值语义': '学平险是意外险下的细分产品，不等于一般意外伤害保险'}\n   priority: high\n\n4. Expectation_id: 条件完整性 / 安全失败（blocking=true）\n   downstream_consumer: 结果消费方\n   user_intent: 完整条件输出。\n   expected_outcome: SUCCESS 必须含完整条件，UNSUPPORTED 表达不可解析。\n   acceptance_criteria: [\"SUCCESS 不得出现缺失约束或部分条件\",\"当意图超出可解析范围（如具体产品名不可映射）时返回 UNSUPPORTED\",\"不得静默返回 SUCCESS + 部分 filter\"]\n   boundary: {}\n   priority: high\n\nFulfillment_assessments：\n- 服务依赖可用：fulfilled，score:1.0，expected_evidence: [\"服务依赖状态为 available\",\"解析链路状态与 final output 由同一服务返回\"], actual_evidence: [\"application_boundary.dependency_status: available\",\"turns[0].call_status: succeeded\"], downstream_impact: \"不影响，依赖成功。\"\n- 保障属性字段选择正确：fulfilled，score：1.0，expected_evidence: [\"filter.field 为用户意图“保障属性”的受支持字段\"], actual_evidence:[\"final_output.filter.field: security_type_desc（保障类型描述）\"], downstream_impact: \"过滤字段正确，结果召回按安全类维度进行。\"\n- 学平险值精确且无范围放大：not_fulfilled，score：0，expected_evidence:['filter 值的语义范围等于“学平险”（学生平安保险）',\"或返回 UNSUPPORTED 且 filter=null\"], actual_evidence:[\"final_output.filter.value: 意外伤害保险(一般意外伤害)\",\"filter 缺少对“学生/平安”的约束，造成结果集范围扩大\"], downstream_impact: \"下游会按“意外伤害保险”查询所有意外伤害保单而非学平险，召回集合过大且包含不属于目标任务的结果。\"\n- 条件完整/安全失败：not_fulfilled，score:0，expected_evidence: ['SUCCESS 携带完整（足够）的条件','不可精确表达时 status=UNSUPPORTED'], actual_evidence:['status=SUCCESS','filter 仅表达“意外伤害保险”近似语义，未表达学平险完整语义'], downstream_impact: \"消费者会误以为能完成学平险检索，实际结果集语义偏差。\"\napplicable_product_expectation_ids：例如 [\"policy-search-query语义解析筛选条件的保障属性精确性\"] 我们可提供字符串清单。这是与“project expectations”的一个简单列表。我需要包含非空数组：['policy-search-parse-001']，但为了稳妥，应匹配 expectation 的 id 的名称。例如：\"policy-search-semantic-query-preservation\"。可用：“policy-search-filter-semantics” 或类似。我会使用 [\"policy-search-filter-semantic-correctness\"]。\n\n由于 prompt 说“applicable_product_expectation_ids”需要是字符串列表。我会包括两条。\n\n预期 output（“自产 reference”）：\n{\n  code: 1（作为 UNSUPPORTED 的非零），msg: “无法将学平险精确映射到支持的保障属性”，status: “UNSUPPORTED”，query: “找学平险的保单”，filter: null，message: “学平险为意外伤害保险下的细分学生保障产品，无法在保障属性字段内精确表达，需补充产品/险种信息”\n}\n\nHmm，还是 expected output 更好的状态为 SUCCESS 且 filter=security_type_desc=学平险？既然一个字典值可能是“学平险”但也可能不存在。作为 judge 的预设正确参考，我偏好 UNSUPPORTED。但让我测试自洽性：如果预期为 UNSUPPORTED，则实际 SUCCESS 是一个明确的失败。如果预期为 SUCCESS with 学平险，则会因为有该值而失败。两种情况都符合。UNSUPPORTED 更能反映最安全的解析器，与标准一致。\n\n然而，关于 filter=null 的 UNSUPPORTED：schema 中 filter 取值为 object|null，所以 filter: null 是有效的。message 要求非空。code=1 可能是无符号型?\n\n我无法对 code 规定强权。字段：code: 1, msg: “unsupported”, status: “UNSUPPORTED”, query: “找学平险的保单”, filter: null, message: “学平险无法映射为精确的保障属性，应转为 UNSUPPORTED”。\n\n现在，缺失/错误/额外：\n\nmissing:\n[\n  {\"kind\": \"condition_missing\", \"error_type\": \"missing_specific_product_constraint\", \"expected\": {\"constraint\": \"仅学生平安保险/学平险保单\"}, \"actual\": {\"filter\": {\"field\": \"security_type_desc\", \"value\": \"意外伤害保险\"}}, \"evidence_ref\": \"final_output.filter\", \"incomplete\": true}\n]\n这个“missing”项是缺少“精确值约束”。\n\nwrong:\n[\n  {\"kind\": \"semantic_value\", \"error_type\": \"value_equivalence_error\", \"expected\": {\"field\": \"security_type_desc\", \"value\": \"学平险（学生平安保险）或 UNSUPPORTED\"}, \"actual\": {\"field\": \"security_type_desc\", \"value\": \"意外伤害保险\"}, \"evidence_ref\": \"final_output.filter.value\", \"incomplete\": true}\n]\n\nextra:\n[\n  {\"kind\": \"scope_expansion\", \"error_type\": \"over_broad_category\", \"expected\": \"仅覆盖学平险的窄范围\", \"actual\": \"覆盖所有意外伤害保险保单（含非学平险）\", \"evidence_ref\": \"final_output.filter\", \"incomplete\": false}\n]\n\nevidence:\n[\n  {\"source\": \"user_intent\", \"value\": \"筛选保障属性为学平险的保单\"},\n  {\"source\": \"query\", \"value\": \"找学平险的保单\"},\n  {\"source\": \"final_output\", \"value\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"filter\": {\"type\": \"PREDICATE\", \"field\": \"security_type_desc\", \"operator\": \"EQ\", \"value\": \"意外伤害保险\"}}},\n  {\"source\": \"application_boundary\", \"value\": {\"dependency_status\": \"available\", \"notes\": \"parser returned an executable filter\"}\n]\nevidence 作为数组无需特殊键。\n\nreasoning_summary（中文）：\n“本案例解析用户查询‘找学平险的保单’以筛选保障属性为学平险的保单。服务链路可用，响应状态 SUCCESS，字段 security_type_desc 的选择是正确的。关键问题是值映射：‘学平险’（学生平安保险）是意外伤害保险大类下的细分学生保障产品，而解析器将其映射为一般‘意外伤害保险’，丢失了‘学生/平安’的产品语义，导致下游过滤结果扩大至所有意外伤害保单（含旅行意外、运动意外、综合意外等非学平险），条件不完整。根据规范，歧义或无法精确表达时不得返回 SUCCESS+部分 filter，应转 UNSUPPORTED 并返回 null filter。因此，字段选择期望 fulfilled，值精确性与条件完整性/安全失败期望 not fulfilled。”\n\n现在，让我再次检查最终 JSON 的强约束：\n- 只包含一个 JSON 对象。\n- 无 Markdown。\n- 首字符 { ，末字符 }。\n- 中文字符串。\n\n评分：使用范围 0-1。\n\nScore for service: 1.0；对于字段：1.0；对于值：0.0；对于完整性：0.0。允许 score 为 number|null。\n\nAuthority_tool_call_ids：由于没有工具调用，该数组为 []。required 字段只要求 expectation_id 和 status，其他字段可选。我可以提供这些字段，也可以省略 authority_tool_call_ids。我会给出非空 expected/actual evidence 和 downstream_impact 字段；authority_tool_call_ids 为 []。\n\n其他业务期望字段：priority。“high” ok。boundary：为对象，可能为空 {}。\n\n我应确保 business_expectations 数组中每个元素包含 required (expectation_id, blocking) 以及更多字段。我会填入全部所需附加字段，虽然可选项多。\n\nFulfillment status 单词：“fulfilled”、“not_fulfilled”。必须从这些值中选择，不可用别的。\n\n对于 final JSON，包含以下所需字段：\n- business_expectations array\n- applicable_product_expectation_ids array\n- fulfillment_assessments array\n- expected object\n- missing array\n- wrong array\n- extra array\n- evidence array\n- reasoning_summary string\n\n额外字段如“missing/wrong/extra”未在顶层 schema 的 required 中？是的，在顶层 schema properties 中定义，但 required 只有 expected、business_expectations、reasoning_summary。不过，我仍应包含全部可用字段，只要 schema 允许。这里 schema properties 包括 business_expectations、applicable_product_expectation_ids、fulfillment_assessments、expected、missing、wrong、extra、evidence、reasoning_summary。附加属性 false 意味着只允许这些键。我必须包含所有期望字段（good）。\n\n嵌套 GapItem：kind 字符串，error_type 字符串，expected {}，actual {}，evidence_ref 字符串，raw {} 可选？required 不在 GapItem 中明确：schema items 仅定义 properties 而不设为 required。所以我可以提供所选的键。我提供 kind, error_type, expected, actual, evidence_ref, incomplete。\n\n现在，我犹豫这“missing”/“wrong”/“extra”条目是否可以在语义上精细。关键是避免过度设计。我将输出简洁的条目。\n\n最后，关于“applicable_product_expectation_ids”的含义——应映射到我已声明的 expectation id 所在的“产品级期望”。我将其用作与不同情况相关的外部产品期望 identifiers：“policy-search-filter-field-semantics”、“policy-search-value-completeness-safety”。这些必须非空。好的。\n\n我现在来写最终 JSON。\n\n在写之前，再仔细思量：\n- “filter”: null 中的预期输出：对于 UNSUPPORTED 是否为可接受格式？判断标准：正常场景应填充 filter；歧义/缺失条件的情况应标记 UNSUPPORTED 且不得返回部分 filter。因此对于自产 reference，将 status=UNSUPPORTED 且 filter=null 视为正确输出。契约也会将“message”字段作为解释。OK。\n- 但若架构要求 SUCCESS_code for 0 且 errors 使用非零，则 code=1 合适。\n- 而 msg 也可为空字符串？要求 minLength:1，不可空。\n\n好的，进行最终 JSON。\n\n再检查一遍 fulfillment status：使用“not_fulfilled”（不是 not-fulfilled）。允许的值：“fulfilled”、“not_fulfilled”、“not_evaluable”。我会精确使用下划线版本。\n\n再确认‘学平险’的中文拼写：“学平险”。保险分类说明：学平险全称“学生平安保险”。\n\n完成 JSON。",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "policy_search",
+  "prompt_size": 19635,
+  "record_id": "bcb16526-75f1-4968-824b-45eefa54c8ed",
+  "response": {
+    "content": "{\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"服务依赖与解析链路可用\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"保单搜索过滤器执行方\",\n      \"user_intent\": \"确认查询可以被正常解析执行\",\n      \"expected_outcome\": \"解析服务可用，请求校验与输出校验均通过，链路无阻断\",\n      \"required_capabilities\": [\"request_validation\", \"output_validation\"],\n      \"acceptance_criteria\": [\n        \"运行轨迹中服务依赖状态为 available\",\n        \"解析调用 call_status 为 succeeded\",\n        \"存在可消费的最终输出\"\n      ],\n      \"boundary\": {\n        \"scope\": \"仅评估服务可用性，不涉及 filter 语义正确性\"\n      },\n      \"priority\": \"medium\"\n    },\n    {\n      \"expectation_id\": \"保障属性字段映射正确\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索执行引擎\",\n      \"user_intent\": \"按保障属性维度筛选保单\",\n      \"expected_outcome\": \"过滤器根节点使用表示“保障属性”的字段\",\n      \"required_capabilities\": [\"field_mapping\", \"predicate_building\"],\n      \"acceptance_criteria\": [\n        \"filter.field 与业务契约中保障属性字段一致\",\n        \"字段选择没有混入其他维度\"\n      ],\n      \"boundary\": {\n        \"scope\": \"仅评估字段选择，不包含值映射是否正确\"\n      },\n      \"priority\": \"high\"\n    },\n    {\n      \"expectation_id\": \"学平险取值语义精确且无范围放大\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索结果集消费者\",\n      \"user_intent\": \"寻找保障属性为“学平险”的保单\",\n      \"expected_outcome\": \"过滤器取值精确表达“学平险”（学生平安保险）语义，不扩大到一般意外伤害保险\",\n      \"required_capabilities\": [\"value_mapping\", \"semantic_equivalence\", \"negative_capability\"],\n      \"acceptance_criteria\": [\n        \"filter.value 语义等价于“学平险/学生平安保险”\",\n        \"不得以“意外伤害保险”等更广类别替代“学平险”\",\n        \"若无法精确表达，应输出 UNSUPPORTED 且 filter 为 null\"\n      ],\n      \"boundary\": {\n        \"value_semantics\": \"学平险是意外伤害保险大类下的细分学生保障产品，不等于一般意外伤害保险\"\n      },\n      \"priority\": \"high\"\n    },\n    {\n      \"expectation_id\": \"条件完整性与安全失败\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"最终结果消费方\",\n      \"user_intent\": \"SUCCESS 时必须提供完整可执行的条件，无法表达时必须安全失败\",\n      \"expected_outcome\": \"不得返回携带不完整或近似条件的 SUCCESS\",\n      \"required_capabilities\": [\"condition_completeness\", \"unsupported_handling\"],\n      \"acceptance_criteria\": [\n        \"SUCCESS 返回的 filter 必须完整覆盖用户查询语义\",\n        \"存在歧义或条件缺失时 status 必须为 UNSUPPORTED\",\n        \"UNSUPPORTED 时不得返回部分 filter\"\n      ],\n      \"boundary\": {},\n      \"priority\": \"high\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [\n    \"policy-search-filter-field-semantics\",\n    \"policy-search-value-completeness-safety\"\n  ],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"服务依赖与解析链路可用\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\n        \"服务依赖状态为 available\",\n        \"解析调用状态为 succeeded\",\n        \"最终输出结构完整\"\n      ],\n      \"actual_evidence\": [\n        \"application_boundary.dependency_status: available\",\n        \"turns[0].call_status: succeeded\",\n        \"final_output: code=0, status=SUCCESS\"\n      ],\n      \"downstream_impact\": \"服务链路正常，不存在依赖阻断问题。\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"保障属性字段映射正确\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\n        \"filter.field 为保障属性对应字段\",\n        \"过滤器根节点类型为 PREDICATE\"\n      ],\n      \"actual_evidence\": [\n        \"final_output.filter.field: security_type_desc\",\n        \"final_output.filter.type: PREDICATE\"\n      ],\n      \"downstream_impact\": \"字段维度正确，检索将按保障属性维度执行。\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"学平险取值语义精确且无范围放大\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0.0,\n      \"expected_evidence\": [\n        \"filter.value 语义等于“学平险/学生平安保险”\",\n        \"或无法精确表达时返回 UNSUPPORTED 且 filter 为 null\"\n      ],\n      \"actual_evidence\": [\n        \"final_output.filter.value: 意外伤害保险\",\n        \"filter 中缺少对学生/平安维度的约束\",\n        \"status 为 SUCCESS，未走 UNSUPPORTED 路径\"\n      ],\n      \"downstream_impact\": \"下游将按“意外伤害保险”召回所有意外险保单，范围远大于学平险，产生大量非目标结果。\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"条件完整性与安全失败\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0.0,\n      \"expected_evidence\": [\n        \"SUCCESS 时 filter 条件完整覆盖“学平险”语义\",\n        \"无法覆盖时 status 为 UNSUPPORTED 且不返回部分 filter\"\n      ],\n      \"actual_evidence\": [\n        \"status=SUCCESS\",\n        \"filter 仅表达“意外伤害保险”近似语义，未表达学平险完整语义\",\n        \"既没有返回 UNSUPPORTED，也没有返回 null filter\"\n      ],\n      \"downstream_impact\": \"消费者会误以为已正确完成学平险检索，实际结果集会包含大量非学平险意外伤害保单。\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"expected\": {\n    \"code\": 1,\n    \"msg\": \"unsupported\",\n    \"status\": \"UNSUPPORTED\",\n    \"query\": \"找学平险的保单\",\n    \"filter\": null,\n    \"message\": \"学平险为意外伤害保险大类下的细分学生保障产品，无法在保障属性字段内精确表达，应转为 UNSUPPORTED\"\n  },\n  \"missing\": [\n    {\n      \"kind\": \"condition_missing\",\n      \"error_type\": \"missing_specific_product_constraint\",\n      \"expected\": {\n        \"constraint\": \"仅筛选满足学平险（学生平安保险）语义的保单\"\n      },\n      \"actual\": {\n        \"filter\": {\n          \"field\": \"security_type_desc\",\n          \"operator\": \"EQ\",\n          \"value\": \"意外伤害保险\"\n        }\n      },\n      \"evidence_ref\": \"final_output.filter\",\n      \"incomplete\": true\n    }\n  ],\n  \"wrong\": [\n    {\n      \"kind\": \"semantic_value\",\n      \"error_type\": \"value_equivalence_error\",\n      \"expected\": {\n        \"field\": \"security_type_desc\",\n        \"value\": \"学平险（学生平安保险）\",\n        \"alternative\": \"UNSUPPORTED\"\n      },\n      \"actual\": {\n        \"field\": \"security_type_desc\",\n        \"value\": \"意外伤害保险\"\n      },\n      \"evidence_ref\": \"final_output.filter.value\",\n      \"incomplete\": true\n    }\n  ],\n  \"extra\": [\n    {\n      \"kind\": \"scope_expansion\",\n      \"error_type\": \"over_broad_category\",\n      \"expected\": \"仅覆盖学平险保单的窄范围\",\n      \"actual\": \"覆盖所有意外伤害保险保单（含旅行意外、运动意外、综合意外等非学平险保单）\",\n      \"evidence_ref\": \"final_output.filter\",\n      \"incomplete\": false\n    }\n  ],\n  \"evidence\": [\n    {\n      \"source\": \"user_intent\",\n      \"value\": \"筛选保障属性为学平险的保单\"\n    },\n    {\n      \"source\": \"query\",\n      \"value\": \"找学平险的保单\"\n    },\n    {\n      \"source\": \"final_output\",\n      \"value\": {\n        \"code\": 0,\n        \"msg\": \"success\",\n        \"status\": \"SUCCESS\",\n        \"query\": \"找学平险的保单\",\n        \"filter\": {\n          \"type\": \"PREDICATE\",\n          \"node_id\": \"n0\",\n          \"field\": \"security_type_desc\",\n          \"operator\": \"EQ\",\n          \"value\": \"意外伤害保险\"\n        },\n        \"message\": \"解析成功\"\n      }\n    },\n    {\n      \"source\": \"application_boundary\",\n      \"value\": {\n        \"dependency_status\": \"available\",\n        \"notes\": \"parser returned an executable filter\"\n      }\n    }\n  ],\n  \"reasoning_summary\": \"本例解析用户查询“找学平险的保单”，意图是筛选保障属性为学平险的保单。服务链路可用，最终输出为 SUCCESS，过滤器使用 security_type_desc 字段表示保障属性，字段选择正确。关键问题在于取值语义：学平险是“学生平安保险”，属于意外伤害保险大类下的细分学生保障产品，而解析器将其直接映射为一般“意外伤害保险”，丢失了“学生/平安”这一层产品语义，导致过滤范围扩大至所有意外伤害保单（包括旅行意外、运动意外、综合意外等非学平险保单），条件不完整。按照规范，歧义或无法精确表达时不得返回 SUCCESS+部分 filter，应转为 UNSUPPORTED 且 filter 为 null。因此，服务可用性与字段选择期望满足，学平险取值语义精确性以及条件完整性/安全失败期望未满足。\"\n}",
+    "metrics": {
+      "cache_read_tokens": 2304,
+      "cache_write_tokens": 0,
+      "input_tokens": 4092,
+      "output_tokens": 11433,
+      "reasoning_tokens": 9213,
+      "total_tokens": 15525
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 115715,
+          "endpoint": "fallback1",
+          "model": "deepseek-v4-flash-0731",
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "selected_endpoint": "fallback1",
+      "selected_model": "deepseek-v4-flash-0731",
+      "stage": ""
+    }
+  },
+  "trace_id": "policy_search:policy-search-rich-0009:1786467234375"
+}

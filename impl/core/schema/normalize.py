@@ -440,6 +440,11 @@ def normalize_fulfillment_assessment(value: Any) -> Optional[FulfillmentAssessme
         downstream_impact=str(data.get("downstream_impact") or ""),
         confidence=data.get("confidence"),
         evidence_refs=_as_list(data.get("evidence_refs")),
+        authority_tool_call_ids=[
+            str(item)
+            for item in _as_list(data.get("authority_tool_call_ids"))
+            if str(item).strip()
+        ],
     )
 
 

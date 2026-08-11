@@ -53,6 +53,19 @@ class LiveResponseView:
     error: Optional[str] = None
 
 
+class LiveHTTPStatusError(urllib.error.URLError):
+    """业务服务已响应，但以非 2xx 状态拒绝请求。"""
+
+    def __init__(self, status_code: int, response: Any):
+        self.status_code = int(status_code)
+        self.response = copy.deepcopy(response)
+        detail = json.dumps(response, ensure_ascii=False) if response is not None else ""
+        super().__init__(f"HTTP {self.status_code}: {detail}".rstrip())
+
+    def __str__(self) -> str:
+        return str(self.reason)
+
+
 class LiveTransport:
     """一轮 RealLive 独占的受控 transport；seal 后不可追加 Exchange。"""
 
@@ -167,6 +180,8 @@ class LiveTransport:
         self._exchanges.append(exchange)
         view = LiveResponseView(exchange_id, status_code, copy.deepcopy(response_payload), error)
         if error:
+            if status_code is not None:
+                raise LiveHTTPStatusError(status_code, response_payload)
             raise urllib.error.URLError(error)
         return view
 

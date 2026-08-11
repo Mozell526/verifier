@@ -89,6 +89,21 @@ def test_single_chain_input_guard_has_canonical_comparator():
     assert "canonicalValue(chainComparableInput(left))" in source
 
 
+def test_live_new_request_clears_stale_chain_results_before_running():
+    source = LIVE_HTML.read_text(encoding="utf-8")
+
+    assert "function clearCurrentRun()" in source
+    assert source.index("clearCurrentRun();", source.index("async function liveRun()")) < source.index(
+        "await post('/api/live_run'", source.index("async function liveRun()")
+    )
+    assert source.index("clearCurrentRun();", source.index("async function runChain()")) < source.index(
+        "await post('/api/run_chain'", source.index("async function runChain()")
+    )
+    assert "document.getElementById('traceHuman').innerHTML='<div class=\"empty\">尚未请求业务服务。</div>'" in source
+    assert "document.getElementById('judgeHuman').innerHTML='<div class=\"empty\">尚未请求 Judge。</div>'" in source
+    assert "document.getElementById('attributeHuman').innerHTML='<div class=\"empty\">尚未请求 Attribute。</div>'" in source
+
+
 def test_output_and_reference_share_json_formatting():
     source = _summary_source()
 
@@ -106,10 +121,10 @@ def test_trace_column_is_wide_enough_for_full_trace_json():
     assert ".trace-scroll{max-height:430px;overflow:auto" in source
 
 
-def test_case_pool_empty_rows_span_new_trace_column():
+def test_case_pool_empty_row_spans_new_trace_column():
     source = _summary_source()
 
-    assert source.count('colspan="12"') == 2
+    assert source.count('colspan="12"') == 1
     assert 'colspan="11"' not in source
 
 

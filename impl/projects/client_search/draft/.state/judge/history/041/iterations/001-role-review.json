@@ -1,0 +1,219 @@
+{
+  "contract_coverage": [
+    {
+      "evidence": [
+        "001-run.json#source-badcase-008",
+        "001-run.json#source-badcase-148"
+      ],
+      "source_id": "authority-claim-index"
+    },
+    {
+      "evidence": [
+        "001-run.json#source-badcase-113",
+        "001-run.json#source-badcase-133"
+      ],
+      "source_id": "authority-coverage-gaps"
+    },
+    {
+      "evidence": [
+        "001-run.json#source-badcase-138",
+        "001-run.json#source-badcase-148"
+      ],
+      "source_id": "authority-investigation-report"
+    },
+    {
+      "evidence": [
+        "001-run.json#source-badcase-113",
+        "001-run.json#source-badcase-138"
+      ],
+      "source_id": "authority-search-load"
+    },
+    {
+      "evidence": [
+        "001-run.json#source-badcase-123",
+        "001-run.json#source-badcase-028"
+      ],
+      "source_id": "dimension:downstream-query-consumability"
+    },
+    {
+      "evidence": [
+        "001-run.json#source-badcase-123",
+        "001-run.json#source-badcase-038"
+      ],
+      "source_id": "dimension:search-intent-preservation"
+    },
+    {
+      "evidence": [
+        "001-run.json#source-badcase-003",
+        "001-run.json#source-badcase-088"
+      ],
+      "source_id": "expectation:find-target-customers"
+    },
+    {
+      "evidence": [
+        "001-run.json#source-badcase-093",
+        "001-run.json#source-badcase-113"
+      ],
+      "source_id": "live_boundary"
+    }
+  ],
+  "criteria": [
+    {
+      "criterion_id": "expectation_support",
+      "evidence": [
+        "001-run.json#source-badcase-088",
+        "001-run.json#source-badcase-148"
+      ],
+      "finding": "088/148 职责内且本可支持的核心交付，Draft 判 not_fulfilled（088）/错误拒绝，未达期望.",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "atomic_pre_actual_expectations",
+      "evidence": [
+        "001-run.json#source-badcase-123",
+        "001-run.json#source-badcase-028"
+      ],
+      "finding": "expectation 原子性正常，无 pre-actual 混流.",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "expectation_topology",
+      "evidence": [
+        "001-run.json#source-badcase-123"
+      ],
+      "finding": "expectation 层次结构无明显异常.",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "pre_actual_blocking",
+      "evidence": [
+        "001-run.json#source-badcase-123",
+        "001-run.json#source-badcase-028"
+      ],
+      "finding": "pre-actual blocking 正常.",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "dimension_coverage",
+      "evidence": [
+        "001-run.json#source-badcase-138"
+      ],
+      "finding": "138 的产品/业务员维度在 Draft 被降级，维度覆盖丢欠.",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "fulfilled_external_evidence",
+      "evidence": [
+        "001-run.json#source-badcase-003",
+        "001-run.json#source-badcase-013"
+      ],
+      "finding": "fulfilled 判定均有实际材料支撑.",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "not_fulfilled_live_boundary",
+      "evidence": [
+        "001-run.json#source-badcase-038",
+        "001-run.json#source-badcase-048"
+      ],
+      "finding": "not_fulfilled 均在 live boundary 内如实判定.",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "not_evaluable_evidence_gap",
+      "evidence": [
+        "001-run.json#source-badcase-113",
+        "001-run.json#source-badcase-133",
+        "001-run.json#source-badcase-138",
+        "001-run.json#source-badcase-148"
+      ],
+      "finding": "113/133/138/148 的 not_evaluable 由 authority tool_failure 产出，缺失料清单、依据链回不到 Load，违反 fulfilled.md §10.",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "missing_output_no_escape",
+      "evidence": [
+        "001-run.json#source-badcase-113",
+        "001-run.json#source-badcase-133"
+      ],
+      "finding": "未识别输入的透明说明存在，无虚构兜底.",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "external_constraint_non_attribution",
+      "evidence": [
+        "001-run.json#source-badcase-128"
+      ],
+      "finding": "无把外部约束错误归因到系统的情况.",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "authority_anchor_scope",
+      "evidence": [
+        "001-run.json#source-badcase-113",
+        "001-run.json#source-badcase-138"
+      ],
+      "finding": "authority 工具导航违例导致裁决未落地 (tool_failure)，权威锚点失效.",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "authority_obligation_consumption",
+      "evidence": [
+        "001-run.json#source-badcase-113",
+        "001-run.json#source-badcase-148"
+      ],
+      "finding": "已激活的 authority 裁决未转换为可消费结果 (tool_failure/unresolved 缺料).",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "authority_unresolved_conservatism",
+      "evidence": [
+        "001-run.json#source-badcase-113",
+        "001-run.json#source-badcase-148"
+      ],
+      "finding": "tool_failure 非真正 unresolved，无法评估 conservatism；需修复后重验.",
+      "status": "not_evaluable"
+    },
+    {
+      "criterion_id": "no_runtime_authority_investigation",
+      "evidence": [
+        "001-run.json#authority_environment"
+      ],
+      "finding": "未在 runtime 旁路 authority 调查.",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "no_internal_or_unseen_leakage",
+      "evidence": [
+        "001-run.json#source-badcase-003"
+      ],
+      "finding": "无内部实现或未见资料泄漏到 Judge 依据.",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "relative_improvement_no_regression",
+      "evidence": [
+        "001-run.json#source-badcase-088",
+        "001-run.json#source-badcase-148",
+        "001-run.json#source-badcase-113",
+        "001-run.json#source-badcase-138"
+      ],
+      "finding": "123 有方向改善，但 113/138/148 的 tool_failure 不可审计 ne 定义为回退，不能证明相对 Production 无退化.",
+      "status": "fail"
+    }
+  ],
+  "decision": "insufficient_evidence",
+  "iteration": 1,
+  "project_id": "client_search",
+  "role": "judge",
+  "route": "investigate",
+  "run_report": {
+    "location": "draft/.state/judge/iterations/001-run.json",
+    "location_scope": "project_package",
+    "sha256": "49c24600f9d4d857e3e937b87fa9fe782b916793f105ff88eb90e4804ff679b4"
+  },
+  "run_report_sha256": "49c24600f9d4d857e3e937b87fa9fe782b916793f105ff88eb90e4804ff679b4",
+  "schema_version": 1,
+  "solidify_receipt_sha256": "f48a4b26ce6d9aa99e95c69552e1980e62b93261f3be03199ecd31bae179b3f9",
+  "summary": "迭代001：生产(Draft)业务判定有方向改善(123 nf→fulfilled)，但 113/133/138/148 的 not_evaluable 由 authority tool_failure（search 后未紧跟 load / tool_budget_exceeded）落盘，缺 required_evidence 缺料清单、依据链回不到实际 Load，不满足 fulfilled.md §10 可审计要求，不能证明相对 Production 无退化。结论 insufficient_evidence，route=investigate：以真实 LLM 重跑验证修复（确定性失败→unresolved/gap_only+缺料）后复议。"
+}

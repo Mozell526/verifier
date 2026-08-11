@@ -1,0 +1,303 @@
+{
+  "caller": "judge",
+  "created_at": "2026-08-11T17:03:53Z",
+  "elapsed_ms": 42283,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "production"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "673c25ff6407c436b4e7ce08f357a61795e65114f10d3c37fa1b9b21b4b26d43",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [],
+      "lineage": {
+        "call_id": "",
+        "case_id": "policy-search-rich-0039",
+        "trace_id": "policy_search:policy-search-rich-0039:1786467791536"
+      },
+      "messages": [
+        {
+          "char_count": 7368,
+          "content_sha256": "f5559e2831ea15fd5d0a75f202e64faec2eaf6fc95f6497abac519065bb1f636",
+          "role": "system"
+        },
+        {
+          "char_count": 5412,
+          "content_sha256": "8cd3e7a9567b9c2c1e20e26bbde11e52f59e42b2678fcc1c05153512c31180dc",
+          "role": "user"
+        }
+      ],
+      "mode": "production",
+      "output_contract": {
+        "field_names": [
+          "acceptance_criteria",
+          "actual",
+          "actual_evidence",
+          "applicable_product_expectation_ids",
+          "authority_tool_call_ids",
+          "blocking",
+          "boundary",
+          "business_expectations",
+          "code",
+          "downstream_consumer",
+          "downstream_impact",
+          "error_type",
+          "evidence",
+          "evidence_ref",
+          "expectation_id",
+          "expected",
+          "expected_evidence",
+          "expected_outcome",
+          "extra",
+          "filter",
+          "fulfillment_assessments",
+          "incomplete",
+          "kind",
+          "message",
+          "missing",
+          "msg",
+          "priority",
+          "query",
+          "raw",
+          "reasoning_summary",
+          "required_capabilities",
+          "score",
+          "status",
+          "user_intent",
+          "wrong"
+        ],
+        "identity": "impl.core.schema.judge.JudgeLLMOutput",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "1ebd986c8c695abe1e8329086ca3fa881a0eaa83fe0e670d24af6af6d4fad2f0",
+        "sha256": "1ebd986c8c695abe1e8329086ca3fa881a0eaa83fe0e670d24af6af6d4fad2f0"
+      },
+      "project_id": "policy_search",
+      "prompt_char_count": 12780,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 5412,
+        "occurred": false
+      },
+      "role": "judge",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 1725,
+          "content_sha256": "5727bfa7858a8ce05122cd632b62736542f3792c880caa51ab16c7257d1f754b",
+          "order": 0,
+          "role": "judge",
+          "segment_id": "compiled-system",
+          "source": "impl/core/judge.py#judge_trace",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 5412,
+          "content_sha256": "8cd3e7a9567b9c2c1e20e26bbde11e52f59e42b2678fcc1c05153512c31180dc",
+          "order": 1,
+          "role": "judge",
+          "segment_id": "case-user-payload",
+          "source": "trace://judge-evidence-view",
+          "stage": "judge"
+        }
+      ],
+      "stage": "judge",
+      "tool_plan": []
+    }
+  },
+  "llm_model": "deepseek-v4-flash-0731",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "你是通用评估系统的 judge agent。\n\n## 核心原则\n只基于当前 RunTrace、项目评判标准和动态检索的知识库内容判断，不继承历史 case。\n首要职责：理解用户/下游消费者的真实业务意图 → 派生 business_expectations → 基于完整执行链路（每轮 output、最终 output、交互过程和停止事实）判断 expectations 的 fulfillment。\n\n## expectation 拆分原则\nbusiness_expectations 的粒度直接决定判断精度。每个 expectation 必须是原子、独立可评价的判断单元：证据充分时判 fulfilled 或 not_fulfilled；确需评价但当前证据不足时按协议判 not_evaluable。\n- 一个 expectation 只描述一个可独立验证的结果维度\n- 多维度意图必须拆成多个 expectation\n- 每个 expectation 必须有明确的 acceptance_criteria\n- 每个 expectation 必须在比较 actual 前确定 blocking：只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true\n- fulfillment_assessments 只判断对应 expectation 的 status 和证据，不得重新定义 blocking\n- expectation_id 必须是描述性的中文短语，禁止使用 E1/E2/exp_01 等占位符 ID\n- reasoning_summary 必须是中文写成的判断依据\n\n## 输出词表\n`fulfillment_assessments[*].status` 必须从以下 3 个值中选择：\n  - fulfilled：该 expectation 完全满足\n  - not_fulfilled：该 expectation 未满足\n  - not_evaluable：当前无法评估\n禁用 failed/passed/incorrect/wrong/met/unmet/partially_fulfilled/partial/success/fail/ok/unknown 等同义词。\n`fulfillment_assessments[*].expected_evidence` 与 `actual_evidence` **必须是数组**（JSON array / list），即使只有一条证据也要用 `[...]` 包裹，不可直接用字符串或对象。\n\n不要输出 overall_fulfillment；公共层会在项目契约补充完成后根据 blocking expectations 确定性派生整体状态。\n\n## 评估规范\n\n\n## 评估边界\n\n\n## 判断标准\n\n\n\n\n你评价的是保单筛选语义是否被完整、可执行且安全地表达。先判断服务依赖是否成功，再比较 query 与 filter。忽略 node_id 命名差异；允许逻辑等价的树。字段、操作符、值、角色、AND/OR/NOT 作用域、日期边界和条件完整性都必须正确。SUCCESS 必须有完整 filter；歧义、条件缺失或越界场景应 UNSUPPORTED 且不得返回部分 filter。业务实现、prompt 和配置是当前能力证据，不是不可质疑的自证。\n## 工具使用原则\n所有工具的用途、调用时机和参数含义以 Agno tool schema 为准；user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息。\n\n## 禁止事项\n- 不要把 reference answer 当作默认主目标（除非 case 明确指定）\n- 不要把 HTTP 状态、run_status、attribute/cluster 结论当作满足依据\n- 不要归因内部代码、配置或 prompt 原因（属于 attribute agent）\n- 分析文字必须使用中文，包括 reasoning_summary 等所有文本字段。\n\n\n## 输出约束：judge 判定输出（自产 reference + fulfillment 判定）\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"business_expectations\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeBusinessExpectationOutput\"\n      },\n      \"minItems\": 1\n    },\n    \"applicable_product_expectation_ids\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"fulfillment_assessments\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeFulfillmentAssessmentOutput\"\n      }\n    },\n    \"expected\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"code\": {\n          \"type\": \"integer\"\n        },\n        \"msg\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"query\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"filter\": {\n          \"type\": [\n            \"object\",\n            \"null\"\n          ]\n        },\n        \"message\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"code\",\n        \"msg\",\n        \"status\",\n        \"query\",\n        \"filter\",\n        \"message\"\n      ]\n    },\n    \"missing\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"wrong\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"extra\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"evidence\": {\n      \"type\": \"array\",\n      \"items\": {}\n    },\n    \"reasoning_summary\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    }\n  },\n  \"additionalProperties\": false,\n  \"$defs\": {\n    \"JudgeBusinessExpectationOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"blocking\": {\n          \"type\": \"boolean\"\n        },\n        \"downstream_consumer\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"user_intent\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected_outcome\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"required_capabilities\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"acceptance_criteria\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"boundary\": {\n          \"type\": \"object\"\n        },\n        \"priority\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"blocking\"\n      ]\n    },\n    \"JudgeFulfillmentAssessmentOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"score\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        },\n        \"expected_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"actual_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"downstream_impact\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"authority_tool_call_ids\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"status\"\n      ]\n    },\n    \"GapItem\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"kind\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"error_type\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected\": {},\n        \"actual\": {},\n        \"evidence_ref\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"raw\": {},\n        \"incomplete\": {\n          \"type\": \"boolean\"\n        }\n      },\n      \"additionalProperties\": false\n    }\n  },\n  \"required\": [\n    \"expected\",\n    \"business_expectations\",\n    \"reasoning_summary\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['business_expectations', 'expected', 'reasoning_summary']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n\n### 嵌套字段子结构约束\n以下字段内部的子结构也必须严格遵守，不可随意编造字段名或类型：\n- **`expected`** 字段 (项目 policy_search 的 expected/live output 结构) 必须符合以下结构：\n  ```json\n  {\n    \"type\": \"object\",\n    \"properties\": {\n      \"code\": {\n        \"type\": \"integer\"\n      },\n      \"msg\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"status\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"query\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"filter\": {\n        \"type\": [\n          \"object\",\n          \"null\"\n        ]\n      },\n      \"message\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"additionalProperties\": false,\n    \"required\": [\n      \"code\",\n      \"msg\",\n      \"status\",\n      \"query\",\n      \"filter\",\n      \"message\"\n    ]\n  }\n  ```\n",
+      "created_at": 1786467791,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "bf116cb5-1728-45c2-8258-d8595b8a71a7",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"user_intent\": \"按被保人性别中的指定文本筛选保单\", \"run_trace\": {\"trace_id\": \"policy_search:policy-search-rich-0039:1786467791536\", \"project_id\": \"policy_search\", \"case_id\": \"policy-search-rich-0039\", \"intent_input\": {\"session_id\": \"policy-search-rich-0039\", \"trace_id\": \"policy-search-rich-0039\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"被保人性别里带安康的\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"normalized_request\": {\"session_id\": \"policy-search-rich-0039\", \"trace_id\": \"policy-search-rich-0039\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"被保人性别里带安康的\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"final_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"UNSUPPORTED\", \"query\": \"被保人性别里带安康的\", \"filter\": null, \"message\": \"当前查询条件暂不支持，请调整查询条件后重试。\"}, \"final_output_turn\": 1, \"turns\": [{\"turn_index\": 1, \"request\": {\"session_id\": \"policy-search-rich-0039\", \"trace_id\": \"policy-search-rich-0039\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"被保人性别里带安康的\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"extracted_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"UNSUPPORTED\", \"query\": \"被保人性别里带安康的\", \"filter\": null, \"message\": \"当前查询条件暂不支持，请调整查询条件后重试。\"}, \"call_status\": \"succeeded\", \"runtime_ms\": 46, \"error\": null, \"fallbacks\": [], \"validation\": [], \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"application_boundary\": {\"dependency_status\": \"available\", \"allow_fallback\": false, \"excluded_evidence\": [], \"notes\": \"UNSUPPORTED is an in-scope parser decision\"}, \"project_fields\": {\"parse_status\": \"UNSUPPORTED\", \"filter_root_type\": null}}], \"conversation_transcript\": [], \"conversation_summary\": {\"turn_count\": 1, \"final_output_turn\": 1, \"completion_status\": \"completed\", \"stop_reason\": \"single_turn_completed\", \"interaction_controller_status\": \"not_run\", \"interaction_controller_error\": \"\"}, \"stop_reason\": \"single_turn_completed\", \"completion_status\": \"completed\", \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"evidence_refs\": [], \"raw_response_evidence\": null, \"evidence_completeness\": {\"complete\": true, \"missing_evidence\": []}, \"application_boundary\": {\"dependency_status\": \"available\", \"allow_fallback\": false, \"excluded_evidence\": [], \"notes\": \"UNSUPPORTED is an in-scope parser decision\"}, \"reference_contract\": {}, \"scenario\": \"atomic_condition\", \"status\": \"ok\", \"error\": null}, \"query\": \"被保人性别里带安康的\", \"actual_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"UNSUPPORTED\", \"query\": \"被保人性别里带安康的\", \"filter\": null, \"message\": \"当前查询条件暂不支持，请调整查询条件后重试。\"}, \"reference_contract\": {}, \"business_evidence_paths\": {\"api_contract\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索算法解析接口文档（智能体对接稿）.md\", \"filter_contract\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索查询语法树协议（首期精简版）.md\", \"technical_design\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索算法解析技术方案（当前实现版）.md\", \"business_config\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/configs/insurance_search_business_config_prd.json\", \"runtime_config\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/configs/insurance_search_runtime_config_prd.json\", \"golden_manifest\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/data/golden_dataset/manifest.json\"}, \"evaluation_dimensions\": [\"field_selection\", \"operator_and_value\", \"logical_scope\", \"time_boundary\", \"condition_completeness\", \"safe_failure\"]}",
+      "created_at": 1786467791,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "e084ae12-369e-4f46-9b4c-9d39ef1312b3",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"性别枚举字段越界值的无部分解析安全失败\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"下游保单检索执行器\",\n      \"user_intent\": \"用户期望按被保人性别中包含文本“安康”来筛选保单\",\n      \"expected_outcome\": \"由于“被保人性别”是枚举型字段（合法取值通常为男/女等），“带安康的”既不属于合法性别值域，也不符合性别字段的等值/枚举匹配语义，构成越界场景。系统应返回 UNSUPPORTED 状态且 filter 必须为 null，不得构造任何部分或错误的 filter 下发给下游。\",\n      \"required_capabilities\": [\"字段类型与值域识别\", \"模糊文本匹配适用性判断\", \"越界场景安全失败返回\"],\n      \"acceptance_criteria\": [\n        \"status 为 UNSUPPORTED\",\n        \"filter 为 null\",\n        \"不返回任何含“性别 contains 安康”语义的部分 filter\",\n        \"code 与 msg 保持接口正常约定，证明是解析层决策而非服务故障\"\n      ],\n      \"boundary\": {\n        \"scope\": \"仅当性别字段确认为枚举型且“安康”不在其合法值域时适用；若字段实际支持自由文本包含匹配，则本期望不成立\"\n      },\n      \"priority\": \"high\"\n    },\n    {\n      \"expectation_id\": \"查询回显与用户提示信息完整性\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"端上用户交互层\",\n      \"user_intent\": \"用户需要确认系统正确接收并理解了其原始查询内容，同时获得清晰、可操作的失败原因提示\",\n      \"expected_outcome\": \"响应应完整包含 code、msg、status、query、filter、message 六个字段；query 精确回显用户原始输入“被保人性别里带安康的”；message 非空，给出可指导用户调整查询条件的明确说明。\",\n      \"required_capabilities\": [\"响应结构完整性\", \"原始查询回显\", \"用户友好提示生成\"],\n      \"acceptance_criteria\": [\n        \"query 等于“被保人性别里带安康的”\",\n        \"message 非空且说明为暂不支持的查询条件并提示调整\",\n        \"code=0 且 msg=success\",\n        \"response schema 校验通过\"\n      ],\n      \"boundary\": {\n        \"scope\": \"仅针对单轮解析响应的字段完整性与可读性，不涉及多轮交互\"\n      },\n      \"priority\": \"medium\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"性别枚举字段越界值的无部分解析安全失败\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\n        \"status 为 UNSUPPORTED\",\n        \"filter 为 null\",\n        \"不包含任何部分 filter（如性别包含“安康”的错误节点）\",\n        \"明确提示用户查询条件暂不支持\"\n      ],\n      \"actual_evidence\": [\n        \"final_output.status = UNSUPPORTED\",\n        \"final_output.filter = null\",\n        \"message = 当前查询条件暂不支持，请调整查询条件后重试。\",\n        \"application_boundary.dependency_status = available，notes 明确 UNSUPPORTED is an in-scope parser decision，证明是语义解析层的有意越界决策而非依赖故障\"\n      ],\n      \"downstream_impact\": \"下游检索执行器不会收到无效或误导性的部分 filter，避免了基于“性别 contains 安康”构造的无效检索导致空结果或错误结果，安全失败路径完整生效。\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"查询回显与用户提示信息完整性\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\n        \"response 包含 code、msg、status、query、filter、message 六个字段\",\n        \"query 精确回显用户原始输入\",\n        \"message 为清晰可操作的失败提示\"\n      ],\n      \"actual_evidence\": [\n        \"final_output.code = 0，msg = success\",\n        \"final_output.query = “被保人性别里带安康的”，与用户输入完全一致\",\n        \"final_output.message = 当前查询条件暂不支持，请调整查询条件后重试。，具备可操作性\",\n        \"live_schema.validate_output 阶段 succeeded，响应结构通过 schema 校验\"\n      ],\n      \"downstream_impact\": \"端上用户能确认系统正确接收了自己的输入，并依据提示调整查询条件后重试，交互闭环完整。\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"expected\": {\n    \"code\": 0,\n    \"msg\": \"success\",\n    \"status\": \"UNSUPPORTED\",\n    \"query\": \"被保人性别里带安康的\",\n    \"filter\": null,\n    \"message\": \"当前查询条件暂不支持，请调整查询条件后重试。\"\n  },\n  \"missing\": [],\n  \"wrong\": [],\n  \"extra\": [],\n  \"evidence\": [\n    {\n      \"type\": \"final_output\",\n      \"stage\": \"final_output_turn_1\",\n      \"value\": {\n        \"code\": 0,\n        \"msg\": \"success\",\n        \"status\": \"UNSUPPORTED\",\n        \"query\": \"被保人性别里带安康的\",\n        \"filter\": null,\n        \"message\": \"当前查询条件暂不支持，请调整查询条件后重试。\"\n      }\n    },\n    {\n      \"type\": \"application_boundary\",\n      \"value\": {\n        \"dependency_status\": \"available\",\n        \"allow_fallback\": false,\n        \"notes\": \"UNSUPPORTED is an in-scope parser decision\"\n      }\n    },\n    {\n      \"type\": \"project_fields\",\n      \"value\": {\n        \"parse_status\": \"UNSUPPORTED\",\n        \"filter_root_type\": null\n      }\n    },\n    {\n      \"type\": \"execution_stage\",\n      \"value\": [\"live_schema.validate_request succeeded\", \"live_schema.validate_output succeeded\"]\n    }\n  ],\n  \"reasoning_summary\": \"用户查询“被保人性别里带安康的”意图按被保人性别筛选，但限定文本为“带安康”。在保单检索业务中，被保人性别是枚举型字段，合法取值一般为“男”“女”等固定字典值，不具备文本包含（contains）匹配语义，“安康”也不属于性别合法值域；且“安康”更可能指代保险产品名称，导致查询对象存在歧义。评估规范明确：歧义、条件缺失或越界场景应返回 UNSUPPORTED 且不得返回部分 filter。实际输出 status=UNSUPPORTED、filter=null、message 明确提示条件暂不支持，未构造任何部分 filter，完全符合安全失败要求；服务依赖状态为 available，证明 UNSUPPORTED 是解析层基于字段能力边界做出的有意决策而非依赖故障。同时，query 字段精确回显原始输入，message 提供可操作提示，响应结构完整且通过 schema 校验。据此，两个 business expectation 均判定为 fulfilled。\"\n}",
+      "created_at": 1786467791,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "e28ea82e-4f60-4ea8-b8a1-6c43b7bc5480",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 2304,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 4047,
+        "output_tokens": 4608,
+        "provider_metrics": null,
+        "reasoning_tokens": 3014,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 8655
+      },
+      "name": null,
+      "provider_data": {
+        "id": "41ac0a79-a8f1-44ac-bd2a-6c0ac874039b",
+        "model_extra": {
+          "cost": "0"
+        }
+      },
+      "reasoning_content": "好的，我需要评估这个case。让我先理解一下整个场景。\n\n这是一个保单搜索解析系统(policy_search)的case。用户的查询是\"被保人性别里带安康的\"。意图是按被保人性别中的指定文本筛选保单。\n\n最终输出是 UNSUPPORTED 状态，filter 为 null，消息是\"当前查询条件暂不支持，请调整查询条件后重试。\"\n\n我需要判断这个输出是否符合预期。让我先思考一下这个查询的本质。\n\n用户查询\"被保人性别里带安康的\"——这句话本身在语义上是有问题的。\"被保人性别\"通常只有\"男\"和\"女\"两种取值，而\"带安康的\"意味着某种文本包含或模糊匹配。性别字段是枚举值，不应该支持模糊文本匹配（\"带\"什么）。所以这个查询本身是语义不合法的——性别不可能是\"带安康的\"。\n\n这种情况下，系统返回 UNSUPPORTED 是合理的，因为：\n1. 性别是枚举/字典字段，不支持模糊文本搜索\n2. \"带安康的\"不是合法的性别值\n3. 这种查询无法映射到有效的 filter 结构\n\n让我结合评估维度来思考：\n- field_selection：字段选择，性别字段\n- operator_and_value：操作符和值，\"带安康\"这样的模糊匹配对性别字段不合适\n- logical_scope：逻辑作用域，这里只有一个条件\n- time_boundary：时间边界，不涉及\n- condition_completeness：条件完整性\n- safe_failure：安全失败，UNSUPPORTED 是安全失败的体现\n\n关键问题：这个查询是否应该被解析成某个 filter？还是应该返回 UNSUPPORTED？\n\n用户意图是\"按被保人性别中的指定文本筛选保单\"。实际的查询是\"被保人性别里带安康的\"。这里的\"带安康的\"表明用户想要的是性别中包含\"安康\"文本的保单。但性别只有男/女/未知之类的枚举值，\"安康\"不是合法性别值。这更像是用户把\"被保人\"和\"安康\"（可能是保险产品名称\"安康\"）搞混了，或者是错误的查询。\n\n从业务角度看，性别字段是枚举类型，值域通常是\"男\"、\"女\"等，不可能包含\"安康\"。因此无法构建有效的 filter。返回 UNSUPPORTED 并拒绝返回部分 filter 是符合安全失败规范的。\n\n让我看一下评估规范：\"歧义、条件缺失或越界场景应 UNSUPPORTED 且不得返回部分 filter\"。这个场景属于越界场景——性别字段值\"安康\"超出了性别枚举的合法范围。所以 UNSUPPORTED 是正确的。\n\n再考虑用户意图：\"按被保人性别中的指定文本筛选保单\"。这个意图本身是希望按性别筛选，但具体文本\"带安康的\"并不可行。系统无法满足这个意图，因为性别值域中没有\"安康\"。\n\n所以我的判断是：\n1. 期望结果：UNSUPPORTED，filter 为 null，因为性别枚举字段不支持模糊文本匹配，\"安康\"不是合法性别值\n2. 实际结果：UNSUPPORTED，filter 为 null\n3. 两者一致\n\n让我构建 business_expectations：\n\nExpectation 1：语义合理性与安全失败\n- 期望：当查询中的值在字段值域外/字段类型不允许模糊匹配时，返回 UNSUPPORTED 且 filter 为 null，不得返回部分 filter\n- blocking: true\n- 实际：UNSUPPORTED，filter null，一致\n\nExpectation 2：query 回显\n- 期望：返回结果中 query 字段应回显用户原始查询\"被保人性别里带安康的\"\n- blocking: false（次要）\n- 实际：query 字段正确回显\n\nExpectation 3：错误信息\n- 期望：返回明确、可操作的提示信息\n- 实际：\"当前查询条件暂不支持，请调整查询条件后重试。\"——合适\n\n让我考虑是否需要更多 expectation。我认为核心有两个：\n1. 越界场景安全失败（blocking）\n2. 完整的响应字段（code/msg/status/query/filter/message）\n\n让我也考虑一下：有没有可能这个查询实际上应该被解析？比如\"安康\"是个保险产品名？用户说\"被保人性别里带安康的\"，意图可能是\"被保人（相关信息）里带安康的\"，即被保人姓名中包含\"安康\"，但用户错误地说了\"性别\"。如果是这样，查询就有歧义。在有歧义的情况下，系统返回 UNSUPPORTED 是合理的，因为评估规范说\"歧义、条件缺失或越界场景应 UNSUPPORTED 且不得返回部分 filter\"。\n\n无论是哪种解读（歧义或越界），UNSUPPORTED 都是正确的行为。\n\n现在我来构建输出 JSON。\n\nbusiness_expectations：\n1. expectation_id: \"性别枚举字段越界值的无部分解析安全失败\"\n   - blocking: true\n   - downstream_consumer: 下游保单检索执行器\n   - user_intent: 用户期望按\"被保人性别\"中包含文本\"安康\"来筛选保单\n   - expected_outcome: 由于性别是枚举型字段且\"安康\"不在合法值域内，系统应返回 UNSUPPORTED 状态且 filter 必须为 null，不得返回部分/错误 filter\n   - required_capabilities: [\"字段类型与值域校验\", \"模糊文本匹配适用性判断\", \"安全失败返回\"]\n   - acceptance_criteria: [\"status 为 UNSUPPORTED\", \"filter 为 null\", \"不返回任何部分解析的 filter\"]\n   - boundary: 仅当性别字段确认为枚举且\"安康\"不在值域时适用\n   - priority: \"high\"\n\n2. expectation_id: \"查询回显与用户提示完整性\"\n   - blocking: false\n   - downstream_consumer: 端上用户交互层\n   - user_intent: 用户需要看到自己的查询被正确回显，并获得可理解的失败提示\n   - expected_outcome: 响应应完整包含 code/msg/status/query/message 字段，query 回显原始用户输入，message 提供清晰可操作的提示\n   - required_capabilities: [\"响应字段完整性\", \"查询回显\"]\n   - acceptance_criteria: [\"query 等于\"被保人性别里带安康的\"\", \"message 非空且清晰说明原因\", \"code=0, msg=success\"]\n   - boundary: 无\n   - priority: \"medium\"\n\n3. 也许再加一个关于\"性别字段不支持文本包含类模糊匹配\"的 expectation？其实这个可以作为证据写进第一个 expectation。\n\n让我想想是否需要第三个 expectation。用户意图是\"按被保人性别中的指定文本筛选保单\"。从系统能力看，性别字段是枚举的（通常支持 eq/in 等操作符），不支持 contains。这是字段能力边界。第一和第二个 expectation 已经覆盖了主要方面。\n\n我可以加第三个：\n3. expectation_id: \"性别字段合法操作符映射约束\"\n   - blocking: true? 嗯，这个和第一个有些重叠。让我考虑一下。\n   \n   实际上第一个 expectation 已经涵盖了\"不得解析\"，所以第三个有点多余。保持两个就够。\n\napplicable_product_expectation_ids：这个字段是干嘛的？看起来是关联产品相关的 expectation ID。当前没有产品级 expectation 信息，我可以留空数组或者省略？schema 中它是必需的吗？看 required 列表：[\"expected\", \"business_expectations\", \"reasoning_summary\"]。applicable_product_expectation_ids 不在 required 中。为安全起见我可以输出空数组，但 schema 说\"以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规）\"——不过那条规则说的是 ['business_expectations', 'expected', 'reasoning_summary']，没有包含 applicable_product_expectation_ids。所以它可以是空数组。但我也可以不放该字段（additionalProperties false 只禁止未定义字段，这个字段是已定义的）。为了稳妥，我放空数组。\n\n等等，让我再想想。applicable_product_expectation_ids 的注释是\"array of strings\"。既然没有产品级 expectation，用空数组合理。\n\nfulfillment_assessments：\n1. 对应第一个 expectation：\n   - expectation_id: \"性别枚举字段越界值的无部分解析安全失败\"\n   - status: fulfilled\n   - score: 1.0\n   - expected_evidence: [\"status 为 UNSUPPORTED\", \"filter 为 null\", \"不得返回含有性别 contains 安康 的部分 filter\"]\n   - actual_evidence: [\"final_output.status = UNSUPPORTED\", \"final_output.filter = null\", \"message = 当前查询条件暂不支持，请调整查询条件后重试。\", \"application_boundary.dependency_status = available（服务依赖可用，UNSUPPORTED 为解析层决策）\"]\n   - downstream_impact: \"下游检索执行器不会收到无效的部分 filter，避免返回空结果或错误结果\"\n   - authority_tool_call_ids: [] （没有工具调用，系统直接解析）\n\n2. 对应第二个 expectation：\n   - expectation_id: \"查询回显与用户提示完整性\"\n   - status: fulfilled\n   - score: 1.0\n   - expected_evidence: [\"query 字段回显原始查询\", \"message 提供清晰的可操作提示\", \"code/msg 正常\"]\n   - actual_evidence: [\"query = 被保人性别里带安康的\", \"message = 当前查询条件暂不支持，请调整查询条件后重试。\", \"code=0, msg=success\"]\n   - downstream_impact: \"用户能确认系统理解了自己的输入，并知道下一步该调整查询条件\"\n   - authority_tool_call_ids: []\n\nexpected 字段（policy_search 的期望输出结构）：\n```json\n{\n  \"code\": 0,\n  \"msg\": \"success\",\n  \"status\": \"UNSUPPORTED\",\n  \"query\": \"被保人性别里带安康的\",\n  \"filter\": null,\n  \"message\": \"当前查询条件暂不支持，请调整查询条件后重试。\"\n}\n```\n\nmissing/wrong/extra：都为 []。\n\nevidence：可以放一些证据条目。比如 execution_trace、final_output 等。让我放：\n- {\"type\": \"final_output\", \"value\": {...}}\n- {\"type\": \"application_boundary\", \"value\": {...}}\n\nreasoning_summary：中文，说明判断依据。\n\n让我详细写 reasoning_summary：\n\"用户查询'被保人性别里带安康的'意图按被保人性别进行筛选，但限定文本为'带安康'。性别字段在保单场景中是枚举型字段（合法值一般为'男'/'女'等），不具备文本包含（contains）匹配语义，'安康'也不属于性别合法值域。该查询属于值越界/字段能力不匹配场景，且'安康'还可能指向保险产品名导致查询对象歧义。评估规范明确：歧义、条件缺失或越界场景应返回 UNSUPPORTED 且不得返回部分 filter。实际输出 status=UNSUPPORTED、filter=null，未产生任何部分解析，符合安全失败要求；query 与 message 字段也正确回显和提示。服务依赖状态 available，UNSUPPORTED 是解析层的有意决策而非依赖故障。综合三个 expectation 均 fulfilled。\"\n\n等一下，我需要再确认一下：用户意图\"按被保人性别中的指定文本筛选保单\"——用户意图本身是否被满足？用户想要的是按性别中的文本筛选，但这在业务上不可行（性别枚举不包含\"安康\"）。所以本质意图无法实现，系统正确拒绝了。这符合安全失败要求。\n\n还有一个角度：有没有可能\"性别\"字段在业务配置中支持\"自定义文本\"？让我看看业务配置路径：insurance_search_business_config_prd.json。从 prompt 提供的信息看，我没有直接读到配置内容，但 prompt 说\"business implementation, prompt and config are current capability evidence\"。评估维度中有 field_selection 和 operator_and_value。我可以基于常识判断：性别是枚举，不支持模糊文本。评估维度里没有提供具体的字段能力清单，所以基于普遍业务认知。\n\n从 prompt 的\"判断标准\"看：\"SUCCESS 必须有完整 filter；歧义、条件缺失或越界场景应 UNSUPPORTED 且不得返回部分 filter\"。这个场景明确是越界场景。所以 UNSUPPORTED 正确。\n\n好，最终我确信应判 fulfilled。\n\n让我组织 JSON。注意：\n- business_expectations 至少 1 个\n- 每个 assessment 的 expected_evidence 和 actual_evidence 必须是数组\n- expectation_id 用中文描述性短语\n- reasoning_summary 非空中文\n\n关于 expected 中 message 的 minLength: 1，我的值 ok。\n关于 required 字段：code, msg, status, query, filter, message 都要有。\n\n现在关于 evidence 字段是否必须？不在 required 中，但 schema 定义了它。我可以放数组。为了严谨我放一些原始证据。\n\n让我最终确定业务期望。我觉得可以再加一个 expectation 关于\"性别字段不支持模糊/包含操作符\"的具体能力判断，但这与第一个重叠。保留两个足够。\n\n等等，还有一个细节：fulfillment_assessments 需要与 business_expectations 一一对应吗？通常是的，每个 expectation 有一个 assessment。我的两个 expectation 各有一个 assessment，正好。\n\nscore 是 number 或 null。我给 1.0 和 1.0。这合理。\n\nauthority_tool_call_ids：没有工具调用，给空数组。\n\ndownstream_impact 要具体描述。\n\n最后检查 JSON 格式：不要 markdown，首字符 {，末字符 }。字符串中的引号——我使用中文引号避免转义问题。在 actual_evidence 中引用字段值时用中文引号或直接写。比如 \"final_output.status = UNSUPPORTED\"，这里的 UNSUPPORTED 没有引号，安全。query 值\"被保人性别里带安康的\"我用中文引号“被保人性别里带安康的”，安全。\n\n让我写最终的 JSON。",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "policy_search",
+  "prompt_size": 17134,
+  "record_id": "e2269a11-53a6-4418-8d29-769e06bfab90",
+  "response": {
+    "content": "{\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"性别枚举字段越界值的无部分解析安全失败\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"下游保单检索执行器\",\n      \"user_intent\": \"用户期望按被保人性别中包含文本“安康”来筛选保单\",\n      \"expected_outcome\": \"由于“被保人性别”是枚举型字段（合法取值通常为男/女等），“带安康的”既不属于合法性别值域，也不符合性别字段的等值/枚举匹配语义，构成越界场景。系统应返回 UNSUPPORTED 状态且 filter 必须为 null，不得构造任何部分或错误的 filter 下发给下游。\",\n      \"required_capabilities\": [\"字段类型与值域识别\", \"模糊文本匹配适用性判断\", \"越界场景安全失败返回\"],\n      \"acceptance_criteria\": [\n        \"status 为 UNSUPPORTED\",\n        \"filter 为 null\",\n        \"不返回任何含“性别 contains 安康”语义的部分 filter\",\n        \"code 与 msg 保持接口正常约定，证明是解析层决策而非服务故障\"\n      ],\n      \"boundary\": {\n        \"scope\": \"仅当性别字段确认为枚举型且“安康”不在其合法值域时适用；若字段实际支持自由文本包含匹配，则本期望不成立\"\n      },\n      \"priority\": \"high\"\n    },\n    {\n      \"expectation_id\": \"查询回显与用户提示信息完整性\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"端上用户交互层\",\n      \"user_intent\": \"用户需要确认系统正确接收并理解了其原始查询内容，同时获得清晰、可操作的失败原因提示\",\n      \"expected_outcome\": \"响应应完整包含 code、msg、status、query、filter、message 六个字段；query 精确回显用户原始输入“被保人性别里带安康的”；message 非空，给出可指导用户调整查询条件的明确说明。\",\n      \"required_capabilities\": [\"响应结构完整性\", \"原始查询回显\", \"用户友好提示生成\"],\n      \"acceptance_criteria\": [\n        \"query 等于“被保人性别里带安康的”\",\n        \"message 非空且说明为暂不支持的查询条件并提示调整\",\n        \"code=0 且 msg=success\",\n        \"response schema 校验通过\"\n      ],\n      \"boundary\": {\n        \"scope\": \"仅针对单轮解析响应的字段完整性与可读性，不涉及多轮交互\"\n      },\n      \"priority\": \"medium\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"性别枚举字段越界值的无部分解析安全失败\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\n        \"status 为 UNSUPPORTED\",\n        \"filter 为 null\",\n        \"不包含任何部分 filter（如性别包含“安康”的错误节点）\",\n        \"明确提示用户查询条件暂不支持\"\n      ],\n      \"actual_evidence\": [\n        \"final_output.status = UNSUPPORTED\",\n        \"final_output.filter = null\",\n        \"message = 当前查询条件暂不支持，请调整查询条件后重试。\",\n        \"application_boundary.dependency_status = available，notes 明确 UNSUPPORTED is an in-scope parser decision，证明是语义解析层的有意越界决策而非依赖故障\"\n      ],\n      \"downstream_impact\": \"下游检索执行器不会收到无效或误导性的部分 filter，避免了基于“性别 contains 安康”构造的无效检索导致空结果或错误结果，安全失败路径完整生效。\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"查询回显与用户提示信息完整性\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\n        \"response 包含 code、msg、status、query、filter、message 六个字段\",\n        \"query 精确回显用户原始输入\",\n        \"message 为清晰可操作的失败提示\"\n      ],\n      \"actual_evidence\": [\n        \"final_output.code = 0，msg = success\",\n        \"final_output.query = “被保人性别里带安康的”，与用户输入完全一致\",\n        \"final_output.message = 当前查询条件暂不支持，请调整查询条件后重试。，具备可操作性\",\n        \"live_schema.validate_output 阶段 succeeded，响应结构通过 schema 校验\"\n      ],\n      \"downstream_impact\": \"端上用户能确认系统正确接收了自己的输入，并依据提示调整查询条件后重试，交互闭环完整。\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"expected\": {\n    \"code\": 0,\n    \"msg\": \"success\",\n    \"status\": \"UNSUPPORTED\",\n    \"query\": \"被保人性别里带安康的\",\n    \"filter\": null,\n    \"message\": \"当前查询条件暂不支持，请调整查询条件后重试。\"\n  },\n  \"missing\": [],\n  \"wrong\": [],\n  \"extra\": [],\n  \"evidence\": [\n    {\n      \"type\": \"final_output\",\n      \"stage\": \"final_output_turn_1\",\n      \"value\": {\n        \"code\": 0,\n        \"msg\": \"success\",\n        \"status\": \"UNSUPPORTED\",\n        \"query\": \"被保人性别里带安康的\",\n        \"filter\": null,\n        \"message\": \"当前查询条件暂不支持，请调整查询条件后重试。\"\n      }\n    },\n    {\n      \"type\": \"application_boundary\",\n      \"value\": {\n        \"dependency_status\": \"available\",\n        \"allow_fallback\": false,\n        \"notes\": \"UNSUPPORTED is an in-scope parser decision\"\n      }\n    },\n    {\n      \"type\": \"project_fields\",\n      \"value\": {\n        \"parse_status\": \"UNSUPPORTED\",\n        \"filter_root_type\": null\n      }\n    },\n    {\n      \"type\": \"execution_stage\",\n      \"value\": [\"live_schema.validate_request succeeded\", \"live_schema.validate_output succeeded\"]\n    }\n  ],\n  \"reasoning_summary\": \"用户查询“被保人性别里带安康的”意图按被保人性别筛选，但限定文本为“带安康”。在保单检索业务中，被保人性别是枚举型字段，合法取值一般为“男”“女”等固定字典值，不具备文本包含（contains）匹配语义，“安康”也不属于性别合法值域；且“安康”更可能指代保险产品名称，导致查询对象存在歧义。评估规范明确：歧义、条件缺失或越界场景应返回 UNSUPPORTED 且不得返回部分 filter。实际输出 status=UNSUPPORTED、filter=null、message 明确提示条件暂不支持，未构造任何部分 filter，完全符合安全失败要求；服务依赖状态为 available，证明 UNSUPPORTED 是解析层基于字段能力边界做出的有意决策而非依赖故障。同时，query 字段精确回显原始输入，message 提供可操作提示，响应结构完整且通过 schema 校验。据此，两个 business expectation 均判定为 fulfilled。\"\n}",
+    "metrics": {
+      "cache_read_tokens": 2304,
+      "cache_write_tokens": 0,
+      "input_tokens": 4047,
+      "output_tokens": 4608,
+      "reasoning_tokens": 3014,
+      "total_tokens": 8655
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 42280,
+          "endpoint": "fallback1",
+          "model": "deepseek-v4-flash-0731",
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "selected_endpoint": "fallback1",
+      "selected_model": "deepseek-v4-flash-0731",
+      "stage": ""
+    }
+  },
+  "trace_id": "policy_search:policy-search-rich-0039:1786467791536"
+}

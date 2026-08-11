@@ -141,7 +141,11 @@ def _enforce_judge_live_schema(project_id: str, trace: RunTrace, judge_result: J
         return result
     if result.actual is None:
         result.actual = trace_extracted_output(trace)
-    if result.actual is not None and not checker.output(result.actual):
+    # Judge may consume a frozen/historical projection of the Live output rather than
+    # the complete transport payload. Prefer the projection-aware validator when the
+    # project exposes it; complete Live delivery remains guarded by checker.output().
+    observation_check = getattr(checker, "observation", checker.output)
+    if result.actual is not None and not observation_check(result.actual):
         return _mark_judge_not_evaluable(result)
     if result.expected is None:
         return _mark_judge_not_evaluable(result)
@@ -179,7 +183,7 @@ def attribute(
     trace: RunTrace,
     judge_result: JudgeResult,
     *,
-    manual_override: bool = True,
+    manual_override: bool = False,
 ) -> AttributeResult:
     started_at = time.monotonic()
     spec = load_project(project_id)
