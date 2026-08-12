@@ -946,8 +946,17 @@ def build_judge_context(spec: ProjectSpec, trace: RunTrace) -> Dict[str, Any]:
     }
 
 
-def build_intent_frame(spec: ProjectSpec, trace: RunTrace) -> Dict[str, Any]:
-    context = build_judge_context(spec, trace)
+def build_intent_frame(
+    spec: ProjectSpec,
+    trace: RunTrace,
+    context: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    if context is None:
+        context = build_judge_context(spec, trace)
+    trace_fields = _extract_fields_from_trace(
+        trace, context.get("capability_manifest"), context.get("value_mappings")
+    )
+    compact_manifest = _compact_capability_manifest(context, trace_fields, trace=trace)
     return {
         "project_id": spec.project_id,
         "request_candidates": [
@@ -968,7 +977,7 @@ def build_intent_frame(spec: ProjectSpec, trace: RunTrace) -> Dict[str, Any]:
         "semantic_equivalence_rules": context.get("semantic_equivalence_rules") or [],
         "field_patterns": context.get("field_patterns") or {},
         "condition_comparison": {},
-        "capability_manifest": context.get("capability_manifest") or {},
+        "capability_manifest": compact_manifest,
         "critical_intent_dimensions_detail": {
             "target_population": "目标客户群体描述，驱动 population-sensitive field/operator/value 组合",
             "field_semantics": "请求中提到的字段及其语义定义，优先匹配 capability_manifest 中的 field/description",
@@ -1231,7 +1240,7 @@ def _build_core_context(
     项目/Role/Draft 资产/资料 revision/工具指纹，并写入 Tool audit。
     """
     context = build_judge_context(spec, trace) or {}
-    intent_frame = build_intent_frame(spec, trace)
+    intent_frame = build_intent_frame(spec, trace, context)
     judge_assets = resolve_role_assets(spec, "judge", use_candidate=True)
     contract_metadata = next(
         (
@@ -1243,6 +1252,7 @@ def _build_core_context(
     )
     trace_fields = _extract_fields_from_trace(trace, context.get("capability_manifest"), context.get("value_mappings"))
     compact_manifest = _compact_capability_manifest(context, trace_fields, trace=trace)
+    intent_frame["capability_manifest"] = compact_manifest
     semantic_rules = _compact_semantic_rules(context, trace_fields)
     mapping_values = _compact_value_mappings(context, trace_fields)
     enhanced = retrieve_enhanced_rules_for_fields(
@@ -1311,14 +1321,33 @@ def _build_core_context(
         ),
         (
             "## client_search 直接证据\n"
-            "只评价当前 parser_condition_semantics_only 边界内的客户搜索条件。"
-            "逐字段核对 capability_manifest、semantic_equivalence_rules、value_mappings、enhanced_rules "
-            "以及 condition_comparison；等价的字段/操作符/值不得误判，wrong/missing/extra 必须来自当前 actual。"
-            "证据能力必须严格区分：字段定义只证明该字段声明的语义，名称相近或同属日期不能证明语义等价；"
+            "只评价当前 parser_condition_semantics_only 边界内的客户搜索条件。\n"
+            "### 意图拆解（先定目标再判交付）\n"
+            "先写出用户最终要得到的客户集合与每个核心约束（字段、操作符、值/单位、AND/OR 逻辑），"
+            "再据此派生 business_expectations；每个可独立判断的请求维度拆一条 expectation，"
+            "核心交付的 expected_outcome 必须描述用户最终要得到的客户集合/筛选条件/可执行搜索结果。\n"
+            "### 逐项核对\n"
+            "每个 expectation 逐维度对照 actual：条件缺失、错误映射、无依据的额外收窄分别判 "
+            "not_fulfilled；wrong/missing/extra 必须来自当前 actual，不能来自猜测、历史 verdict 或归因信息。"
+            "### 证据分级\n"
+            "证据必须分级使用，低级别证据不能单独支撑 fulfilled："
+            "一级证据是 query 与 actual 本身（意图与交付的直接对照）；"
+            "二级证据是权威业务口径（semantic_equivalence_rules 的等价条件形式/操作符兼容、"
+            "value_mappings 的枚举全集与日期等价、enhanced_rules 中可被引用的确定性规则），"
+            "只有实际引用到的二级证据才能支撑 fulfilled；"
+            "三级证据是 matched_pattern、字段操作符合法性、Reference 一致——它们只解释条件如何被生成，"
+            "不能单独证明用户意图已满足。字段定义只证明该字段声明的语义，名称相近或同属日期不能证明语义等价；"
             "枚举精确命中只证明值属于受控空间，不能证明该空间可被搜索消费；SearchHit 只用于导航，Load 后的"
-            "内容也只能证明其明确声明的事项。请求精确命中 enhanced_rules 时，该项目确定性规则优先于通用自然语言推断。"
+            "内容也只能证明其明确声明的事项。意图约束与 actual 条件语义直接一致、不依赖映射/等价判断时，"
+            "一级证据即可支撑 fulfilled。actual 使用未随附清单登记的字段名时，若 robot_text 或条件形态"
+            "已明确该字段语义且与用户意图一致，不得仅因字段名不在清单中、或与清单键存在命名/别名差异而判 "
+            "not_fulfilled；清单外字段按 actual 自身声明的语义核对，只有实际语义偏离意图或缺失核心约束才判 "
+            "not_fulfilled。\n"
+            "### 裸词规则\n"
+            "请求只有裸词（无“姓名/客户/查/找/筛选”等指示词）且 actual 把该裸词当作姓名解析时，"
+            "Reference 一致只说明生成路径匹配，不等于意图确认；除非存在姓名结构或语义证据"
+            "（如专名、姓氏库命中、明确字段上下文），否则按未满足判 not_fulfilled。\n"
             "is_supported=false 或 actual 明确不支持某条件时，分别评价核心交付与透明边界说明，不能用说明替代核心结果。"
-            "核心交付的 expected_outcome 必须描述用户请求最终要得到的客户集合/筛选条件/可执行搜索结果；"
             "以下内容永远不能单独成为 blocking 核心交付：不错误映射、不编造条件、拒绝越界请求、告知当前限制、未识别到条件。"
             "若请求存在明确业务对象但 actual 没有可执行条件，仍要保留该对象的核心交付 expectation，"
             "Authority 关闭时按当前交付判 not_fulfilled；Authority 开启且最终判断依赖受治理标准时，"
@@ -1433,6 +1462,31 @@ def _build_core_context(
             ),
         }
     )
+    user_prompt_extras = {
+        "capability_manifest": compact_manifest,
+        "semantic_equivalence_rules": semantic_rules,
+        "value_mappings": mapping_values,
+        "enhanced_rules": enhanced,
+        "critical_intent_dimensions": critical_dimensions,
+        "enum_completeness_evidence": enum_completeness_evidence,
+        "unsupported_boundary_evidence": unsupported_boundary_evidence,
+        "condition_comparison": comparison,
+        "product_use_scenarios": contract_metadata.get("product_use_scenarios") or {},
+        "authority_environment_snapshot_sha256": environment_snapshot_sha256,
+        "authority_mode": (
+            "on_demand"
+            if authority_required
+            else "disabled_with_candidates"
+            if authority_candidate_present
+            else "not_required"
+        ),
+    }
+    if authority_required:
+        # Authority 关闭/未命中时，候选理由与义务契约只描述“存在冲突候选”，
+        # 会把模型拖向规则自证/过早 not_evaluable；此时只留 mode 标记，
+        # 系统提示里的 Authority 状态块已给出“按意图判 F/NF”的守则。
+        user_prompt_extras["authority_candidate_reasons"] = authority_candidate_reasons
+        user_prompt_extras["authority_obligation_contract"] = authority_obligation_contract
     return {
         "user_intent": context.get("user_intent"),
         "intent_frame": intent_frame,
@@ -1444,27 +1498,7 @@ def _build_core_context(
         "evaluation_dimension_ids": contract_metadata.get("dimensions") or [],
         "dimension_expectation_ids": dimension_expectation_ids,
         "tool_call_limit": _JUDGE_TOOL_CALL_LIMIT,
-        "user_prompt_extras": to_dict({
-            "capability_manifest": compact_manifest,
-            "semantic_equivalence_rules": semantic_rules,
-            "value_mappings": mapping_values,
-            "enhanced_rules": enhanced,
-            "critical_intent_dimensions": critical_dimensions,
-            "enum_completeness_evidence": enum_completeness_evidence,
-            "unsupported_boundary_evidence": unsupported_boundary_evidence,
-            "condition_comparison": comparison,
-            "product_use_scenarios": contract_metadata.get("product_use_scenarios") or {},
-            "authority_environment_snapshot_sha256": environment_snapshot_sha256,
-            "authority_mode": (
-                "on_demand"
-                if authority_required
-                else "disabled_with_candidates"
-                if authority_candidate_present
-                else "not_required"
-            ),
-            "authority_candidate_reasons": authority_candidate_reasons,
-            "authority_obligation_contract": authority_obligation_contract,
-        }),
+        "user_prompt_extras": to_dict(user_prompt_extras),
         "comparator_result": comparison,
         "protocol_tool_results": [comparison],
         "tools": tools,
@@ -1513,7 +1547,7 @@ class ClientSearchJudge(ProjectJudge):
         return DraftSinglePassJudgeExecution()
 
     def build_intent_frame(self, trace: RunTrace, context: Optional[dict] = None) -> dict:
-        return build_intent_frame(self.spec, trace)
+        return build_intent_frame(self.spec, trace, context)
 
     def normalize_result(self, trace: RunTrace, result: JudgeResult) -> JudgeResult:
         return normalize_judge_result(result) or result

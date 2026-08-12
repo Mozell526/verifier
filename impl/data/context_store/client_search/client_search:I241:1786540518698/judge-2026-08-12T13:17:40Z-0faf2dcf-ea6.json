@@ -1,0 +1,815 @@
+{
+  "caller": "judge",
+  "created_at": "2026-08-12T13:17:40Z",
+  "elapsed_ms": 136713,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "draft"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "5b36862e19e5bb9d434789c1b722cf69c3eafed9a8e1a2b63b013e21d431edcc",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [
+        {
+          "char_count": 149,
+          "content_sha256": "3cd4bc52ab2a3461a9fb3dd9cbe282de8068556dc426c4c32bc9a4793d8c2692",
+          "reason": "Runtime result contract is excluded from the LLM-owned context contract; marker=`JudgeResult` 协议字段",
+          "segment_id": "excluded-line-40-clause-1",
+          "source": "contextunit://project.client_search.asset.judge_boundary,project.client_search.asset.judge_business_contract,project.client_search.asset.judge_evaluation,project.client_search.asset.judge_standard"
+        }
+      ],
+      "lineage": {
+        "call_id": "",
+        "case_id": "I241",
+        "trace_id": "client_search:I241:1786540518698"
+      },
+      "messages": [
+        {
+          "char_count": 20384,
+          "content_sha256": "e5d0f4431ee0718d836d26d355a69b1d6e56dc782ca91b772bc7c0de260c6b65",
+          "role": "system"
+        },
+        {
+          "char_count": 20490,
+          "content_sha256": "6651c413bc421b6d34d88b850b7eac5b941084478b4d7f4cda70b1d3c26f33fc",
+          "role": "user"
+        }
+      ],
+      "mode": "draft",
+      "output_contract": {
+        "field_names": [
+          "acceptance_criteria",
+          "actual",
+          "actual_evidence",
+          "applicable_product_expectation_ids",
+          "authority_tool_call_ids",
+          "blocking",
+          "boundary",
+          "business_expectations",
+          "code",
+          "conditions",
+          "confidence",
+          "cost_times",
+          "downstream_consumer",
+          "downstream_impact",
+          "end_flag",
+          "error_type",
+          "evidence",
+          "evidence_ref",
+          "expectation_id",
+          "expected",
+          "expected_evidence",
+          "expected_outcome",
+          "extra",
+          "fulfillment_assessments",
+          "incomplete",
+          "intent_summary",
+          "kind",
+          "matched_level",
+          "matched_patterns",
+          "missing",
+          "msg",
+          "priority",
+          "query",
+          "query_logic",
+          "raw",
+          "reasoning_summary",
+          "required_capabilities",
+          "rewritten_query",
+          "robot_text",
+          "score",
+          "status",
+          "trace_id",
+          "user_intent",
+          "wrong"
+        ],
+        "identity": "impl.core.schema.judge.JudgeLLMOutput",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "efcb0ae015d8523c7ed9317ccb45b70fb9e9b6a246f55ce20f8e31f4ba4032a0",
+        "sha256": "efcb0ae015d8523c7ed9317ccb45b70fb9e9b6a246f55ce20f8e31f4ba4032a0"
+      },
+      "project_id": "client_search",
+      "prompt_char_count": 40874,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 20490,
+        "occurred": false
+      },
+      "role": "judge",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 259,
+          "content_sha256": "bd69f09b85c9bd1a4643b2e511a3d98c4a9b2cc4742b4c9e178491f64d5ca7c1",
+          "order": 0,
+          "role": "judge",
+          "segment_id": "client-search-draft-system-extra-1",
+          "source": "project://draft/judge.py#system_prompt_extras",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 486,
+          "content_sha256": "0509886b243fa3aaaa338bddce1fbc258e94a6d1f66991c260f0d914a37b0e5d",
+          "order": 1,
+          "role": "judge",
+          "segment_id": "client-search-draft-system-extra-2",
+          "source": "project://draft/judge.py#system_prompt_extras",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 1653,
+          "content_sha256": "8eb839cddd24a2f630d7116ed9fd825a739a589176a138fe45ef08d778074380",
+          "order": 2,
+          "role": "judge",
+          "segment_id": "client-search-draft-system-extra-3",
+          "source": "project://draft/judge.py#system_prompt_extras",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 822,
+          "content_sha256": "521aca6d6a42f70ecf7c5bfb722fd531eb59fd5e79742a1c0ead50bcbcd95770",
+          "order": 3,
+          "role": "judge",
+          "segment_id": "client-search-draft-system-extra-4",
+          "source": "project://draft/judge.py#system_prompt_extras",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 116,
+          "content_sha256": "befd589e5bfd17ec3d609e67aa70ea5fdd5475a28004f5a1318baa98e9ae834f",
+          "order": 4,
+          "role": "judge",
+          "segment_id": "client-search-draft-system-extra-5",
+          "source": "project://draft/judge.py#system_prompt_extras",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 7545,
+          "content_sha256": "85542271603a5caf81a24feff6cbfc2a1bad74f67b8011068f0f02de4e0057da",
+          "order": 5,
+          "role": "judge",
+          "segment_id": "mandatory-context-units",
+          "source": "contextunit://project.client_search.asset.judge_boundary,project.client_search.asset.judge_business_contract,project.client_search.asset.judge_evaluation,project.client_search.asset.judge_standard",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 12752,
+          "content_sha256": "a1a9067738fb6b1ab5b37a836d80134fa3d6f1d9ea1fb84fccd38855799cb304",
+          "order": 6,
+          "role": "judge",
+          "segment_id": "compiled-system",
+          "source": "impl/projects/client_search/draft/judge_execution.py#judge_trace",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 20490,
+          "content_sha256": "6651c413bc421b6d34d88b850b7eac5b941084478b4d7f4cda70b1d3c26f33fc",
+          "order": 7,
+          "role": "judge",
+          "segment_id": "case-user-payload",
+          "source": "trace://judge-evidence-view",
+          "stage": "judge"
+        }
+      ],
+      "stage": "judge",
+      "tool_plan": [
+        {
+          "logical_id": "client_search.field.search_keys",
+          "runtime_name": "client_search_field_search_keys"
+        },
+        {
+          "logical_id": "field.search_definition",
+          "runtime_name": "field_search_definition"
+        }
+      ]
+    }
+  },
+  "llm_model": "deepseek-v4-flash-0731",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "你是通用评估系统的 judge agent。\n\n## 核心原则\n只基于当前 RunTrace、项目评判标准和动态检索的知识库内容判断，不继承历史 case。\n首要职责：理解用户/下游消费者的真实业务意图 → 派生 business_expectations → 基于完整执行链路（每轮 output、最终 output、交互过程和停止事实）判断 expectations 的 fulfillment。\n\n## expectation 拆分原则\nbusiness_expectations 的粒度直接决定判断精度。每个 expectation 必须是原子可判定的——仅凭当前 Judge evidence 中的业务事实就能明确判定 fulfilled 或 not_fulfilled。\n- 一个 expectation 只描述一个可独立验证的结果维度\n- 多维度意图必须拆成多个 expectation\n- 每个 expectation 必须有明确的 acceptance_criteria\n- 每个 expectation 必须在比较 actual 前确定 blocking：只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true\n- fulfillment_assessments 只判断对应 expectation 的 status 和证据，不得重新定义 blocking\n- expectation_id 必须是描述性的中文短语，禁止使用 E1/E2/exp_01 等占位符 ID\n- reasoning_summary 必须是中文写成的判断依据\n\n## 输出词表\n`fulfillment_assessments[*].status` 必须从以下 3 个值中选择：\n  - fulfilled：该 expectation 完全满足\n  - not_fulfilled：该 expectation 未满足\n  - not_evaluable：当前无法评估\n禁用 failed/passed/incorrect/wrong/met/unmet/partially_fulfilled/partial/success/fail/ok/unknown 等同义词。\n`actual_state=empty` 表示 Live 成功返回但没有交付明确业务结果；对本应交付的 expectation 通常判定 not_fulfilled。`actual_state=unavailable` 表示无法取得或确认 Live actual；通常判定 not_evaluable。\n`fulfillment_assessments[*].expected_evidence` 与 `actual_evidence` **必须是数组**（JSON array / list），即使只有一条证据也要用 `[...]` 包裹，不可直接用字符串或对象。\n\n不要输出 overall_fulfillment；公共层会在项目契约补充完成后根据 blocking expectations 确定性派生整体状态。\n\n## 评估规范\n\n\n## 评估边界\n\n\n## 判断标准\n\n\n## 项目 ContextUnit（按 Role policy 在运行前确定性装载）\n## ContextUnit: judge_boundary: judge_boundary_protocals.md (project.client_search.asset.judge_boundary)\n# Judge Boundary Implementation - client_search\n\n本文件是 AI 根据 `projects/client_search/judge_boundary-template.md` 落地的 client_search judge 边界接入说明。用户侧标准是源头；本文件只负责把该标准接入 `impl` 的 judge/check/frontend 链路。\n\n## Source standard\n\n用户侧标准声明：client_search 的核心目标是判断当前 parser 能不能从依赖 ES 数据库中搜索到用户想要查询的客户。上游 ES 数据库字段、枚举值或实际数据缺失等当前系统无法直接控制的限制，不直接视为当前系统输出错误；模型、项目配置、prompt、项目代码、字段映射和后处理等当前系统可优化部分做得不好，应纳入评估范围。\n\n## Runtime standard for judge\n\n限制：有些用户需求受限于当前上游依赖的 ES 数据库中没有相应字段、枚举值或数据，可能无法完全满足用户意图；这类限制按业务系统能力边界判定，不直接视为当前系统输出错误。\n\n评价范围：如果是当前系统可以优化的部分做得不好，比如大模型理解、项目配置、prompt、项目代码、字段映射、值归一化、后处理或条件组合错误，就应该纳入衡量范围，按实际错误判定。\n\n核心依据：ES 数据库是核心判断依据，根据 ES 的表结构、查询规则、里面字段的枚举值来进行判断（数据库信息从原项目的配置文件/枚举值文件中获取）。原业务项目的字段定义、枚举、值映射和规则配置是系统外部/上下游能力边界的重要来源。`projects/client_search/prompt.md` 和静态 `config.md` 只是辅助参考，用于理解字段、枚举、操作符和格式要求。\n\n**关键原则：**\n- 因为上下游的 ES 数据库能力不是由本系统强弱决定的，所以评估只评价当前系统做得怎么样，不评估由于上游限制导致的偏差（无法控制的 ES 数据库）。\n- 如果是本系统可优化的部分（大模型、项目配置 prompt.md/config、项目代码、后处理逻辑、pipeline、模型能力本身等）做得不好，纳入衡量范围。\n- 由于 prompt、项目配置、后处理逻辑、pipeline 等系统内部内容都有可能出错，所以它们不能成为绝对标准。只有系统外部的约束（如下游 ES 依赖、下游数据）才是硬标准。\n- Judge 的核心：看 API 结果输出，从下游配置文件/枚举值文件中了解 API 输出的搜索字段与客户输入的搜索意图是否一致。具体字段不完全是重点，因为标准答案可能不止一个，核心是业务语义正确，在规定的枚举值内根据 API 结果能搜出正确客户列表即可。\n- 我们最终需要能从数据库中搜索到正确客户的 parser。如果 judge 发现数据库搜索结果等价，即便和 prompt.md/config.md/后处理逻辑/pipeline 的要求稍有不同也是可以接受的。\n- 什么情况下会出现等价查询，取决于用户搜索语义和 ES 查询语法。当下游不可用时，必须做好这点的判断。如果无法判断，尝试看能否做模拟查询，看查出来的数据是不是用户意图想要的。\n\n**特别注意：** 不要纠结 CONTAINS 和 MATCH 的问题，因为原项目会通过后处理处置，涉及输出为 CONTAINS 应改成 MATCH，或输出为 MATCH 应改成 CONTAINS 这种说法都是不必要的。\n\n下游不可用时的要求：不能因为无法调用 8081 就退化成机械比对 prompt/config 字段形态。judge 仍必须基于当前 parser 条件、ES 查询语法、字段语义、操作符语义、枚举能力和业务意图，尽可能判断搜索语义是否等价；只有条件语义或 ES 查询语义无法可靠判断时才返回 `not_evaluable`，并说明缺少的依据。\n\n## Implementation mapping\n\n- judge 输入读取本文件作为 `judge_boundary_spec`。\n- judge 同时读取 `projects/client_search/judge_boundary-template.md` 作为用户侧边界源头。\n- judge 同时读取 `projects/client_search/readme.md`、`config.md`、`prompt.md` 作为业务规则和能力边界辅助来源。\n- client_search adapter 会把 parser 返回的 `conditions` 和 `query_logic` 组装成下游搜索请求格式，并按项目配置尝试调用 `application.downstream_search`。\n- 下游搜索证据写入 `RunTrace.extracted_output.downstream_search` 和 `execution_trace` 的 `client_search.downstream_search` 节点。\n- 如果下游搜索成功，judge 可结合实际搜索返回判断是否能搜到用户意图客户，并在 fulfillment evidence 中说明结果集已验证。\n- 如果下游搜索不可用、未配置或 parser 无条件导致跳过，judge 必须在 fulfillment evidence 中标记 `result_set_verified=false`，但仍要做好 ES 查询语义等价判断；不能只因为没有结果集就直接 `not_evaluable` 或只做字符串级条件比对。\n- 如果 parser 条件形态与 prompt/config 略有不同，但 ES 查询语义或结果集等价，judge 可以按等价查询判 `fulfilled`。\napplication boundary 只能作为 fulfillment evidence 或项目上下文，不作为通用协议字段。\n- check agent 需要检查 judge 是否保留了下游搜索证据状态、是否把不可用结果集误当成已验证、是否在下游不可用时仍执行了 ES 查询语义等价判断、是否出现第二套 fulfilled/not_fulfilled 口径。\n\n\n## ContextUnit: judge_business_contract: judge_business_contract.md (project.client_search.asset.judge_business_contract)\n# client_search Judge business contract\n\n本 ContextUnit 是 Harness AI 从 Judge investigation 固化出的 Planning 合同，不包含\nactual、AuthorityAnalysis 原文或调查过程。\n\n- 产品期望：`find-target-customers`\n- 评估维度：`search-intent-preservation`、`downstream-query-consumability`\n- Live 责任：完整保留用户明确表达的客户筛选条件，并交付下游支持的字段、值、操作符和逻辑。\n- Live 边界：不保证数据库存在匹配客户，不承担外部客户数据缺失或服务不可用责任。\n\n当前 Case 的 frozen plan 必须覆盖：\n\n- `explicit_conditions`：明确表达的筛选条件；\n- `boolean_logic`：AND/OR/NOT 和范围关系；\n- `no_unexpressed_constraints`：不得增加会改变客户集合的未表达限制。\n\n每个 runtime expectation 必须引用产品期望和至少一个评估维度，并在 actual 可见前确定\nacceptance criteria 与 blocking。\n\n\n## ContextUnit: judge_evaluation: evaluation.md (project.client_search.asset.judge_evaluation)\n# Evaluation\n\nJudge the current client_search API output by reconstructing expected-vs-actual from the current query, current response, current downstream-search evidence when available, and the current project prompt/config references from `projects/client_search`.\n\n本文件定义”评估本 case 时的目标和重点”。边界定义和判定流程由 `judge_boundary_protocals.md` 和 `judge.md` 承载，本文件不重复。\n\n## Project-owned source references\n\n- `projects/client_search/readme.md`: 标准答案的答案结果由于数据库字段已经过时、跟 API 返回结果不一致，所以标准答案只能作为参考；judge 需要根据最新项目资料和当前运行证据进行实时标注。\n- `projects/client_search/config.md`: 原始字段定义、枚举、值映射和规则配置是 ES/search 能力边界的重要来源；静态摘要本身只是辅助指针，不是绝对标准。\n- `projects/client_search/prompt.md`: 当前 prompt 规则用于理解 parser 预期，但等价的 ES/search 结果仍然可接受。\n- `RunTrace.extracted_output.downstream_search`: 下游客户搜索探测结果。\n\n## Quality requirements\n\n- 不继承旧 case、page state、cluster 或 attribution 结论。\n- 先理解用户底层意图，再比较条件。\n- 边界优先级和判定流程见 `judge_boundary_protocals.md` 和 `judge.md`。\n- 分离 missing、wrong、extra 条件。\n- 如果 `structured_output` 为空而用户 query 非空，视为 empty-recognition，评估 query 是否应产生条件。\n- 空结果分类必须使用 API 响应中的最佳来源 query；缺少 `rewritten_query` 本身不应将非空请求变成 `empty_query`。\n\n\n## ContextUnit: judge_standard: judge.md (project.client_search.asset.judge_standard)\n# Judge Agent - client_search\n\n本文件定义 client_search 项目的 judge 构建逻辑。它必须满足用户侧边界标准 `projects/client_search/judge_boundary-template.md`：先消费 application/project adapter 在运行前附加的当前系统能力边界，再判断 API actual output 是否满足该边界内的用户搜索意图。\n\n## Judge 目标\n\n判断自然语言 query 是否被解析成正确、可执行、且在当前 `application_boundary.judge_scope` 内语义正确的结构化搜索条件。\n\njudge 不是简单比较历史标准答案，也不是检查 API 是否返回 200。`标准答案.xlsx` 只能作为 query 和历史参考；最终真值应从当前 query、当前 API actual output、adapter 提供的 `application_boundary`、当前配置、当前 prompt、项目 readme 和 judge boundary 重新推导。\n\n## 边界优先级\n\njudge 必须先消费项目 adapter 已确定的 `application_boundary`，再按项目边界区分两类问题：\n\n1. 系统能力边界：如果用户需求依赖上游 ES 数据库当前不存在的字段、枚举值、外部数据或不可控环境，且当前系统没有可表达能力，这部分只作为能力差距说明，不直接判为当前系统输出错误。\n2. 可评价系统问题：如果问题来自当前系统可优化部分，包括大模型理解、prompt、项目配置、项目代码、字段映射、值归一化、后处理或条件组合逻辑，就应纳入评估；做错应判 `incorrect`。\n\n边界依据优先级：adapter 暴露的 `application_boundary` 是当前运行能力边界；真实 ES/下游客户搜索的可查询语义、表结构、查询规则、字段和枚举能力是边界来源；原业务项目字段定义、枚举、值映射和增强规则配置是系统外部/上下游能力边界的重要来源。`projects/client_search/config.md` 和 `prompt.md` 只是辅助参考，用于理解字段、枚举、操作符和格式要求；prompt、生成配置摘要、项目代码、后处理和 pipeline 都可能出错，不能作为绝对正确标准。若 `application_boundary` 表明结果集已验证，且下游结果或 ES 查询语义能证明两个查询等价，可以接受与 prompt/config 中间形态略有不同的条件表达。\n\n## 判定步骤\n\n1. 重新理解 query 的核心筛选意图：哪些条件必须满足，哪些只是弱修饰，哪些当前系统字段或枚举不支持。\n2. 读取 `project_judge_context.application_boundary`，确定当前主评价范围：`parser_condition_semantics_only` 或 `parser_and_result_set`。\n3. 根据边界依据判断每个核心意图属于系统能力边界还是可评价系统范围。\n4. 从当前 API actual output 提取结构化条件、逻辑关系和关键返回字段。\n5. 在 `parser_and_result_set` 范围内，可把真实下游返回作为结果集验证证据，判断是否能搜到用户意图客户。\n6. 在 `parser_condition_semantics_only` 范围内，不能声称已验证 ES 实际结果集，也不要反复把下游不可用当作判定主因；应基于 parser 条件、ES 查询语法、字段语义、操作符语义、枚举能力和业务意图判断搜索语义是否等价，只有语义证据不足时才返回 `not_evaluable`，并说明缺少的依据。\n7. 比较 expected-vs-actual：字段业务含义、操作符、枚举值、单位换算、年龄/日期/金额边界、AND/OR 逻辑和条件覆盖是否正确。\n8. 如果条件形态不同但结果集证据或 ES 查询语义等价，应按“能否检索到正确客户”判定，而不是机械判字段/操作符不一致。\n9. 输出 fulfillment-first 结果，并给出 expected、actual、missing、wrong、extra、evidence 和 reasoning_summary。\n\n## 正确性重点\n\n- 字段名不应机械质疑，重点判断字段是否承载用户表达的业务含义并能形成正确查询。\n- 枚举值必须符合当前 ES/配置能力；别名、单位和金额边界必须正确归一化。\n- 年龄、日期、区间、存在性、否定、数组/集合等操作符必须符合当前查询语义。\n- 缺少用户核心意图、加入用户未表达的额外强约束、错误合并或拆分多个必须条件，都应判 `incorrect`。\n- 如果后处理把中间条件转成等价可执行形态，应判断最终业务语义是否能覆盖正确客户，不机械要求保留中间字段或操作符。\n- `application_boundary` 排除结果集验证时，不能声称结果集已验证；但必须继续依据 ES 查询语义和 parser 条件判断是否等价，不能简单退化为字段字符串比对、重复说明外部依赖不可用或直接 `not_evaluable`。\n\n## 禁止事项\n\n- 不继承旧 case、上一轮归因、历史 cluster、页面状态或历史 expected conditions。\n- 不把 `review_verdict`、`root_cause_cluster`、`source`、`run_status`、match agent 状态等来源/状态字段当作正确性依据。\n- 不用 attribute 结论反推 judge fulfillment；正确性必须先从当前 query、当前 actual output 和当前 application boundary 判断。\n- 不为了当前少数 case 写硬编码判定规则。\n- 不直接修改业务 parser、配置、prompt、标准答案或静态结果。\n\n## 与归因和 check 的分工\n\njudge 只判断输出是否正确，并说明 expected-vs-actual / expected-vs-result-set 差异。若判为 `incorrect`，attribute agent 再定位链路证据、根因、影响和修复方向。check agent 审查 judge、归因、页面和数据机制是否一致、可复现、不过拟合，是否存在第二套 correct/incorrect 口径，以及是否在 `application_boundary` 已排除结果集验证时仍把外部依赖不可用当作主要结论。\n\n\n\n\n## Judge 决策顺序\n先派生用户真正要办成的 blocking 核心业务交付，再逐项比较 actual。安全拒绝、透明说明、不编造条件只能作为独立 non-blocking 验收项，不能替代核心交付；overall 必须由 blocking assessments 聚合。证据充分时只判 fulfilled/not_fulfilled；仅职责外、输入不可用或决定性证据确实不足时判 not_evaluable。HTTP 状态、历史 verdict 和归因信息不得替代 expected-vs-actual 判断。\n\n## not_evaluable 成因契约（fulfilled.md §2.3/§10、authority.md §8.4）\n判 not_evaluable 时，必须在对应 assessment 的 actual_evidence 中显式写明成因标签，只允许五种：「结论类型：职责外」「结论类型：完全无关」「结论类型：依据不充分」「结论类型：输入坏」「结论类型：Authority 能力不可用」。Authority 开启时，职责外/职责内能力缺失/依据不充分必须真实调用 authority.resolve（在 authority_tool_call_ids 引用该次调用）；依据不充分同时给出缺料清单。Authority 关闭时不得自行声明这些治理结论，也不得仅因缺少 Authority 把用户效果判为 not_evaluable；应依据用户意图与当前实际交付判 fulfilled/not_fulfilled。完全无关/输入坏不需要 authority。缺标签或标签不可识别的 not_evaluable 会被标 needs_human_review（不静默放行）。\n\n## client_search 直接证据\n只评价当前 parser_condition_semantics_only 边界内的客户搜索条件。\n### 意图拆解（先定目标再判交付）\n先写出用户最终要得到的客户集合与每个核心约束（字段、操作符、值/单位、AND/OR 逻辑），再据此派生 business_expectations；每个可独立判断的请求维度拆一条 expectation，核心交付的 expected_outcome 必须描述用户最终要得到的客户集合/筛选条件/可执行搜索结果。\n### 逐项核对\n每个 expectation 逐维度对照 actual：条件缺失、错误映射、无依据的额外收窄分别判 not_fulfilled；wrong/missing/extra 必须来自当前 actual，不能来自猜测、历史 verdict 或归因信息。### 证据分级\n证据必须分级使用，低级别证据不能单独支撑 fulfilled：一级证据是 query 与 actual 本身（意图与交付的直接对照）；二级证据是权威业务口径（semantic_equivalence_rules 的等价条件形式/操作符兼容、value_mappings 的枚举全集与日期等价、enhanced_rules 中可被引用的确定性规则），只有实际引用到的二级证据才能支撑 fulfilled；三级证据是 matched_pattern、字段操作符合法性、Reference 一致——它们只解释条件如何被生成，不能单独证明用户意图已满足。字段定义只证明该字段声明的语义，名称相近或同属日期不能证明语义等价；枚举精确命中只证明值属于受控空间，不能证明该空间可被搜索消费；SearchHit 只用于导航，Load 后的内容也只能证明其明确声明的事项。意图约束与 actual 条件语义直接一致、不依赖映射/等价判断时，一级证据即可支撑 fulfilled。actual 使用未随附清单登记的字段名时，若 robot_text 或条件形态已明确该字段语义且与用户意图一致，不得仅因字段名不在清单中、或与清单键存在命名/别名差异而判 not_fulfilled；清单外字段按 actual 自身声明的语义核对，只有实际语义偏离意图或缺失核心约束才判 not_fulfilled。\n### 裸词规则\n请求只有裸词（无“姓名/客户/查/找/筛选”等指示词）且 actual 把该裸词当作姓名解析时，Reference 一致只说明生成路径匹配，不等于意图确认；除非存在姓名结构或语义证据（如专名、姓氏库命中、明确字段上下文），否则按未满足判 not_fulfilled。\nis_supported=false 或 actual 明确不支持某条件时，分别评价核心交付与透明边界说明，不能用说明替代核心结果。以下内容永远不能单独成为 blocking 核心交付：不错误映射、不编造条件、拒绝越界请求、告知当前限制、未识别到条件。若请求存在明确业务对象但 actual 没有可执行条件，仍要保留该对象的核心交付 expectation，Authority 关闭时按当前交付判 not_fulfilled；Authority 开启且最终判断依赖受治理标准时，先消费 Authority resolution 再判 fulfilled/not_fulfilled/not_evaluable。安全拒绝和透明说明必须另建 blocking=false 的 expectation。若 actual 只交付请求的一部分，必须按可独立判断的请求维度拆分 expectation：已交付维度照常评价；Authority 关闭时，被遗漏的 blocking 维度按实际未交付判 not_fulfilled；Authority 开启且命中 coverage_gap 时只让依赖该边界的 assessment 消费 Authority，不得把已交付维度一起降级。\n\n## client_search 最终输出拓扑与 fulfillment_assessments 字段约束（严格，以本节为唯一准则）\n最终只能输出一个符合 Judge LLM-owned schema 的 JSON object，禁止数组、Markdown、候选答案或对象外文字。顶层只允许 business_expectations、applicable_product_expectation_ids、fulfillment_assessments、expected、missing、wrong、extra、evidence、reasoning_summary。business_expectations 与 fulfillment_assessments 必须是独立顶层数组，并以 expectation_id 一一对齐。business_expectations[*].boundary 必须是 JSON object（没有内容就写 {}），绝不能写成数组。fulfillment_assessments[*] 只允许 expectation_id、status、score、expected_evidence、actual_evidence、downstream_impact、authority_tool_call_ids；expected_evidence/actual_evidence 必须是数组。禁止输出 overall_fulfillment、confidence、evidence_refs、authority_analysis_ids、actual；它们属于运行时代码派生/绑定字段，即使旧材料提到也不得由模型生成。只派生当前结论必需的验收项（通常 1-3 条，最多 4 条）；每条 evidence 最多 3 个短项，reasoning_summary 用不超过 180 个中文字符概括决定性依据，禁止复述输入资料。\n\n## Authority 状态\n本 case 无标准冲突、权威枚举空间或能力/职责边界候选信号，不提供 authority.resolve；请直接依据随附结构化资料完成判断，不得虚构 authority_tool_call_ids。\n## 工具使用原则\n所有工具的用途、调用时机和参数含义以 Agno tool schema 为准；user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息。\n\n## 禁止事项\n- 不要把 reference answer 当作默认主目标（除非 case 明确指定）\n- 不要把 HTTP 状态、run_status、attribute/cluster 结论当作满足依据\n- 不要归因内部代码、配置或 prompt 原因（属于 attribute agent）\n- Authority 的唯一运行时引用字段是 fulfillment_assessments[].authority_tool_call_ids；其中每个 ID 都必须来自本次 trace 中真实完成的 authority.resolve 调用，禁止自造。\n- 只输出结构化 schema 中声明的字段；不要自行增加未声明的历史/元数据字段。\n- 分析文字必须使用中文，包括 reasoning_summary 等所有文本字段。\n\n\n## 输出约束：judge 判定输出（自产 reference + fulfillment 判定）\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"business_expectations\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeBusinessExpectationOutput\"\n      }\n    },\n    \"applicable_product_expectation_ids\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"fulfillment_assessments\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeFulfillmentAssessmentOutput\"\n      }\n    },\n    \"expected\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"code\": {\n          \"type\": \"integer\"\n        },\n        \"msg\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"query\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"conditions\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"robot_text\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ],\n          \"minLength\": 1\n        },\n        \"query_logic\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ],\n          \"minLength\": 1\n        },\n        \"rewritten_query\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ],\n          \"minLength\": 1\n        },\n        \"end_flag\": {\n          \"type\": [\n            \"integer\",\n            \"null\"\n          ]\n        },\n        \"trace_id\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ],\n          \"minLength\": 1\n        },\n        \"matched_level\": {\n          \"type\": [\n            \"integer\",\n            \"null\"\n          ]\n        },\n        \"matched_patterns\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ],\n          \"minLength\": 1\n        },\n        \"intent_summary\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ],\n          \"minLength\": 1\n        },\n        \"confidence\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        },\n        \"cost_times\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"code\",\n        \"msg\",\n        \"query\",\n        \"conditions\",\n        \"robot_text\",\n        \"query_logic\",\n        \"rewritten_query\"\n      ]\n    },\n    \"missing\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"wrong\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"extra\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"evidence\": {\n      \"type\": \"array\",\n      \"items\": {}\n    },\n    \"reasoning_summary\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    }\n  },\n  \"additionalProperties\": false,\n  \"$defs\": {\n    \"JudgeBusinessExpectationOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"blocking\": {\n          \"type\": \"boolean\"\n        },\n        \"downstream_consumer\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"user_intent\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected_outcome\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"required_capabilities\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"acceptance_criteria\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"boundary\": {\n          \"type\": \"object\"\n        },\n        \"priority\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"blocking\"\n      ]\n    },\n    \"JudgeFulfillmentAssessmentOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"score\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        },\n        \"expected_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"actual_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"downstream_impact\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"authority_tool_call_ids\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"status\"\n      ]\n    },\n    \"GapItem\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"kind\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"error_type\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected\": {},\n        \"actual\": {},\n        \"evidence_ref\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"raw\": {},\n        \"incomplete\": {\n          \"type\": \"boolean\"\n        }\n      },\n      \"additionalProperties\": false\n    }\n  },\n  \"required\": [\n    \"reasoning_summary\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['reasoning_summary']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n\n### 嵌套字段子结构约束\n以下字段内部的子结构也必须严格遵守，不可随意编造字段名或类型：\n- **`expected`** 字段 (项目 client_search 的 expected/live output 结构) 必须符合以下结构：\n  ```json\n  {\n    \"type\": \"object\",\n    \"properties\": {\n      \"code\": {\n        \"type\": \"integer\"\n      },\n      \"msg\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"query\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"conditions\": {\n        \"type\": \"array\",\n        \"items\": {}\n      },\n      \"robot_text\": {\n        \"type\": [\n          \"string\",\n          \"null\"\n        ],\n        \"minLength\": 1\n      },\n      \"query_logic\": {\n        \"type\": [\n          \"string\",\n          \"null\"\n        ],\n        \"minLength\": 1\n      },\n      \"rewritten_query\": {\n        \"type\": [\n          \"string\",\n          \"null\"\n        ],\n        \"minLength\": 1\n      },\n      \"end_flag\": {\n        \"type\": [\n          \"integer\",\n          \"null\"\n        ]\n      },\n      \"trace_id\": {\n        \"type\": [\n          \"string\",\n          \"null\"\n        ],\n        \"minLength\": 1\n      },\n      \"matched_level\": {\n        \"type\": [\n          \"integer\",\n          \"null\"\n        ]\n      },\n      \"matched_patterns\": {\n        \"type\": [\n          \"string\",\n          \"null\"\n        ],\n        \"minLength\": 1\n      },\n      \"intent_summary\": {\n        \"type\": [\n          \"string\",\n          \"null\"\n        ],\n        \"minLength\": 1\n      },\n      \"confidence\": {\n        \"type\": [\n          \"number\",\n          \"null\"\n        ]\n      },\n      \"cost_times\": {\n        \"type\": [\n          \"number\",\n          \"null\"\n        ]\n      }\n    },\n    \"additionalProperties\": false,\n    \"required\": [\n      \"code\",\n      \"msg\",\n      \"query\",\n      \"conditions\",\n      \"robot_text\",\n      \"query_logic\",\n      \"rewritten_query\"\n    ]\n  }\n  ```\n",
+      "created_at": 1786540523,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "65cf0115-3bb4-4bbc-b76f-efb35801eabe",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"user_intent\": null, \"run_trace\": {\"trace_id\": \"client_search:I241:1786540518698\", \"project_id\": \"client_search\", \"case_id\": \"I241\", \"intent_input\": {\"user_text\": \"C0004533449897\", \"user_id\": \"eval-user\", \"trace_id\": \"\", \"session_id\": \"eval-session\", \"source\": \"askbob\", \"extra_input_params\": {}}, \"normalized_request\": {\"user_text\": \"C0004533449897\", \"user_id\": \"eval-user\", \"trace_id\": \"\", \"session_id\": \"eval-session\", \"source\": \"askbob\", \"extra_input_params\": {}}, \"final_output\": {\"code\": 0, \"msg\": \"操作成功\", \"robot_text\": \"暂时没判读出这组数据代表什么，已帮您在手机号、客户号、保单号中一起查找匹配的客户\", \"end_flag\": 1, \"trace_id\": \"\", \"query\": \"C0004533449897\", \"query_logic\": \"OR\", \"conditions\": [{\"field\": \"clientNo\", \"operator\": \"MATCH\", \"value\": \"C0004533449897\", \"match_mode\": null}, {\"field\": \"polNo\", \"operator\": \"MATCH\", \"value\": \"C0004533449897\", \"match_mode\": null}], \"matched_level\": 2, \"matched_patterns\": \"裸值弱命\", \"rewritten_query\": \"C0004533449897\", \"intent_summary\": \"暂时没判读出这组数据代表什么，已帮您在手机号、客户号、保单号中一起查找匹配的客户\", \"confidence\": 0.6, \"cost_times\": 85.0}, \"actual_state\": \"available\", \"final_output_turn\": 1, \"turns\": [{\"turn_index\": 1, \"request\": {\"user_text\": \"C0004533449897\", \"user_id\": \"eval-user\", \"trace_id\": \"\", \"session_id\": \"eval-session\", \"source\": \"askbob\", \"extra_input_params\": {}}, \"extracted_output\": {\"code\": 0, \"msg\": \"操作成功\", \"robot_text\": \"暂时没判读出这组数据代表什么，已帮您在手机号、客户号、保单号中一起查找匹配的客户\", \"end_flag\": 1, \"trace_id\": \"\", \"query\": \"C0004533449897\", \"query_logic\": \"OR\", \"conditions\": [{\"field\": \"clientNo\", \"operator\": \"MATCH\", \"value\": \"C0004533449897\", \"match_mode\": null}, {\"field\": \"polNo\", \"operator\": \"MATCH\", \"value\": \"C0004533449897\", \"match_mode\": null}], \"matched_level\": 2, \"matched_patterns\": \"裸值弱命\", \"rewritten_query\": \"C0004533449897\", \"intent_summary\": \"暂时没判读出这组数据代表什么，已帮您在手机号、客户号、保单号中一起查找匹配的客户\", \"confidence\": 0.6, \"cost_times\": 85.0}, \"call_status\": \"succeeded\", \"runtime_ms\": 120, \"error\": null, \"fallbacks\": [], \"validation\": [], \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"client_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"client_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"client_search.request_normalization\", \"status\": \"succeeded\", \"evidence\": {\"user_text\": \"C0004533449897\", \"source\": \"askbob\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"client_search.api\", \"status\": \"suspicious\", \"evidence\": {\"code\": null}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"client_search.routing\", \"status\": \"not_verified\", \"evidence\": {\"matched_level\": null, \"matched_patterns\": null}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"client_search.downstream_search\", \"status\": \"not_verified\", \"evidence\": {}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"client_search.output_extract\", \"status\": \"succeeded\", \"evidence\": {\"logic\": \"OR\", \"condition_count\": 2}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"application_boundary\": {\"downstream_result_set_available\": false, \"downstream_status\": \"not_verified\", \"judge_scope\": \"parser_condition_semantics_only\", \"result_set_verified\": false, \"reason\": \"application live layer probed downstream customer search before judge/attribute and constrained evaluation scope to parser output semantics.\"}, \"project_fields\": {\"downstream_search\": {}, \"external_boundary_sources\": {\"config_paths\": {\"source_field_definitions\": \"/Users/xiaozijian/WorkSpace/package/client_search_jmz_raw/llm_client_search/src/main/python/data/client_search_query_parse/field_definitions_args.yaml\", \"source_field_enums\": \"/Users/xiaozijian/WorkSpace/package/client_search_jmz_raw/llm_client_search/src/main/python/data/client_search_query_parse/field_enums_args.yaml\", \"source_planfullname_enums\": \"/Users/xiaozijian/WorkSpace/package/client_search_jmz_raw/llm_client_search/src/main/python/data/client_search_query_parse/polNoInfo.plancodeinfo.planfullname_enums_args.yaml\", \"source_abbrname_enums\": \"/Users/xiaozijian/WorkSpace/package/client_search_jmz_raw/llm_client_search/src/main/python/data/client_search_query_parse/polNoInfo.plancodeinfo.abbrname_enums_args.yaml\", \"source_claimplancodename_enums\": \"/Users/xiaozijian/WorkSpace/package/client_search_jmz_raw/llm_client_search/src/main/python/data/client_search_query_parse/polNoInfo.claimdatainfo.claimplancodename_enums_args.yaml\", \"source_profname_enums\": \"/Users/xiaozijian/WorkSpace/package/client_search_jmz_raw/llm_client_search/src/main/python/data/client_search_query_parse/profName_enums_args.yaml\", \"source_value_mappings\": \"/Users/xiaozijian/WorkSpace/package/client_search_jmz_raw/llm_client_search/src/main/python/data/client_search_query_parse/value_mappings_args.yaml\", \"source_enhanced_rules\": \"/Users/xiaozijian/WorkSpace/package/client_search_jmz_raw/llm_client_search/src/main/python/data/client_search_query_parse/enhanced_rules_args.yaml\"}}, \"empty_result_reason\": \"\", \"is_empty_result\": false}}], \"conversation_transcript\": [], \"conversation_summary\": {\"turn_count\": 1, \"final_output_turn\": 1, \"completion_status\": \"completed\", \"stop_reason\": \"single_turn_completed\", \"interaction_controller_status\": \"not_run\", \"interaction_controller_error\": \"\"}, \"stop_reason\": \"single_turn_completed\", \"completion_status\": \"completed\", \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"client_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"client_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"client_search.request_normalization\", \"status\": \"succeeded\", \"evidence\": {\"user_text\": \"C0004533449897\", \"source\": \"askbob\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"client_search.api\", \"status\": \"suspicious\", \"evidence\": {\"code\": null}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"client_search.routing\", \"status\": \"not_verified\", \"evidence\": {\"matched_level\": null, \"matched_patterns\": null}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"client_search.downstream_search\", \"status\": \"not_verified\", \"evidence\": {}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"client_search.output_extract\", \"status\": \"succeeded\", \"evidence\": {\"logic\": \"OR\", \"condition_count\": 2}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"evidence_refs\": [], \"raw_response_evidence\": null, \"evidence_completeness\": {\"complete\": true, \"missing_evidence\": []}, \"application_boundary\": {\"downstream_result_set_available\": false, \"downstream_status\": \"not_verified\", \"judge_scope\": \"parser_condition_semantics_only\", \"result_set_verified\": false, \"reason\": \"application live layer probed downstream customer search before judge/attribute and constrained evaluation scope to parser output semantics.\"}, \"reference_contract\": {}, \"scenario\": \"badcase\", \"status\": \"ok\", \"error\": null}, \"capability_manifest\": {\"clientNo\": {\"field\": \"clientNo\", \"operators\": [\"MATCH\"], \"value_types\": [\"extract\"], \"description\": \"表示客户编号：以C开头，或以00开头；前缀之后为11至12位数字或字母。英文字母统一转为大写\", \"definition\": \"表示客户编号：以C开头，或以00开头；前缀之后为11至12位数字或字母。英文字母统一转为大写\", \"enums\": [], \"enum_ref\": \"\", \"enum_refs\": [], \"unresolved_enum_refs\": [], \"show_enum_in_prompt\": true, \"enum_candidate_limit_in_prompt\": null, \"unit\": \"\", \"notes\": \"完整客户号应先统一转为大写；当查询客户号尾号|尾数|末尾|后x位|后几位|结尾时，必须设置match_mode=suffix。客户号只能是数字或字母，不可能是中文。\", \"is_supported\": true, \"is_supported_explicit\": false}, \"polNo\": {\"field\": \"polNo\", \"operators\": [\"MATCH\"], \"value_types\": [\"extract\"], \"description\": \"表示保单号，不表示客户编号。标准格式包括：P或A开头后跟15至17位数字或字母（兼容历史数据中的14位）；GP开头后跟14位数字或字母；在明确写出“保单号”时也支持15至17位纯数字。字母统一转为大写\", \"definition\": \"表示保单号，不表示客户编号。标准格式包括：P或A开头后跟15至17位数字或字母（兼容历史数据中的14位）；GP开头后跟14位数字或字母；在明确写出“保单号”时也支持15至17位纯数字。字母统一转为大写\", \"enums\": [], \"enum_ref\": \"\", \"enum_refs\": [], \"unresolved_enum_refs\": [], \"show_enum_in_prompt\": true, \"enum_candidate_limit_in_prompt\": null, \"unit\": \"\", \"notes\": \"保单号一定是由数据或字母组成的，不可能为中文\", \"is_supported\": true, \"is_supported_explicit\": false}}, \"semantic_equivalence_rules\": {}, \"value_mappings\": {}, \"enhanced_rules\": {\"rules\": [{\"name\": \"客户号-尾号\", \"patterns\": [\"{SEARCH}{CLIENT_NO_FIELD_WORD}(?:的)?{SUFFIX_WORD}(?:为|是)?[：:\\\\s]?([A-Za-z0-9]{1,11}){CUSTOMER_SUFFIX}\", \"{SEARCH}([A-Za-z0-9]{1,11})(?:的)?{CLIENT_NO_FIELD_WORD}(?:的)?{SUFFIX_WORD}{CUSTOMER_SUFFIX}\", \"{SEARCH}00[A-Za-z0-9]*\\\\*{3,}([A-Za-z0-9]{4})\", \"{SEARCH}(?:尾号|尾数|末尾|后四位|后几位)(?:为|是)?[：:\\\\s]?([A-Za-z0-9]{1,11})(?:的)?(?:客户号|客户编号|客户代码|客户ID|客户id){CUSTOMER_SUFFIX}\", \"{SEARCH}([A-Za-z0-9]{1,11})(?:尾号|尾数|末尾|后四位|后几位)(?:的)?(?:客户号|客户编号|客户代码|客户ID|客户id){CUSTOMER_SUFFIX}\", \"{SEARCH}(?:客户号|客户编号|客户代码|客户ID|客户id){CW}{0,2}(?:尾号|尾数|末尾|最后四位|后四位|后几位|结尾)(?:为|是)?[：:\\\\s]?([A-Za-z0-9]{1,11}){CUSTOMER_SUFFIX}\", \"{SEARCH}(?:客户号|客户编号|客户代码|客户ID|客户id)(?:以)?([A-Za-z0-9]{1,11})(?:结尾|为尾号|作尾号){CUSTOMER_SUFFIX}\", \"{SEARCH}(?:客户号|客户编号|客户代码|客户ID|客户id)(?:的)?(?:尾号|尾数|末尾|后四位|后几位|结尾)(?:是|为)?([A-Za-z0-9]+)(?:的)?{CUSTOMER_SUFFIX}\", \"{SEARCH}(?:客户号|客户编号|客户代码|客户ID|客户id)(?:的)?最?后(?:一|两|二|三|四|五|六|七|八|九|十|\\\\d+)位(?:是|为)?([A-Za-z0-9]+)(?:的)?{CUSTOMER_SUFFIX}\", \"{SEARCH}(?:客户号|客户编号|客户代码|客户ID|客户id)以([A-Za-z0-9]+)(?:尾号|尾数|末尾|后四位|后几位|结尾)(?:的)?{CUSTOMER_SUFFIX}\", \"{SEARCH}(?:客户号|客户编号|客户代码|客户ID|客户id)(?:的)?(?:尾号|尾数|末尾|后四位|后几位|结尾)(?:是|为)?([A-Za-z0-9]+){CUSTOMER_SUFFIX}\"], \"field\": \"clientNo\", \"operator\": \"MATCH\", \"match_mode\": \"suffix\", \"value_type\": \"capture\", \"value\": {\"group\": 1}, \"priority\": 18, \"merge_to_llm\": false}, {\"name\": \"客户号-匹配\", \"patterns\": [\"{SEARCH}?(?:客户号|客户编号|客户代码|客户ID|客户id){CW}{0,2}[为是：:]\\\\s*(?<![A-Za-z])({CUSTOMER_C_PREFIX}{BUSINESS_ALNUM}{11,12})\", \"{SEARCH}?(?:客户号|客户编号|客户代码|客户ID|客户id)(?:匹配|等于|包含|含有|带有)?(?<![A-Za-z])({CUSTOMER_C_PREFIX}{BUSINESS_ALNUM}{11,12})(?:的客户|客户|的)?\", \"{SEARCH}?(?<![A-Za-z])({CUSTOMER_C_PREFIX}{BUSINESS_ALNUM}{11,12}){CW}{0,2}\", \"{SEARCH}?(?:客户号|客户编号|客户代码|客户ID|客户id){CW}{0,2}[为是：:]\\\\s*({CUSTOMER_ZERO_PREFIX}{BUSINESS_ALNUM}{10,11})\", \"{SEARCH}?(?:客户号|客户编号|客户代码|客户ID|客户id)(?:匹配|等于|包含|含有|带有)?(?<![A-Za-z])({CUSTOMER_ZERO_PREFIX}{BUSINESS_ALNUM}{10,11})(?:的客户|客户|的)?\", \"{SEARCH}?(?<![A-Za-z])({CUSTOMER_ZERO_PREFIX}{BUSINESS_ALNUM}{10,11}){CW}{0,2}\", \"{SEARCH}?(?:客户号|客户编号|客户代码|客户ID|客户id)(?:前缀|开头|以)(?:为|是)?[：:\\\\s]?([A-Za-z0-9]{1,11})(?:开头)?(?:的客户|客户|的)?\", \"{SEARCH}?(?:客户号|客户编号|客户代码|客户ID|客户id)([A-Za-z0-9]{1,11})(?:开头|前缀)(?:的客户|客户)?\", \"{SEARCH}([A-Za-z0-9]{1,11})(?:开头|前缀)(?:的)?(?:客户号|客户编号|客户代码|客户ID|客户id)(?:的客户|客户|的)?\"], \"field\": \"clientNo\", \"operator\": \"MATCH\", \"value_type\": \"capture\", \"value\": {\"group\": 1, \"transform\": \"upper\"}, \"priority\": 11}, {\"name\": \"客户号前缀\", \"field\": \"clientNo\", \"operator\": \"MATCH\", \"match_mode\": \"prefix\", \"value_type\": \"capture\", \"value_as_string\": true, \"priority\": 80, \"patterns\": [\"(?:客户号|客户编号)以([A-Za-z0-9]+)开头\", \"(?:客户号|客户编号)以([A-Za-z0-9]+)开头(?:的)?{CUSTOMER_SUFFIX}\", \"(?:客户号|客户编号)前缀(?:是|为)?([A-Za-z0-9]+)\", \"(?:客户号|客户编号)(?:的)?前(?:一|两|二|三|四|五|六|七|八|九|十|\\\\d+)位(?:是|为)?([A-Za-z0-9]+)\", \"(?:客户号|客户编号)(?:的)?前(?:一|两|二|三|四|五|六|七|八|九|十|\\\\d+)位(?:是|为)?([A-Za-z0-9]+)(?:的)?{CUSTOMER_SUFFIX}\", \"(?:客户号|客户编号)(?:的)?开头(?:是|为)?([A-Za-z0-9]+)\", \"(?:客户号|客户编号)(?:的)?起始(?:是|为)?([A-Za-z0-9]+)\"]}, {\"name\": \"客户号尾号\", \"field\": \"clientNo\", \"operator\": \"MATCH\", \"match_mode\": \"suffix\", \"value_type\": \"capture\", \"value_as_string\": true, \"priority\": 80, \"patterns\": [\"(?:客户号|客户编号)(?:的)?尾号(?:是|为)?([A-Za-z0-9]+)\", \"(?:客户号|客户编号)(?:的)?尾号(?:是|为)?([A-Za-z0-9]+)(?:的)?{CUSTOMER_SUFFIX}\", \"(?:客户号|客户编号)(?:的)?后(?:一|两|二|三|四|五|六|七|八|九|十|\\\\d+)位(?:是|为)?([A-Za-z0-9]+)\", \"(?:客户号|客户编号)(?:的)?后(?:一|两|二|三|四|五|六|七|八|九|十|\\\\d+)位(?:是|为)?([A-Za-z0-9]+)(?:的)?{CUSTOMER_SUFFIX}\", \"(?:客户号|客户编号)以([A-Za-z0-9]+)结尾\", \"(?:客户号|客户编号)以([A-Za-z0-9]+)结尾(?:的)?{CUSTOMER_SUFFIX}\", \"(?:客户号|客户编号)(?:的)?末尾(?:是|为)?([A-Za-z0-9]+)\", \"(?:客户号|客户编号)(?:的)?最后(?:一|两|二|三|四|五|六|七|八|九|十|\\\\d+)位(?:是|为)?([A-Za-z0-9]+)\", \"(?:客户号|客户编号)(?:的)?结尾(?:是|为)?([A-Za-z0-9]+)\"]}, {\"name\": \"客户号包含\", \"field\": \"clientNo\", \"operator\": \"MATCH\", \"match_mode\": \"contains\", \"value_type\": \"capture\", \"value_as_string\": true, \"priority\": 70, \"patterns\": [\"(?:客户号|客户编号)(?:中|里)?(?:包含|含有)([A-Za-z0-9]+)\", \"(?:客户号|客户编号)(?:中|里)?(?:包含|含有)([A-Za-z0-9]+)(?:的)?{CUSTOMER_SUFFIX}\", \"(?:客户号|客户编号)(?:中|里|里面)?有([A-Za-z0-9]+)\", \"(?:客户号|客户编号)(?:中|里)?带([A-Za-z0-9]+)(?:的)?\"]}, {\"name\": \"客户号不以某值开头\", \"field\": \"clientNo\", \"operator\": \"NOT_CONTAINS\", \"match_mode\": \"prefix\", \"value_type\": \"capture\", \"value_as_string\": true, \"priority\": 100, \"patterns\": [\"(?:客户号|客户编号)不(?:是)?以([A-Za-z0-9]+)开头\", \"(?:客户号|客户编号)(?:的)?开头不(?:是|为)?([A-Za-z0-9]+)\"]}, {\"name\": \"客户号尾号不为某值\", \"field\": \"clientNo\", \"operator\": \"NOT_CONTAINS\", \"match_mode\": \"suffix\", \"value_type\": \"capture\", \"value_as_string\": true, \"priority\": 100, \"patterns\": [\"(?:客户号|客户编号)(?:的)?尾号不(?:是|为)?([A-Za-z0-9]+)\", \"(?:客户号|客户编号)不(?:是)?以([A-Za-z0-9]+)结尾\"]}, {\"name\": \"客户号不包含某值\", \"field\": \"clientNo\", \"operator\": \"NOT_CONTAINS\", \"match_mode\": \"contains\", \"value_type\": \"capture\", \"value_as_string\": true, \"priority\": 100, \"patterns\": [\"(?:客户号|客户编号)(?:中|里)?不(?:包含|含有)([A-Za-z0-9]+)\", \"(?:客户号|客户编号)(?:中|里|里面)?没有([A-Za-z0-9]+)\"]}, {\"name\": \"保单号-匹配\", \"patterns\": [\"{SEARCH}({POLICY_GP_PREFIX}{BUSINESS_ALNUM}{14})(?:的客户|客户)?\", \"{SEARCH}({POLICY_PA_PREFIX}{BUSINESS_ALNUM}{14,17})(?:的客户|客户)?\", \"{SEARCH}(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id){CW}{0,2}[为是：:]?\\\\s*({POLICY_GP_PREFIX}{BUSINESS_ALNUM}{14})(?:的客户|客户)?\", \"{SEARCH}(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id){CW}{0,2}[为是：:]?\\\\s*({POLICY_PA_PREFIX}{BUSINESS_ALNUM}{14,17}|{POLICY_GP_PREFIX}{BUSINESS_ALNUM}{14}|{BUSINESS_DIGIT}{15,17})(?:的客户|客户)?\", \"{SEARCH}(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id)(?:匹配|等于|包含|含有|带有)?\\\\s*({POLICY_PA_PREFIX}{BUSINESS_ALNUM}{14,17}|{POLICY_GP_PREFIX}{BUSINESS_ALNUM}{14}|{BUSINESS_DIGIT}{15,17})(?:的客户|客户)?\", \"{SEARCH}(?:保单)(?:号|号码|编号|代码|ID|id)?(?:为|是|匹配|等于)?\\\\s*({BUSINESS_DIGIT}{15,17})(?:的客户|客户)?\", \"{SEARCH}(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id)(?:前缀|开头|以)(?:为|是)?[：:\\\\s]?([A-Za-z0-9]{1,20})(?:开头)?(?:的客户|客户)?\", \"{SEARCH}(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id){CW}{0,2}([A-Za-z0-9]{1,20})(?:开头|前缀)(?:的客户|客户)?\", \"{SEARCH}([A-Za-z0-9]{1,20})(?:开头|前缀)(?:的)?(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id)(?:的客户|客户)?\"], \"field\": \"polNo\", \"operator\": \"MATCH\", \"value_type\": \"capture\", \"value\": {\"group\": 1, \"transform\": \"upper\"}, \"priority\": 10}, {\"name\": \"保单号-尾号\", \"patterns\": [\"{SEARCH}{POLICY_NO_FIELD_WORD}(?:的)?{SUFFIX_WORD}(?:为|是)?[：:\\\\s]?([A-Za-z0-9]{1,20}){CUSTOMER_SUFFIX}\", \"{SEARCH}([A-Za-z0-9]{1,20})(?:的)?{POLICY_NO_FIELD_WORD}(?:的)?{SUFFIX_WORD}{CUSTOMER_SUFFIX}\", \"{SEARCH}[Pp][A-Za-z0-9]*\\\\*{3,}([A-Za-z0-9]{4})\", \"{SEARCH}(?:尾号|尾数|末尾|后四位|后几位)(?:为|是)?[：:\\\\s]?([A-Za-z0-9]{1,20})(?:的)?(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id){CUSTOMER_SUFFIX}\", \"{SEARCH}([A-Za-z0-9]{1,20})(?:尾号|尾数|末尾|后四位|后几位)(?:的)?(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id){CUSTOMER_SUFFIX}\", \"{SEARCH}(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id){CW}{0,2}(?:尾号|尾数|末尾|后四位|后几位|结尾)(?:为|是)?[：:\\\\s]?([A-Za-z0-9]{1,20}){CUSTOMER_SUFFIX}\", \"{SEARCH}(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id){CW}{0,2}([A-Za-z0-9]{1,20})(?:尾号|尾数|末尾|后四位|后几位|结尾){CUSTOMER_SUFFIX}\", \"{SEARCH}(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id)(?:的)?(?:尾号|尾数|末尾|后四位|后几位|结尾)(?:是|为)?([A-Za-z0-9\\\\-]+)(?:的)?{CUSTOMER_SUFFIX}\", \"{SEARCH}(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id)(?:的)?最?后(?:一|两|二|三|四|五|六|七|八|九|十|\\\\d+)位(?:是|为)?([A-Za-z0-9\\\\-]+)(?:的)?{CUSTOMER_SUFFIX}\", \"{SEARCH}(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id)以([A-Za-z0-9\\\\-]+)(?:尾号|尾数|末尾|后四位|后几位|结尾)(?:的)?{CUSTOMER_SUFFIX}\"], \"field\": \"polNo\", \"operator\": \"MATCH\", \"match_mode\": \"suffix\", \"value_type\": \"capture\", \"value\": {\"group\": 1, \"transform\": \"strip_non_digits\"}, \"priority\": 18, \"merge_to_llm\": false}, {\"name\": \"保单号前缀\", \"field\": \"polNo\", \"operator\": \"MATCH\", \"match_mode\": \"prefix\", \"value_type\": \"capture\", \"value_as_string\": true, \"priority\": 80, \"patterns\": [\"(?:保单号|保单编号)以([A-Za-z0-9\\\\-]+)开头\", \"(?:保单号|保单编号)以([A-Za-z0-9\\\\-]+)开头(?:的)?{CUSTOMER_SUFFIX}\", \"(?:保单号|保单编号)前缀(?:是|为)?([A-Za-z0-9\\\\-]+)\", \"(?:保单号|保单编号)(?:的)?前(?:一|两|二|三|四|五|六|七|八|九|十|\\\\d+)位(?:是|为)?([A-Za-z0-9\\\\-]+)\", \"(?:保单号|保单编号)(?:的)?前(?:一|两|二|三|四|五|六|七|八|九|十|\\\\d+)位(?:是|为)?([A-Za-z0-9\\\\-]+)(?:的)?{CUSTOMER_SUFFIX}\", \"(?:保单号|保单编号)(?:的)?开头(?:是|为)?([A-Za-z0-9\\\\-]+)\", \"(?:保单号|保单编号)(?:的)?起始(?:是|为)?([A-Za-z0-9\\\\-]+)\"]}, {\"name\": \"保单号尾号\", \"field\": \"polNo\", \"operator\": \"MATCH\", \"match_mode\": \"suffix\", \"value_type\": \"capture\", \"value_as_string\": true, \"priority\": 80, \"patterns\": [\"(?:保单号|保单编号)(?:的)?尾号(?:是|为)?([A-Za-z0-9\\\\-]+)\", \"(?:保单号|保单编号)(?:的)?尾号(?:是|为)?([A-Za-z0-9\\\\-]+)(?:的)?{CUSTOMER_SUFFIX}\", \"(?:保单号|保单编号)(?:的)?后(?:一|两|二|三|四|五|六|七|八|九|十|\\\\d+)位(?:是|为)?([A-Za-z0-9\\\\-]+)\", \"(?:保单号|保单编号)(?:的)?后(?:一|两|二|三|四|五|六|七|八|九|十|\\\\d+)位(?:是|为)?([A-Za-z0-9\\\\-]+)(?:的)?{CUSTOMER_SUFFIX}\", \"(?:保单号|保单编号)以([A-Za-z0-9\\\\-]+)结尾\", \"(?:保单号|保单编号)以([A-Za-z0-9\\\\-]+)结尾(?:的)?{CUSTOMER_SUFFIX}\", \"(?:保单号|保单编号)(?:的)?末尾(?:是|为)?([A-Za-z0-9\\\\-]+)\", \"(?:保单号|保单编号)(?:的)?最后(?:一|两|二|三|四|五|六|七|八|九|十|\\\\d+)位(?:是|为)?([A-Za-z0-9\\\\-]+)\", \"(?:保单号|保单编号)(?:的)?结尾(?:是|为)?([A-Za-z0-9\\\\-]+)\"]}, {\"name\": \"保单号包含\", \"field\": \"polNo\", \"operator\": \"MATCH\", \"match_mode\": \"contains\", \"value_type\": \"capture\", \"value_as_string\": true, \"priority\": 70, \"patterns\": [\"(?:保单号|保单编号)(?:中|里)?(?:包含|含有)([A-Za-z0-9\\\\-]+)\", \"(?:保单号|保单编号)(?:中|里)?(?:包含|含有)([A-Za-z0-9\\\\-]+)(?:的)?{CUSTOMER_SUFFIX}\", \"(?:保单号|保单编号)(?:中|里|里面)?有([A-Za-z0-9\\\\-]+)\", \"(?:保单号|保单编号)(?:中|里)?带([A-Za-z0-9\\\\-]+)(?:的)?\"]}, {\"name\": \"保单号不以某值开头\", \"field\": \"polNo\", \"operator\": \"NOT_CONTAINS\", \"match_mode\": \"prefix\", \"value_type\": \"capture\", \"value_as_string\": true, \"priority\": 100, \"patterns\": [\"(?:保单号|保单编号)不(?:是)?以([A-Za-z0-9\\\\-]+)开头\", \"(?:保单号|保单编号)(?:的)?开头不(?:是|为)?([A-Za-z0-9\\\\-]+)\"]}, {\"name\": \"保单号尾号不为某值\", \"field\": \"polNo\", \"operator\": \"NOT_CONTAINS\", \"match_mode\": \"suffix\", \"value_type\": \"capture\", \"value_as_string\": true, \"priority\": 100, \"patterns\": [\"(?:保单号|保单编号)(?:的)?尾号不(?:是|为)?([A-Za-z0-9\\\\-]+)\", \"(?:保单号|保单编号)不(?:是)?以([A-Za-z0-9\\\\-]+)结尾\", \"(?:保单号|保单编号)(?:的)?末尾不(?:是|为)?([A-Za-z0-9\\\\-]+)\"]}, {\"name\": \"保单号不包含某值\", \"field\": \"polNo\", \"operator\": \"NOT_CONTAINS\", \"match_mode\": \"contains\", \"value_type\": \"capture\", \"value_as_string\": true, \"priority\": 100, \"patterns\": [\"(?:保单号|保单编号)(?:中|里)?不(?:包含|含有)([A-Za-z0-9\\\\-]+)\", \"(?:保单号|保单编号)(?:中|里|里面)?没有([A-Za-z0-9\\\\-]+)\"]}], \"negation_words\": [\"没有配置\", \"未配置\", \"没配置\", \"未购买\", \"没有\", \"没买\", \"未买\", \"缺少\", \"缺失\", \"没\", \"无\", \"不\", \"缺\", \"未\", \"非\"]}, \"critical_intent_dimensions\": [\"target_population\", \"field_semantics\", \"operator\", \"value_or_unit\", \"boolean_logic\", \"unsupported_or_out_of_boundary_request\"], \"enum_completeness_evidence\": [], \"unsupported_boundary_evidence\": {}, \"condition_comparison\": {\"tool_id\": \"client_search.condition_compare\", \"tool_type\": \"comparison\", \"status\": \"succeeded\", \"outputs\": {\"target_population\": \"C0004533449897\", \"expected\": {\"query_logic\": \"AND\", \"conditions\": [], \"expected_source\": \"not_available\", \"reference_conditions\": [], \"reference_is_oracle\": false}, \"actual\": {\"query_logic\": \"OR\", \"conditions\": [{\"field\": \"clientNo\", \"operator\": \"MATCH\", \"value\": \"C0004533449897\", \"match_mode\": null}, {\"field\": \"polNo\", \"operator\": \"MATCH\", \"value\": \"C0004533449897\", \"match_mode\": null}]}, \"wrong\": [], \"missing\": [], \"extra\": [], \"extra_or_overbroad\": [], \"boundary_limits\": [], \"comparison_basis\": \"client_search wrong/missing/extra customer-search coverage\", \"expected_source\": \"not_available\", \"evaluable\": false, \"expected_source_label\": \"not_available\"}, \"evidence\": [{\"query\": \"C0004533449897\"}, {\"expected\": {\"query_logic\": \"AND\", \"conditions\": [], \"expected_source\": \"not_available\", \"reference_conditions\": [], \"reference_is_oracle\": false}}, {\"actual\": {\"query_logic\": \"OR\", \"conditions\": [{\"field\": \"clientNo\", \"operator\": \"MATCH\", \"value\": \"C0004533449897\", \"match_mode\": null}, {\"field\": \"polNo\", \"operator\": \"MATCH\", \"value\": \"C0004533449897\", \"match_mode\": null}]}}, {\"wrong\": [], \"missing\": [], \"extra\": [], \"boundary_limits\": []}], \"missing_evidence\": [{\"reason\": \"current intent/config expected conditions unavailable; reference expected_conditions kept as evidence only\", \"expected_source\": \"not_available\"}], \"boundary_limits\": [], \"error\": \"\"}, \"product_use_scenarios\": {\"find-target-customers\": \"用户通过自然语言描述目标客户群体并使用客户搜索产品\"}, \"authority_environment_snapshot_sha256\": \"\", \"authority_mode\": \"not_required\"}",
+      "created_at": 1786540523,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "192c5ac1-fcbd-4ca2-bffd-e7e8c47ea257",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "",
+      "created_at": 1786540523,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "75728937-902d-4194-be2f-02e5f07f6939",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 7680,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 16246,
+        "output_tokens": 7272,
+        "provider_metrics": null,
+        "reasoning_tokens": 7186,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 23518
+      },
+      "name": null,
+      "provider_data": {
+        "id": "2a2546b0-b158-4b0e-bfd5-a95ccef59b9f",
+        "model_extra": {
+          "cost": "0"
+        }
+      },
+      "reasoning_content": "Let me analyze this case carefully.\n\nThe user query is a bare value: \"C0004533449897\". No indicator words like \"客户号\", \"保单号\", \"查\", \"找\" etc. It's a raw value that looks like a client number (C-prefix followed by 13 alphanumeric characters - let me check: C0004533449897 - C followed by 13 characters? C + \"0004533449897\" = C + 13 digits. Wait, the field definition says clientNo: \"以C开头，或以00开头；前缀之后为11至12位数字或字母\". Hmm, \"前缀之后为11至12位数字或字母\" - so C prefix followed by 11-12 digits. C0004533449897: after C there are \"0004533449897\" which is 13 characters. Hmm, that might not match the clientNo format exactly. Let me count: 0004533449897 = 13 digits. So C + 13 digits = 14 total characters. The clientNo definition says C prefix + 11-12 digits/letters. So this value has 13 digits after C, which doesn't match the standard clientNo format of C+11/12.\n\nThe polNo definition: P or A prefix followed by 15-17 digits (or 14 historical); GP prefix + 14; pure digits 15-17 when explicitly \"保单号\". C0004533449897 doesn't match polNo format either (starts with C, not P/A/GP, not pure digits).\n\nThe actual output:\n- robot_text: \"暂时没判读出这组数据代表什么，已帮您在手机号、客户号、保单号中一起查找匹配的客户\"\n- query_logic: OR\n- conditions: clientNo MATCH \"C0004533449897\" OR polNo MATCH \"C0004533449897\"\n- matched_patterns: \"裸值弱命\"\n- confidence: 0.6\n\nWait, the robot_text mentions 手机号 (phone), 客户号 (client no), 保单号 (policy no) \"一起查找\", but the conditions only include clientNo and polNo — no mobile/phone condition. That's a discrepancy: robot_text says it searched phone, client no, and policy no, but conditions only have clientNo and polNo. Hmm, but conditions only include two fields. Actually the robot_text says \"在手机号、客户号、保单号中一起查找匹配的客户\" but the actual conditions lack a phone field condition. That could be a mismatch between robot_text and conditions, but the evaluation scope is parser condition semantics.\n\nNow the key question: this is a bare value query. Per the 裸词规则 (bare word rule): \"请求只有裸词（无\"姓名/客户/查/找/筛选\"等指示词）且 actual 把该裸词当作姓名解析时，Reference 一致只说明生成路径匹配，不等于意图确认；除非存在姓名结构或语义证据（如专名、姓氏库命中、明确字段上下文），否则按未满足判 not_fulfilled。\"\n\nHere, the query is a bare value \"C0004533449897\". It's not a name though - it's a code-like value. The actual parsed it as clientNo OR polNo. The question is whether the user's intent is fulfilled.\n\nThe user's underlying intent: they typed \"C0004533449897\". This looks like a customer/client number (C prefix is typical for client numbers). The format \"C0004533449897\" - C followed by 13 digits. The clientNo field definition says C prefix followed by 11-12 digits. So this value (13 digits after C) doesn't strictly match clientNo format. But it could still be a client number (perhaps data varies).\n\nThe actual output made it clientNo MATCH OR polNo MATCH with OR logic. The robot_text says it searched phone, clientNo, polNo - but phone is missing from conditions.\n\nConsidering the bare word rule: the query is a bare code value. The actual parsed it as clientNo and polNo. Is there 姓名结构或语义证据? The value starts with \"C\" which strongly suggests a client number (客户号以C开头 per field definition). So there's structural evidence supporting clientNo interpretation. The value is \"C\" + digits, which matches the clientNo prefix pattern (C开头). The field definition for clientNo says \"以C开头，或以00开头；前缀之后为11至12位数字或字母\" - here after C there are 13 digits, which is slightly off from 11-12, but close. Hmm.\n\nActually wait, let me re-read the 客户号-匹配 enhanced rule: \"{CUSTOMER_C_PREFIX}{BUSINESS_ALNUM}{11,12}\" - C prefix + 11-12 alphanumeric. The value C0004533449897 has C + 13 digits, so it doesn't match the strict pattern {11,12}. But this rule is for extraction with explicit field words... The bare value pattern \"{SEARCH}?(?<![A-Za-z])({CUSTOMER_C_PREFIX}{BUSINESS_ALNUM}{11,12}){CW}{0,2}\" also requires 11-12 after C.\n\nHmm, but the actual output did parse it as clientNo. The value C0004533449897 = C + \"0004533449897\" which is 13 characters. Not matching the strict 11-12. However, this might be a data variation.\n\nNow, what should the judge do?\n\nCore analysis:\n1. User intent: The user typed a bare code \"C0004533449897\". The most plausible intent is to find the customer with this client number. The C prefix strongly suggests client number format.\n\n2. Actual: parsed into clientNo MATCH C0004533449897 OR polNo MATCH C0004533449897 (OR logic), with robot text saying it couldn't determine what the data represents and searched phone/clientNo/polNo.\n\n3. Issues:\n   - The polNo condition is wrong: \"C0004533449897\" does not match any policy number format (P/A/GP prefix, or pure 15-17 digits). Adding polNo MATCH with OR logic is an extra condition that broadens the search but doesn't change the target population necessarily (polNo won't match a C-prefixed value). Actually with OR logic, adding polNo doesn't narrow; it could only broaden if polNo could match, but since the value can't be a valid polNo, it's a no-op extra. However, per business rules, adding a wrong field mapping is an error.\n   - The robot_text claims it searched 手机号 (phone) too, but no phone condition exists in conditions. This is a discrepancy between robot_text and conditions.\n   - Missing: no phone condition despite robot_text claiming it. But actually, wait — was the phone search intended? The user query doesn't mention phone. The robot text just says it searched phone/clientNo/polNo together. But conditions lack phone. This means the robot_text statement is inaccurate vs the actual conditions.\n\nLet me think about the evaluation dimension: search-intent-preservation. The core intent: find customer with client number C0004533449897 (or at least search for this value as a client identifier).\n\nThe actual includes clientNo MATCH with the exact value, which covers the primary intent if we interpret the bare value as client number. The C-prefix structure gives semantic evidence that it's a client number.\n\nBut the format issue: clientNo definition says C prefix followed by 11-12 digits/letters. Here 13 digits after C. Hmm. Is C0004533449897 a valid client number? It could be that the value has 14 total chars: C + 13. The definition says 11-12 after prefix. So per strict format, it's not valid clientNo. But per the \"裸值弱命\" pattern (bare value weak recognition), the parser treated it as both clientNo and polNo with OR.\n\nNow, the polNo mapping is definitely wrong since C-prefixed values can't be policy numbers (policy numbers are P/A/GP prefix or 15-17 pure digits).\n\nSo the actual output has:\n- clientNo MATCH C0004533449897: plausible correct interpretation (though format is slightly off, C-prefix is the strongest signal)\n- polNo MATCH C0004533449897: wrong/extra condition — a C-prefixed value cannot be a valid policy number per field definition, so this is a semantically invalid extra condition.\n- robot_text claims phone was also searched but no phone condition.\n\nHow should I judge? The bare-word rule applies: query is only a bare value. But the rule specifically addresses bare words parsed as 姓名 (names). Here the bare value is parsed as clientNo/polNo, not name. The rule says \"除非存在姓名结构或语义证据...否则按未满足判 not_fulfilled\" — for names. Here we have structural evidence: C-prefix is a client number format indicator (per clientNo field definition \"以C开头\"). So the clientNo interpretation is supported by structural evidence.\n\nBut there are still issues:\n1. The OR with polNo — adding polNo MATCH for a value that can't be a policy number. This is a wrong/extra condition. Does it change the result set? With OR logic, polNo MATCH \"C0004533449897\" would return nothing extra (no policy has a C-prefixed number per format). So the result set should be equivalent to just clientNo search... assuming clientNo values exist. But wait — is C0004533449897 a valid clientNo? If not (13 digits after C), then clientNo MATCH might also return nothing. Hmm.\n\nActually, let me reconsider. The clientNo format per capability manifest: \"以C开头，或以00开头；前缀之后为11至12位数字或字母\". C0004533449897: \"C\" + \"0004533449897\" (13 chars). That's 13 after C, not 11-12. So strictly, this is not a valid clientNo per the format definition. But the actual parser output did parse it as clientNo. And the C prefix is still the strongest signal of client-number intent.\n\nGiven downstream is unavailable (parser_condition_semantics_only), I need to judge based on ES query semantics and field semantics.\n\nKey judgment: Is the user intent satisfied by \"clientNo MATCH C0004533449897 OR polNo MATCH C0004533449897\"?\n\nThe user intent: they typed a bare value. Most likely they want to find a customer by this identifier, which looks like a client number (C prefix). The actual includes clientNo MATCH with the exact value. So the core search intent (find customer by client number C0004533449897) is preserved in the clientNo condition.\n\nHowever, there are two concerns:\n1. polNo condition is semantically invalid extra (C-prefix can't be policy number). But it doesn't narrow the result set (OR). It's a \"wrong extra\" but not result-affecting under OR semantics. Per judge boundary: \"如果 parser 条件形态与 prompt/config 略有不同，但 ES 查询语义或结果集等价，judge 可以按等价查询判 fulfilled\". But adding a semantically invalid condition isn't just a form difference. Hmm.\n\n2. The value format: C + 13 digits doesn't match clientNo's declared 11-12 digit format. Is this a case where the value is actually a valid client number in real data (format definitions may be outdated — readme says database fields are outdated)? The readme says standard answers are outdated relative to API. So actual data may have client numbers with different lengths. So we can't conclude C0004533449897 is invalid.\n\n3. robot_text says it searched 手机号 too, but no phone condition. This is a robot_text vs conditions discrepancy. The robot_text claims an action (searching phone) that the conditions don't support. However, judge scope is parser condition semantics; robot_text inconsistency could be considered a transparency issue but not core delivery. Actually, it might matter: the robot_text tells the user it searched phone/clientNo/polNo, but only clientNo and polNo conditions exist. This is a minor mismatch.\n\nNow per the 裸词规则: \"请求只有裸词（无\"姓名/客户/查/找/筛选\"等指示词）且 actual 把该裸词当作姓名解析时，Reference 一致只说明生成路径匹配，不等于意图确认；除非存在姓名结构或语义证据（如专名、姓氏库命中、明确字段上下文），否则按未满足判 not_fulfilled。\"\n\nThe rule mentions 姓名 specifically. Here the bare value is parsed as code fields (clientNo/polNo), not name. But the spirit: for bare words, the intent is ambiguous. The C-prefix provides structural evidence for clientNo. So the clientNo interpretation is reasonable.\n\nNow, is the overall result fulfilled or not?\n\nConsider: The user wants to find the customer identified by C0004533449897. The actual conditions search clientNo OR polNo for that value. The clientNo condition preserves the core intent. The polNo condition is extra but doesn't change the result set (since value can't be a policy number, OR with polNo doesn't add results). So semantically, the query should return the customer with clientNo = C0004533449897 (if exists).\n\nBut wait — there's a subtlety: the OR with polNo doesn't narrow. So the client search would find the target customer via clientNo. So the core intent is preserved.\n\nHowever, is the clientNo format valid for search? The value has C + 13 digits. If real client numbers can have this format (data may vary), it's fine. The capability manifest says clientNo \"以C开头，或以00开头；前缀之后为11至12位数字或字母\" — this is a prompt/config description, not an absolute standard per judge boundary (prompt/config can be wrong). Actual data might include C + 13 digits client numbers. Since downstream is unavailable, I can't verify. But the parser treated it as clientNo, and C-prefix is the strongest semantic evidence.\n\nHmm, but actually there's another consideration: The bare word rule — the query is ONLY the bare value \"C0004533449897\". There's no explicit intent indicator. But the structural evidence (C prefix = client number format) supports the clientNo interpretation. I'd say the clientNo interpretation is reasonable and preserves the most plausible intent.\n\nWhat about the mismatch between robot_text and conditions (claims phone search but no phone condition)? This could be judged as: the condition set doesn't include phone field, so the robot_text's claim is inaccurate. But is phone search part of user intent? No — user didn't ask for phone. The robot_text is just a transparency statement. If we evaluate \"conditions accurately reflect the claimed search scope\", there's a discrepancy. But per judge rules, robot_text is auxiliary.\n\nLet me think about what expectations to create:\n\nExpectation 1 (blocking): 核心交付 — 客户搜索条件应覆盖用户输入的裸值标识，即按最可能的客户号语义检索客户 C0004533449897。Acceptance: conditions 包含 clientNo MATCH C0004533449897（或等价可执行条件），且逻辑能检索到该客户。\n\nActual: clientNo MATCH C0004533449897 present. Fulfilled for this dimension? The clientNo condition matches the intended client number search. But the polNo extra condition... does it break the core? The core delivery (search by client number) is present. The extra polNo condition with OR doesn't narrow.\n\nHmm, but wait. Should I consider that adding polNo as an OR broadens the search to include potential matches? Since C0004533449897 can't be a valid polNo, it doesn't broaden the result set. So semantically equivalent to clientNo-only search for finding the customer.\n\nExpectation 2 (blocking?): 无未表达约束/正确字段映射 — 不得把用户输入的客户号错误映射为保单号等不相关字段。Acceptance: 所有条件字段的语义与值格式兼容（C 前缀值不应映射到 polNo）。Actual: polNo MATCH C0004533449897 — C 前缀值不符合保单号格式（P/A/GP 前缀或纯数字 15-17 位），映射错误。Not fulfilled.\n\nHmm, but is this blocking? The polNo condition is semantically invalid but doesn't narrow the result (OR). Would it cause harm downstream? Downstream search would query polNo MATCH C0004533449897, which would return no policy results. With OR, total results = clientNo results ∪ polNo results = clientNo results. So the target customer is still found. The error is a wrong-field mapping, which per judge boundary is a \"可评价系统问题\" (field mapping error). But does it change the customer set? No, because polNo can't match. Hmm.\n\nActually, wait. Let me reconsider the C prefix length. C0004533449897 = C + 13 digits. clientNo format per definition: C + 11-12. So this value doesn't match the strict clientNo format either! If neither clientNo nor polNo matches the value format... then what? The actual may return no results at all, OR the real data has client numbers with 13 digits after C (definitions outdated).\n\nPer readme: \"标准答案的答案结果由于数据库字段已经过时、跟 API 返回结果不一致\" — database fields are outdated, so format definitions may not reflect actual data. So we can't definitively say C0004533449897 isn't a valid client number.\n\nGiven downstream unavailable, judge scope is parser_condition_semantics_only. I should judge based on field semantics and ES query semantics.\n\nKey question: does the parser output preserve user intent? User typed a bare code. Most plausible: client number (C prefix). Actual: clientNo MATCH (correct) OR polNo MATCH (invalid extra). \n\nNow the 裸词规则 — it says for bare words parsed as 姓名, without evidence, not_fulfilled. Here, it's parsed as code fields with C-prefix structural evidence supporting clientNo. So the clientNo interpretation has structural support. I'd consider the clientNo dimension fulfilled (with the caveat about polNo extra).\n\nBut actually, let me reconsider whether the robot_text's claim of searching 手机号 (phone) matters. The robot_text says \"已帮您在手机号、客户号、保单号中一起查找匹配的客户\" but conditions only have clientNo and polNo. If phone search was claimed but not delivered, that's a missing condition relative to robot_text. However, the user didn't request phone search — the robot_text is the system's own statement of what it did. The conditions don't include phone, so either the robot_text overstates or the conditions are incomplete. This is a consistency issue between robot_text and conditions. Given judge scope is condition semantics, and the user intent doesn't include phone, I could note it as evidence but not a blocking failure.\n\nHmm, actually, this could be a real discrepancy worth flagging: robot_text promises phone search but conditions lack it. But since it's OR logic, phone search would be an additional OR branch. The user's core intent (find the customer by the code) is still served by clientNo. The phone claim is a transparency inaccuracy. Per rules, \"安全拒绝和透明说明必须另建 blocking=false 的 expectation\" — transparency statements are non-blocking. So I can create a non-blocking expectation about transparency accuracy (robot_text claims match conditions), which would be not_fulfilled due to phone discrepancy.\n\nLet me now think about the overall structure:\n\nbusiness_expectations:\n1. \"裸值标识按客户号语义检索\" (blocking=true): 用户输入裸值 C0004533449897，C 前缀符合客户号格式语义，核心交付是生成可执行的客户号检索条件，能检索到该客户。Acceptance: conditions 中存在 clientNo（或等价客户标识字段）MATCH C0004533449897，且逻辑正确。\n\n2. \"条件字段语义与值格式兼容\" (blocking=true?): 所有生成条件必须承载用户表达的业务含义，不得把不可能匹配的字段映射强加。特别是 C 前缀值不符合保单号格式，polNo 条件属于错误映射。Hmm, is this blocking? If the polNo condition is a no-op extra (returns nothing, doesn't narrow), the result set is unchanged. But per the judge boundary, field mapping errors are \"可评价系统问题\" and should be judged as errors. Adding an invalid field condition is an extra condition that doesn't change the result set but is still a wrong mapping. Should it be blocking?\n\nLet me think about downstream impact: with OR logic, polNo MATCH C0004533449897 yields no extra results. So the target customer is still retrievable via clientNo. The wrong polNo mapping doesn't prevent finding the target customer. However, it does mean the query has a semantically invalid branch. Would this be considered \"not_fulfilled\" for search-intent-preservation? The intent is preserved (clientNo present). The polNo extra is a separate dimension of wrongness.\n\nHmm, per the evaluation requirements: \"分离 missing、wrong、extra 条件\" and \"缺少用户核心意图、加入用户未表达的额外强约束、错误合并或拆分多个必须条件，都应判 incorrect\". Adding an extra condition (polNo) is a wrong/extra. But does the extra condition \"改变客户集合\"? The polNo branch can't match, so it doesn't change the set. But it's still a mapping error.\n\nAlso the robot_text claims phone search — missing phone condition vs claimed. If I take robot_text as the system's own delivery claim, then conditions don't match the claim (no phone). But robot_text is not the user intent.\n\nLet me decide: I'll create 3 expectations:\n\n1. (blocking) 核心交付：将裸值标识解析为客户号检索条件 — 用户输入 C0004533449897（C 前缀，符合客户号语义），系统应生成按客户号精确检索该客户的可执行条件。Acceptance: conditions 包含 clientNo MATCH C0004533449897。Actual: 满足。status: fulfilled。\n\nWait, but should this be fulfilled given the polNo extra? The core condition clientNo MATCH is present. Per \"已交付维度照常评价\" — the clientNo dimension is delivered. So fulfilled.\n\nHmm, but actually let me reconsider the 裸词规则 again. \"请求只有裸词...且 actual 把该裸词当作姓名解析时...除非存在姓名结构或语义证据...否则按未满足判 not_fulfilled。\" The rule is about names specifically. This bare value is a code. The C-prefix is structural evidence for client number. So the clientNo interpretation is supported. The core intent (find customer by this client identifier) is served.\n\nBut wait — should the core expectation be fulfilled when the value format (C + 13) doesn't match the declared clientNo format (C + 11-12)? Per judge boundary, config/prompt format descriptions are not absolute; actual data may differ. Since we can't verify downstream, and the C-prefix is the strongest semantic signal, I'd say the parser's choice of clientNo is reasonable. The judge shouldn't mechanically reject due to format.\n\n2. (blocking) 条件字段与值语义兼容（无错误映射）: 所有输出条件字段必须能承载该值语义。C 前缀值不可能是保单号（polNo 仅支持 P/A/GP 前缀或 15-17 位纯数字），polNo MATCH C0004533449897 属于错误字段映射。Acceptance: 不出现与值格式不兼容的字段条件。Actual: polNo 条件存在，not_fulfilled。\n\nIs this blocking? Hmm. The polNo condition doesn't narrow the result set (OR, and can't match). But it IS a wrong mapping that adds noise. Per the judge standard, wrong field mapping is a \"可评价系统问题\" that should be judged incorrect. But does it block the core business delivery (finding the target customer)? No, the customer is still findable via clientNo. \n\nActually, hmm. Let me think about whether the polNo extra is truly a no-op. If the downstream ES query is (clientNo MATCH C0004533449897) OR (polNo MATCH C0004533449897), the results = union of both. polNo MATCH with a C-prefixed value: would ES match anything? Policy numbers per definition start with P/A/GP or pure digits. A C-prefixed value shouldn't match any policy number. So polNo branch returns empty. Union = clientNo results. So target customer found if clientNo exists. So the extra is result-neutral.\n\nSo for expectation 2, it's a wrong mapping but result-neutral. Blocking? The core delivery (finding the customer) isn't blocked. But the search-intent-preservation dimension includes \"条件覆盖是否正确\" and wrong field mapping is an error. Hmm.\n\nActually, per judge boundary: \"如果是本系统可优化的部分做得不好，比如...字段映射...做错应判 incorrect\". So the polNo mapping is incorrect — a wrong extra condition. I'll make expectation 2 blocking=false? Or blocking=true?\n\nLet me think about the impact on downstream consumers: The downstream query consumer receives conditions including polNo MATCH. If downstream consumer uses these conditions to build an ES query, the polNo branch adds an unnecessary OR term (result-neutral but wasteful). It doesn't prevent finding the target customer. So it's not blocking the core purpose, but it IS an incorrect condition.\n\nPer the expectation-splitting principle: \"每个可独立判断的请求维度拆一条 expectation；核心交付的 expected_outcome 必须描述用户最终要得到的客户集合\". The user's core goal: find the customer with this identifier. The polNo condition doesn't prevent that. So core delivery = fulfilled. The wrong mapping is a quality issue.\n\nI'll set expectation 2 blocking=false since it doesn't block finding the target customer (result-neutral), but status not_fulfilled (wrong extra mapping).\n\nHmm, wait. Actually, let me reconsider. Is it truly result-neutral? Consider: what if the real data has a policy number that coincidentally... no, C-prefixed can't be a policy. Policy numbers are P/A/GP prefix or 15-17 pure digits. \"C0004533449897\" has 14 chars total. Not matching. So no policy will match. Result-neutral. OK.\n\nBut hold on — there's another angle. The robot_text says it searched 手机号 too. If the system claimed phone search, but conditions don't include phone, that's a missing condition relative to claim. But more importantly — should the system have included phone search? The user didn't ask for phone. The system decided to search phone/clientNo/polNo. But then only delivered clientNo/polNo conditions. So either robot_text overstates, or conditions under-deliver. Either way, there's an inconsistency. Since judge evaluates conditions, I'll flag this in evidence.\n\n3. (non-blocking) 透明说明与条件一致性: robot_text 声称在手机号、客户号、保单号中一起查找，但 conditions 缺少手机号条件，说明与实际条件不一致。status: not_fulfilled (transparency inaccuracy), blocking=false.\n\nHmm, but wait — actually, is the phone claim part of the delivery? The robot_text is the response to the user. If it claims phone search but doesn't do it, that's a transparency/consistency issue. Non-blocking.\n\nAlternatively, I could fold this into evidence without a separate expectation. The rule says \"安全拒绝和透明说明必须另建 blocking=false 的 expectation\" — transparency statements should be separate non-blocking expectations. So I'll add it.\n\nActually, let me reconsider the number of expectations. \"只派生当前结论必需的验收项（通常 1-3 条，最多 4 条）\". I'll go with 3:\n\n1. 核心交付-客户号检索 (blocking=true): 用户输入 C 前缀裸值，应生成按客户号检索该客户的条件。Actual: clientNo MATCH C0004533449897 存在。Fulfilled.\n\nHmm wait, but should I reconsider whether the core expectation should be considered fulfilled given the 裸词规则's caution? The rule says bare words parsed as names without evidence → not_fulfilled. Here it's parsed as code fields. The C-prefix provides structural evidence for client number. So the clientNo interpretation is supported. The core intent served. Fulfilled.\n\nBut hmm, there's a subtlety: the value C + 13 digits doesn't match the declared clientNo format (C + 11-12). Should I downgrade? Per the boundary, format definitions in config/prompt are auxiliary, not absolute. Actual data may contain client numbers of different lengths (fields outdated). Since downstream can't verify, and C-prefix is the strongest signal, I'd keep clientNo as the correct interpretation. But I should note the format uncertainty in evidence.\n\nAlternatively, should the core expectation be not_fulfilled because the value doesn't match the clientNo format and the system \"weakly\" recognized it? Hmm. The system's own matched_patterns is \"裸值弱命\" (bare value weak recognition) with confidence 0.6, and robot_text says \"暂时没判读出这组数据代表什么\". The system itself admits it couldn't determine what the value represents. But it still generated clientNo and polNo conditions.\n\nGiven the C prefix, the clientNo interpretation is the most reasonable. So core delivery via clientNo = fulfilled. The polNo extra = wrong. The robot_text's phone claim mismatch = transparency issue.\n\nActually, wait. Let me reconsider the blocking of expectation 1. Is there any chance the polNo extra condition breaks the core search? With OR logic, no. With AND it would, but it's OR. So no.\n\nAlso, let me double check the query_logic: OR. Yes.\n\nHmm, one more consideration: The condition comparison tool output says evaluable: false, expected_source not_available, and expected conditions empty with query_logic AND. That's because there's no reference standard. The tool couldn't evaluate. So I rely on my own judgment.\n\nNow, let me also verify the field capability via tools. The capability_manifest already provides clientNo and polNo definitions. But maybe I should check if there's a phone field (mobileNo?) to verify the robot_text's claim about phone search. Let me use the field search tool to check phone-related fields and confirm the polNo/clientNo format. Actually, the capability_manifest is already given (complete for the fields the parser used). The tools could help check e.g. whether phone field exists and its format. But per the instructions: \"user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息\". The manifest covers clientNo and polNo. The phone field isn't in the manifest, but robot_text mentions it. Let me search for phone field to confirm whether phone search would be supported — this helps judge the robot_text/conditions mismatch. Actually, it's not strictly necessary. But let me do a quick check to be thorough about the phone field and confirm polNo/clientNo formats.\n\nLet me call client_search_field_search_keys with the query and maybe field_search_definition for relevant keys. Actually, the tools available: client_search_field_search_keys(query) and field_search_definition(field). I'll search for phone/mobile and client number to verify.\n\nActually, per instructions, when the prompt provides the complete capability list for involved fields, prefer that. The manifest gives clientNo and polNo. The phone field is mentioned in robot_text but not in conditions. To assess whether phone could be a valid search field, I could search. But it's not critical to the judgment. Still, let me do a quick check for completeness — it strengthens evidence about the missing phone condition.\n\nLet me call the field search for the user query to see candidate fields.\n\nActually, I think it's reasonable to call the tools to verify field semantics for clientNo/polNo/phone. Let me do that.\n\nPlan:\n1. client_search_field_search_keys(query=\"C0004533449897\") — see candidate fields.\n2. field_search_definition for mobileNo (phone) if found.\n\nLet me do these calls.\n\nActually, the capability manifest already gives me clientNo and polNo fully. For phone, I need to search. Let me call the search tool with a phone-related query.\n\nI'll call:\n- client_search_field_search_keys(query=\"C0004533449897 客户号 手机号 保单号\") — hmm, the query param is the user's natural language request. I can pass the bare value or a descriptive query. The tool says \"根据 client_search 用户请求检索少量可能相关的字段 key 和短名称\". I'll pass \"C0004533449897\" and also maybe \"手机号\" to find phone field.\n\nLet me just make two parallel calls:\n1. client_search_field_search_keys(query=\"C0004533449897\")\n2. client_search_field_search_keys(query=\"手机号\") — to find the phone field key.\n\nThen based on results, call field_search_definition for relevant keys (e.g., mobileNo/phone).\n\nLet me proceed.",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"query\": \"C0004533449897\"}",
+            "name": "client_search_field_search_keys"
+          },
+          "id": "call_00_zZ7A4dberEKeeCyOhG0w6128",
+          "index": 0,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"query\": \"手机号\"}",
+            "name": "client_search_field_search_keys"
+          },
+          "id": "call_01_gtTqMbupiVQVl5UE1DB72645",
+          "index": 1,
+          "type": "function"
+        }
+      ],
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"actual\": {\"candidates\": [], \"query\": \"C0004533449897\"}, \"boundary_limits\": [], \"error\": \"\", \"evidence\": \"retrieved client_search field-key candidates for C0004533449897\", \"missing_evidence\": [], \"outputs\": {}, \"runtime_metadata\": {\"receipt\": {\"index_key\": \"client-search.field-definitions\", \"operation\": \"search_index\", \"query\": \"C0004533449897\"}}, \"status\": \"succeeded\", \"tool_id\": \"client_search.field.search_keys\", \"tool_type\": \"client_search_field_key_retrieval\"}",
+      "created_at": 1786540588,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "4b59c899-229a-4430-9009-b895804ac99b",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "tool",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": {
+        "query": "C0004533449897"
+      },
+      "tool_call_error": false,
+      "tool_call_id": "call_00_zZ7A4dberEKeeCyOhG0w6128",
+      "tool_calls": null,
+      "tool_name": "client_search_field_search_keys",
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"actual\": {\"candidates\": [{\"field\": \"clientMobile\", \"short_name\": \"客户本人手机号\"}, {\"field\": \"familyInfo.familyclientmobile\", \"short_name\": \"家庭成员手机号\"}, {\"field\": \"polNoInfo.applicantphoneno\", \"short_name\": \"保单投保人手机号\"}, {\"field\": \"polNoInfo.plancodeinfo.insphoneno\", \"short_name\": \"保单被保人手机号\"}, {\"field\": \"policies_beneficiary_mobile\", \"short_name\": \"保单受益人手机号\"}, {\"field\": \"licensePlateNo\", \"short_name\": \"车辆号牌号码\"}], \"query\": \"手机号\"}, \"boundary_limits\": [], \"error\": \"\", \"evidence\": \"retrieved client_search field-key candidates for 手机号\", \"missing_evidence\": [], \"outputs\": {}, \"runtime_metadata\": {\"receipt\": {\"index_key\": \"client-search.field-definitions\", \"operation\": \"search_index\", \"query\": \"手机号\", \"target_refs\": [\"client-search-field://clientMobile\", \"client-search-field://familyInfo.familyclientmobile\", \"client-search-field://polNoInfo.applicantphoneno\", \"client-search-field://polNoInfo.plancodeinfo.insphoneno\", \"client-search-field://policies_beneficiary_mobile\", \"client-search-field://licensePlateNo\"]}}, \"status\": \"succeeded\", \"tool_id\": \"client_search.field.search_keys\", \"tool_type\": \"client_search_field_key_retrieval\"}",
+      "created_at": 1786540588,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "3d069e9b-b87c-4dce-b236-c30f2aae7ba4",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "tool",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": {
+        "query": "手机号"
+      },
+      "tool_call_error": false,
+      "tool_call_id": "call_01_gtTqMbupiVQVl5UE1DB72645",
+      "tool_calls": null,
+      "tool_name": "client_search_field_search_keys",
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "",
+      "created_at": 1786540588,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "3cc522bb-67da-4f6b-8deb-d727e0ca3121",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 23424,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 23999,
+        "output_tokens": 677,
+        "provider_metrics": null,
+        "reasoning_tokens": 564,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 24676
+      },
+      "name": null,
+      "provider_data": {
+        "id": "a87a09fc-4dc3-4fd4-a347-f28d1baf10f0",
+        "model_extra": {
+          "cost": "0"
+        }
+      },
+      "reasoning_content": "The field search for the bare value returned no candidates. The phone search shows clientMobile (客户本人手机号) exists. Let me verify the clientNo format and check whether C0004533449897 (C + 13 digits) fits the clientNo definition, and confirm polNo can't hold a C-prefixed value. The capability manifest already gives clientNo and polNo definitions:\n\n- clientNo: \"以C开头，或以00开头；前缀之后为11至12位数字或字母\" → C0004533449897 has C + 13 digits (0004533449897 = 13 chars). Hmm, that's 13, not 11-12. But the manifest is the capability; the enhanced rule \"客户号-匹配\" pattern uses {CUSTOMER_C_PREFIX}{BUSINESS_ALNUM}{11,12}. So strictly, C0004533449897 doesn't match clientNo format (13 digits after C). Interesting.\n\nWait, let me count \"0004533449897\": 0004533449897 → 0,0,0,4,5,3,3,4,4,9,8,9,7 = 13 digits. So C + 13 digits = 14 chars total. The clientNo definition says prefix after C is 11-12 digits. So this value is 1-2 digits too long for clientNo.\n\npolNo: P/A prefix + 15-17 digits (14 historical), GP + 14, pure 15-17 digits when explicitly stated. C-prefixed 14-char value doesn't match polNo either.\n\nSo neither clientNo nor polNo strictly matches the declared formats! But the parser output used clientNo MATCH + polNo MATCH with OR.\n\nHmm, so what's the correct interpretation? The user typed a bare value. Per clientNo field definition, client numbers start with C. The C-prefix is the strongest signal. But the length is off by 1-2 digits per the declared format. Per readme, database fields are outdated and actual data may differ. So we can't rule out that C0004533449897 is a real client number.\n\nLet me check the field_search_definition for clientNo to confirm the format. Actually, the capability manifest already provides it. I could verify with the tool for completeness. Let me call field_search_definition for clientNo and polNo to get authoritative definitions.\n\nActually, the manifest is already complete for these fields. But let me double-check via the tool to be rigorous about whether there's any additional info (like whether C + 13 might be accepted). Let me call field_search_definition for clientNo and polNo.",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"field\": \"clientNo\"}",
+            "name": "field_search_definition"
+          },
+          "id": "call_00_MJcb1wZRkZy2f6bcBqFD6601",
+          "index": 0,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"field\": \"polNo\"}",
+            "name": "field_search_definition"
+          },
+          "id": "call_01_J2hi34wBROKVmqHISlci1617",
+          "index": 1,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"field\": \"clientMobile\"}",
+            "name": "field_search_definition"
+          },
+          "id": "call_02_ob5U1RwOtGclF9QsnBFB8413",
+          "index": 2,
+          "type": "function"
+        }
+      ],
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"actual\": {\"field\": \"clientNo\", \"is_supported\": true, \"operators\": [\"MATCH\"], \"short_name\": \"客户编号：以C开头\", \"value_types\": [\"extract\"]}, \"boundary_limits\": [], \"error\": \"\", \"evidence\": \"retrieved minimal definition for clientNo\", \"missing_evidence\": [], \"outputs\": {}, \"runtime_metadata\": {\"receipt\": {\"index_key\": \"client-search.field-definitions\", \"key\": \"clientNo\", \"operation\": \"load_entry\", \"provenance\": {\"project_id\": \"client_search\", \"source_path\": \"/Users/xiaozijian/WorkSpace/package/client_search_jmz_raw/llm_client_search/src/main/python/data/client_search_query_parse/field_definitions_args.yaml\"}, \"resolved_locator\": \"field_definitions_args.yaml#field=clientNo\", \"target_refs\": [\"client-search-field://clientNo\"]}}, \"status\": \"succeeded\", \"tool_id\": \"field.search_definition\", \"tool_type\": \"client_search_field_definition\"}",
+      "created_at": 1786540597,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "25ce798c-6dfa-4d13-b3a8-819eb51abd1d",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "tool",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": {
+        "field": "clientNo"
+      },
+      "tool_call_error": false,
+      "tool_call_id": "call_00_MJcb1wZRkZy2f6bcBqFD6601",
+      "tool_calls": null,
+      "tool_name": "field_search_definition",
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"actual\": {\"field\": \"polNo\", \"is_supported\": true, \"operators\": [\"MATCH\"], \"value_types\": [\"extract\"]}, \"boundary_limits\": [], \"error\": \"\", \"evidence\": \"retrieved minimal definition for polNo\", \"missing_evidence\": [], \"outputs\": {}, \"runtime_metadata\": {\"receipt\": {\"index_key\": \"client-search.field-definitions\", \"key\": \"polNo\", \"operation\": \"load_entry\", \"provenance\": {\"project_id\": \"client_search\", \"source_path\": \"/Users/xiaozijian/WorkSpace/package/client_search_jmz_raw/llm_client_search/src/main/python/data/client_search_query_parse/field_definitions_args.yaml\"}, \"resolved_locator\": \"field_definitions_args.yaml#field=polNo\", \"target_refs\": [\"client-search-field://polNo\"]}}, \"status\": \"succeeded\", \"tool_id\": \"field.search_definition\", \"tool_type\": \"client_search_field_definition\"}",
+      "created_at": 1786540597,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "5b651f60-b23b-4d69-b0f7-635e4fe993d4",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "tool",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": {
+        "field": "polNo"
+      },
+      "tool_call_error": false,
+      "tool_call_id": "call_01_J2hi34wBROKVmqHISlci1617",
+      "tool_calls": null,
+      "tool_name": "field_search_definition",
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"actual\": {}, \"boundary_limits\": [], \"error\": \"Field navigation budget reached. Stop broadening field search; use the evidence already loaded and preserve remaining calls for authority.resolve when a governed claim or boundary depends on it.\", \"evidence\": \"\", \"missing_evidence\": [], \"outputs\": {}, \"runtime_metadata\": {\"budget_kind\": \"field_navigation\", \"calls_used\": 4, \"limit\": 4}, \"status\": \"inconclusive\", \"tool_id\": \"field.search_definition\", \"tool_type\": \"client_search_field_navigation\"}",
+      "created_at": 1786540597,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "f17f8fce-403a-4fdd-9de9-bf5cd1a72610",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "tool",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": {
+        "field": "clientMobile"
+      },
+      "tool_call_error": false,
+      "tool_call_id": "call_02_ob5U1RwOtGclF9QsnBFB8413",
+      "tool_calls": null,
+      "tool_name": "field_search_definition",
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"business_expectations\":[{\"expectation_id\":\"裸值标识按客户号语义生成可执行检索条件\",\"blocking\":true,\"downstream_consumer\":\"client_search 下游客户搜索（按客户号检索目标客户）\",\"user_intent\":\"用户输入裸值 C0004533449897（C 前缀符合客户编号语义），核心意图是检索该客户编号对应的客户\",\"expected_outcome\":\"输出条件中应包含按客户号精确匹配 C0004533449897 的可执行条件（clientNo MATCH），使下游能检索到目标客户\",\"required_capabilities\":[\"clientNo 字段 MATCH 操作\",\"值原样提取并大写归一\"],\"acceptance_criteria\":[\"conditions 中存在 clientNo MATCH，值为 C0004533449897\",\"query_logic 不将该条件与相互排斥条件合并导致结果为空\"],\"boundary\":{\"judge_scope\":\"parser_condition_semantics_only\",\"result_set_verified\":false,\"note\":\"下游不可用，按字段语义与 ES 查询语义判断等价\"},\"priority\":\"P0\"},{\"expectation_id\":\"条件字段映射与值格式语义兼容\",\"blocking\":false,\"downstream_consumer\":\"下游客户搜索查询构建\",\"user_intent\":\"所有输出条件字段应能承载用户输入值的语义，不引入按字段格式不可能命中的错误映射\",\"expected_outcome\":\"不生成与值格式不兼容的字段条件；C 前缀值不应被映射为保单号条件\",\"required_capabilities\":[\"polNo 字段格式判定（P/A/GP 前缀或纯数字）\"],\"acceptance_criteria\":[\"conditions 中不存在按字段定义不可能匹配该值的条件\"],\"boundary\":{\"polNo_format\":\"P/A 开头后跟15-17位（兼容14位历史）、GP 开头后跟14位、明确保单号时纯数字15-17位；C 前缀值不兼容\"},\"priority\":\"P1\"},{\"expectation_id\":\"透明说明与实际检索条件一致\",\"blocking\":false,\"downstream_consumer\":\"终端用户（对话反馈）\",\"user_intent\":\"robot_text 应向用户如实说明实际执行的检索范围\",\"expected_outcome\":\"robot_text 声称的检索字段应与 conditions 实际包含的字段一致\",\"required_capabilities\":[],\"acceptance_criteria\":[\"robot_text 提及的检索字段均在 conditions 中有对应条件\"],\"boundary\":{},\"priority\":\"P2\"}],\"applicable_product_expectation_ids\":[\"find-target-customers\"],\"fulfillment_assessments\":[{\"expectation_id\":\"裸值标识按客户号语义生成可执行检索条件\",\"status\":\"fulfilled\",\"score\":1.0,\"expected_evidence\":[{\"level\":\"一级证据\",\"detail\":\"query 为裸值 C0004533449897，C 前缀与 clientNo 字段语义（客户编号以C开头）一致，意图为按客户号检索\"},{\"level\":\"一级证据\",\"detail\":\"核心交付应为 clientNo MATCH C0004533449897 的可执行条件\"}],\"actual_evidence\":[{\"condition\":\"clientNo MATCH C0004533449897\",\"source\":\"final_output.conditions[0]\",\"query_logic\":\"OR\"},{\"note\":\"值长度与声明格式（C后11-12位）略有出入，但 C 前缀为核心语义，配置格式仅作辅助参考，不据此判错\"}],\"downstream_impact\":\"下游可按客户号精确检索目标客户；受 parser_condition_semantics_only 边界限制，结果集未验证（result_set_verified=false）\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"条件字段映射与值格式语义兼容\",\"status\":\"not_fulfilled\",\"score\":0.0,\"expected_evidence\":[{\"level\":\"二级证据\",\"detail\":\"polNo 字段定义：保单号以 P/A 或 GP 开头、或为15-17位纯数字，C 前缀值不可能为保单号\"}],\"actual_evidence\":[{\"condition\":\"polNo MATCH C0004533449897\",\"source\":\"final_output.conditions[1]\",\"reason\":\"C 前缀值不符合保单号任何格式，属错误字段映射\"}],\"downstream_impact\":\"OR 逻辑下该分支不会命中任何保单，不改变目标客户结果集，但向下游提交了无效条件分支并扩大声明范围\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"透明说明与实际检索条件一致\",\"status\":\"not_fulfilled\",\"score\":0.0,\"expected_evidence\":[{\"level\":\"一级证据\",\"detail\":\"robot_text 声称已按手机号、客户号、保单号一起查找\"}],\"actual_evidence\":[{\"source\":\"final_output.robot_text\",\"claim\":\"手机号、客户号、保单号一起查找\"},{\"source\":\"final_output.conditions\",\"actual_fields\":[\"clientNo\",\"polNo\"],\"missing_field\":\"手机号字段（如 clientMobile）\"}],\"downstream_impact\":\"不影响客户结果集正确性，但向用户传达了未实际执行的手机号检索动作，说明与实际交付不一致\",\"authority_tool_call_ids\":[]}],\"expected\":{\"code\":0,\"msg\":\"操作成功\",\"query\":\"C0004533449897\",\"conditions\":[{\"field\":\"clientNo\",\"operator\":\"MATCH\",\"value\":\"C0004533449897\"}],\"robot_text\":\"已帮您按客户号检索匹配的客户\",\"query_logic\":\"OR\",\"rewritten_query\":\"C0004533449897\"},\"missing\":[{\"kind\":\"missing\",\"error_type\":\"claim_delivery_mismatch\",\"expected\":{\"field\":\"手机号字段（如 clientMobile）\",\"source\":\"robot_text 声称的手机号检索\"},\"actual\":{\"conditions_fields\":[\"clientNo\",\"polNo\"]},\"evidence_ref\":\"final_output.robot_text vs final_output.conditions\",\"raw\":{\"robot_text\":\"暂时没判读出这组数据代表什么，已帮您在手机号、客户号、保单号中一起查找匹配的客户\"}}],\"wrong\":[{\"kind\":\"wrong\",\"error_type\":\"field_mapping_error\",\"expected\":{\"detail\":\"C 前缀值按客户号语义处理，不应生成保单号条件\"},\"actual\":{\"field\":\"polNo\",\"operator\":\"MATCH\",\"value\":\"C0004533449897\"},\"evidence_ref\":\"final_output.conditions[1]\",\"raw\":{\"field\":\"polNo\",\"operator\":\"MATCH\",\"value\":\"C0004533449897\"}}],\"extra\":[],\"evidence\":[{\"query\":\"C0004533449897\",\"query_type\":\"裸值无指示词\"},{\"matched_patterns\":\"裸值弱命\",\"confidence\":0.6},{\"actual_conditions\":[{\"field\":\"clientNo\",\"operator\":\"MATCH\",\"value\":\"C0004533449897\"},{\"field\":\"polNo\",\"operator\":\"MATCH\",\"value\":\"C0004533449897\"}],\"query_logic\":\"OR\"},{\"robot_text\":\"暂时没判读出这组数据代表什么，已帮您在手机号、客户号、保单号中一起查找匹配的客户\"},{\"application_boundary\":{\"judge_scope\":\"parser_condition_semantics_only\",\"result_set_verified\":false,\"downstream_status\":\"not_verified\"}},{\"capability\":\"clientNo 定义：客户编号以C开头；polNo 定义：P/A/GP 前缀或纯数字，C 前缀值不兼容\"}],\"reasoning_summary\":\"裸值 C0004533449897 以 C 开头符合客户号语义，actual 已交付 clientNo MATCH 条件，核心检索意图达成；但 polNo 条件与保单号格式不兼容属错误映射（OR 下不影响结果集），且 robot_text 声称按手机号检索而条件缺手机号字段，透明说明不一致。\"}",
+      "created_at": 1786540597,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "fcc99bdf-86e7-422a-9a98-8042ef1e405c",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 24576,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 25274,
+        "output_tokens": 8251,
+        "provider_metrics": null,
+        "reasoning_tokens": 6623,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 33525
+      },
+      "name": null,
+      "provider_data": {
+        "id": "c0a07bfd-ef6b-423f-96c3-058760670ac8",
+        "model_extra": {
+          "cost": "0"
+        }
+      },
+      "reasoning_content": "The field definitions confirm:\n- clientNo: 客户编号：以C开头 (client number starting with C), MATCH operator.\n- polNo: 保单号 (policy number), MATCH operator.\n- clientMobile (客户本人手机号) exists as a field — supports the robot_text's claim about phone search being a capability. But conditions don't include any phone field.\n\nNow let me finalize the judgment.\n\nKey facts:\n1. Query: bare value \"C0004533449897\" — no indicator words (no 客户/查/找/筛选 etc.).\n2. Value structure: C + 13 digits. C prefix matches the clientNo semantic (客户编号：以C开头). Per the clientNo definition, client numbers start with C (or 00), and the C-prefix is the field's identifying feature. Length nuance (13 vs declared 11-12) exists but per boundary rules, config/prompt format descriptions are auxiliary; C-prefix is the strongest semantic evidence. So clientNo interpretation has structural support.\n3. Actual output: clientNo MATCH C0004533449897 OR polNo MATCH C0004533449897, query_logic=OR, matched_patterns=裸值弱命, robot_text claims it searched 手机号、客户号、保单号 together.\n4. polNo MATCH with a C-prefixed value: policy numbers per definition start with P/A (15-17 digits) or GP (14 digits) or pure 15-17 digits; C-prefixed 14-char value cannot be a policy number → this is a semantically invalid extra condition (wrong field mapping). Under OR logic, this branch returns no extra results, so it doesn't narrow/alter the client set — result-neutral but still a wrong mapping per field semantics.\n5. robot_text claims phone search but no phone field condition present (clientMobile etc. exist as capabilities) → inconsistency between claimed delivery and actual conditions.\n\nBare word rule: The rule targets bare words parsed as 姓名. Here it's parsed as code fields, and C-prefix provides structural/semantic evidence for client number interpretation. So the clientNo interpretation is supported — I won't blanket-fail as not_fulfilled on the \"intent not confirmed\" grounds. The core intent (retrieve customer identified by this client-number-like code) is preserved via clientNo condition.\n\nExpectations:\n\n1. expectation_id: \"裸值按客户号语义生成可执行检索条件\" (blocking=true)\n   - user_intent: 用户输入裸值 C0004533449897（C 前缀符合客户号标识语义），核心目标是检索该客户编号对应的客户。\n   - expected_outcome: 输出可执行条件中应包含按客户号精确匹配 C0004533449897 的条件（clientNo MATCH），使下游能检索到目标客户。\n   - acceptance_criteria: conditions 中存在 clientNo（或等价客户标识字段）MATCH，值为 C0004533449897（大写归一）。\n   - Actual: conditions[0] = clientNo MATCH C0004533449897 ✓\n   - status: fulfilled（一级证据：query 与 actual 直接对照；C 前缀结构与 clientNo 定义“以C开头”一致）。\n\nHmm, wait. Let me reconsider whether the clientNo condition alone is sufficient for the core intent. The value C + 13 digits is one digit longer than the declared C + 11-12 format. Should I penalize? Per boundary, format definitions are auxiliary; the C-prefix semantic (客户编号：以C开头) is the essence. The judge shouldn't mechanically reject based on digit count when the field's defining feature (C prefix) matches. Also downstream is unavailable so we can't verify. I'll note in evidence the length nuance but keep fulfilled.\n\n2. expectation_id: \"条件字段映射与值语义兼容（不引入无效字段条件）\" — hmm, let me name it \"禁止把客户标识错误映射为保单号条件\" (blocking=false or true?)\n   - The polNo MATCH C0004533449897 condition: C-prefixed value cannot be a valid policy number (polNo formats: P/A+15-17位、GP+14位、纯数字15-17位). This is a wrong field mapping — an extra condition not supported by value semantics.\n   - Impact: With OR logic, polNo branch is result-neutral (no policy can match a C-prefixed value), so it does NOT block finding the target customer via clientNo. Therefore blocking=false (doesn't block core delivery), but status=not_fulfilled as a quality/mapping error per 可评价系统问题 (field mapping errors are judgeable).\n   \n   Hmm, actually — should this be blocking? Let me think about downstream_impact: downstream query consumer receives a polNo condition that can never match → wasted query branch, but doesn't prevent finding the customer. It also misrepresents the search to the user. But the \"核心交付\" (find target customer) is still achievable. Per the boundary: \"不错误映射、不编造条件\" is listed under \"永远不能单独成为 blocking 核心交付\" — i.e., correct mapping alone can't be the blocking core delivery, but a mapping error as an extra condition... Hmm, actually that phrase says these items can't be the sole blocking core delivery. The blocking core delivery here is the clientNo search which is delivered. The polNo mapping error is a quality defect that doesn't block retrieval. So blocking=false is right.\n\n3. expectation_id: \"透明说明与实际检索条件一致\" (blocking=false)\n   - robot_text claims \"已帮您在手机号、客户号、保单号中一起查找匹配的客户\" but conditions only contain clientNo and polNo — no phone field condition (clientMobile 等手机号字段存在且可搜索).\n   - status: not_fulfilled (claim vs conditions mismatch). Non-blocking transparency issue.\n\nNow, expected/actual/missing/wrong/extra:\n\n- expected: The expected output structure requires code, msg, query, conditions, robot_text, query_logic, rewritten_query. Since there's no reference answer, I'll reconstruct expected as: conditions = [clientNo MATCH C0004533449897] (logical core), query_logic=\"OR\", query=\"C0004533449897\", rewritten_query=\"C0004533449897\", robot_text about searching by client number, code=0, msg=\"操作成功\". Hmm, but expected conditions — should I put [{\"field\":\"clientNo\",\"operator\":\"MATCH\",\"value\":\"C0004533449897\"}]? That represents the core expectation. But the schema says conditions is an array of items {} (any). I'll put the expected condition list.\n\nActually, should expected query_logic be OR or AND? With one condition it doesn't matter much. I'll set OR or just include clientNo. Let me set query_logic \"OR\" and conditions [clientNo MATCH]. \n\n- missing: []? Or is phone missing? The robot_text claims phone search but that wasn't user-requested. The user didn't ask for phone. So phone isn't a missing user-intent condition. However, relative to robot_text's claim, the phone condition is missing. I could add a missing GapItem: kind=\"missing\", error_type=\"transparency_mismatch\" or \"claimed_delivery_missing\". Hmm. Actually let me put missing as the phone condition relative to the claimed search scope. Or leave missing empty and put the discrepancy in wrong/extra.\n\n- wrong: polNo MATCH C0004533449897 — wrong field mapping (value can't be a policy number). GapItem: kind=\"wrong\", error_type=\"field_mapping_error\", expected: clientNo-only condition, actual: polNo condition.\n\n- extra: polNo condition is extra relative to user intent (user didn't ask for policy number search; and the value can't be a policy number). Hmm, wrong vs extra overlap. The condition is both wrong (field semantics incompatible) and extra (not user-requested). I'll put it under wrong with error_type \"field_mapping_error\" and maybe also extra. Let me put it in wrong primarily, and also note in extra? That would be duplicative. Typically wrong = condition present but incorrect; extra = condition added without basis. The polNo condition is added without user basis AND semantically invalid. I'll list it in wrong (field_mapping_error) and mention in extra as well... Actually to avoid double counting, I'll put polNo in wrong (semantic mismatch) and keep extra empty or include the OR-branch broadening. Hmm.\n\nLet me decide: \n- wrong: [polNo MATCH C0004533449897 — 字段映射错误：C 前缀值不符合保单号格式]\n- extra: [] — the polNo is covered under wrong. Actually, per \"分离 missing、wrong、extra 条件\", each gap item should be distinct. The polNo condition is fundamentally a wrong mapping (semantically incompatible). I'll keep it in wrong only.\n- missing: [] — user intent didn't request phone; core clientNo condition is present. Relative to robot_text claim, phone is missing but that's a transparency issue captured in the non-blocking expectation.\n\nActually, hold on. Let me reconsider: is there any missing condition relative to user intent? The user gave a bare value. If interpreted as client number → clientNo condition present. If the system also wanted to search phone (per robot_text), the phone condition is missing. Since the robot_text itself claims the search included phone, the delivery is incomplete vs the system's own claim. I'll add a missing GapItem for the phone condition with error_type \"claim_delivery_mismatch\" — expected phone condition per robot_text claim, actual absent. Hmm, but that might overcomplicate. I think it's cleaner to capture in the transparency expectation evidence and add missing item.\n\nLet me structure:\n- missing: [{kind:\"missing\", error_type:\"claimed_condition_absent\", expected:[clientMobile...], actual: \"conditions 无手机号字段条件\", evidence_ref:\"final_output.robot_text vs final_output.conditions\"}]. Hmm, kind is \"missing\", error_type maybe \"transparency_claim_vs_conditions\". OK.\n\nActually, let me keep it simpler and robust:\n- missing: [] — because user-intent-wise nothing is missing (clientNo covers core). \n- wrong: [{kind:\"wrong\", error_type:\"field_mapping_error\", expected:\"不应生成保单号条件（C 前缀值非保单号）\", actual:\"polNo MATCH C0004533449897\", evidence_ref:\"final_output.conditions[1]\", raw: {...}}]\n- extra: [] or include polNo as extra too? I'll include polNo in extra as well with kind \"extra\", error_type \"unexpressed_constraint\" — hmm, the polNo condition is an added constraint/branch not expressed by user. Under OR it broadens (or no-ops). \"加入用户未表达的额外强约束\" — but OR branch isn't a strong constraint (it's a disjunct). Actually it's an extra search branch. I'll put it in wrong only to avoid duplication.\n\nHmm, wait — let me reconsider whether to also flag that the value C0004533449897 doesn't match the declared clientNo length (C + 11-12 vs C + 13). Per boundary, config format is auxiliary and actual data may vary (readme says fields outdated). I will not flag this as a wrong condition. I'll mention it as a note in evidence maybe.\n\nNow for the assessments:\n\nAssessment 1 (core clientNo retrieval): status fulfilled, score maybe 1.0. expected_evidence: [{\"type\":\"一级证据\",\"detail\":\"query 裸值 C0004533449897 以 C 开头，符合 clientNo 字段语义（客户编号以C开头）\"}, {\"type\":\"一级证据\",\"detail\":\"actual conditions 含 clientNo MATCH C0004533449897，精确覆盖目标客户标识\"}]. actual_evidence: [{\"condition\":\"clientNo MATCH C0004533449897\",\"evidence\":\"final_output.conditions[0]\",\"query_logic\":\"OR\"}]. downstream_impact: \"下游可按客户号精确检索目标客户；受 parser_condition_semantics_only 边界限制，结果集未验证\".\n\nAssessment 2 (polNo mapping error): status not_fulfilled, score 0.0. expected_evidence: [{\"type\":\"二级证据\",\"detail\":\"polNo 字段定义：保单号以 P/A/GP 开头或纯数字 15-17 位，C 前缀值不可能为保单号\"}]. actual_evidence: [{\"condition\":\"polNo MATCH C0004533449897\",\"evidence\":\"final_output.conditions[1]\",\"reason\":\"C 前缀值不符合保单号格式，属错误字段映射\"}]. downstream_impact: \"OR 逻辑下该分支不会命中任何保单，不改变客户结果集，但向下游提交了无效条件分支\".\n\nAssessment 3 (transparency): status not_fulfilled, score 0.0. expected_evidence: [{\"type\":\"一级证据\",\"detail\":\"robot_text 声称在手机号、客户号、保单号中一起查找\"}]. actual_evidence: [{\"evidence\":\"final_output.conditions 仅含 clientNo、polNo，无任何手机号字段条件（如 clientMobile）\",\"reason\":\"说明与实际交付不一致\"}]. downstream_impact: \"不影响结果集正确性，但用户被误导认为已按手机号检索\".\n\nHmm wait, for assessment 3 — is it really not_fulfilled? The robot_text is a transparency statement. It claims phone search. The conditions lack phone. So the statement doesn't match actual delivery. Yes, not_fulfilled for the transparency-accuracy expectation.\n\nNow authority: no authority needed (authority_mode not_required). authority_tool_call_ids: [].\n\napplicable_product_expectation_ids: [\"find-target-customers\"].\n\nbusiness_expectations: three entries with expectation_id, blocking, downstream_consumer, user_intent, expected_outcome, required_capabilities, acceptance_criteria, boundary, priority.\n\nboundary must be a JSON object. I'll use {} or describe boundary: {\"judge_scope\":\"parser_condition_semantics_only\",\"result_set_verified\":false}. That's an object, good.\n\nFor expectation 1, boundary could include \"下游结果集不可验证，按条件语义判定\".\n\nNow let me also fill the top-level expected object per schema:\nexpected: {\n  \"code\": 0,\n  \"msg\": \"操作成功\",\n  \"query\": \"C0004533449897\",\n  \"conditions\": [{\"field\":\"clientNo\",\"operator\":\"MATCH\",\"value\":\"C0004533449897\"}],\n  \"robot_text\": \"按客户号检索客户 C0004533449897\",  — hmm, robot_text expected. I'll write something reasonable: \"已按客户号检索匹配客户\"。Or keep it consistent: since bare value, a reasonable robot_text acknowledges client-number search. I'll put \"已帮您按客户号检索匹配的客户\".\n  \"query_logic\": \"OR\",\n  \"rewritten_query\": \"C0004533449897\"\n}\nrequired fields: code, msg, query, conditions, robot_text, query_logic, rewritten_query — all present. Additional optional fields like end_flag etc. optional, but additionalProperties false means only declared properties allowed. I can include end_flag, trace_id, matched_level, matched_patterns, intent_summary, confidence, cost_times — they're declared optional. I'll include a few or none. Keep minimal: code, msg, query, conditions, robot_text, query_logic, rewritten_query. That satisfies required.\n\nevidence: array of items. I'll include: [{\"query\":\"C0004533449897\",\"query_type\":\"裸值\"}, {\"actual_conditions\":[...]}, {\"robot_text\":\"...\"}, {\"application_boundary\":{\"judge_scope\":\"parser_condition_semantics_only\",\"result_set_verified\":false}}]. Keep as array of objects.\n\nreasoning_summary: ≤180 Chinese chars, describing decisive basis, not restating input materials.\n\nDraft: \"裸值 C0004533449897 以 C 开头，符合客户号语义，actual 已生成 clientNo MATCH 条件，核心检索意图达成；但 polNo 条件与值格式不兼容属错误映射（OR 下不影响结果集），且 robot_text 声称按手机号检索而条件缺失手机号字段，透明说明不一致。\"\n\nCount: roughly within 180. Let me count approximately: that's about 110 chars. Fine.\n\nNow the fulfillment_assessments: each needs expectation_id, status, score, expected_evidence (array), actual_evidence (array), downstream_impact, authority_tool_call_ids (array).\n\nLet me also double-check the blocking decision for expectation 1. blocking=true (core delivery). Expectation 2 blocking=false, expectation 3 blocking=false.\n\nWait — should expectation 1 be fulfilled? Let me reconsider the 裸词规则 once more. \"请求只有裸词（无\"姓名/客户/查/找/筛选\"等指示词）且 actual 把该裸词当作姓名解析时，Reference 一致只说明生成路径匹配，不等于意图确认；除非存在姓名结构或语义证据（如专名、姓氏库命中、明确字段上下文），否则按未满足判 not_fulfilled。\"\n\nThis rule is about names. Here the bare value is not treated as a name; it's treated as clientNo/polNo. The C-prefix is structural semantic evidence (clientNo definition: 客户编号：以C开头). So the clientNo interpretation is supported by 明确字段上下文/结构证据. The core intent (find the customer whose identifier is C0004533449897) is delivered via clientNo MATCH.\n\nHowever — one might argue the intent is uncertain because the value doesn't match the declared clientNo length (13 vs 11-12 after C). But since clientNo is defined as \"以C开头\" and actual data may vary (fields outdated), the parser's clientNo choice is the best semantic match. I'll keep fulfilled.\n\nAlso note: the parser included polNo as a hedge (weak recognition, confidence 0.6). The robot_text admits it couldn't determine the meaning. But the delivered clientNo condition still serves the most plausible intent. So fulfilled for core.\n\nHmm, but wait — is there an argument that the robot_text's \"无法判读\" admission means the core intent isn't confirmed, hence not_fulfilled? The 裸词规则 says intent confirmation is needed for names. For codes, the C-prefix provides the confirmation. I'll go with fulfilled for the clientNo dimension.\n\nLet me reconsider the score values: fulfilled → 1.0, not_fulfilled → 0.0.\n\nNow, let me also double check the \"wrong\" GapItem schema: kind, error_type, expected, actual, evidence_ref, raw, incomplete. I'll fill kind=\"wrong\", error_type=\"field_mapping_error\", expected={\"field\":\"（无）\",\"detail\":\"不应生成保单号条件\"}, actual={\"field\":\"polNo\",\"operator\":\"MATCH\",\"value\":\"C0004533449897\"}, evidence_ref=\"final_output.conditions[1]\", raw={...condition...}.\n\nmissing: I'll include the phone condition gap relative to robot_text claim? Or leave empty. Given the transparency expectation captures it, I'll add a missing GapItem too for completeness: kind=\"missing\", error_type=\"claimed_delivery_missing\", expected={\"field\":\"clientMobile 等手机号字段\",\"source\":\"robot_text 声称的手机号检索\"}, actual=\"conditions 无手机号条件\", evidence_ref=\"final_output.robot_text / final_output.conditions\". Hmm, but \"missing\" in this project refers to missing user-intent conditions. The phone wasn't user-requested. Including it in missing might confuse. I'll leave missing=[] and put the phone issue only in the transparency assessment and evidence. Actually, I think it's clearer to include it as a missing gap with error_type \"transparency_claim_mismatch\" — the claim's delivery is missing. Let me include it to fully surface the gap. Hmm... The instruction: \"分离 missing、wrong、extra 条件\" — these are condition-level gaps. The phone condition is missing relative to the robot_text claim. I'll include it as missing with a clear error_type.\n\nActually, I'll include it — it adds transparency about the discrepancy.\n\nextra: polNo is already in wrong. I'll leave extra=[] to avoid duplication. Or include polNo in extra as \"unexpressed_search_branch\"? Hmm. The polNo condition is (a) wrong mapping (semantic incompatibility) and (b) an extra branch not requested. Listing it once in wrong is fine. I'll keep extra=[].\n\nNow finalize expected object: conditions expected = [clientNo MATCH]. robot_text expected: something like \"已按客户号检索匹配客户\"。query_logic \"OR\" (single condition, OR is fine; or could be \"AND\"—doesn't matter). I'll use \"OR\".\n\nLet me now write the final JSON.\n\nbusiness_expectations:\n\n1. {\n  \"expectation_id\": \"裸值标识按客户号语义生成可执行检索条件\",\n  \"blocking\": true,\n  \"downstream_consumer\": \"client_search 下游客户搜索（按客户号检索目标客户）\",\n  \"user_intent\": \"用户输入裸值 C0004533449897（C 前缀符合客户编号语义），意图是检索该客户编号对应的客户\",\n  \"expected_outcome\": \"输出条件中应包含按客户号精确匹配 C0004533449897 的可执行条件（clientNo MATCH），使下游能检索到目标客户\",\n  \"required_capabilities\": [\"clientNo 字段 MATCH 操作\", \"值原样提取并大写归一\"],\n  \"acceptance_criteria\": [\"conditions 中存在 clientNo MATCH，值为 C0004533449897\", \"query_logic 不将该条件与相互排斥条件 AND 合并导致结果为空\"],\n  \"boundary\": {\"judge_scope\": \"parser_condition_semantics_only\", \"result_set_verified\": false, \"note\": \"下游不可用，按字段语义与 ES 查询语义判断等价\"},\n  \"priority\": \"P0\"\n}\n\n2. {\n  \"expectation_id\": \"条件字段映射与值格式语义兼容\",\n  \"blocking\": false,\n  \"downstream_consumer\": \"下游客户搜索查询构建\",\n  \"user_intent\": \"所有输出条件字段应能承载用户输入值的语义，不引入按字段格式不可能命中的错误映射\",\n  \"expected_outcome\": \"不生成与值格式不兼容的字段条件；C 前缀值不应被映射为保单号条件\",\n  \"required_capabilities\": [\"polNo 字段格式判定（P/A/GP 前缀或纯数字）\"],\n  \"acceptance_criteria\": [\"conditions 中不存在按字段定义不可能匹配该值的条件\"],\n  \"boundary\": {\"polNo_format\": \"P/A 开头后跟15-17位（兼容14位历史）、GP 开头后跟14位、明确保单号时纯数字15-17位；C 前缀值不兼容\"},\n  \"priority\": \"P1\"\n}\n\n3. {\n  \"expectation_id\": \"透明说明与实际检索条件一致\",\n  \"blocking\": false,\n  \"downstream_consumer\": \"终端用户（对话反馈）\",\n  \"user_intent\": \"robot_text 应向用户如实说明实际执行的检索范围\",\n  \"expected_outcome\": \"robot_text 声称的检索字段应与 conditions 实际包含的字段一致\",\n  \"required_capabilities\": [\"无\"],\n  \"acceptance_criteria\": [\"robot_text 提及的检索字段均在 conditions 中有对应条件\"],\n  \"boundary\": {},\n  \"priority\": \"P2\"\n}\n\nfulfillment_assessments:\n\n1. {\n  \"expectation_id\": \"裸值标识按客户号语义生成可执行检索条件\",\n  \"status\": \"fulfilled\",\n  \"score\": 1.0,\n  \"expected_evidence\": [\n    {\"level\": \"一级证据\", \"detail\": \"query 为裸值 C0004533449897，C 前缀与 clientNo 字段语义（客户编号以C开头）一致，意图为按客户号检索\"},\n    {\"level\": \"一级证据\", \"detail\": \"核心交付应为 clientNo MATCH C0004533449897 的可执行条件\"}\n  ],\n  \"actual_evidence\": [\n    {\"condition\": \"clientNo MATCH C0004533449897\", \"source\": \"final_output.conditions[0]\", \"query_logic\": \"OR\"},\n    {\"note\": \"值长度与声明格式（C后11-12位）略有出入，但 C 前缀为核心语义，配置格式仅作辅助参考，不据此判错\"}\n  ],\n  \"downstream_impact\": \"下游可按客户号精确检索目标客户；受 parser_condition_semantics_only 边界限制，结果集未验证（result_set_verified=false）\",\n  \"authority_tool_call_ids\": []\n}\n\n2. {\n  \"expectation_id\": \"条件字段映射与值格式语义兼容\",\n  \"status\": \"not_fulfilled\",\n  \"score\": 0.0,\n  \"expected_evidence\": [\n    {\"level\": \"二级证据\", \"detail\": \"polNo 字段定义：保单号以 P/A 或 GP 开头、或为15-17位纯数字，C 前缀值不可能为保单号\"}\n  ],\n  \"actual_evidence\": [\n    {\"condition\": \"polNo MATCH C0004533449897\", \"source\": \"final_output.conditions[1]\", \"reason\": \"C 前缀值不符合保单号任何格式，属错误字段映射\"}\n  ],\n  \"downstream_impact\": \"OR 逻辑下该分支不会命中任何保单，不改变目标客户结果集，但向下游提交了无效条件分支并扩大声明范围\",\n  \"authority_tool_call_ids\": []\n}\n\n3. {\n  \"expectation_id\": \"透明说明与实际检索条件一致\",\n  \"status\": \"not_fulfilled\",\n  \"score\": 0.0,\n  \"expected_evidence\": [\n    {\"level\": \"一级证据\", \"detail\": \"robot_text 声称已按手机号、客户号、保单号一起查找\"}\n  ],\n  \"actual_evidence\": [\n    {\"source\": \"final_output.robot_text\", \"claim\": \"手机号、客户号、保单号一起查找\"},\n    {\"source\": \"final_output.conditions\", \"actual_fields\": [\"clientNo\", \"polNo\"], \"missing_field\": \"手机号字段（如 clientMobile）\"}\n  ],\n  \"downstream_impact\": \"不影响客户结果集正确性，但向用户传达了未实际执行的手机号检索动作，说明与实际交付不一致\",\n  \"authority_tool_call_ids\": []\n}\n\nexpected top-level:\n{\n  \"code\": 0,\n  \"msg\": \"操作成功\",\n  \"query\": \"C0004533449897\",\n  \"conditions\": [{\"field\": \"clientNo\", \"operator\": \"MATCH\", \"value\": \"C0004533449897\"}],\n  \"robot_text\": \"已帮您按客户号检索匹配的客户\",\n  \"query_logic\": \"OR\",\n  \"rewritten_query\": \"C0004533449897\"\n}\n\nmissing: [{\n  \"kind\": \"missing\",\n  \"error_type\": \"claim_delivery_mismatch\",\n  \"expected\": {\"field\": \"手机号字段（如 clientMobile）\", \"source\": \"robot_text 声称的手机号检索\"},\n  \"actual\": {\"conditions_fields\": [\"clientNo\", \"polNo\"]},\n  \"evidence_ref\": \"final_output.robot_text vs final_output.conditions\",\n  \"raw\": {\"robot_text\": \"暂时没判读出这组数据代表什么，已帮您在手机号、客户号、保单号中一起查找匹配的客户\"}\n}]\n\nwrong: [{\n  \"kind\": \"wrong\",\n  \"error_type\": \"field_mapping_error\",\n  \"expected\": {\"detail\": \"C 前缀值按客户号语义处理，不应生成保单号条件\"},\n  \"actual\": {\"field\": \"polNo\", \"operator\": \"MATCH\", \"value\": \"C0004533449897\"},\n  \"evidence_ref\": \"final_output.conditions[1]\",\n  \"raw\": {\"field\": \"polNo\", \"operator\": \"MATCH\", \"value\": \"C0004533449897\"}\n}]\n\nextra: []\n\nevidence: [\n  {\"query\": \"C0004533449897\", \"query_type\": \"裸值无指示词\"},\n  {\"matched_patterns\": \"裸值弱命\", \"confidence\": 0.6},\n  {\"actual_conditions\": [{\"field\": \"clientNo\", \"operator\": \"MATCH\", \"value\": \"C0004533449897\"}, {\"field\": \"polNo\", \"operator\": \"MATCH\", \"value\": \"C0004533449897\"}], \"query_logic\": \"OR\"},\n  {\"robot_text\": \"暂时没判读出这组数据代表什么，已帮您在手机号、客户号、保单号中一起查找匹配的客户\"},\n  {\"application_boundary\": {\"judge_scope\": \"parser_condition_semantics_only\", \"result_set_verified\": false, \"downstream_status\": \"not_verified\"}},\n  {\"capability\": \"clientNo 定义：客户编号以C开头；polNo 定义：P/A/GP 前缀或纯数字，C 前缀值不兼容\"}\n]\n\nreasoning_summary: \"裸值 C0004533449897 以 C 开头符合客户号语义，actual 已交付 clientNo MATCH 条件，核心检索意图达成；但 polNo 条件与保单号格式不兼容属错误映射（OR 下不影响结果集），且 robot_text 声称按手机号检索而条件缺手机号字段，透明说明不一致。\"\n\nThat's about 120 chars. Good.\n\napplicable_product_expectation_ids: [\"find-target-customers\"]\n\nLet me double check the schema: top-level required: reasoning_summary only (plus the expected nested required fields). All fields: business_expectations, applicable_product_expectation_ids, fulfillment_assessments, expected, missing, wrong, extra, evidence, reasoning_summary. I'll include all.\n\nOne more check: business_expectations[*] required: expectation_id, blocking. I include all listed fields: expectation_id, blocking, downstream_consumer, user_intent, expected_outcome, required_capabilities, acceptance_criteria, boundary, priority. Good.\n\nfulfillment_assessments[*] required: expectation_id, status. I include all: expectation_id, status, score, expected_evidence, actual_evidence, downstream_impact, authority_tool_call_ids. Good.\n\nNow output the JSON without markdown.",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "client_search",
+  "prompt_size": 49051,
+  "record_id": "0faf2dcf-ea67-4ba7-a288-b4996f100b57",
+  "response": {
+    "content": "{\"business_expectations\":[{\"expectation_id\":\"裸值标识按客户号语义生成可执行检索条件\",\"blocking\":true,\"downstream_consumer\":\"client_search 下游客户搜索（按客户号检索目标客户）\",\"user_intent\":\"用户输入裸值 C0004533449897（C 前缀符合客户编号语义），核心意图是检索该客户编号对应的客户\",\"expected_outcome\":\"输出条件中应包含按客户号精确匹配 C0004533449897 的可执行条件（clientNo MATCH），使下游能检索到目标客户\",\"required_capabilities\":[\"clientNo 字段 MATCH 操作\",\"值原样提取并大写归一\"],\"acceptance_criteria\":[\"conditions 中存在 clientNo MATCH，值为 C0004533449897\",\"query_logic 不将该条件与相互排斥条件合并导致结果为空\"],\"boundary\":{\"judge_scope\":\"parser_condition_semantics_only\",\"result_set_verified\":false,\"note\":\"下游不可用，按字段语义与 ES 查询语义判断等价\"},\"priority\":\"P0\"},{\"expectation_id\":\"条件字段映射与值格式语义兼容\",\"blocking\":false,\"downstream_consumer\":\"下游客户搜索查询构建\",\"user_intent\":\"所有输出条件字段应能承载用户输入值的语义，不引入按字段格式不可能命中的错误映射\",\"expected_outcome\":\"不生成与值格式不兼容的字段条件；C 前缀值不应被映射为保单号条件\",\"required_capabilities\":[\"polNo 字段格式判定（P/A/GP 前缀或纯数字）\"],\"acceptance_criteria\":[\"conditions 中不存在按字段定义不可能匹配该值的条件\"],\"boundary\":{\"polNo_format\":\"P/A 开头后跟15-17位（兼容14位历史）、GP 开头后跟14位、明确保单号时纯数字15-17位；C 前缀值不兼容\"},\"priority\":\"P1\"},{\"expectation_id\":\"透明说明与实际检索条件一致\",\"blocking\":false,\"downstream_consumer\":\"终端用户（对话反馈）\",\"user_intent\":\"robot_text 应向用户如实说明实际执行的检索范围\",\"expected_outcome\":\"robot_text 声称的检索字段应与 conditions 实际包含的字段一致\",\"required_capabilities\":[],\"acceptance_criteria\":[\"robot_text 提及的检索字段均在 conditions 中有对应条件\"],\"boundary\":{},\"priority\":\"P2\"}],\"applicable_product_expectation_ids\":[\"find-target-customers\"],\"fulfillment_assessments\":[{\"expectation_id\":\"裸值标识按客户号语义生成可执行检索条件\",\"status\":\"fulfilled\",\"score\":1.0,\"expected_evidence\":[{\"level\":\"一级证据\",\"detail\":\"query 为裸值 C0004533449897，C 前缀与 clientNo 字段语义（客户编号以C开头）一致，意图为按客户号检索\"},{\"level\":\"一级证据\",\"detail\":\"核心交付应为 clientNo MATCH C0004533449897 的可执行条件\"}],\"actual_evidence\":[{\"condition\":\"clientNo MATCH C0004533449897\",\"source\":\"final_output.conditions[0]\",\"query_logic\":\"OR\"},{\"note\":\"值长度与声明格式（C后11-12位）略有出入，但 C 前缀为核心语义，配置格式仅作辅助参考，不据此判错\"}],\"downstream_impact\":\"下游可按客户号精确检索目标客户；受 parser_condition_semantics_only 边界限制，结果集未验证（result_set_verified=false）\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"条件字段映射与值格式语义兼容\",\"status\":\"not_fulfilled\",\"score\":0.0,\"expected_evidence\":[{\"level\":\"二级证据\",\"detail\":\"polNo 字段定义：保单号以 P/A 或 GP 开头、或为15-17位纯数字，C 前缀值不可能为保单号\"}],\"actual_evidence\":[{\"condition\":\"polNo MATCH C0004533449897\",\"source\":\"final_output.conditions[1]\",\"reason\":\"C 前缀值不符合保单号任何格式，属错误字段映射\"}],\"downstream_impact\":\"OR 逻辑下该分支不会命中任何保单，不改变目标客户结果集，但向下游提交了无效条件分支并扩大声明范围\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"透明说明与实际检索条件一致\",\"status\":\"not_fulfilled\",\"score\":0.0,\"expected_evidence\":[{\"level\":\"一级证据\",\"detail\":\"robot_text 声称已按手机号、客户号、保单号一起查找\"}],\"actual_evidence\":[{\"source\":\"final_output.robot_text\",\"claim\":\"手机号、客户号、保单号一起查找\"},{\"source\":\"final_output.conditions\",\"actual_fields\":[\"clientNo\",\"polNo\"],\"missing_field\":\"手机号字段（如 clientMobile）\"}],\"downstream_impact\":\"不影响客户结果集正确性，但向用户传达了未实际执行的手机号检索动作，说明与实际交付不一致\",\"authority_tool_call_ids\":[]}],\"expected\":{\"code\":0,\"msg\":\"操作成功\",\"query\":\"C0004533449897\",\"conditions\":[{\"field\":\"clientNo\",\"operator\":\"MATCH\",\"value\":\"C0004533449897\"}],\"robot_text\":\"已帮您按客户号检索匹配的客户\",\"query_logic\":\"OR\",\"rewritten_query\":\"C0004533449897\"},\"missing\":[{\"kind\":\"missing\",\"error_type\":\"claim_delivery_mismatch\",\"expected\":{\"field\":\"手机号字段（如 clientMobile）\",\"source\":\"robot_text 声称的手机号检索\"},\"actual\":{\"conditions_fields\":[\"clientNo\",\"polNo\"]},\"evidence_ref\":\"final_output.robot_text vs final_output.conditions\",\"raw\":{\"robot_text\":\"暂时没判读出这组数据代表什么，已帮您在手机号、客户号、保单号中一起查找匹配的客户\"}}],\"wrong\":[{\"kind\":\"wrong\",\"error_type\":\"field_mapping_error\",\"expected\":{\"detail\":\"C 前缀值按客户号语义处理，不应生成保单号条件\"},\"actual\":{\"field\":\"polNo\",\"operator\":\"MATCH\",\"value\":\"C0004533449897\"},\"evidence_ref\":\"final_output.conditions[1]\",\"raw\":{\"field\":\"polNo\",\"operator\":\"MATCH\",\"value\":\"C0004533449897\"}}],\"extra\":[],\"evidence\":[{\"query\":\"C0004533449897\",\"query_type\":\"裸值无指示词\"},{\"matched_patterns\":\"裸值弱命\",\"confidence\":0.6},{\"actual_conditions\":[{\"field\":\"clientNo\",\"operator\":\"MATCH\",\"value\":\"C0004533449897\"},{\"field\":\"polNo\",\"operator\":\"MATCH\",\"value\":\"C0004533449897\"}],\"query_logic\":\"OR\"},{\"robot_text\":\"暂时没判读出这组数据代表什么，已帮您在手机号、客户号、保单号中一起查找匹配的客户\"},{\"application_boundary\":{\"judge_scope\":\"parser_condition_semantics_only\",\"result_set_verified\":false,\"downstream_status\":\"not_verified\"}},{\"capability\":\"clientNo 定义：客户编号以C开头；polNo 定义：P/A/GP 前缀或纯数字，C 前缀值不兼容\"}],\"reasoning_summary\":\"裸值 C0004533449897 以 C 开头符合客户号语义，actual 已交付 clientNo MATCH 条件，核心检索意图达成；但 polNo 条件与保单号格式不兼容属错误映射（OR 下不影响结果集），且 robot_text 声称按手机号检索而条件缺手机号字段，透明说明不一致。\"}",
+    "metrics": {
+      "cache_read_tokens": 55680,
+      "cache_write_tokens": 0,
+      "input_tokens": 65519,
+      "output_tokens": 16200,
+      "reasoning_tokens": 14373,
+      "total_tokens": 81719
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 136706,
+          "endpoint": "fallback1",
+          "model": "deepseek-v4-flash-0731",
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "selected_endpoint": "fallback1",
+      "selected_model": "deepseek-v4-flash-0731",
+      "stage": "judge"
+    }
+  },
+  "trace_id": "client_search:I241:1786540518698"
+}

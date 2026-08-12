@@ -27,12 +27,12 @@ runtime:
       shape: AskBob envelope POST returning code/msg and policySearchParseResult filter
         tree
       source: business API and filter protocol documents
-    start_run: start the registered policy-search repository on 127.0.0.1:8050 when
-      healthcheck fails
+    start_run: connect to the user-managed policy-search service on 127.0.0.1:8050;
+      verifier never starts or restarts it
     boundary: parser owns request interpretation and filter generation; downstream
       policy data retrieval is out of scope
   local_deployment:
-    enabled: true
+    enabled: false
   interaction:
     mode: single_turn
   ready: []

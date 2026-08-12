@@ -1,0 +1,873 @@
+{
+  "caller": "judge",
+  "created_at": "2026-08-12T13:20:36Z",
+  "elapsed_ms": 96524,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "draft"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "415669864d2e95d3e09215b8cebc19efdd6361f61f0a08c59e3d7aac8bdb9148",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [
+        {
+          "char_count": 149,
+          "content_sha256": "3cd4bc52ab2a3461a9fb3dd9cbe282de8068556dc426c4c32bc9a4793d8c2692",
+          "reason": "Runtime result contract is excluded from the LLM-owned context contract; marker=`JudgeResult` 协议字段",
+          "segment_id": "excluded-line-40-clause-1",
+          "source": "contextunit://project.client_search.asset.judge_boundary,project.client_search.asset.judge_business_contract,project.client_search.asset.judge_evaluation,project.client_search.asset.judge_standard"
+        }
+      ],
+      "lineage": {
+        "call_id": "",
+        "case_id": "I264",
+        "trace_id": "client_search:I264:1786540735149"
+      },
+      "messages": [
+        {
+          "char_count": 20384,
+          "content_sha256": "e5d0f4431ee0718d836d26d355a69b1d6e56dc782ca91b772bc7c0de260c6b65",
+          "role": "system"
+        },
+        {
+          "char_count": 20394,
+          "content_sha256": "d897b2e48a5eb4f8fbc5f7183fb2364218a2f29cf7129dd172181d95051a9fde",
+          "role": "user"
+        }
+      ],
+      "mode": "draft",
+      "output_contract": {
+        "field_names": [
+          "acceptance_criteria",
+          "actual",
+          "actual_evidence",
+          "applicable_product_expectation_ids",
+          "authority_tool_call_ids",
+          "blocking",
+          "boundary",
+          "business_expectations",
+          "code",
+          "conditions",
+          "confidence",
+          "cost_times",
+          "downstream_consumer",
+          "downstream_impact",
+          "end_flag",
+          "error_type",
+          "evidence",
+          "evidence_ref",
+          "expectation_id",
+          "expected",
+          "expected_evidence",
+          "expected_outcome",
+          "extra",
+          "fulfillment_assessments",
+          "incomplete",
+          "intent_summary",
+          "kind",
+          "matched_level",
+          "matched_patterns",
+          "missing",
+          "msg",
+          "priority",
+          "query",
+          "query_logic",
+          "raw",
+          "reasoning_summary",
+          "required_capabilities",
+          "rewritten_query",
+          "robot_text",
+          "score",
+          "status",
+          "trace_id",
+          "user_intent",
+          "wrong"
+        ],
+        "identity": "impl.core.schema.judge.JudgeLLMOutput",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "efcb0ae015d8523c7ed9317ccb45b70fb9e9b6a246f55ce20f8e31f4ba4032a0",
+        "sha256": "efcb0ae015d8523c7ed9317ccb45b70fb9e9b6a246f55ce20f8e31f4ba4032a0"
+      },
+      "project_id": "client_search",
+      "prompt_char_count": 40778,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 20394,
+        "occurred": false
+      },
+      "role": "judge",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 259,
+          "content_sha256": "bd69f09b85c9bd1a4643b2e511a3d98c4a9b2cc4742b4c9e178491f64d5ca7c1",
+          "order": 0,
+          "role": "judge",
+          "segment_id": "client-search-draft-system-extra-1",
+          "source": "project://draft/judge.py#system_prompt_extras",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 486,
+          "content_sha256": "0509886b243fa3aaaa338bddce1fbc258e94a6d1f66991c260f0d914a37b0e5d",
+          "order": 1,
+          "role": "judge",
+          "segment_id": "client-search-draft-system-extra-2",
+          "source": "project://draft/judge.py#system_prompt_extras",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 1653,
+          "content_sha256": "8eb839cddd24a2f630d7116ed9fd825a739a589176a138fe45ef08d778074380",
+          "order": 2,
+          "role": "judge",
+          "segment_id": "client-search-draft-system-extra-3",
+          "source": "project://draft/judge.py#system_prompt_extras",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 822,
+          "content_sha256": "521aca6d6a42f70ecf7c5bfb722fd531eb59fd5e79742a1c0ead50bcbcd95770",
+          "order": 3,
+          "role": "judge",
+          "segment_id": "client-search-draft-system-extra-4",
+          "source": "project://draft/judge.py#system_prompt_extras",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 116,
+          "content_sha256": "befd589e5bfd17ec3d609e67aa70ea5fdd5475a28004f5a1318baa98e9ae834f",
+          "order": 4,
+          "role": "judge",
+          "segment_id": "client-search-draft-system-extra-5",
+          "source": "project://draft/judge.py#system_prompt_extras",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 7545,
+          "content_sha256": "85542271603a5caf81a24feff6cbfc2a1bad74f67b8011068f0f02de4e0057da",
+          "order": 5,
+          "role": "judge",
+          "segment_id": "mandatory-context-units",
+          "source": "contextunit://project.client_search.asset.judge_boundary,project.client_search.asset.judge_business_contract,project.client_search.asset.judge_evaluation,project.client_search.asset.judge_standard",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 12752,
+          "content_sha256": "a1a9067738fb6b1ab5b37a836d80134fa3d6f1d9ea1fb84fccd38855799cb304",
+          "order": 6,
+          "role": "judge",
+          "segment_id": "compiled-system",
+          "source": "impl/projects/client_search/draft/judge_execution.py#judge_trace",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 20394,
+          "content_sha256": "d897b2e48a5eb4f8fbc5f7183fb2364218a2f29cf7129dd172181d95051a9fde",
+          "order": 7,
+          "role": "judge",
+          "segment_id": "case-user-payload",
+          "source": "trace://judge-evidence-view",
+          "stage": "judge"
+        }
+      ],
+      "stage": "judge",
+      "tool_plan": [
+        {
+          "logical_id": "client_search.field.search_keys",
+          "runtime_name": "client_search_field_search_keys"
+        },
+        {
+          "logical_id": "field.search_definition",
+          "runtime_name": "field_search_definition"
+        }
+      ]
+    }
+  },
+  "llm_model": "deepseek-v4-flash-0731",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "你是通用评估系统的 judge agent。\n\n## 核心原则\n只基于当前 RunTrace、项目评判标准和动态检索的知识库内容判断，不继承历史 case。\n首要职责：理解用户/下游消费者的真实业务意图 → 派生 business_expectations → 基于完整执行链路（每轮 output、最终 output、交互过程和停止事实）判断 expectations 的 fulfillment。\n\n## expectation 拆分原则\nbusiness_expectations 的粒度直接决定判断精度。每个 expectation 必须是原子可判定的——仅凭当前 Judge evidence 中的业务事实就能明确判定 fulfilled 或 not_fulfilled。\n- 一个 expectation 只描述一个可独立验证的结果维度\n- 多维度意图必须拆成多个 expectation\n- 每个 expectation 必须有明确的 acceptance_criteria\n- 每个 expectation 必须在比较 actual 前确定 blocking：只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true\n- fulfillment_assessments 只判断对应 expectation 的 status 和证据，不得重新定义 blocking\n- expectation_id 必须是描述性的中文短语，禁止使用 E1/E2/exp_01 等占位符 ID\n- reasoning_summary 必须是中文写成的判断依据\n\n## 输出词表\n`fulfillment_assessments[*].status` 必须从以下 3 个值中选择：\n  - fulfilled：该 expectation 完全满足\n  - not_fulfilled：该 expectation 未满足\n  - not_evaluable：当前无法评估\n禁用 failed/passed/incorrect/wrong/met/unmet/partially_fulfilled/partial/success/fail/ok/unknown 等同义词。\n`actual_state=empty` 表示 Live 成功返回但没有交付明确业务结果；对本应交付的 expectation 通常判定 not_fulfilled。`actual_state=unavailable` 表示无法取得或确认 Live actual；通常判定 not_evaluable。\n`fulfillment_assessments[*].expected_evidence` 与 `actual_evidence` **必须是数组**（JSON array / list），即使只有一条证据也要用 `[...]` 包裹，不可直接用字符串或对象。\n\n不要输出 overall_fulfillment；公共层会在项目契约补充完成后根据 blocking expectations 确定性派生整体状态。\n\n## 评估规范\n\n\n## 评估边界\n\n\n## 判断标准\n\n\n## 项目 ContextUnit（按 Role policy 在运行前确定性装载）\n## ContextUnit: judge_boundary: judge_boundary_protocals.md (project.client_search.asset.judge_boundary)\n# Judge Boundary Implementation - client_search\n\n本文件是 AI 根据 `projects/client_search/judge_boundary-template.md` 落地的 client_search judge 边界接入说明。用户侧标准是源头；本文件只负责把该标准接入 `impl` 的 judge/check/frontend 链路。\n\n## Source standard\n\n用户侧标准声明：client_search 的核心目标是判断当前 parser 能不能从依赖 ES 数据库中搜索到用户想要查询的客户。上游 ES 数据库字段、枚举值或实际数据缺失等当前系统无法直接控制的限制，不直接视为当前系统输出错误；模型、项目配置、prompt、项目代码、字段映射和后处理等当前系统可优化部分做得不好，应纳入评估范围。\n\n## Runtime standard for judge\n\n限制：有些用户需求受限于当前上游依赖的 ES 数据库中没有相应字段、枚举值或数据，可能无法完全满足用户意图；这类限制按业务系统能力边界判定，不直接视为当前系统输出错误。\n\n评价范围：如果是当前系统可以优化的部分做得不好，比如大模型理解、项目配置、prompt、项目代码、字段映射、值归一化、后处理或条件组合错误，就应该纳入衡量范围，按实际错误判定。\n\n核心依据：ES 数据库是核心判断依据，根据 ES 的表结构、查询规则、里面字段的枚举值来进行判断（数据库信息从原项目的配置文件/枚举值文件中获取）。原业务项目的字段定义、枚举、值映射和规则配置是系统外部/上下游能力边界的重要来源。`projects/client_search/prompt.md` 和静态 `config.md` 只是辅助参考，用于理解字段、枚举、操作符和格式要求。\n\n**关键原则：**\n- 因为上下游的 ES 数据库能力不是由本系统强弱决定的，所以评估只评价当前系统做得怎么样，不评估由于上游限制导致的偏差（无法控制的 ES 数据库）。\n- 如果是本系统可优化的部分（大模型、项目配置 prompt.md/config、项目代码、后处理逻辑、pipeline、模型能力本身等）做得不好，纳入衡量范围。\n- 由于 prompt、项目配置、后处理逻辑、pipeline 等系统内部内容都有可能出错，所以它们不能成为绝对标准。只有系统外部的约束（如下游 ES 依赖、下游数据）才是硬标准。\n- Judge 的核心：看 API 结果输出，从下游配置文件/枚举值文件中了解 API 输出的搜索字段与客户输入的搜索意图是否一致。具体字段不完全是重点，因为标准答案可能不止一个，核心是业务语义正确，在规定的枚举值内根据 API 结果能搜出正确客户列表即可。\n- 我们最终需要能从数据库中搜索到正确客户的 parser。如果 judge 发现数据库搜索结果等价，即便和 prompt.md/config.md/后处理逻辑/pipeline 的要求稍有不同也是可以接受的。\n- 什么情况下会出现等价查询，取决于用户搜索语义和 ES 查询语法。当下游不可用时，必须做好这点的判断。如果无法判断，尝试看能否做模拟查询，看查出来的数据是不是用户意图想要的。\n\n**特别注意：** 不要纠结 CONTAINS 和 MATCH 的问题，因为原项目会通过后处理处置，涉及输出为 CONTAINS 应改成 MATCH，或输出为 MATCH 应改成 CONTAINS 这种说法都是不必要的。\n\n下游不可用时的要求：不能因为无法调用 8081 就退化成机械比对 prompt/config 字段形态。judge 仍必须基于当前 parser 条件、ES 查询语法、字段语义、操作符语义、枚举能力和业务意图，尽可能判断搜索语义是否等价；只有条件语义或 ES 查询语义无法可靠判断时才返回 `not_evaluable`，并说明缺少的依据。\n\n## Implementation mapping\n\n- judge 输入读取本文件作为 `judge_boundary_spec`。\n- judge 同时读取 `projects/client_search/judge_boundary-template.md` 作为用户侧边界源头。\n- judge 同时读取 `projects/client_search/readme.md`、`config.md`、`prompt.md` 作为业务规则和能力边界辅助来源。\n- client_search adapter 会把 parser 返回的 `conditions` 和 `query_logic` 组装成下游搜索请求格式，并按项目配置尝试调用 `application.downstream_search`。\n- 下游搜索证据写入 `RunTrace.extracted_output.downstream_search` 和 `execution_trace` 的 `client_search.downstream_search` 节点。\n- 如果下游搜索成功，judge 可结合实际搜索返回判断是否能搜到用户意图客户，并在 fulfillment evidence 中说明结果集已验证。\n- 如果下游搜索不可用、未配置或 parser 无条件导致跳过，judge 必须在 fulfillment evidence 中标记 `result_set_verified=false`，但仍要做好 ES 查询语义等价判断；不能只因为没有结果集就直接 `not_evaluable` 或只做字符串级条件比对。\n- 如果 parser 条件形态与 prompt/config 略有不同，但 ES 查询语义或结果集等价，judge 可以按等价查询判 `fulfilled`。\napplication boundary 只能作为 fulfillment evidence 或项目上下文，不作为通用协议字段。\n- check agent 需要检查 judge 是否保留了下游搜索证据状态、是否把不可用结果集误当成已验证、是否在下游不可用时仍执行了 ES 查询语义等价判断、是否出现第二套 fulfilled/not_fulfilled 口径。\n\n\n## ContextUnit: judge_business_contract: judge_business_contract.md (project.client_search.asset.judge_business_contract)\n# client_search Judge business contract\n\n本 ContextUnit 是 Harness AI 从 Judge investigation 固化出的 Planning 合同，不包含\nactual、AuthorityAnalysis 原文或调查过程。\n\n- 产品期望：`find-target-customers`\n- 评估维度：`search-intent-preservation`、`downstream-query-consumability`\n- Live 责任：完整保留用户明确表达的客户筛选条件，并交付下游支持的字段、值、操作符和逻辑。\n- Live 边界：不保证数据库存在匹配客户，不承担外部客户数据缺失或服务不可用责任。\n\n当前 Case 的 frozen plan 必须覆盖：\n\n- `explicit_conditions`：明确表达的筛选条件；\n- `boolean_logic`：AND/OR/NOT 和范围关系；\n- `no_unexpressed_constraints`：不得增加会改变客户集合的未表达限制。\n\n每个 runtime expectation 必须引用产品期望和至少一个评估维度，并在 actual 可见前确定\nacceptance criteria 与 blocking。\n\n\n## ContextUnit: judge_evaluation: evaluation.md (project.client_search.asset.judge_evaluation)\n# Evaluation\n\nJudge the current client_search API output by reconstructing expected-vs-actual from the current query, current response, current downstream-search evidence when available, and the current project prompt/config references from `projects/client_search`.\n\n本文件定义”评估本 case 时的目标和重点”。边界定义和判定流程由 `judge_boundary_protocals.md` 和 `judge.md` 承载，本文件不重复。\n\n## Project-owned source references\n\n- `projects/client_search/readme.md`: 标准答案的答案结果由于数据库字段已经过时、跟 API 返回结果不一致，所以标准答案只能作为参考；judge 需要根据最新项目资料和当前运行证据进行实时标注。\n- `projects/client_search/config.md`: 原始字段定义、枚举、值映射和规则配置是 ES/search 能力边界的重要来源；静态摘要本身只是辅助指针，不是绝对标准。\n- `projects/client_search/prompt.md`: 当前 prompt 规则用于理解 parser 预期，但等价的 ES/search 结果仍然可接受。\n- `RunTrace.extracted_output.downstream_search`: 下游客户搜索探测结果。\n\n## Quality requirements\n\n- 不继承旧 case、page state、cluster 或 attribution 结论。\n- 先理解用户底层意图，再比较条件。\n- 边界优先级和判定流程见 `judge_boundary_protocals.md` 和 `judge.md`。\n- 分离 missing、wrong、extra 条件。\n- 如果 `structured_output` 为空而用户 query 非空，视为 empty-recognition，评估 query 是否应产生条件。\n- 空结果分类必须使用 API 响应中的最佳来源 query；缺少 `rewritten_query` 本身不应将非空请求变成 `empty_query`。\n\n\n## ContextUnit: judge_standard: judge.md (project.client_search.asset.judge_standard)\n# Judge Agent - client_search\n\n本文件定义 client_search 项目的 judge 构建逻辑。它必须满足用户侧边界标准 `projects/client_search/judge_boundary-template.md`：先消费 application/project adapter 在运行前附加的当前系统能力边界，再判断 API actual output 是否满足该边界内的用户搜索意图。\n\n## Judge 目标\n\n判断自然语言 query 是否被解析成正确、可执行、且在当前 `application_boundary.judge_scope` 内语义正确的结构化搜索条件。\n\njudge 不是简单比较历史标准答案，也不是检查 API 是否返回 200。`标准答案.xlsx` 只能作为 query 和历史参考；最终真值应从当前 query、当前 API actual output、adapter 提供的 `application_boundary`、当前配置、当前 prompt、项目 readme 和 judge boundary 重新推导。\n\n## 边界优先级\n\njudge 必须先消费项目 adapter 已确定的 `application_boundary`，再按项目边界区分两类问题：\n\n1. 系统能力边界：如果用户需求依赖上游 ES 数据库当前不存在的字段、枚举值、外部数据或不可控环境，且当前系统没有可表达能力，这部分只作为能力差距说明，不直接判为当前系统输出错误。\n2. 可评价系统问题：如果问题来自当前系统可优化部分，包括大模型理解、prompt、项目配置、项目代码、字段映射、值归一化、后处理或条件组合逻辑，就应纳入评估；做错应判 `incorrect`。\n\n边界依据优先级：adapter 暴露的 `application_boundary` 是当前运行能力边界；真实 ES/下游客户搜索的可查询语义、表结构、查询规则、字段和枚举能力是边界来源；原业务项目字段定义、枚举、值映射和增强规则配置是系统外部/上下游能力边界的重要来源。`projects/client_search/config.md` 和 `prompt.md` 只是辅助参考，用于理解字段、枚举、操作符和格式要求；prompt、生成配置摘要、项目代码、后处理和 pipeline 都可能出错，不能作为绝对正确标准。若 `application_boundary` 表明结果集已验证，且下游结果或 ES 查询语义能证明两个查询等价，可以接受与 prompt/config 中间形态略有不同的条件表达。\n\n## 判定步骤\n\n1. 重新理解 query 的核心筛选意图：哪些条件必须满足，哪些只是弱修饰，哪些当前系统字段或枚举不支持。\n2. 读取 `project_judge_context.application_boundary`，确定当前主评价范围：`parser_condition_semantics_only` 或 `parser_and_result_set`。\n3. 根据边界依据判断每个核心意图属于系统能力边界还是可评价系统范围。\n4. 从当前 API actual output 提取结构化条件、逻辑关系和关键返回字段。\n5. 在 `parser_and_result_set` 范围内，可把真实下游返回作为结果集验证证据，判断是否能搜到用户意图客户。\n6. 在 `parser_condition_semantics_only` 范围内，不能声称已验证 ES 实际结果集，也不要反复把下游不可用当作判定主因；应基于 parser 条件、ES 查询语法、字段语义、操作符语义、枚举能力和业务意图判断搜索语义是否等价，只有语义证据不足时才返回 `not_evaluable`，并说明缺少的依据。\n7. 比较 expected-vs-actual：字段业务含义、操作符、枚举值、单位换算、年龄/日期/金额边界、AND/OR 逻辑和条件覆盖是否正确。\n8. 如果条件形态不同但结果集证据或 ES 查询语义等价，应按“能否检索到正确客户”判定，而不是机械判字段/操作符不一致。\n9. 输出 fulfillment-first 结果，并给出 expected、actual、missing、wrong、extra、evidence 和 reasoning_summary。\n\n## 正确性重点\n\n- 字段名不应机械质疑，重点判断字段是否承载用户表达的业务含义并能形成正确查询。\n- 枚举值必须符合当前 ES/配置能力；别名、单位和金额边界必须正确归一化。\n- 年龄、日期、区间、存在性、否定、数组/集合等操作符必须符合当前查询语义。\n- 缺少用户核心意图、加入用户未表达的额外强约束、错误合并或拆分多个必须条件，都应判 `incorrect`。\n- 如果后处理把中间条件转成等价可执行形态，应判断最终业务语义是否能覆盖正确客户，不机械要求保留中间字段或操作符。\n- `application_boundary` 排除结果集验证时，不能声称结果集已验证；但必须继续依据 ES 查询语义和 parser 条件判断是否等价，不能简单退化为字段字符串比对、重复说明外部依赖不可用或直接 `not_evaluable`。\n\n## 禁止事项\n\n- 不继承旧 case、上一轮归因、历史 cluster、页面状态或历史 expected conditions。\n- 不把 `review_verdict`、`root_cause_cluster`、`source`、`run_status`、match agent 状态等来源/状态字段当作正确性依据。\n- 不用 attribute 结论反推 judge fulfillment；正确性必须先从当前 query、当前 actual output 和当前 application boundary 判断。\n- 不为了当前少数 case 写硬编码判定规则。\n- 不直接修改业务 parser、配置、prompt、标准答案或静态结果。\n\n## 与归因和 check 的分工\n\njudge 只判断输出是否正确，并说明 expected-vs-actual / expected-vs-result-set 差异。若判为 `incorrect`，attribute agent 再定位链路证据、根因、影响和修复方向。check agent 审查 judge、归因、页面和数据机制是否一致、可复现、不过拟合，是否存在第二套 correct/incorrect 口径，以及是否在 `application_boundary` 已排除结果集验证时仍把外部依赖不可用当作主要结论。\n\n\n\n\n## Judge 决策顺序\n先派生用户真正要办成的 blocking 核心业务交付，再逐项比较 actual。安全拒绝、透明说明、不编造条件只能作为独立 non-blocking 验收项，不能替代核心交付；overall 必须由 blocking assessments 聚合。证据充分时只判 fulfilled/not_fulfilled；仅职责外、输入不可用或决定性证据确实不足时判 not_evaluable。HTTP 状态、历史 verdict 和归因信息不得替代 expected-vs-actual 判断。\n\n## not_evaluable 成因契约（fulfilled.md §2.3/§10、authority.md §8.4）\n判 not_evaluable 时，必须在对应 assessment 的 actual_evidence 中显式写明成因标签，只允许五种：「结论类型：职责外」「结论类型：完全无关」「结论类型：依据不充分」「结论类型：输入坏」「结论类型：Authority 能力不可用」。Authority 开启时，职责外/职责内能力缺失/依据不充分必须真实调用 authority.resolve（在 authority_tool_call_ids 引用该次调用）；依据不充分同时给出缺料清单。Authority 关闭时不得自行声明这些治理结论，也不得仅因缺少 Authority 把用户效果判为 not_evaluable；应依据用户意图与当前实际交付判 fulfilled/not_fulfilled。完全无关/输入坏不需要 authority。缺标签或标签不可识别的 not_evaluable 会被标 needs_human_review（不静默放行）。\n\n## client_search 直接证据\n只评价当前 parser_condition_semantics_only 边界内的客户搜索条件。\n### 意图拆解（先定目标再判交付）\n先写出用户最终要得到的客户集合与每个核心约束（字段、操作符、值/单位、AND/OR 逻辑），再据此派生 business_expectations；每个可独立判断的请求维度拆一条 expectation，核心交付的 expected_outcome 必须描述用户最终要得到的客户集合/筛选条件/可执行搜索结果。\n### 逐项核对\n每个 expectation 逐维度对照 actual：条件缺失、错误映射、无依据的额外收窄分别判 not_fulfilled；wrong/missing/extra 必须来自当前 actual，不能来自猜测、历史 verdict 或归因信息。### 证据分级\n证据必须分级使用，低级别证据不能单独支撑 fulfilled：一级证据是 query 与 actual 本身（意图与交付的直接对照）；二级证据是权威业务口径（semantic_equivalence_rules 的等价条件形式/操作符兼容、value_mappings 的枚举全集与日期等价、enhanced_rules 中可被引用的确定性规则），只有实际引用到的二级证据才能支撑 fulfilled；三级证据是 matched_pattern、字段操作符合法性、Reference 一致——它们只解释条件如何被生成，不能单独证明用户意图已满足。字段定义只证明该字段声明的语义，名称相近或同属日期不能证明语义等价；枚举精确命中只证明值属于受控空间，不能证明该空间可被搜索消费；SearchHit 只用于导航，Load 后的内容也只能证明其明确声明的事项。意图约束与 actual 条件语义直接一致、不依赖映射/等价判断时，一级证据即可支撑 fulfilled。actual 使用未随附清单登记的字段名时，若 robot_text 或条件形态已明确该字段语义且与用户意图一致，不得仅因字段名不在清单中、或与清单键存在命名/别名差异而判 not_fulfilled；清单外字段按 actual 自身声明的语义核对，只有实际语义偏离意图或缺失核心约束才判 not_fulfilled。\n### 裸词规则\n请求只有裸词（无“姓名/客户/查/找/筛选”等指示词）且 actual 把该裸词当作姓名解析时，Reference 一致只说明生成路径匹配，不等于意图确认；除非存在姓名结构或语义证据（如专名、姓氏库命中、明确字段上下文），否则按未满足判 not_fulfilled。\nis_supported=false 或 actual 明确不支持某条件时，分别评价核心交付与透明边界说明，不能用说明替代核心结果。以下内容永远不能单独成为 blocking 核心交付：不错误映射、不编造条件、拒绝越界请求、告知当前限制、未识别到条件。若请求存在明确业务对象但 actual 没有可执行条件，仍要保留该对象的核心交付 expectation，Authority 关闭时按当前交付判 not_fulfilled；Authority 开启且最终判断依赖受治理标准时，先消费 Authority resolution 再判 fulfilled/not_fulfilled/not_evaluable。安全拒绝和透明说明必须另建 blocking=false 的 expectation。若 actual 只交付请求的一部分，必须按可独立判断的请求维度拆分 expectation：已交付维度照常评价；Authority 关闭时，被遗漏的 blocking 维度按实际未交付判 not_fulfilled；Authority 开启且命中 coverage_gap 时只让依赖该边界的 assessment 消费 Authority，不得把已交付维度一起降级。\n\n## client_search 最终输出拓扑与 fulfillment_assessments 字段约束（严格，以本节为唯一准则）\n最终只能输出一个符合 Judge LLM-owned schema 的 JSON object，禁止数组、Markdown、候选答案或对象外文字。顶层只允许 business_expectations、applicable_product_expectation_ids、fulfillment_assessments、expected、missing、wrong、extra、evidence、reasoning_summary。business_expectations 与 fulfillment_assessments 必须是独立顶层数组，并以 expectation_id 一一对齐。business_expectations[*].boundary 必须是 JSON object（没有内容就写 {}），绝不能写成数组。fulfillment_assessments[*] 只允许 expectation_id、status、score、expected_evidence、actual_evidence、downstream_impact、authority_tool_call_ids；expected_evidence/actual_evidence 必须是数组。禁止输出 overall_fulfillment、confidence、evidence_refs、authority_analysis_ids、actual；它们属于运行时代码派生/绑定字段，即使旧材料提到也不得由模型生成。只派生当前结论必需的验收项（通常 1-3 条，最多 4 条）；每条 evidence 最多 3 个短项，reasoning_summary 用不超过 180 个中文字符概括决定性依据，禁止复述输入资料。\n\n## Authority 状态\n本 case 无标准冲突、权威枚举空间或能力/职责边界候选信号，不提供 authority.resolve；请直接依据随附结构化资料完成判断，不得虚构 authority_tool_call_ids。\n## 工具使用原则\n所有工具的用途、调用时机和参数含义以 Agno tool schema 为准；user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息。\n\n## 禁止事项\n- 不要把 reference answer 当作默认主目标（除非 case 明确指定）\n- 不要把 HTTP 状态、run_status、attribute/cluster 结论当作满足依据\n- 不要归因内部代码、配置或 prompt 原因（属于 attribute agent）\n- Authority 的唯一运行时引用字段是 fulfillment_assessments[].authority_tool_call_ids；其中每个 ID 都必须来自本次 trace 中真实完成的 authority.resolve 调用，禁止自造。\n- 只输出结构化 schema 中声明的字段；不要自行增加未声明的历史/元数据字段。\n- 分析文字必须使用中文，包括 reasoning_summary 等所有文本字段。\n\n\n## 输出约束：judge 判定输出（自产 reference + fulfillment 判定）\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"business_expectations\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeBusinessExpectationOutput\"\n      }\n    },\n    \"applicable_product_expectation_ids\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"fulfillment_assessments\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeFulfillmentAssessmentOutput\"\n      }\n    },\n    \"expected\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"code\": {\n          \"type\": \"integer\"\n        },\n        \"msg\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"query\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"conditions\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"robot_text\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ],\n          \"minLength\": 1\n        },\n        \"query_logic\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ],\n          \"minLength\": 1\n        },\n        \"rewritten_query\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ],\n          \"minLength\": 1\n        },\n        \"end_flag\": {\n          \"type\": [\n            \"integer\",\n            \"null\"\n          ]\n        },\n        \"trace_id\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ],\n          \"minLength\": 1\n        },\n        \"matched_level\": {\n          \"type\": [\n            \"integer\",\n            \"null\"\n          ]\n        },\n        \"matched_patterns\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ],\n          \"minLength\": 1\n        },\n        \"intent_summary\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ],\n          \"minLength\": 1\n        },\n        \"confidence\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        },\n        \"cost_times\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"code\",\n        \"msg\",\n        \"query\",\n        \"conditions\",\n        \"robot_text\",\n        \"query_logic\",\n        \"rewritten_query\"\n      ]\n    },\n    \"missing\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"wrong\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"extra\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"evidence\": {\n      \"type\": \"array\",\n      \"items\": {}\n    },\n    \"reasoning_summary\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    }\n  },\n  \"additionalProperties\": false,\n  \"$defs\": {\n    \"JudgeBusinessExpectationOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"blocking\": {\n          \"type\": \"boolean\"\n        },\n        \"downstream_consumer\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"user_intent\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected_outcome\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"required_capabilities\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"acceptance_criteria\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"boundary\": {\n          \"type\": \"object\"\n        },\n        \"priority\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"blocking\"\n      ]\n    },\n    \"JudgeFulfillmentAssessmentOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"score\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        },\n        \"expected_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"actual_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"downstream_impact\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"authority_tool_call_ids\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"status\"\n      ]\n    },\n    \"GapItem\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"kind\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"error_type\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected\": {},\n        \"actual\": {},\n        \"evidence_ref\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"raw\": {},\n        \"incomplete\": {\n          \"type\": \"boolean\"\n        }\n      },\n      \"additionalProperties\": false\n    }\n  },\n  \"required\": [\n    \"reasoning_summary\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['reasoning_summary']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n\n### 嵌套字段子结构约束\n以下字段内部的子结构也必须严格遵守，不可随意编造字段名或类型：\n- **`expected`** 字段 (项目 client_search 的 expected/live output 结构) 必须符合以下结构：\n  ```json\n  {\n    \"type\": \"object\",\n    \"properties\": {\n      \"code\": {\n        \"type\": \"integer\"\n      },\n      \"msg\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"query\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"conditions\": {\n        \"type\": \"array\",\n        \"items\": {}\n      },\n      \"robot_text\": {\n        \"type\": [\n          \"string\",\n          \"null\"\n        ],\n        \"minLength\": 1\n      },\n      \"query_logic\": {\n        \"type\": [\n          \"string\",\n          \"null\"\n        ],\n        \"minLength\": 1\n      },\n      \"rewritten_query\": {\n        \"type\": [\n          \"string\",\n          \"null\"\n        ],\n        \"minLength\": 1\n      },\n      \"end_flag\": {\n        \"type\": [\n          \"integer\",\n          \"null\"\n        ]\n      },\n      \"trace_id\": {\n        \"type\": [\n          \"string\",\n          \"null\"\n        ],\n        \"minLength\": 1\n      },\n      \"matched_level\": {\n        \"type\": [\n          \"integer\",\n          \"null\"\n        ]\n      },\n      \"matched_patterns\": {\n        \"type\": [\n          \"string\",\n          \"null\"\n        ],\n        \"minLength\": 1\n      },\n      \"intent_summary\": {\n        \"type\": [\n          \"string\",\n          \"null\"\n        ],\n        \"minLength\": 1\n      },\n      \"confidence\": {\n        \"type\": [\n          \"number\",\n          \"null\"\n        ]\n      },\n      \"cost_times\": {\n        \"type\": [\n          \"number\",\n          \"null\"\n        ]\n      }\n    },\n    \"additionalProperties\": false,\n    \"required\": [\n      \"code\",\n      \"msg\",\n      \"query\",\n      \"conditions\",\n      \"robot_text\",\n      \"query_logic\",\n      \"rewritten_query\"\n    ]\n  }\n  ```\n",
+      "created_at": 1786540740,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "de764609-a839-4bf8-8bbd-880c94931457",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"user_intent\": null, \"run_trace\": {\"trace_id\": \"client_search:I264:1786540735149\", \"project_id\": \"client_search\", \"case_id\": \"I264\", \"intent_input\": {\"user_text\": \"YULIHUANG\", \"user_id\": \"eval-user\", \"trace_id\": \"\", \"session_id\": \"eval-session\", \"source\": \"askbob\", \"extra_input_params\": {}}, \"normalized_request\": {\"user_text\": \"YULIHUANG\", \"user_id\": \"eval-user\", \"trace_id\": \"\", \"session_id\": \"eval-session\", \"source\": \"askbob\", \"extra_input_params\": {}}, \"final_output\": {\"code\": 0, \"msg\": \"操作成功\", \"robot_text\": \"暂时没判读出这组数据代表什么，已帮您在手机号、客户号、保单号中一起查找匹配的客户\", \"end_flag\": 1, \"trace_id\": \"\", \"query\": \"YULIHUANG\", \"query_logic\": \"OR\", \"conditions\": [{\"field\": \"clientNo\", \"operator\": \"MATCH\", \"value\": \"YULIHUANG\", \"match_mode\": null}, {\"field\": \"polNo\", \"operator\": \"MATCH\", \"value\": \"YULIHUANG\", \"match_mode\": null}], \"matched_level\": 2, \"matched_patterns\": \"裸值弱命\", \"rewritten_query\": \"YULIHUANG\", \"intent_summary\": \"暂时没判读出这组数据代表什么，已帮您在手机号、客户号、保单号中一起查找匹配的客户\", \"confidence\": 0.6, \"cost_times\": 29.0}, \"actual_state\": \"available\", \"final_output_turn\": 1, \"turns\": [{\"turn_index\": 1, \"request\": {\"user_text\": \"YULIHUANG\", \"user_id\": \"eval-user\", \"trace_id\": \"\", \"session_id\": \"eval-session\", \"source\": \"askbob\", \"extra_input_params\": {}}, \"extracted_output\": {\"code\": 0, \"msg\": \"操作成功\", \"robot_text\": \"暂时没判读出这组数据代表什么，已帮您在手机号、客户号、保单号中一起查找匹配的客户\", \"end_flag\": 1, \"trace_id\": \"\", \"query\": \"YULIHUANG\", \"query_logic\": \"OR\", \"conditions\": [{\"field\": \"clientNo\", \"operator\": \"MATCH\", \"value\": \"YULIHUANG\", \"match_mode\": null}, {\"field\": \"polNo\", \"operator\": \"MATCH\", \"value\": \"YULIHUANG\", \"match_mode\": null}], \"matched_level\": 2, \"matched_patterns\": \"裸值弱命\", \"rewritten_query\": \"YULIHUANG\", \"intent_summary\": \"暂时没判读出这组数据代表什么，已帮您在手机号、客户号、保单号中一起查找匹配的客户\", \"confidence\": 0.6, \"cost_times\": 29.0}, \"call_status\": \"succeeded\", \"runtime_ms\": 96, \"error\": null, \"fallbacks\": [], \"validation\": [], \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"client_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"client_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"client_search.request_normalization\", \"status\": \"succeeded\", \"evidence\": {\"user_text\": \"YULIHUANG\", \"source\": \"askbob\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"client_search.api\", \"status\": \"suspicious\", \"evidence\": {\"code\": null}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"client_search.routing\", \"status\": \"not_verified\", \"evidence\": {\"matched_level\": null, \"matched_patterns\": null}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"client_search.downstream_search\", \"status\": \"not_verified\", \"evidence\": {}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"client_search.output_extract\", \"status\": \"succeeded\", \"evidence\": {\"logic\": \"OR\", \"condition_count\": 2}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"application_boundary\": {\"downstream_result_set_available\": false, \"downstream_status\": \"not_verified\", \"judge_scope\": \"parser_condition_semantics_only\", \"result_set_verified\": false, \"reason\": \"application live layer probed downstream customer search before judge/attribute and constrained evaluation scope to parser output semantics.\"}, \"project_fields\": {\"downstream_search\": {}, \"external_boundary_sources\": {\"config_paths\": {\"source_field_definitions\": \"/Users/xiaozijian/WorkSpace/package/client_search_jmz_raw/llm_client_search/src/main/python/data/client_search_query_parse/field_definitions_args.yaml\", \"source_field_enums\": \"/Users/xiaozijian/WorkSpace/package/client_search_jmz_raw/llm_client_search/src/main/python/data/client_search_query_parse/field_enums_args.yaml\", \"source_planfullname_enums\": \"/Users/xiaozijian/WorkSpace/package/client_search_jmz_raw/llm_client_search/src/main/python/data/client_search_query_parse/polNoInfo.plancodeinfo.planfullname_enums_args.yaml\", \"source_abbrname_enums\": \"/Users/xiaozijian/WorkSpace/package/client_search_jmz_raw/llm_client_search/src/main/python/data/client_search_query_parse/polNoInfo.plancodeinfo.abbrname_enums_args.yaml\", \"source_claimplancodename_enums\": \"/Users/xiaozijian/WorkSpace/package/client_search_jmz_raw/llm_client_search/src/main/python/data/client_search_query_parse/polNoInfo.claimdatainfo.claimplancodename_enums_args.yaml\", \"source_profname_enums\": \"/Users/xiaozijian/WorkSpace/package/client_search_jmz_raw/llm_client_search/src/main/python/data/client_search_query_parse/profName_enums_args.yaml\", \"source_value_mappings\": \"/Users/xiaozijian/WorkSpace/package/client_search_jmz_raw/llm_client_search/src/main/python/data/client_search_query_parse/value_mappings_args.yaml\", \"source_enhanced_rules\": \"/Users/xiaozijian/WorkSpace/package/client_search_jmz_raw/llm_client_search/src/main/python/data/client_search_query_parse/enhanced_rules_args.yaml\"}}, \"empty_result_reason\": \"\", \"is_empty_result\": false}}], \"conversation_transcript\": [], \"conversation_summary\": {\"turn_count\": 1, \"final_output_turn\": 1, \"completion_status\": \"completed\", \"stop_reason\": \"single_turn_completed\", \"interaction_controller_status\": \"not_run\", \"interaction_controller_error\": \"\"}, \"stop_reason\": \"single_turn_completed\", \"completion_status\": \"completed\", \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"client_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"client_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"client_search.request_normalization\", \"status\": \"succeeded\", \"evidence\": {\"user_text\": \"YULIHUANG\", \"source\": \"askbob\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"client_search.api\", \"status\": \"suspicious\", \"evidence\": {\"code\": null}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"client_search.routing\", \"status\": \"not_verified\", \"evidence\": {\"matched_level\": null, \"matched_patterns\": null}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"client_search.downstream_search\", \"status\": \"not_verified\", \"evidence\": {}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"client_search.output_extract\", \"status\": \"succeeded\", \"evidence\": {\"logic\": \"OR\", \"condition_count\": 2}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"evidence_refs\": [], \"raw_response_evidence\": null, \"evidence_completeness\": {\"complete\": true, \"missing_evidence\": []}, \"application_boundary\": {\"downstream_result_set_available\": false, \"downstream_status\": \"not_verified\", \"judge_scope\": \"parser_condition_semantics_only\", \"result_set_verified\": false, \"reason\": \"application live layer probed downstream customer search before judge/attribute and constrained evaluation scope to parser output semantics.\"}, \"reference_contract\": {}, \"scenario\": \"badcase\", \"status\": \"ok\", \"error\": null}, \"capability_manifest\": {\"clientNo\": {\"field\": \"clientNo\", \"operators\": [\"MATCH\"], \"value_types\": [\"extract\"], \"description\": \"表示客户编号：以C开头，或以00开头；前缀之后为11至12位数字或字母。英文字母统一转为大写\", \"definition\": \"表示客户编号：以C开头，或以00开头；前缀之后为11至12位数字或字母。英文字母统一转为大写\", \"enums\": [], \"enum_ref\": \"\", \"enum_refs\": [], \"unresolved_enum_refs\": [], \"show_enum_in_prompt\": true, \"enum_candidate_limit_in_prompt\": null, \"unit\": \"\", \"notes\": \"完整客户号应先统一转为大写；当查询客户号尾号|尾数|末尾|后x位|后几位|结尾时，必须设置match_mode=suffix。客户号只能是数字或字母，不可能是中文。\", \"is_supported\": true, \"is_supported_explicit\": false}, \"polNo\": {\"field\": \"polNo\", \"operators\": [\"MATCH\"], \"value_types\": [\"extract\"], \"description\": \"表示保单号，不表示客户编号。标准格式包括：P或A开头后跟15至17位数字或字母（兼容历史数据中的14位）；GP开头后跟14位数字或字母；在明确写出“保单号”时也支持15至17位纯数字。字母统一转为大写\", \"definition\": \"表示保单号，不表示客户编号。标准格式包括：P或A开头后跟15至17位数字或字母（兼容历史数据中的14位）；GP开头后跟14位数字或字母；在明确写出“保单号”时也支持15至17位纯数字。字母统一转为大写\", \"enums\": [], \"enum_ref\": \"\", \"enum_refs\": [], \"unresolved_enum_refs\": [], \"show_enum_in_prompt\": true, \"enum_candidate_limit_in_prompt\": null, \"unit\": \"\", \"notes\": \"保单号一定是由数据或字母组成的，不可能为中文\", \"is_supported\": true, \"is_supported_explicit\": false}}, \"semantic_equivalence_rules\": {}, \"value_mappings\": {}, \"enhanced_rules\": {\"rules\": [{\"name\": \"客户号-尾号\", \"patterns\": [\"{SEARCH}{CLIENT_NO_FIELD_WORD}(?:的)?{SUFFIX_WORD}(?:为|是)?[：:\\\\s]?([A-Za-z0-9]{1,11}){CUSTOMER_SUFFIX}\", \"{SEARCH}([A-Za-z0-9]{1,11})(?:的)?{CLIENT_NO_FIELD_WORD}(?:的)?{SUFFIX_WORD}{CUSTOMER_SUFFIX}\", \"{SEARCH}00[A-Za-z0-9]*\\\\*{3,}([A-Za-z0-9]{4})\", \"{SEARCH}(?:尾号|尾数|末尾|后四位|后几位)(?:为|是)?[：:\\\\s]?([A-Za-z0-9]{1,11})(?:的)?(?:客户号|客户编号|客户代码|客户ID|客户id){CUSTOMER_SUFFIX}\", \"{SEARCH}([A-Za-z0-9]{1,11})(?:尾号|尾数|末尾|后四位|后几位)(?:的)?(?:客户号|客户编号|客户代码|客户ID|客户id){CUSTOMER_SUFFIX}\", \"{SEARCH}(?:客户号|客户编号|客户代码|客户ID|客户id){CW}{0,2}(?:尾号|尾数|末尾|最后四位|后四位|后几位|结尾)(?:为|是)?[：:\\\\s]?([A-Za-z0-9]{1,11}){CUSTOMER_SUFFIX}\", \"{SEARCH}(?:客户号|客户编号|客户代码|客户ID|客户id)(?:以)?([A-Za-z0-9]{1,11})(?:结尾|为尾号|作尾号){CUSTOMER_SUFFIX}\", \"{SEARCH}(?:客户号|客户编号|客户代码|客户ID|客户id)(?:的)?(?:尾号|尾数|末尾|后四位|后几位|结尾)(?:是|为)?([A-Za-z0-9]+)(?:的)?{CUSTOMER_SUFFIX}\", \"{SEARCH}(?:客户号|客户编号|客户代码|客户ID|客户id)(?:的)?最?后(?:一|两|二|三|四|五|六|七|八|九|十|\\\\d+)位(?:是|为)?([A-Za-z0-9]+)(?:的)?{CUSTOMER_SUFFIX}\", \"{SEARCH}(?:客户号|客户编号|客户代码|客户ID|客户id)以([A-Za-z0-9]+)(?:尾号|尾数|末尾|后四位|后几位|结尾)(?:的)?{CUSTOMER_SUFFIX}\", \"{SEARCH}(?:客户号|客户编号|客户代码|客户ID|客户id)(?:的)?(?:尾号|尾数|末尾|后四位|后几位|结尾)(?:是|为)?([A-Za-z0-9]+){CUSTOMER_SUFFIX}\"], \"field\": \"clientNo\", \"operator\": \"MATCH\", \"match_mode\": \"suffix\", \"value_type\": \"capture\", \"value\": {\"group\": 1}, \"priority\": 18, \"merge_to_llm\": false}, {\"name\": \"客户号-匹配\", \"patterns\": [\"{SEARCH}?(?:客户号|客户编号|客户代码|客户ID|客户id){CW}{0,2}[为是：:]\\\\s*(?<![A-Za-z])({CUSTOMER_C_PREFIX}{BUSINESS_ALNUM}{11,12})\", \"{SEARCH}?(?:客户号|客户编号|客户代码|客户ID|客户id)(?:匹配|等于|包含|含有|带有)?(?<![A-Za-z])({CUSTOMER_C_PREFIX}{BUSINESS_ALNUM}{11,12})(?:的客户|客户|的)?\", \"{SEARCH}?(?<![A-Za-z])({CUSTOMER_C_PREFIX}{BUSINESS_ALNUM}{11,12}){CW}{0,2}\", \"{SEARCH}?(?:客户号|客户编号|客户代码|客户ID|客户id){CW}{0,2}[为是：:]\\\\s*({CUSTOMER_ZERO_PREFIX}{BUSINESS_ALNUM}{10,11})\", \"{SEARCH}?(?:客户号|客户编号|客户代码|客户ID|客户id)(?:匹配|等于|包含|含有|带有)?(?<![A-Za-z])({CUSTOMER_ZERO_PREFIX}{BUSINESS_ALNUM}{10,11})(?:的客户|客户|的)?\", \"{SEARCH}?(?<![A-Za-z])({CUSTOMER_ZERO_PREFIX}{BUSINESS_ALNUM}{10,11}){CW}{0,2}\", \"{SEARCH}?(?:客户号|客户编号|客户代码|客户ID|客户id)(?:前缀|开头|以)(?:为|是)?[：:\\\\s]?([A-Za-z0-9]{1,11})(?:开头)?(?:的客户|客户|的)?\", \"{SEARCH}?(?:客户号|客户编号|客户代码|客户ID|客户id)([A-Za-z0-9]{1,11})(?:开头|前缀)(?:的客户|客户)?\", \"{SEARCH}([A-Za-z0-9]{1,11})(?:开头|前缀)(?:的)?(?:客户号|客户编号|客户代码|客户ID|客户id)(?:的客户|客户|的)?\"], \"field\": \"clientNo\", \"operator\": \"MATCH\", \"value_type\": \"capture\", \"value\": {\"group\": 1, \"transform\": \"upper\"}, \"priority\": 11}, {\"name\": \"客户号前缀\", \"field\": \"clientNo\", \"operator\": \"MATCH\", \"match_mode\": \"prefix\", \"value_type\": \"capture\", \"value_as_string\": true, \"priority\": 80, \"patterns\": [\"(?:客户号|客户编号)以([A-Za-z0-9]+)开头\", \"(?:客户号|客户编号)以([A-Za-z0-9]+)开头(?:的)?{CUSTOMER_SUFFIX}\", \"(?:客户号|客户编号)前缀(?:是|为)?([A-Za-z0-9]+)\", \"(?:客户号|客户编号)(?:的)?前(?:一|两|二|三|四|五|六|七|八|九|十|\\\\d+)位(?:是|为)?([A-Za-z0-9]+)\", \"(?:客户号|客户编号)(?:的)?前(?:一|两|二|三|四|五|六|七|八|九|十|\\\\d+)位(?:是|为)?([A-Za-z0-9]+)(?:的)?{CUSTOMER_SUFFIX}\", \"(?:客户号|客户编号)(?:的)?开头(?:是|为)?([A-Za-z0-9]+)\", \"(?:客户号|客户编号)(?:的)?起始(?:是|为)?([A-Za-z0-9]+)\"]}, {\"name\": \"客户号尾号\", \"field\": \"clientNo\", \"operator\": \"MATCH\", \"match_mode\": \"suffix\", \"value_type\": \"capture\", \"value_as_string\": true, \"priority\": 80, \"patterns\": [\"(?:客户号|客户编号)(?:的)?尾号(?:是|为)?([A-Za-z0-9]+)\", \"(?:客户号|客户编号)(?:的)?尾号(?:是|为)?([A-Za-z0-9]+)(?:的)?{CUSTOMER_SUFFIX}\", \"(?:客户号|客户编号)(?:的)?后(?:一|两|二|三|四|五|六|七|八|九|十|\\\\d+)位(?:是|为)?([A-Za-z0-9]+)\", \"(?:客户号|客户编号)(?:的)?后(?:一|两|二|三|四|五|六|七|八|九|十|\\\\d+)位(?:是|为)?([A-Za-z0-9]+)(?:的)?{CUSTOMER_SUFFIX}\", \"(?:客户号|客户编号)以([A-Za-z0-9]+)结尾\", \"(?:客户号|客户编号)以([A-Za-z0-9]+)结尾(?:的)?{CUSTOMER_SUFFIX}\", \"(?:客户号|客户编号)(?:的)?末尾(?:是|为)?([A-Za-z0-9]+)\", \"(?:客户号|客户编号)(?:的)?最后(?:一|两|二|三|四|五|六|七|八|九|十|\\\\d+)位(?:是|为)?([A-Za-z0-9]+)\", \"(?:客户号|客户编号)(?:的)?结尾(?:是|为)?([A-Za-z0-9]+)\"]}, {\"name\": \"客户号包含\", \"field\": \"clientNo\", \"operator\": \"MATCH\", \"match_mode\": \"contains\", \"value_type\": \"capture\", \"value_as_string\": true, \"priority\": 70, \"patterns\": [\"(?:客户号|客户编号)(?:中|里)?(?:包含|含有)([A-Za-z0-9]+)\", \"(?:客户号|客户编号)(?:中|里)?(?:包含|含有)([A-Za-z0-9]+)(?:的)?{CUSTOMER_SUFFIX}\", \"(?:客户号|客户编号)(?:中|里|里面)?有([A-Za-z0-9]+)\", \"(?:客户号|客户编号)(?:中|里)?带([A-Za-z0-9]+)(?:的)?\"]}, {\"name\": \"客户号不以某值开头\", \"field\": \"clientNo\", \"operator\": \"NOT_CONTAINS\", \"match_mode\": \"prefix\", \"value_type\": \"capture\", \"value_as_string\": true, \"priority\": 100, \"patterns\": [\"(?:客户号|客户编号)不(?:是)?以([A-Za-z0-9]+)开头\", \"(?:客户号|客户编号)(?:的)?开头不(?:是|为)?([A-Za-z0-9]+)\"]}, {\"name\": \"客户号尾号不为某值\", \"field\": \"clientNo\", \"operator\": \"NOT_CONTAINS\", \"match_mode\": \"suffix\", \"value_type\": \"capture\", \"value_as_string\": true, \"priority\": 100, \"patterns\": [\"(?:客户号|客户编号)(?:的)?尾号不(?:是|为)?([A-Za-z0-9]+)\", \"(?:客户号|客户编号)不(?:是)?以([A-Za-z0-9]+)结尾\"]}, {\"name\": \"客户号不包含某值\", \"field\": \"clientNo\", \"operator\": \"NOT_CONTAINS\", \"match_mode\": \"contains\", \"value_type\": \"capture\", \"value_as_string\": true, \"priority\": 100, \"patterns\": [\"(?:客户号|客户编号)(?:中|里)?不(?:包含|含有)([A-Za-z0-9]+)\", \"(?:客户号|客户编号)(?:中|里|里面)?没有([A-Za-z0-9]+)\"]}, {\"name\": \"保单号-匹配\", \"patterns\": [\"{SEARCH}({POLICY_GP_PREFIX}{BUSINESS_ALNUM}{14})(?:的客户|客户)?\", \"{SEARCH}({POLICY_PA_PREFIX}{BUSINESS_ALNUM}{14,17})(?:的客户|客户)?\", \"{SEARCH}(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id){CW}{0,2}[为是：:]?\\\\s*({POLICY_GP_PREFIX}{BUSINESS_ALNUM}{14})(?:的客户|客户)?\", \"{SEARCH}(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id){CW}{0,2}[为是：:]?\\\\s*({POLICY_PA_PREFIX}{BUSINESS_ALNUM}{14,17}|{POLICY_GP_PREFIX}{BUSINESS_ALNUM}{14}|{BUSINESS_DIGIT}{15,17})(?:的客户|客户)?\", \"{SEARCH}(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id)(?:匹配|等于|包含|含有|带有)?\\\\s*({POLICY_PA_PREFIX}{BUSINESS_ALNUM}{14,17}|{POLICY_GP_PREFIX}{BUSINESS_ALNUM}{14}|{BUSINESS_DIGIT}{15,17})(?:的客户|客户)?\", \"{SEARCH}(?:保单)(?:号|号码|编号|代码|ID|id)?(?:为|是|匹配|等于)?\\\\s*({BUSINESS_DIGIT}{15,17})(?:的客户|客户)?\", \"{SEARCH}(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id)(?:前缀|开头|以)(?:为|是)?[：:\\\\s]?([A-Za-z0-9]{1,20})(?:开头)?(?:的客户|客户)?\", \"{SEARCH}(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id){CW}{0,2}([A-Za-z0-9]{1,20})(?:开头|前缀)(?:的客户|客户)?\", \"{SEARCH}([A-Za-z0-9]{1,20})(?:开头|前缀)(?:的)?(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id)(?:的客户|客户)?\"], \"field\": \"polNo\", \"operator\": \"MATCH\", \"value_type\": \"capture\", \"value\": {\"group\": 1, \"transform\": \"upper\"}, \"priority\": 10}, {\"name\": \"保单号-尾号\", \"patterns\": [\"{SEARCH}{POLICY_NO_FIELD_WORD}(?:的)?{SUFFIX_WORD}(?:为|是)?[：:\\\\s]?([A-Za-z0-9]{1,20}){CUSTOMER_SUFFIX}\", \"{SEARCH}([A-Za-z0-9]{1,20})(?:的)?{POLICY_NO_FIELD_WORD}(?:的)?{SUFFIX_WORD}{CUSTOMER_SUFFIX}\", \"{SEARCH}[Pp][A-Za-z0-9]*\\\\*{3,}([A-Za-z0-9]{4})\", \"{SEARCH}(?:尾号|尾数|末尾|后四位|后几位)(?:为|是)?[：:\\\\s]?([A-Za-z0-9]{1,20})(?:的)?(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id){CUSTOMER_SUFFIX}\", \"{SEARCH}([A-Za-z0-9]{1,20})(?:尾号|尾数|末尾|后四位|后几位)(?:的)?(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id){CUSTOMER_SUFFIX}\", \"{SEARCH}(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id){CW}{0,2}(?:尾号|尾数|末尾|后四位|后几位|结尾)(?:为|是)?[：:\\\\s]?([A-Za-z0-9]{1,20}){CUSTOMER_SUFFIX}\", \"{SEARCH}(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id){CW}{0,2}([A-Za-z0-9]{1,20})(?:尾号|尾数|末尾|后四位|后几位|结尾){CUSTOMER_SUFFIX}\", \"{SEARCH}(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id)(?:的)?(?:尾号|尾数|末尾|后四位|后几位|结尾)(?:是|为)?([A-Za-z0-9\\\\-]+)(?:的)?{CUSTOMER_SUFFIX}\", \"{SEARCH}(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id)(?:的)?最?后(?:一|两|二|三|四|五|六|七|八|九|十|\\\\d+)位(?:是|为)?([A-Za-z0-9\\\\-]+)(?:的)?{CUSTOMER_SUFFIX}\", \"{SEARCH}(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id)以([A-Za-z0-9\\\\-]+)(?:尾号|尾数|末尾|后四位|后几位|结尾)(?:的)?{CUSTOMER_SUFFIX}\"], \"field\": \"polNo\", \"operator\": \"MATCH\", \"match_mode\": \"suffix\", \"value_type\": \"capture\", \"value\": {\"group\": 1, \"transform\": \"strip_non_digits\"}, \"priority\": 18, \"merge_to_llm\": false}, {\"name\": \"保单号前缀\", \"field\": \"polNo\", \"operator\": \"MATCH\", \"match_mode\": \"prefix\", \"value_type\": \"capture\", \"value_as_string\": true, \"priority\": 80, \"patterns\": [\"(?:保单号|保单编号)以([A-Za-z0-9\\\\-]+)开头\", \"(?:保单号|保单编号)以([A-Za-z0-9\\\\-]+)开头(?:的)?{CUSTOMER_SUFFIX}\", \"(?:保单号|保单编号)前缀(?:是|为)?([A-Za-z0-9\\\\-]+)\", \"(?:保单号|保单编号)(?:的)?前(?:一|两|二|三|四|五|六|七|八|九|十|\\\\d+)位(?:是|为)?([A-Za-z0-9\\\\-]+)\", \"(?:保单号|保单编号)(?:的)?前(?:一|两|二|三|四|五|六|七|八|九|十|\\\\d+)位(?:是|为)?([A-Za-z0-9\\\\-]+)(?:的)?{CUSTOMER_SUFFIX}\", \"(?:保单号|保单编号)(?:的)?开头(?:是|为)?([A-Za-z0-9\\\\-]+)\", \"(?:保单号|保单编号)(?:的)?起始(?:是|为)?([A-Za-z0-9\\\\-]+)\"]}, {\"name\": \"保单号尾号\", \"field\": \"polNo\", \"operator\": \"MATCH\", \"match_mode\": \"suffix\", \"value_type\": \"capture\", \"value_as_string\": true, \"priority\": 80, \"patterns\": [\"(?:保单号|保单编号)(?:的)?尾号(?:是|为)?([A-Za-z0-9\\\\-]+)\", \"(?:保单号|保单编号)(?:的)?尾号(?:是|为)?([A-Za-z0-9\\\\-]+)(?:的)?{CUSTOMER_SUFFIX}\", \"(?:保单号|保单编号)(?:的)?后(?:一|两|二|三|四|五|六|七|八|九|十|\\\\d+)位(?:是|为)?([A-Za-z0-9\\\\-]+)\", \"(?:保单号|保单编号)(?:的)?后(?:一|两|二|三|四|五|六|七|八|九|十|\\\\d+)位(?:是|为)?([A-Za-z0-9\\\\-]+)(?:的)?{CUSTOMER_SUFFIX}\", \"(?:保单号|保单编号)以([A-Za-z0-9\\\\-]+)结尾\", \"(?:保单号|保单编号)以([A-Za-z0-9\\\\-]+)结尾(?:的)?{CUSTOMER_SUFFIX}\", \"(?:保单号|保单编号)(?:的)?末尾(?:是|为)?([A-Za-z0-9\\\\-]+)\", \"(?:保单号|保单编号)(?:的)?最后(?:一|两|二|三|四|五|六|七|八|九|十|\\\\d+)位(?:是|为)?([A-Za-z0-9\\\\-]+)\", \"(?:保单号|保单编号)(?:的)?结尾(?:是|为)?([A-Za-z0-9\\\\-]+)\"]}, {\"name\": \"保单号包含\", \"field\": \"polNo\", \"operator\": \"MATCH\", \"match_mode\": \"contains\", \"value_type\": \"capture\", \"value_as_string\": true, \"priority\": 70, \"patterns\": [\"(?:保单号|保单编号)(?:中|里)?(?:包含|含有)([A-Za-z0-9\\\\-]+)\", \"(?:保单号|保单编号)(?:中|里)?(?:包含|含有)([A-Za-z0-9\\\\-]+)(?:的)?{CUSTOMER_SUFFIX}\", \"(?:保单号|保单编号)(?:中|里|里面)?有([A-Za-z0-9\\\\-]+)\", \"(?:保单号|保单编号)(?:中|里)?带([A-Za-z0-9\\\\-]+)(?:的)?\"]}, {\"name\": \"保单号不以某值开头\", \"field\": \"polNo\", \"operator\": \"NOT_CONTAINS\", \"match_mode\": \"prefix\", \"value_type\": \"capture\", \"value_as_string\": true, \"priority\": 100, \"patterns\": [\"(?:保单号|保单编号)不(?:是)?以([A-Za-z0-9\\\\-]+)开头\", \"(?:保单号|保单编号)(?:的)?开头不(?:是|为)?([A-Za-z0-9\\\\-]+)\"]}, {\"name\": \"保单号尾号不为某值\", \"field\": \"polNo\", \"operator\": \"NOT_CONTAINS\", \"match_mode\": \"suffix\", \"value_type\": \"capture\", \"value_as_string\": true, \"priority\": 100, \"patterns\": [\"(?:保单号|保单编号)(?:的)?尾号不(?:是|为)?([A-Za-z0-9\\\\-]+)\", \"(?:保单号|保单编号)不(?:是)?以([A-Za-z0-9\\\\-]+)结尾\", \"(?:保单号|保单编号)(?:的)?末尾不(?:是|为)?([A-Za-z0-9\\\\-]+)\"]}, {\"name\": \"保单号不包含某值\", \"field\": \"polNo\", \"operator\": \"NOT_CONTAINS\", \"match_mode\": \"contains\", \"value_type\": \"capture\", \"value_as_string\": true, \"priority\": 100, \"patterns\": [\"(?:保单号|保单编号)(?:中|里)?不(?:包含|含有)([A-Za-z0-9\\\\-]+)\", \"(?:保单号|保单编号)(?:中|里|里面)?没有([A-Za-z0-9\\\\-]+)\"]}], \"negation_words\": [\"没有配置\", \"未配置\", \"没配置\", \"未购买\", \"没有\", \"没买\", \"未买\", \"缺少\", \"缺失\", \"没\", \"无\", \"不\", \"缺\", \"未\", \"非\"]}, \"critical_intent_dimensions\": [\"target_population\", \"field_semantics\", \"operator\", \"value_or_unit\", \"boolean_logic\", \"unsupported_or_out_of_boundary_request\"], \"enum_completeness_evidence\": [], \"unsupported_boundary_evidence\": {}, \"condition_comparison\": {\"tool_id\": \"client_search.condition_compare\", \"tool_type\": \"comparison\", \"status\": \"succeeded\", \"outputs\": {\"target_population\": \"YULIHUANG\", \"expected\": {\"query_logic\": \"AND\", \"conditions\": [], \"expected_source\": \"not_available\", \"reference_conditions\": [], \"reference_is_oracle\": false}, \"actual\": {\"query_logic\": \"OR\", \"conditions\": [{\"field\": \"clientNo\", \"operator\": \"MATCH\", \"value\": \"YULIHUANG\", \"match_mode\": null}, {\"field\": \"polNo\", \"operator\": \"MATCH\", \"value\": \"YULIHUANG\", \"match_mode\": null}]}, \"wrong\": [], \"missing\": [], \"extra\": [], \"extra_or_overbroad\": [], \"boundary_limits\": [], \"comparison_basis\": \"client_search wrong/missing/extra customer-search coverage\", \"expected_source\": \"not_available\", \"evaluable\": false, \"expected_source_label\": \"not_available\"}, \"evidence\": [{\"query\": \"YULIHUANG\"}, {\"expected\": {\"query_logic\": \"AND\", \"conditions\": [], \"expected_source\": \"not_available\", \"reference_conditions\": [], \"reference_is_oracle\": false}}, {\"actual\": {\"query_logic\": \"OR\", \"conditions\": [{\"field\": \"clientNo\", \"operator\": \"MATCH\", \"value\": \"YULIHUANG\", \"match_mode\": null}, {\"field\": \"polNo\", \"operator\": \"MATCH\", \"value\": \"YULIHUANG\", \"match_mode\": null}]}}, {\"wrong\": [], \"missing\": [], \"extra\": [], \"boundary_limits\": []}], \"missing_evidence\": [{\"reason\": \"current intent/config expected conditions unavailable; reference expected_conditions kept as evidence only\", \"expected_source\": \"not_available\"}], \"boundary_limits\": [], \"error\": \"\"}, \"product_use_scenarios\": {\"find-target-customers\": \"用户通过自然语言描述目标客户群体并使用客户搜索产品\"}, \"authority_environment_snapshot_sha256\": \"\", \"authority_mode\": \"not_required\"}",
+      "created_at": 1786540740,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "8da1419e-a84f-42aa-9070-f4c1dd3b75d0",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "",
+      "created_at": 1786540740,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "16b8f679-74a6-4655-8396-254a5df18b50",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 7680,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 16227,
+        "output_tokens": 5812,
+        "provider_metrics": null,
+        "reasoning_tokens": 5689,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 22039
+      },
+      "name": null,
+      "provider_data": {
+        "id": "08fd102a-5247-4699-a731-353208f95fd1",
+        "model_extra": {
+          "cost": "0"
+        }
+      },
+      "reasoning_content": "Let me analyze this case carefully.\n\nThe user query is \"YULIHUANG\" — a bare string with no指示词 (no \"姓名/客户/查/找/筛选\" etc.).\n\nThe actual output:\n- robot_text: \"暂时没判读出这组数据代表什么，已帮您在手机号、客户号、保单号中一起查找匹配的客户\"\n- conditions: clientNo MATCH \"YULIHUANG\", polNo MATCH \"YULIHUANG\"\n- query_logic: OR\n- matched_patterns: \"裸值弱命\"\n\nKey considerations:\n\n1. The query \"YULIHUANG\" looks like a name (pinyin of a Chinese name, e.g., 于丽黄/余丽黄... Actually \"YULIHUANG\" could be pinyin \"Yu Li Huang\" — a person name). But there's no explicit indicator that it's a name.\n\n2. The bare word rule from judge boundary: 请求只有裸词（无“姓名/客户/查/找/筛选”等指示词）且 actual 把该裸词当作姓名解析时，Reference 一致只说明生成路径匹配，不等于意图确认；除非存在姓名结构或语义证据（如专名、姓氏库命中、明确字段上下文），否则按未满足判 not_fulfilled。\n\nWait — but here the actual didn't parse it as a name. The actual parsed it as clientNo and polNo MATCH with value \"YULIHUANG\". The robot_text says \"暂时没判读出这组数据代表什么\" (couldn't determine what this data represents), and searched in 手机号、客户号、保单号 — but the conditions only show clientNo and polNo, not phone number (mobile).\n\n3. The capability manifest shows:\n- clientNo: MATCH only, value_types: extract. Notes: 客户号只能是数字或字母，不可能是中文。客户编号以C开头或以00开头，前缀之后为11至12位数字或字母。\n- polNo: MATCH only. Notes: 保单号一定是由数据或字母组成的，不可能为中文。标准格式：P或A开头后跟15至17位数字或字母；GP开头后跟14位数字或字母；明确写出“保单号”时支持15至17位纯数字。\n\nNow, \"YULIHUANG\" is 9 characters of letters. Does it match clientNo format? ClientNo requires C-prefix or 00-prefix followed by 11-12 digits/letters. \"YULIHUANG\" doesn't start with C or 00. So it's not a valid clientNo format.\n\nDoes it match polNo format? P or A prefix followed by 15-17 digits/letters, or GP followed by 14. \"YULIHUANG\" starts with Y, not P/A/GP. So not a valid polNo format.\n\nSo the actual output created two MATCH conditions on clientNo and polNo with a value that doesn't conform to either field's format. The robot_text claims it searched 手机号 (mobile), 客户号 (clientNo), 保单号 (polNo), but the conditions only include clientNo and polNo — no mobile field. Also, the value \"YULIHUANG\" is not valid for either field per the field definitions.\n\nIs there a mobile field? The capability_manifest only includes clientNo and polNo. Hmm, the robot_text mentions 手机号 but there's no mobile condition. But capability_manifest only lists clientNo and polNo — maybe those are the only fields probed? Actually the capability manifest lists only clientNo and polNo. So maybe mobile isn't in this manifest. But the robot text claims mobile search.\n\nLet me think about the user intent. The user typed \"YULIHUANG\" — a bare value. This is most likely a name in pinyin (e.g., \"余丽煌\" or \"于立煌\" etc.). The user wants to find a customer named YULIHUANG. But there's no 姓名/客户 indicator word, so it's a bare word.\n\nThe actual output did not recognize it as a name; it treated it as clientNo/polNo MATCH value. Per the bare word rule: 请求只有裸词且 actual 把该裸词当作姓名解析时... — here actual didn't parse as name, it parsed as clientNo/polNo. But the intent: is \"YULIHUANG\" a name? The robot_text itself says \"暂时没判读出这组数据代表什么\" (couldn't determine what this represents), which is transparent about the uncertainty.\n\nActually let me re-read the bare word rule: \"请求只有裸词（无“姓名/客户/查/找/筛选”等指示词）且 actual 把该裸词当作姓名解析时，Reference 一致只说明生成路径匹配，不等于意图确认；除非存在姓名结构或语义证据（如专名、姓氏库命中、明确字段上下文），否则按未满足判 not_fulfilled。\"\n\nThis rule addresses when actual parses the bare word as a name. Here the actual parsed as clientNo/polNo instead. Hmm.\n\nBut the core question: What is the user's actual intent with \"YULIHUANG\"? Given the client_search product is \"find target customers\", a bare pinyin string most likely refers to a customer name. The user wants to find the customer whose name is YULIHUANG (pinyin).\n\nThe actual output:\n1. Did not produce a name condition (no name field in capability manifest? Let me check — the capability manifest only has clientNo and polNo. Maybe the manifest is limited to fields probed).\n\nHmm wait, capability_manifest only includes clientNo and polNo. That's odd — the robot_text mentions 手机号 too. Let me search for field definitions to see what fields exist, particularly mobile and customer name.\n\nActually, I should use the tools: client_search_field_search_keys and field_search_definition to check available fields.\n\nLet me consider: the query \"YULIHUANG\" — this is 9 letters. Fields like mobile (手机号) would be digits. Name fields would accept pinyin/Chinese.\n\nLet me search for relevant fields: mobile, customer name, etc.\n\nThe evaluation scope: parser_condition_semantics_only (downstream not verified). So I judge whether parser conditions preserve search intent.\n\nKey judgments:\n\n1. Is \"YULIHUANG\" a customer name (pinyin)? Very likely yes — it's a proper name in pinyin form. The user intends to find customer(s) named YULIHUANG.\n\n2. Actual conditions: clientNo MATCH \"YULIHUANG\", polNo MATCH \"YULIHUANG\", OR. \n\nProblems:\n- The value \"YULIHUANG\" doesn't conform to clientNo format (must start with C or 00) nor polNo format (P/A/GP prefix). So these conditions would likely return nothing in ES, or the MATCH on those fields with an invalid value wouldn't find the intended customer.\n- No name field condition. The actual didn't recognize the intended customer name.\n- robot_text says it searched 手机号、客户号、保单号 but conditions only include clientNo and polNo (no mobile condition).\n\nSo the actual failed to capture the user's core intent (find customer named YULIHUANG). The system itself admits uncertainty (\"暂时没判读出这组数据代表什么\").\n\nPer the bare word rule, since actual didn't parse as name and there's no name condition, and the query is a bare pinyin that likely represents a name — the intended customer set (customers whose name matches YULIHUANG pinyin) is not delivered.\n\nWait, but is \"YULIHUANG\" definitely a name? It's a plausible pinyin name. The rule says: 除非存在姓名结构或语义证据（如专名、姓氏库命中、明确字段上下文），否则按未满足判 not_fulfilled. This is about when actual parses bare word as name — the evidence requirement for confirming intent. Here actual didn't parse as name at all.\n\nHmm, let me think about the actual pattern \"裸值弱命\" (bare value weak recognition). matched_level 2. The robot_text is transparent: \"暂时没判读出这组数据代表什么，已帮您在手机号、客户号、保单号中一起查找匹配的客户\".\n\nSo the system's own behavior: it couldn't determine what the value is, and made a weak attempt to match it against clientNo and polNo (and claims mobile too, though the condition list only shows clientNo and polNo — that's an inconsistency; maybe the mobile condition was planned but not included in conditions, or mobile field is in the manifest but not shown... Actually capability_manifest only lists clientNo and polNo, so mobile field may not be a searchable field in this config. The robot_text mentions mobile but the conditions don't include it. This is a mismatch between robot_text claim and actual conditions.)\n\nActually, hold on. Let me check if there's a mobile field. The capability_manifest is derived from project_fields — only clientNo and polNo are listed. So 手机号 is not a searchable field in the current capability manifest. The robot_text claims to search mobile but no mobile condition exists. That's a discrepancy but the core issue remains.\n\nNow, what are the business expectations?\n\nPer the judge business contract:\n- explicit_conditions: 明确表达的筛选条件\n- boolean_logic: AND/OR/NOT 和范围关系\n- no_unexpressed_constraints: 不得增加会改变客户集合的未表达限制\n\nProduct expectation: find-target-customers. Evaluation dimensions: search-intent-preservation, downstream-query-consumability.\n\nFor this query \"YULIHUANG\":\n- The user's core intent: find the customer named YULIHUANG (pinyin name). This is a bare value request — most likely a name.\n- The actual didn't recognize it as a name and produced clientNo/polNo MATCH conditions with an invalid value.\n\nBusiness expectations to derive:\n\n1. 核心交付：识别并保留用户输入的搜索值作为可执行条件（target population = 姓名/值 YULIHUANG 的客户）。Acceptance: parser 应把 YULIHUANG 识别为用户意图的客户标识（最可能是姓名拼音）并生成可检索到该客户的条件（如客户姓名字段匹配），而不是判读失败或映射到不匹配的字段。\n   - Actual: conditions clientNo MATCH YULIHUANG, polNo MATCH YULIHUANG — value doesn't match field formats, so it can't retrieve the intended customer. not_fulfilled.\n\n2. 透明说明（non-blocking）：robot_text 说明未判读出语义。Actual: robot_text 明确说明\"暂时没判读出这组数据代表什么\"，这是透明说明，fulfilled。但注意 robot_text 声称在手机号、客户号、保单号中查找，而条件只有客户号和保单号 — 轻微不一致。不过透明说明本身是 fulfilled。\n\n3. Maybe: boolean_logic — OR between clientNo and polNo. The query has no explicit logic. The actual OR expands search. This isn't adding a constraint that narrows; it's an OR expansion. But the fields are wrong.\n\nLet me also consider: is it possible \"YULIHUANG\" is a clientNo or polNo? No — format doesn't match. Could it be a name? Almost certainly a pinyin name. Could it be something else? Could be a username or account. But in the client_search context, the most natural reading is a customer name in pinyin.\n\nPer the 裸词规则: bare word, actual didn't parse as name — the rule focuses on \"actual 把该裸词当作姓名解析时\" (when actual parses it as a name). Here actual parsed it as clientNo/polNo values. Hmm, so strictly the bare word rule as written doesn't directly apply. But the spirit: a bare pinyin word without name recognition has no evidence of being a name.\n\nActually wait — let me reconsider. Should I treat \"YULIHUANG\" as a name? The rule says unless there's name structure/semantic evidence (proper noun, surname library hit, explicit field context), treat as not fulfilled when actual parses as name. Here the question is whether the user intent is a name at all.\n\n\"YULIHUANG\" — 9 uppercase letters, no spaces. It could be \"YU LIHUANG\" or \"YULI HUANG\" — pinyin concatenation of a Chinese name. This is a common pattern for Chinese names in pinyin without spaces. It's a proper noun / pinyin name. I think it's reasonable to treat this as likely a name, but the actual didn't produce any name condition, so the core intent (find this customer) is not delivered regardless.\n\nActually, for judgment purposes: the user wants to search for a customer. The actual output couldn't determine the semantic and matched the value against clientNo and polNo where the value is invalid. The conditions, if executed, would likely return no results (since YULIHUANG doesn't match any valid clientNo/polNo format) or at least wouldn't reliably find the intended customer. So search intent preservation failed.\n\nAlso there's the missing name/mobile handling: robot_text says it searched mobile but conditions don't include mobile. The condition list only has 2 conditions. So the robot_text claim is inconsistent with actual conditions.\n\nNow, is there a name field in the system? Let me use the field search tools to check. The capability_manifest only lists clientNo and polNo, which is odd for a customer search system. Maybe the manifest is limited to fields that the current query probed. Let me search for fields like customer name (customerName/name), mobile (mobile/phone).\n\nLet me do that to ground the judgment.\n\nLet me call:\n- client_search_field_search_keys with query \"YULIHUANG\" or better \"客户姓名\" to find name field.\n- Also search \"手机号\" to check mobile field.\n\nThese are independent calls, so I can make them in parallel.\n\nLet me do that.\n\nThen form the final JSON.\n\nExpected output structure per schema:\n- business_expectations: array with expectation_id, blocking, downstream_consumer, user_intent, expected_outcome, required_capabilities, acceptance_criteria, boundary (object), priority.\n- applicable_product_expectation_ids: [\"find-target-customers\"]\n- fulfillment_assessments: array aligned with expectation_id.\n- expected: {code, msg, query, conditions, robot_text, query_logic, rewritten_query, ...}\n- missing, wrong, extra: arrays of GapItem\n- evidence: array\n- reasoning_summary: Chinese ≤180 chars.\n\nLet me plan expectations:\n\nExpectation 1 (blocking): 「识别并保留裸值YULIHUANG的客户搜索意图」 — the parser should recognize the bare value as a customer identifier (most plausibly a name in pinyin) and produce searchable conditions on fields whose semantics match the user's target (customer name), with valid value normalization; the downstream query must be executable against supported fields.\n- acceptance criteria: actual conditions field semantics match the customer identifier the user provided (name); value valid for the field; OR/AND logic appropriate.\n- Actual: conditions on clientNo/polNo with invalid value \"YULIHUANG\" (doesn't conform to either field's format), no name condition; robot_text admits it couldn't determine semantics. → not_fulfilled.\n\nExpectation 2 (blocking=false): 「透明说明识别状态」 — robot_text 明确告知未判读出语义并提供兜底搜索说明。\n- Actual: robot_text \"暂时没判读出这组数据代表什么，已帮您在手机号、客户号、保单号中一起查找匹配的客户\" — 已明确说明。但声称手机号搜索但条件无手机号字段。Hmm — the claim about mobile is inconsistent with the conditions. Should this be not_fulfilled? The transparency about not recognizing is fulfilled. The claim of searching mobile is inaccurate relative to conditions. I could mark this fulfilled for the transparency part, or note the discrepancy. Since it's non-blocking, and transparency itself is delivered, I'd say fulfilled with evidence noting the mobile claim inconsistency. Actually, let me be careful: the robot_text says it searched in mobile/clientNo/polNo, but only clientNo/polNo conditions exist. This is a minor mismatch. The core transparency (admitting it couldn't determine the value) is fulfilled. I'll mark fulfilled.\n\nActually, should I also consider a third expectation about not adding unexpressed constraints? The actual added clientNo/polNo conditions — these are additions, but they're OR-expansions (broadening), not narrowing constraints. The rule says \"不得增加会改变客户集合的未表达限制\" — adding extra narrowing constraints. OR on wrong fields doesn't narrow the intended set but changes the query to something that doesn't represent the intent. I could fold this into expectation 1 (search intent preservation includes no unexpressed constraints).\n\nLet me keep it to 2-3 expectations. Maybe 3:\n\n1. blocking: 核心交付 — 将裸值 YULIHUANG 正确解析为用户目标客户的搜索条件（客户姓名/标识字段），交付可执行且语义等价的下游查询。not_fulfilled.\n2. blocking=false: 透明边界说明 — robot_text 告知未判读出语义。fulfilled.\n3. Hmm, maybe a third: 不得编造/无依据映射 — actual 将 YULIHUANG 映射为 clientNo/polNo，但值不符合字段格式，属于无依据的字段映射。This could be part of expectation 1 or separate. The client_search rules say \"不错误映射、不编造条件\" cannot be the sole blocking core delivery, but it can be an independent non-blocking expectation. Actually the guidance: \"以下内容永远不能单独成为 blocking 核心交付：不错误映射、不编造条件、拒绝越界请求、告知当前限制、未识别到条件。\" So a non-blocking expectation about correct field mapping is fine.\n\nLet me structure:\n\nExpectation 1 (blocking): 「识别用户提供的客户搜索值并生成可执行条件」\n- user_intent: 用户输入裸值 YULIHUANG，期望找到该值对应的客户。\n- expected_outcome: 下游能基于条件检索到与 YULIHUANG 对应的目标客户集合；字段语义、值格式与操作符须在受支持能力内可执行。\n- acceptance criteria: 条件字段语义承载 YULIHUANG 所代表的客户标识（姓名/拼音）；值符合字段支持格式；query_logic 不引入未表达限制。\n- Actual: clientNo/polNo MATCH \"YULIHUANG\"，值不符合两者格式（clientNo 需 C/00 前缀后 11-12 位；polNo 需 P/A/GP 前缀），无姓名类字段条件 → not_fulfilled.\n\nExpectation 2 (blocking=false): 「识别失败时透明告知」\n- acceptance: robot_text 明确说明未能判读及兜底行为。\n- Actual: robot_text 已说明 \"暂时没判读出这组数据代表什么…\" → fulfilled（备注：声称查手机号但条件未含手机号字段，不影响透明说明本身）。\n\nMaybe also expectation 3: 不错误映射字段（non-blocking）— actual 把非客户号/保单号格式的值映射到 clientNo/polNo，属于错误映射。→ not_fulfilled. Hmm, but this overlaps with expectation 1. To avoid duplication, I might merge. The instructions say usually 1-3 expectations, max 4. Let me do 2-3.\n\nI'll do 3:\n1. blocking 核心交付: 生成可检索到 YULIHUANG 目标客户的执行条件。\n2. non-blocking: 透明说明未判读。\n3. non-blocking: 字段映射正确性 — 不得把不符合格式的值错误映射到客户号/保单号字段。→ not_fulfilled (extra conditions on wrong fields).\n\nHmm, actually expectation 3 is basically the \"wrong mapping\" aspect. Let me keep it as part of analysis (missing/wrong/extra) rather than a separate expectation? The guidance says each independently judgeable request dimension gets an expectation. The core delivery is expectation 1. Wrong mapping is a cause of not fulfilling 1. I think 2 expectations suffice, but adding the mapping one as non-blocking is also fine. Let me include 3 for completeness but keep it tight.\n\nActually, let me reconsider: per \"通常 1-3 条，最多 4 条\". I'll go with 3.\n\nNow, for expected conditions: what would the expected output be? Since there's no reference answer, expected is derived from intent: condition on customer name field (e.g., customerName) MATCH/contains \"YULIHUANG\". But capability_manifest doesn't list a name field. Let me check via tools whether there's a name field. If the system doesn't support name search, then it's a system capability boundary... but wait — is name search supported? Let me check field search.\n\nLet me query the tools.\n\nActually, let me think about what the tools return. client_search_field_search_keys returns candidate field keys for the query. field_search_definition returns details for a specific field key. I should search for \"客户姓名\" or \"姓名\" and \"手机号\" and maybe \"YULIHUANG\" as query.\n\nLet me make parallel calls:\n1. client_search_field_search_keys(query=\"YULIHUANG\")\n2. client_search_field_search_keys(query=\"客户姓名 拼音 姓名\")\n\nThen based on results, fetch definitions.\n\nLet me proceed.\n\nAlso need to populate `expected` object (the expected live output structure). Since expected source not available, I'll construct expected based on intent: code 0, msg 操作成功, query \"YULIHUANG\", conditions: [name field MATCH \"YULIHUANG\"] (or whatever), robot_text, query_logic \"AND\"/\"OR\", rewritten_query \"YULIHUANG\". Hmm, but I shouldn't fabricate. The condition_comparison says expected_source not_available with empty conditions. I'll fill expected with the best-guess from intent but keep conditions minimal/empty? The schema requires conditions as array (can be empty? It says required, array items {} — empty array allowed? \"以下字段必须非空：['reasoning_summary']\" only reasoning_summary must be non-empty. So conditions can be an empty array.)\n\nGiven expected source not available, I can set expected.conditions to [] and note in expected_source... but expected object doesn't have expected_source field. I'll set conditions to [] and msg/query accordingly. Actually let me set expected to reflect the derived intent: conditions maybe [] since no authoritative expected, and rely on missing/wrong/extra arrays and evidence to describe.\n\nHmm, but expected.code should be 0, msg \"操作成功\". query \"YULIHUANG\". robot_text: something like \"为您查找姓名为YULIHUANG的客户\". That's speculative. Better to keep expected conditions empty and robot_text null? robot_text is required and must be string or null with minLength 1... wait required fields in expected: code, msg, query, conditions, robot_text, query_logic, rewritten_query. robot_text can be null (type includes null). But \"非空\" constraint only applies to reasoning_summary. So robot_text null is fine.\n\nLet me set:\nexpected: {\n  code: 0,\n  msg: \"操作成功\",\n  query: \"YULIHUANG\",\n  conditions: [],  // expected conditions not available from reference; intent-based expectation is a name-match condition\n  robot_text: null,\n  query_logic: \"AND\",\n  rewritten_query: \"YULIHUANG\"\n}\n\nHmm, query_logic AND with no conditions. Or just leave it. Actually maybe better to not over-specify. I'll use \"AND\" as default logic. Hmm, actually for a single bare value with one intended condition, logic is trivial. I'll set \"AND\".\n\nWait, but there's a subtlety: should expected include the name field condition? Since I don't know if a name field exists, I could still describe expected_outcome in the expectation text. For the `expected.conditions`, I'll leave [] and document in evidence.\n\nmissing: the name/search field condition that captures YULIHUANG's intended customer identity (e.g., 姓名/拼音匹配). \nwrong: clientNo MATCH \"YULIHUANG\" (值不符合客户号格式，语义错误映射); polNo MATCH \"YULIHUANG\" (值不符合保单号格式).\nextra: clientNo/polNo 两个额外条件属于无依据映射（未表达的限制）— but they're \"wrong\" more than \"extra\" since they replaced the intended condition. I'll put them in wrong. Maybe extra: [] or the robot_text claim of mobile search? No, extra is about conditions. Keep extra empty or note the additional conditions. I'll put the two conditions under wrong (错误映射), and missing the name condition.\n\nLet me now check fields via tools to be grounded.\n\nActually, before tool calls, let me also verify the clientNo/polNo format claim from capability_manifest — it's already in the trace:\n- clientNo: 以C开头，或以00开头；前缀之后为11至12位数字或字母。 \"YULIHUANG\" = 9 chars, starts with Y. Invalid.\n- polNo: P或A开头后跟15至17位；GP开头后跟14位；明确“保单号”时15-17位纯数字。 \"YULIHUANG\" starts with Y. Invalid.\n\nSo both conditions carry values that violate the field format constraints → downstream would return nothing → cannot retrieve the intended customer. Strong evidence of not_fulfilled.\n\nAlso note robot_text inconsistency: claims searching 手机号、客户号、保单号, but only clientNo/polNo conditions exist (no mobile field in capability manifest).\n\nLet me still call the field search tools to check for name field existence and mobile, to make the \"missing\" grounded.\n\nTool calls (parallel):\n1. client_search_field_search_keys(query=\"客户姓名\")\n2. client_search_field_search_keys(query=\"手机号\")\n\nMaybe also \"YULIHUANG\" as query. Let me do 3 calls.\n\nThen field_search_definition for any candidate keys found (dependent calls after).\n\nLet me do the first batch.",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"query\": \"客户姓名 姓名 拼音\"}",
+            "name": "client_search_field_search_keys"
+          },
+          "id": "call_00_Zw6S6vpweZNx7wN3kXfw1981",
+          "index": 0,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"query\": \"手机号\"}",
+            "name": "client_search_field_search_keys"
+          },
+          "id": "call_01_1LyepyLuMKSrsTWWZvEU9686",
+          "index": 1,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"query\": \"YULIHUANG\"}",
+            "name": "client_search_field_search_keys"
+          },
+          "id": "call_02_I8XW3jwwpq3W7IJC2Xl44634",
+          "index": 2,
+          "type": "function"
+        }
+      ],
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"actual\": {\"candidates\": [], \"query\": \"客户姓名 姓名 拼音\"}, \"boundary_limits\": [], \"error\": \"\", \"evidence\": \"retrieved client_search field-key candidates for 客户姓名 姓名 拼音\", \"missing_evidence\": [], \"outputs\": {}, \"runtime_metadata\": {\"receipt\": {\"index_key\": \"client-search.field-definitions\", \"operation\": \"search_index\", \"query\": \"客户姓名 姓名 拼音\"}}, \"status\": \"succeeded\", \"tool_id\": \"client_search.field.search_keys\", \"tool_type\": \"client_search_field_key_retrieval\"}",
+      "created_at": 1786540791,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "8d4a28e6-e0c1-443b-93a1-5254288d9495",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "tool",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": {
+        "query": "客户姓名 姓名 拼音"
+      },
+      "tool_call_error": false,
+      "tool_call_id": "call_00_Zw6S6vpweZNx7wN3kXfw1981",
+      "tool_calls": null,
+      "tool_name": "client_search_field_search_keys",
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"actual\": {\"candidates\": [{\"field\": \"clientMobile\", \"short_name\": \"客户本人手机号\"}, {\"field\": \"familyInfo.familyclientmobile\", \"short_name\": \"家庭成员手机号\"}, {\"field\": \"polNoInfo.applicantphoneno\", \"short_name\": \"保单投保人手机号\"}, {\"field\": \"polNoInfo.plancodeinfo.insphoneno\", \"short_name\": \"保单被保人手机号\"}, {\"field\": \"policies_beneficiary_mobile\", \"short_name\": \"保单受益人手机号\"}, {\"field\": \"licensePlateNo\", \"short_name\": \"车辆号牌号码\"}], \"query\": \"手机号\"}, \"boundary_limits\": [], \"error\": \"\", \"evidence\": \"retrieved client_search field-key candidates for 手机号\", \"missing_evidence\": [], \"outputs\": {}, \"runtime_metadata\": {\"receipt\": {\"index_key\": \"client-search.field-definitions\", \"operation\": \"search_index\", \"query\": \"手机号\", \"target_refs\": [\"client-search-field://clientMobile\", \"client-search-field://familyInfo.familyclientmobile\", \"client-search-field://polNoInfo.applicantphoneno\", \"client-search-field://polNoInfo.plancodeinfo.insphoneno\", \"client-search-field://policies_beneficiary_mobile\", \"client-search-field://licensePlateNo\"]}}, \"status\": \"succeeded\", \"tool_id\": \"client_search.field.search_keys\", \"tool_type\": \"client_search_field_key_retrieval\"}",
+      "created_at": 1786540791,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "a63fc361-22f2-412b-bf7f-f89f87bed499",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "tool",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": {
+        "query": "手机号"
+      },
+      "tool_call_error": false,
+      "tool_call_id": "call_01_1LyepyLuMKSrsTWWZvEU9686",
+      "tool_calls": null,
+      "tool_name": "client_search_field_search_keys",
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"actual\": {\"candidates\": [{\"field\": \"ayhMemberGradeInfo.ayhqualifiedtime\", \"short_name\": \"安有护会员达标时间（达标日期）\"}, {\"field\": \"gdkyMemberGradeInfo.gdkymembergradesearch\", \"short_name\": \"高端康养会员等级或版本\"}, {\"field\": \"ayhMemberGradeInfo.ayhmemberproductname\", \"short_name\": \"安有护会员服务线名称\"}, {\"field\": \"ayhMemberGradeInfo.ayhmemberstatus\", \"short_name\": \"安有护会员类型或状态\"}, {\"field\": \"ayyMemberGradeInfo.ayyqualifiedtime\", \"short_name\": \"安有医会员达标时间（达标日期）\"}, {\"field\": \"clientChurnTag\", \"short_name\": \"客户是否属于濒临失效高客；定义为可投资资产达到或超过50万元\"}, {\"field\": \"gdkyMemberGradeInfo.gdkyqualifiedtime\", \"short_name\": \"高端康养会员达标时间（达标日期）；“新获得/新拿到/新增/刚获得\"}, {\"field\": \"latelyUndwrtSegTime\", \"short_name\": \"保单承保日期\"}], \"query\": \"YULIHUANG\"}, \"boundary_limits\": [], \"error\": \"\", \"evidence\": \"retrieved client_search field-key candidates for YULIHUANG\", \"missing_evidence\": [], \"outputs\": {}, \"runtime_metadata\": {\"receipt\": {\"index_key\": \"client-search.field-definitions\", \"operation\": \"search_index\", \"query\": \"YULIHUANG\", \"target_refs\": [\"client-search-field://ayhMemberGradeInfo.ayhqualifiedtime\", \"client-search-field://gdkyMemberGradeInfo.gdkymembergradesearch\", \"client-search-field://ayhMemberGradeInfo.ayhmemberproductname\", \"client-search-field://ayhMemberGradeInfo.ayhmemberstatus\", \"client-search-field://ayyMemberGradeInfo.ayyqualifiedtime\", \"client-search-field://clientChurnTag\", \"client-search-field://gdkyMemberGradeInfo.gdkyqualifiedtime\", \"client-search-field://latelyUndwrtSegTime\"]}}, \"status\": \"succeeded\", \"tool_id\": \"client_search.field.search_keys\", \"tool_type\": \"client_search_field_key_retrieval\"}",
+      "created_at": 1786540791,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "deae11a7-a758-4047-b1bd-7d7cc086bbd2",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "tool",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": {
+        "query": "YULIHUANG"
+      },
+      "tool_call_error": false,
+      "tool_call_id": "call_02_I8XW3jwwpq3W7IJC2Xl44634",
+      "tool_calls": null,
+      "tool_name": "client_search_field_search_keys",
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "",
+      "created_at": 1786540791,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "8e008005-f15d-4527-a6f1-1098b1295acb",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 16128,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 23029,
+        "output_tokens": 301,
+        "provider_metrics": null,
+        "reasoning_tokens": 178,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 23330
+      },
+      "name": null,
+      "provider_data": {
+        "id": "d2eeb8e0-c264-446d-aebe-a415ddfe4e0e",
+        "model_extra": {
+          "cost": "0"
+        }
+      },
+      "reasoning_content": "Interesting. The field index search for \"客户姓名 姓名 拼音\" returned no candidates — meaning there may be no customer-name field in the field definitions index, or the index search didn't match. Let me check clientMobile definition to see if mobile supports search and what operators/value types. Also maybe check clientNo/polNo definitions to confirm formats (already have from capability manifest).\n\nLet me fetch clientMobile definition and maybe search for \"姓名\" differently, e.g., \"customerName\" or \"名字\". Let me try field_search_definition for clientMobile, and another search for \"客户 名字\" or \"客户姓名英文\".\n\nActually the index returned empty for 姓名 queries. Maybe there's no name field. Let me try \"客户名称\" or \"姓名英文\" or \"ENNAME\". Let me do a couple more searches and the mobile definition in parallel.",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"query\": \"客户名称 名字 customerName\"}",
+            "name": "client_search_field_search_keys"
+          },
+          "id": "call_00_1ociZDBR178XPiPvLxIH7073",
+          "index": 0,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"query\": \"姓名 拼音 英文名\"}",
+            "name": "client_search_field_search_keys"
+          },
+          "id": "call_01_mjWZfkcjoDKlWfa7GVtz8779",
+          "index": 1,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"field\": \"clientMobile\"}",
+            "name": "field_search_definition"
+          },
+          "id": "call_02_HTuGz6XqRQ26JtydGmkX8512",
+          "index": 2,
+          "type": "function"
+        }
+      ],
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"actual\": {\"candidates\": [{\"field\": \"polNoInfo.plancodeinfo.abbrname\", \"short_name\": \"百万医疗业务词对应的一组固定产品简称；输出值应限制在 milli\"}, {\"field\": \"sdbjyMemberGradeInfo.sdbjymemberproductname\", \"short_name\": \"私董保健医会员服务线名称\"}, {\"field\": \"ayhMemberGradeInfo.ayhmemberproductname\", \"short_name\": \"安有护会员服务线名称\"}, {\"field\": \"ayyMemberGradeInfo.ayymemberproductname\", \"short_name\": \"安有医会员服务线名称\"}, {\"field\": \"customerActivity\", \"short_name\": \"营销活动或活动季名称\"}, {\"field\": \"gdkyMemberGradeInfo.gdkymemberproductname\", \"short_name\": \"高端康养会员服务线名称\"}, {\"field\": \"pajjMemberGradeInfo.pajjmemberproductname\", \"short_name\": \"平安居家会员服务线名称\"}, {\"field\": \"polNoInfo.surrenderDateTime\", \"short_name\": \"保单退保时间\"}], \"query\": \"客户名称 名字 customerName\"}, \"boundary_limits\": [], \"error\": \"\", \"evidence\": \"retrieved client_search field-key candidates for 客户名称 名字 customerName\", \"missing_evidence\": [], \"outputs\": {}, \"runtime_metadata\": {\"receipt\": {\"index_key\": \"client-search.field-definitions\", \"operation\": \"search_index\", \"query\": \"客户名称 名字 customerName\", \"target_refs\": [\"client-search-field://polNoInfo.plancodeinfo.abbrname\", \"client-search-field://sdbjyMemberGradeInfo.sdbjymemberproductname\", \"client-search-field://ayhMemberGradeInfo.ayhmemberproductname\", \"client-search-field://ayyMemberGradeInfo.ayymemberproductname\", \"client-search-field://customerActivity\", \"client-search-field://gdkyMemberGradeInfo.gdkymemberproductname\", \"client-search-field://pajjMemberGradeInfo.pajjmemberproductname\", \"client-search-field://polNoInfo.surrenderDateTime\"]}}, \"status\": \"succeeded\", \"tool_id\": \"client_search.field.search_keys\", \"tool_type\": \"client_search_field_key_retrieval\"}",
+      "created_at": 1786540797,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "07657d2c-8852-4bd3-95f8-070983550798",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "tool",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": {
+        "query": "客户名称 名字 customerName"
+      },
+      "tool_call_error": false,
+      "tool_call_id": "call_00_1ociZDBR178XPiPvLxIH7073",
+      "tool_calls": null,
+      "tool_name": "client_search_field_search_keys",
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"actual\": {}, \"boundary_limits\": [], \"error\": \"Field navigation budget reached. Stop broadening field search; use the evidence already loaded and preserve remaining calls for authority.resolve when a governed claim or boundary depends on it.\", \"evidence\": \"\", \"missing_evidence\": [], \"outputs\": {}, \"runtime_metadata\": {\"budget_kind\": \"field_navigation\", \"calls_used\": 4, \"limit\": 4}, \"status\": \"inconclusive\", \"tool_id\": \"client_search.field.search_keys\", \"tool_type\": \"client_search_field_navigation\"}",
+      "created_at": 1786540797,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "9e51b2e5-091a-4a73-83a6-dceb75993c3e",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "tool",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": {
+        "query": "姓名 拼音 英文名"
+      },
+      "tool_call_error": false,
+      "tool_call_id": "call_01_mjWZfkcjoDKlWfa7GVtz8779",
+      "tool_calls": null,
+      "tool_name": "client_search_field_search_keys",
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"actual\": {}, \"boundary_limits\": [], \"error\": \"Field navigation budget reached. Stop broadening field search; use the evidence already loaded and preserve remaining calls for authority.resolve when a governed claim or boundary depends on it.\", \"evidence\": \"\", \"missing_evidence\": [], \"outputs\": {}, \"runtime_metadata\": {\"budget_kind\": \"field_navigation\", \"calls_used\": 4, \"limit\": 4}, \"status\": \"inconclusive\", \"tool_id\": \"field.search_definition\", \"tool_type\": \"client_search_field_navigation\"}",
+      "created_at": 1786540797,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "298733e1-9e80-4bab-9be0-950292c7fd5f",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "tool",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": {
+        "field": "clientMobile"
+      },
+      "tool_call_error": false,
+      "tool_call_id": "call_02_HTuGz6XqRQ26JtydGmkX8512",
+      "tool_calls": null,
+      "tool_name": "field_search_definition",
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "```json\n{\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"裸值YULIHUANG生成可检索目标客户的可执行条件\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"下游客户搜索服务（ES 查询）\",\n      \"user_intent\": \"用户输入裸值 YULIHUANG（无指示词，最可能为姓名拼音），期望系统据此检索到对应目标客户。\",\n      \"expected_outcome\": \"解析器应将 YULIHUANG 承载为客户标识语义并生成字段语义正确、值符合字段格式约束、可执行的搜索条件，使下游能检索到用户意图的客户集合。\",\n      \"required_capabilities\": [\"裸值识别\", \"字段语义匹配\", \"值格式校验\", \"条件可执行性\"],\n      \"acceptance_criteria\": [\n        \"条件字段的语义能承载 YULIHUANG 所代表的客户标识（姓名拼音等），而非仅字符串级强映射\",\n        \"条件值符合目标字段的格式约束（clientNo 需 C/00 前缀+11-12 位数字字母；polNo 需 P/A/GP 前缀等）\",\n        \"query_logic 不引入改变目标客户集合的未表达限制\",\n        \"在 parser_condition_semantics_only 边界内，条件语义与用户搜索意图等价\"\n      ],\n      \"boundary\": {\n        \"judge_scope\": \"parser_condition_semantics_only\",\n        \"downstream_result_set_available\": false,\n        \"result_set_verified\": false,\n        \"note\": \"下游不可用，仅按 parser 条件语义与字段格式约束判定\"\n      },\n      \"priority\": \"high\"\n    },\n    {\n      \"expectation_id\": \"未判读出语义时透明告知用户\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"终端用户/对话机器人\",\n      \"user_intent\": \"当系统无法确认裸值语义时，应明确告知识别状态及兜底处理方式，不误导用户。\",\n      \"expected_outcome\": \"robot_text 明确说明未能判读出该组数据的语义，并说明已采取的兜底搜索行为。\",\n      \"required_capabilities\": [\"识别状态透明化\"],\n      \"acceptance_criteria\": [\n        \"robot_text 明示未能判读语义\",\n        \"robot_text 对兜底行为的描述与实际 conditions 大体一致\"\n      ],\n      \"boundary\": {},\n      \"priority\": \"medium\"\n    },\n    {\n      \"expectation_id\": \"不将不符合字段格式的裸值错误映射为额外条件\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"下游客户搜索服务（ES 查询）\",\n      \"user_intent\": \"用户只提供了裸值，系统不得把该值强加为用户未表达的字段条件，尤其不能映射到格式不兼容的字段。\",\n      \"expected_outcome\": \"actual 不产生与用户意图无关且值非法的额外条件。\",\n      \"required_capabilities\": [\"值格式校验\", \"字段映射正确性\"],\n      \"acceptance_criteria\": [\n        \"不产生值违反目标字段格式约束的条件\",\n        \"不编造用户未表达的限制性条件\"\n      ],\n      \"boundary\": {},\n      \"priority\": \"medium\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [\"find-target-customers\"],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"裸值YULIHUANG生成可检索目标客户的可执行条件\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0.0,\n      \"expected_evidence\": [\n        \"存在一条承载 YULIHUANG 客户标识语义、值格式合法且可执行的条件\",\n        \"条件字段语义与用户搜索意图（姓名拼音）一致，无非法格式值\"\n      ],\n      \"actual_evidence\": [\n        \"actual conditions 为 clientNo MATCH YULIHUANG、polNo MATCH YULIHUANG（query_logic=OR）\",\n        \"capability_manifest 明确 clientNo 需 C 或 00 前缀后接 11-12 位数字字母，polNo 需 P/A/GP 前缀，而 YULIHUANG 为 9 位字母且以 Y 开头，均不符合两字段格式，无法命中目标客户\",\n        \"robot_text 自述“暂时没判读出这组数据代表什么”，系统未识别到任何可承载该值的客户标识语义\",\n        \"downstream_search 未执行（not_verified），result_set_verified=false，无结果集可兜底\"\n      ],\n      \"downstream_impact\": \"下游 ES 查询将携带非法格式值在 clientNo/polNo 上 MATCH，无法命中用户意图客户，结果集为空或无关。\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"未判读出语义时透明告知用户\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\n        \"robot_text 明确告知未判读出语义及兜底搜索行为\"\n      ],\n      \"actual_evidence\": [\n        \"robot_text=“暂时没判读出这组数据代表什么，已帮您在手机号、客户号、保单号中一起查找匹配的客户”，已明示识别失败并说明兜底\",\n        \"备注：robot_text 声称查手机号但 conditions 仅含 clientNo/polNo，描述与条件略有出入，不影响透明说明本身\"\n      ],\n      \"downstream_impact\": \"不影响下游查询，仅影响用户对识别状态的知情度，透明说明已交付。\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"不将不符合字段格式的裸值错误映射为额外条件\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0.0,\n      \"expected_evidence\": [\n        \"actual 不应产生值非法或语义无依据的额外条件\"\n      ],\n      \"actual_evidence\": [\n        \"actual 新增 clientNo 与 polNo 两个 MATCH 条件，值 YULIHUANG 均违反两字段格式约束\",\n        \"用户仅输入裸值，未表达任何客户号/保单号限定，该映射属于无依据的字段强映射（matched_patterns=裸值弱命）\"\n      ],\n      \"downstream_impact\": \"两个值非法的额外条件使查询被导向无法命中的字段，进一步偏离用户意图。\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"expected\": {\n    \"code\": 0,\n    \"msg\": \"操作成功\",\n    \"query\": \"YULIHUANG\",\n    \"conditions\": [],\n    \"robot_text\": null,\n    \"query_logic\": \"AND\",\n    \"rewritten_query\": \"YULIHUANG\"\n  },\n  \"missing\": [\n    {\n      \"kind\": \"condition\",\n      \"error_type\": \"missing_condition\",\n      \"expected\": \"承载 YULIHUANG 客户标识语义（最可能为姓名拼音）且值格式合法的可执行条件\",\n      \"actual\": \"仅 clientNo/polNo 两个值非法的 MATCH 条件，无对应客户标识条件\",\n      \"evidence_ref\": \"final_output.conditions\",\n      \"raw\": {\"conditions\": [{\"field\": \"clientNo\", \"operator\": \"MATCH\", \"value\": \"YULIHUANG\"}, {\"field\": \"polNo\", \"operator\": \"MATCH\", \"value\": \"YULIHUANG\"}]},\n      \"incomplete\": false\n    }\n  ],\n  \"wrong\": [\n    {\n      \"kind\": \"condition\",\n      \"error_type\": \"invalid_value_mapping\",\n      \"expected\": \"值符合目标字段格式约束\",\n      \"actual\": \"clientNo MATCH YULIHUANG：9 位字母且以 Y 开头，不符合 C/00 前缀+11-12 位数字字母格式\",\n      \"evidence_ref\": \"final_output.conditions[0]\",\n      \"raw\": {\"field\": \"clientNo\", \"operator\": \"MATCH\", \"value\": \"YULIHUANG\"},\n      \"incomplete\": false\n    },\n    {\n      \"kind\": \"condition\",\n      \"error_type\": \"invalid_value_mapping\",\n      \"expected\": \"值符合目标字段格式约束\",\n      \"actual\": \"polNo MATCH YULIHUANG：以 Y 开头，不符合 P/A/GP 前缀+14-17 位数字字母格式\",\n      \"evidence_ref\": \"final_output.conditions[1]\",\n      \"raw\": {\"field\": \"polNo\", \"operator\": \"MATCH\", \"value\": \"YULIHUANG\"},\n      \"incomplete\": false\n    }\n  ],\n  \"extra\": [],\n  \"evidence\": [\n    {\"query\": \"YULIHUANG\", \"source\": \"intent_input.user_text\"},\n    {\"actual_conditions\": [{\"field\": \"clientNo\", \"operator\": \"MATCH\", \"value\": \"YULIHUANG\", \"match_mode\": null}, {\"field\": \"polNo\", \"operator\": \"MATCH\", \"value\": \"YULIHUANG\", \"match_mode\": null}], \"query_logic\": \"OR\"},\n    {\"robot_text\": \"暂时没判读出这组数据代表什么，已帮您在手机号、客户号、保单号中一起查找匹配的客户\"},\n    {\"capability_manifest\": {\"clientNo\": \"以C或00开头，前缀后11-12位数字或字母\", \"polNo\": \"P/A开头后15-17位，GP开头后14位，明确保单号时支持15-17位纯数字\"}},\n    {\"matched_patterns\": \"裸值弱命\", \"matched_level\": 2, \"confidence\": 0.6},\n    {\"application_boundary\": {\"judge_scope\": \"parser_condition_semantics_only\", \"downstream_status\": \"not_verified\", \"result_set_verified\": false}}\n  ],\n  \"reasoning_summary\": \"裸值YULIHUANG无指示词，最可能为姓名拼音；系统未判读出语义，反将不符合客户号/保单号格式的值错误映射为clientNo、polNo两个MATCH条件，下游无法命中目标客户，核心交付不满足；robot_text已透明说明未判读，边界说明满足。\"\n}\n```",
+      "created_at": 1786540797,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "ea21ca89-f2be-473e-aef4-677f01639f0f",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 23296,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 24092,
+        "output_tokens": 4548,
+        "provider_metrics": null,
+        "reasoning_tokens": 2284,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 28640
+      },
+      "name": null,
+      "provider_data": {
+        "id": "d5998699-b0da-4428-8946-85076d06379d",
+        "model_extra": {
+          "cost": "0"
+        }
+      },
+      "reasoning_content": "Field navigation budget reached. I'll rely on the capability manifest provided in the trace (clientNo, polNo) and the field candidates retrieved (clientMobile exists in the index with short name \"客户本人手机号\").\n\nKey evidence summary:\n- Query: bare value \"YULIHUANG\" (no指示词).\n- Actual: robot_text admits \"暂时没判读出这组数据代表什么\"; conditions = clientNo MATCH \"YULIHUANG\" OR polNo MATCH \"YULIHUANG\".\n- Per capability_manifest: clientNo requires C/00 prefix + 11-12 alnum; polNo requires P/A + 15-17 alnum, GP + 14, or 15-17 digits with explicit \"保单号\". \"YULIHUANG\" (9 letters, starts with Y) violates both formats → conditions cannot retrieve the intended customer; would likely return empty.\n- Robot_text claims it searched 手机号/客户号/保单号, but no mobile condition is present (clientMobile exists in the index as a searchable candidate; only clientNo/polNo in conditions). So robot_text overclaims relative to conditions.\n- No name field appears in the capability manifest; field index search for 姓名/客户名称 returned no name-field candidate (budget exhausted). So the system may not expose a customer name field in this manifest — but that doesn't excuse mapping the value to fields whose format constraints it violates.\n\nJudgment:\n1. blocking core delivery: parse bare value YULIHUANG into executable conditions that can retrieve the target customer. Actual: failed — value invalid for both chosen fields; no correct field/condition; system itself admits it couldn't determine semantics. → not_fulfilled.\n   - Note: if the value were a name, there's no name field in manifest; still the actual conditions cannot retrieve anything, so not fulfilled regardless. This is within parser's own control (field mapping, value validation) — judge scope parser_condition_semantics_only.\n2. non-blocking transparency: robot_text clearly states it couldn't determine what the value means and provides fallback description. → fulfilled (note the mobile claim mismatch as a minor inconsistency but the transparency itself delivered).\n3. non-blocking (or merge): 无依据字段映射 — actual added clientNo/polNo conditions with a value violating both field formats, which is wrong mapping (extra constraints not expressed by user). → not_fulfilled. Hmm, this is really part of #1. To keep the assessment tight (usually 1-3), I'll do 2 expectations and put wrong-mapping details in missing/wrong arrays. Actually, let me include 3 for clarity: #1 blocking core delivery, #2 non-blocking transparency, #3 non-blocking no-unexpressed-constraints (不增加未表达限制/不错误映射). Hmm.\n\nThe judge business contract says explicit_conditions, boolean_logic, no_unexpressed_constraints must be covered. The no_unexpressed_constraints dimension: actual introduced clientNo+polNo conditions not expressed by user (OR-expansion). Are these \"会改变客户集合的未表达限制\"? They don't narrow, but they substitute the intended condition entirely — effectively the query is wrong. I can fold into expectation 1's acceptance criteria. I think 2 expectations is cleanest, but contract requires covering no_unexpressed_constraints — I can cover it within expectation 1's acceptance_criteria and in missing/wrong.\n\nActually, let me do 3 expectations to be thorough but not over-fragmented:\n1. blocking: 核心交付-裸值YULIHUANG生成可检索目标客户的可执行条件。\n2. non-blocking: 透明说明-未判读时明确告知。\n3. non-blocking: 不引入未表达限制-不得把不符合字段格式的值错误映射为额外条件（clientNo/polNo）。\n\nHmm wait, #3's content overlaps #1's reason. But they're different judgeable aspects: #1 is \"did we deliver the target population condition\"; #3 is \"did we avoid wrong extra conditions\". Both are independently verifiable. I'll keep 3.\n\nstatuses:\n1. not_fulfilled\n2. fulfilled\n3. not_fulfilled\n\nBlocking: only #1 blocking=true.\n\ndownstream_consumer: for #1 \"下游客户搜索服务（ES 查询）\"; #2 \"终端用户/对话机器人\"; #3 \"下游客户搜索服务（ES 查询）\".\n\nNow, expected/actual arrays:\n\nexpected.conditions: no authoritative expected. I'll put [] with note in evidence that intent-based expected is a condition matching the customer identifier YULIHUANG (name pinyin). robot_text null? The schema says robot_text can be null, minLength 1 when string. OK.\n\nActually, should expected.query_logic be \"AND\"? For a single condition it's trivial. I'll use \"AND\". Hmm, but I don't want to fabricate. It's fine — it's the derived expectation.\n\nmissing: [{kind: \"condition\", error_type: \"missing_condition\", expected: {field: \"姓名/客户标识字段\", operator: \"MATCH\", value: \"YULIHUANG\"}, actual: \"无对应条件\", evidence_ref: \"final_output.conditions\"}] — hmm, I shouldn't fabricate a field name that doesn't exist. Better: expected: {语义: \"匹配用户输入的客户标识 YULIHUANG（最可能为姓名拼音）的条件\"}, actual: \"仅 clientNo/polNo MATCH YULIHUANG\". Let me phrase missing as: 缺失能够承载 YULIHUANG 客户标识语义的可执行条件（如姓名/拼音匹配）。\n\nwrong: [{kind: \"condition\", error_type: \"invalid_value_mapping\", expected: \"值须符合目标字段格式\", actual: \"clientNo MATCH YULIHUANG（9位、Y开头，不符合C/00前缀+11-12位格式）\", ...}, {same for polNo}]\n\nextra: [] — or include the clientNo/polNo conditions as extra? They're the actual conditions that are wrong. I'll keep extra empty and put in wrong.\n\nevidence: array with items: query, actual conditions, robot_text, capability manifest notes, downstream not verified note.\n\nreasoning_summary (≤180 Chinese chars): e.g. \"裸值YULIHUANG最可能为用户姓名拼音，系统未识别其语义，反将不符合客户号/保单号格式的值错误映射为clientNo、polNo两个MATCH条件，无法检索到目标客户，核心交付未满足；robot_text已透明说明未判读，边界说明满足。\"\n\nCount roughly: ~100 chars. OK.\n\nexpected object full:\n{\n  \"code\": 0,\n  \"msg\": \"操作成功\",\n  \"query\": \"YULIHUANG\",\n  \"conditions\": [],\n  \"robot_text\": null,\n  \"query_logic\": \"AND\",\n  \"rewritten_query\": \"YULIHUANG\",\n  \"end_flag\": 1,\n  \"trace_id\": \"\",\n  \"matched_level\": null,\n  \"matched_patterns\": null,\n  \"intent_summary\": null,\n  \"confidence\": null,\n  \"cost_times\": null\n}\n\nWait — required fields for expected: code, msg, query, conditions, robot_text, query_logic, rewritten_query. Optional others can be omitted? Schema allows them (additionalProperties false but they're listed properties; not required). I'll include only required ones plus maybe end_flag. Keep it minimal: code, msg, query, conditions, robot_text, query_logic, rewritten_query.\n\nHmm, conditions: [] — is an empty array OK? The non-empty constraint only applies to reasoning_summary. Yes.\n\nbusiness_expectations entries need: expectation_id, blocking (required), and I should include downstream_consumer, user_intent, expected_outcome, required_capabilities, acceptance_criteria, boundary (object, required per client_search topology section: \"business_expectations[*].boundary 必须是 JSON object\"), priority.\n\nboundary: for expectation 1, boundary = {\"judge_scope\": \"parser_condition_semantics_only\", \"downstream_result_set_available\": false, \"result_set_verified\": false, \"note\": \"仅按 parser 条件语义与字段格式约束判定\"}. For #2: {} or similar. I'll fill meaningful objects.\n\napplicable_product_expectation_ids: [\"find-target-customers\"].\n\nfulfillment_assessments: each with expectation_id, status, score, expected_evidence (array), actual_evidence (array), downstream_impact, authority_tool_call_ids: [].\n\nScores: fulfilled → 1.0; not_fulfilled → 0.0? Score type number or null. I'll use 1.0/0.0.\n\nFor #3 (no unexpressed constraints / no wrong mapping): status not_fulfilled, score 0.0.\n\nWait, should #3 be its own expectation or should I fold? The 裸词规则 and the \"不能单独成为 blocking 核心交付\" list includes \"不错误映射、不编造条件\". Making it a non-blocking expectation is acceptable. OK.\n\nLet me now also double check the robot_text inconsistency for #2: \"已帮您在手机号、客户号、保单号中一起查找匹配的客户\" but conditions only clientNo + polNo, and capability manifest has no mobile field in scope (though clientMobile exists in field index). The transparency about \"没判读出这组数据代表什么\" is delivered → fulfilled. I'll note the overclaim in actual_evidence as a caveat but not downgrade the transparency expectation.\n\nNow downstream_impact strings:\n#1: \"下游 ES 查询将携带非法格式值在 clientNo/polNo 上 MATCH，无法命中目标客户，结果集为空或无关。\"\n#2: \"对下游查询无影响，仅影响用户体验的透明性。\"\n#3: \"引入两个未表达且值非法的额外条件，查询被导向无法命中的字段。\"\n\nactual_evidence must be arrays. Use strings inside arrays. Also evidence top-level array.\n\nLet me also reference evidence grading: 一级证据 = query + actual output. Good.\n\nWrite final JSON. Ensure reasoning_summary ≤180 chars.\n\nLet me draft reasoning_summary: \"裸值YULIHUANG无指示词，最可能为姓名拼音；系统未判读出语义，反将不符合客户号/保单号格式的值映射为clientNo与polNo两个MATCH条件（OR），下游无法命中目标客户，核心交付不满足；robot_text已透明说明未判读，边界说明满足。\"\n\nCount: let me count roughly. It's about 120 chars. Fine.\n\nNow build the JSON carefully.",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "client_search",
+  "prompt_size": 52528,
+  "record_id": "89d2d3e8-27cc-42b6-8985-8cde3b871418",
+  "response": {
+    "content": "```json\n{\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"裸值YULIHUANG生成可检索目标客户的可执行条件\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"下游客户搜索服务（ES 查询）\",\n      \"user_intent\": \"用户输入裸值 YULIHUANG（无指示词，最可能为姓名拼音），期望系统据此检索到对应目标客户。\",\n      \"expected_outcome\": \"解析器应将 YULIHUANG 承载为客户标识语义并生成字段语义正确、值符合字段格式约束、可执行的搜索条件，使下游能检索到用户意图的客户集合。\",\n      \"required_capabilities\": [\"裸值识别\", \"字段语义匹配\", \"值格式校验\", \"条件可执行性\"],\n      \"acceptance_criteria\": [\n        \"条件字段的语义能承载 YULIHUANG 所代表的客户标识（姓名拼音等），而非仅字符串级强映射\",\n        \"条件值符合目标字段的格式约束（clientNo 需 C/00 前缀+11-12 位数字字母；polNo 需 P/A/GP 前缀等）\",\n        \"query_logic 不引入改变目标客户集合的未表达限制\",\n        \"在 parser_condition_semantics_only 边界内，条件语义与用户搜索意图等价\"\n      ],\n      \"boundary\": {\n        \"judge_scope\": \"parser_condition_semantics_only\",\n        \"downstream_result_set_available\": false,\n        \"result_set_verified\": false,\n        \"note\": \"下游不可用，仅按 parser 条件语义与字段格式约束判定\"\n      },\n      \"priority\": \"high\"\n    },\n    {\n      \"expectation_id\": \"未判读出语义时透明告知用户\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"终端用户/对话机器人\",\n      \"user_intent\": \"当系统无法确认裸值语义时，应明确告知识别状态及兜底处理方式，不误导用户。\",\n      \"expected_outcome\": \"robot_text 明确说明未能判读出该组数据的语义，并说明已采取的兜底搜索行为。\",\n      \"required_capabilities\": [\"识别状态透明化\"],\n      \"acceptance_criteria\": [\n        \"robot_text 明示未能判读语义\",\n        \"robot_text 对兜底行为的描述与实际 conditions 大体一致\"\n      ],\n      \"boundary\": {},\n      \"priority\": \"medium\"\n    },\n    {\n      \"expectation_id\": \"不将不符合字段格式的裸值错误映射为额外条件\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"下游客户搜索服务（ES 查询）\",\n      \"user_intent\": \"用户只提供了裸值，系统不得把该值强加为用户未表达的字段条件，尤其不能映射到格式不兼容的字段。\",\n      \"expected_outcome\": \"actual 不产生与用户意图无关且值非法的额外条件。\",\n      \"required_capabilities\": [\"值格式校验\", \"字段映射正确性\"],\n      \"acceptance_criteria\": [\n        \"不产生值违反目标字段格式约束的条件\",\n        \"不编造用户未表达的限制性条件\"\n      ],\n      \"boundary\": {},\n      \"priority\": \"medium\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [\"find-target-customers\"],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"裸值YULIHUANG生成可检索目标客户的可执行条件\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0.0,\n      \"expected_evidence\": [\n        \"存在一条承载 YULIHUANG 客户标识语义、值格式合法且可执行的条件\",\n        \"条件字段语义与用户搜索意图（姓名拼音）一致，无非法格式值\"\n      ],\n      \"actual_evidence\": [\n        \"actual conditions 为 clientNo MATCH YULIHUANG、polNo MATCH YULIHUANG（query_logic=OR）\",\n        \"capability_manifest 明确 clientNo 需 C 或 00 前缀后接 11-12 位数字字母，polNo 需 P/A/GP 前缀，而 YULIHUANG 为 9 位字母且以 Y 开头，均不符合两字段格式，无法命中目标客户\",\n        \"robot_text 自述“暂时没判读出这组数据代表什么”，系统未识别到任何可承载该值的客户标识语义\",\n        \"downstream_search 未执行（not_verified），result_set_verified=false，无结果集可兜底\"\n      ],\n      \"downstream_impact\": \"下游 ES 查询将携带非法格式值在 clientNo/polNo 上 MATCH，无法命中用户意图客户，结果集为空或无关。\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"未判读出语义时透明告知用户\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\n        \"robot_text 明确告知未判读出语义及兜底搜索行为\"\n      ],\n      \"actual_evidence\": [\n        \"robot_text=“暂时没判读出这组数据代表什么，已帮您在手机号、客户号、保单号中一起查找匹配的客户”，已明示识别失败并说明兜底\",\n        \"备注：robot_text 声称查手机号但 conditions 仅含 clientNo/polNo，描述与条件略有出入，不影响透明说明本身\"\n      ],\n      \"downstream_impact\": \"不影响下游查询，仅影响用户对识别状态的知情度，透明说明已交付。\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"不将不符合字段格式的裸值错误映射为额外条件\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0.0,\n      \"expected_evidence\": [\n        \"actual 不应产生值非法或语义无依据的额外条件\"\n      ],\n      \"actual_evidence\": [\n        \"actual 新增 clientNo 与 polNo 两个 MATCH 条件，值 YULIHUANG 均违反两字段格式约束\",\n        \"用户仅输入裸值，未表达任何客户号/保单号限定，该映射属于无依据的字段强映射（matched_patterns=裸值弱命）\"\n      ],\n      \"downstream_impact\": \"两个值非法的额外条件使查询被导向无法命中的字段，进一步偏离用户意图。\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"expected\": {\n    \"code\": 0,\n    \"msg\": \"操作成功\",\n    \"query\": \"YULIHUANG\",\n    \"conditions\": [],\n    \"robot_text\": null,\n    \"query_logic\": \"AND\",\n    \"rewritten_query\": \"YULIHUANG\"\n  },\n  \"missing\": [\n    {\n      \"kind\": \"condition\",\n      \"error_type\": \"missing_condition\",\n      \"expected\": \"承载 YULIHUANG 客户标识语义（最可能为姓名拼音）且值格式合法的可执行条件\",\n      \"actual\": \"仅 clientNo/polNo 两个值非法的 MATCH 条件，无对应客户标识条件\",\n      \"evidence_ref\": \"final_output.conditions\",\n      \"raw\": {\"conditions\": [{\"field\": \"clientNo\", \"operator\": \"MATCH\", \"value\": \"YULIHUANG\"}, {\"field\": \"polNo\", \"operator\": \"MATCH\", \"value\": \"YULIHUANG\"}]},\n      \"incomplete\": false\n    }\n  ],\n  \"wrong\": [\n    {\n      \"kind\": \"condition\",\n      \"error_type\": \"invalid_value_mapping\",\n      \"expected\": \"值符合目标字段格式约束\",\n      \"actual\": \"clientNo MATCH YULIHUANG：9 位字母且以 Y 开头，不符合 C/00 前缀+11-12 位数字字母格式\",\n      \"evidence_ref\": \"final_output.conditions[0]\",\n      \"raw\": {\"field\": \"clientNo\", \"operator\": \"MATCH\", \"value\": \"YULIHUANG\"},\n      \"incomplete\": false\n    },\n    {\n      \"kind\": \"condition\",\n      \"error_type\": \"invalid_value_mapping\",\n      \"expected\": \"值符合目标字段格式约束\",\n      \"actual\": \"polNo MATCH YULIHUANG：以 Y 开头，不符合 P/A/GP 前缀+14-17 位数字字母格式\",\n      \"evidence_ref\": \"final_output.conditions[1]\",\n      \"raw\": {\"field\": \"polNo\", \"operator\": \"MATCH\", \"value\": \"YULIHUANG\"},\n      \"incomplete\": false\n    }\n  ],\n  \"extra\": [],\n  \"evidence\": [\n    {\"query\": \"YULIHUANG\", \"source\": \"intent_input.user_text\"},\n    {\"actual_conditions\": [{\"field\": \"clientNo\", \"operator\": \"MATCH\", \"value\": \"YULIHUANG\", \"match_mode\": null}, {\"field\": \"polNo\", \"operator\": \"MATCH\", \"value\": \"YULIHUANG\", \"match_mode\": null}], \"query_logic\": \"OR\"},\n    {\"robot_text\": \"暂时没判读出这组数据代表什么，已帮您在手机号、客户号、保单号中一起查找匹配的客户\"},\n    {\"capability_manifest\": {\"clientNo\": \"以C或00开头，前缀后11-12位数字或字母\", \"polNo\": \"P/A开头后15-17位，GP开头后14位，明确保单号时支持15-17位纯数字\"}},\n    {\"matched_patterns\": \"裸值弱命\", \"matched_level\": 2, \"confidence\": 0.6},\n    {\"application_boundary\": {\"judge_scope\": \"parser_condition_semantics_only\", \"downstream_status\": \"not_verified\", \"result_set_verified\": false}}\n  ],\n  \"reasoning_summary\": \"裸值YULIHUANG无指示词，最可能为姓名拼音；系统未判读出语义，反将不符合客户号/保单号格式的值错误映射为clientNo、polNo两个MATCH条件，下游无法命中目标客户，核心交付不满足；robot_text已透明说明未判读，边界说明满足。\"\n}\n```",
+    "metrics": {
+      "cache_read_tokens": 47104,
+      "cache_write_tokens": 0,
+      "input_tokens": 63348,
+      "output_tokens": 10661,
+      "reasoning_tokens": 8151,
+      "total_tokens": 74009
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 96515,
+          "endpoint": "fallback1",
+          "model": "deepseek-v4-flash-0731",
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "selected_endpoint": "fallback1",
+      "selected_model": "deepseek-v4-flash-0731",
+      "stage": "judge"
+    }
+  },
+  "trace_id": "client_search:I264:1786540735149"
+}

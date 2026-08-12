@@ -1,0 +1,269 @@
+{
+  "caller": "llm",
+  "created_at": "2026-08-12T09:48:03Z",
+  "elapsed_ms": 32003,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "production"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "409b767b9c74bbab7bd645ade2c882e09dca6425be71ecd5e50813550008a4c2",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [],
+      "lineage": {
+        "call_id": "",
+        "case_id": "",
+        "trace_id": "judge-gen-exp-I125-1"
+      },
+      "messages": [
+        {
+          "char_count": 1392,
+          "content_sha256": "2cdba78b3c10331f16a07a8c452276a3f4e36dcb9f7f44a8923d2a7ede04e3a8",
+          "role": "system"
+        },
+        {
+          "char_count": 16972,
+          "content_sha256": "d385ced2b4da90087466642bb923bcf9527fb2ff169a5736ad7932a8c76334d3",
+          "role": "user"
+        }
+      ],
+      "mode": "production",
+      "output_contract": {
+        "field_names": [
+          "confidence",
+          "reason",
+          "verdict"
+        ],
+        "identity": "__main__.JudgeVerdict",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "e71d2c22a8ac6f9c288e402c4876cab1867e9a1ca77be42a22ca7f07d25478bd",
+        "sha256": "e71d2c22a8ac6f9c288e402c4876cab1867e9a1ca77be42a22ca7f07d25478bd"
+      },
+      "project_id": "default",
+      "prompt_char_count": 18364,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 16972,
+        "occurred": false
+      },
+      "role": "llm",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "llm"
+          ],
+          "allowed_stages": [
+            "judge_role_boundary_experiment"
+          ],
+          "char_count": 646,
+          "content_sha256": "9cfbd20dd94ec93ac42756db2d1da47e23fd081c434a46dad74677d2938054df",
+          "order": 0,
+          "role": "llm",
+          "segment_id": "compiled-system",
+          "source": "impl/core/llm_client.py#complete_json-auto-governance",
+          "stage": "judge_role_boundary_experiment"
+        },
+        {
+          "allowed_roles": [
+            "llm"
+          ],
+          "allowed_stages": [
+            "judge_role_boundary_experiment"
+          ],
+          "char_count": 16972,
+          "content_sha256": "d385ced2b4da90087466642bb923bcf9527fb2ff169a5736ad7932a8c76334d3",
+          "order": 1,
+          "role": "llm",
+          "segment_id": "case-user-payload",
+          "source": "trace://llm-call-payload",
+          "stage": "judge_role_boundary_experiment"
+        }
+      ],
+      "stage": "judge_role_boundary_experiment",
+      "tool_plan": []
+    }
+  },
+  "llm_model": "deepseek-v4-flash",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "\n你是客户搜索 Judge。authority=false。只判断 Live 是否实际满足用户检索意图，输出 {\"verdict\":\"fulfilled|not_fulfilled\",\"reason\":\"...\",\"confidence\":0-1}。\n必须先推理再给结论：\n1) 意图拆解：写出用户最终想得到的客户集合，以及每个核心约束（语义、取值、逻辑、排除项）。\n2) 逐项核对：把 Live 每个条件与核心约束逐项对照，指出缺失/错误/额外收窄。\n3) 证据分级：\n   - 一级：query 原文 与 Live 条件；\n   - 二级：明确、权威的业务语义映射、枚举全集、日期等价公式（业务方确认固化的口径）；\n   - 三级：matched_pattern、规则命中、字段/操作符合法、Reference 一致——只能解释“系统为什么这么解析”，不能证明“解析符合用户意图”。\n只有核心约束全部覆盖、无改变客户集合的额外收窄时才能 fulfilled。\n裸词规则：query 是无上下文的裸词（没有 姓名/客户/查/找 等指示词）且 Live 把它解析为姓名时，Live 与 Reference 一致只能说明系统自洽解析，不能证明该词就是姓名；除非有明确姓名结构或姓名语义证据，否则 not_fulfilled。\n如实拒绝、透明说明不能替代核心交付。F 若依赖映射/等价表达，必须在 reason 中引用对应权威业务口径；没有口径支撑的等价声称不能作为 fulfilled 依据。\n\n\n## 输出约束\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"verdict\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    },\n    \"reason\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    },\n    \"confidence\": {\n      \"type\": \"number\"\n    }\n  },\n  \"additionalProperties\": false,\n  \"required\": [\n    \"verdict\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['verdict']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n",
+      "created_at": 1786528051,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "039a2f7a-de70-4b0d-8cec-4efe17a035dd",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"query\": \"泉州旭丰粉体有限公司\", \"live\": {\"conditions\": [{\"field\": \"contactOrHomeAddress\", \"operator\": \"MATCH\", \"value\": \"泉州旭丰粉体有限公司\"}], \"query_logic\": \"AND\", \"robot_text\": \"联系地址或家庭地址为泉州旭丰粉体有限公司的客户\"}, \"reference\": {\"query_logic\": \"AND\"}, \"case_local_implementation_evidence\": [\"matched_pattern: ### 当前时间\\n2026-08-12 02:09:41 (Asia/Shanghai)\\n### 今天星期\\n周三\\n\\n### 相关字段参考（根据查询内容动态召回）\\n\\n\\n- **profName** | 操作符: CONTAINS | 值类型: infer | 定义: 表示客户本人的职业或从业类型枚举，不表示任职单位、公司、企业、机构或地址名称。 | 说明: 只有原文出现职业、从事、工作类型，或老师、医生、工程师等明确职业语义时才使用本字段。单位名称/公司名称/企业名称/机构名称后的专有名称不能映射为 profName。口语推断：做生意→个体户，体制内→公务员，金融→金融从业者，自由职业→自由职业者。\\n\\n  示例: \\\"做生意的客户\\\" → {\\\"field\\\": \\\"profName\\\", \\\"operator\\\": \\\"CONTAINS\\\", \\\"value\\\": [\\\"个体户\\\"]}\\n\\n  示例: \\\"体制内客户\\\" → {\\\"field\\\": \\\"profName\\\", \\\"operator\\\": \\\"CONTAINS\\\", \\\"value\\\": [\\\"公务员\\\"]}\\n\\n  示例: \\\"老师或医生的客户\\\" → {\\\"field\\\": \\\"profName\\\", \\\"operator\\\": \\\"CONTAINS\\\", \\\"value\\\": [\\\"老师\\\", \\\"医生\\\"]}\\n\\n  反例: \\\"单位名称为远山工程咨询院的客户\\\" → 不输出该字段；原因: 远山工程咨询院是单位或机构名称，不是客户职业，不能映射到 profName\\n\\n  反例: \\\"公司名称为启航教育集团的客户\\\" → 不输出该字段；原因: 启航教育集团是公司名称，不是职业枚举\\n\\n  反例: \\\"企业名字叫星海工程设计院的客户\\\" → 不输出该字段；原因: 企业专有名称不是客户职业\\n\\n- **polNoInfo.survivalinterestunpaidamt** | 操作符: RANGE | 值类型: range | 单位: 元，万=×10000，千=×1000，若没明确单位，默认为元 | 定义: 生存金利息未领取精确金额或区间金额查询\\n\\n  示例: \\\"还有2000到5000元生存金利息未领取的客户\\\" → {\\\"field\\\": \\\"policies_total_unclaimed_survival_benefit_interest\\\", \\\"operator\\\": \\\"RANGE\\\", \\\"value\\\": {\\\"min\\\": 2000, \\\"max\\\": 5000}}\\n\\n  示例: \\\"利息还有2000没领的客户\\\" → {\\\"field\\\": \\\"policies_total_unclaimed_survival_benefit_interest\\\", \\\"operator\\\": \\\"RANGE\\\", \\\"value\\\": {\\\"min\\\": 2000, \\\"max\\\": 2000}}\\n\\n- **ayyMemberGradeInfo.ayymemberproductname** | 操作符: EXISTS | 值类型: exists | 枚举: ['安有医'] | 定义: 安有医会员服务线是否有值 | 说明: 仅判断安有医服务线是否有记录，不关心具体值\\n\\n  示例: \\\"有安有医权益的客户\\\" → {\\\"field\\\": \\\"ayyMemberGradeInfo.ayymemberproductname\\\", \\\"operator\\\": \\\"EXISTS\\\", \\\"value\\\": \\\"\\\"}\\n\\n  示例: \\\"开通了安有医的客户\\\" → {\\\"field\\\": \\\"ayyMemberGradeInfo.ayymemberproductname\\\", \\\"operator\\\": \\\"EXISTS\\\", \\\"value\\\": \\\"\\\"}\\n\\n  反例: \\\"安有医客户\\\" → 不输出该字段；原因: 指定了具体服务线值，应使用MATCH\\n\\n- **ayyMemberGradeInfo.ayymemberproductname** | 操作符: MATCH | 值类型: enum | 枚举: ['安有医'] | 定义: 安有医会员服务线名称，不表示其他服务线 | 说明: 枚举值「安有医」；有该服务线即表示客户开通了安有医会员服务\\n\\n  示例: \\\"服务线为安有医的客户\\\" → {\\\"field\\\": \\\"ayyMemberGradeInfo.ayymemberproductname\\\", \\\"operator\\\": \\\"MATCH\\\", \\\"value\\\": \\\"安有医\\\"}\\n\\n  反例: \\\"安有医达标的客户\\\" → 不输出该字段；原因: 达标是会员状态(status)，不是服务线\\n\\n- **ayhMemberGradeInfo.ayhmemberproductname** | 操作符: MATCH | 值类型: enum | 枚举: ['安有护'] | 定义: 安有护会员服务线名称，不表示其他服务线 | 说明: 枚举值「安有护」；有该服务线即表示客户开通了安有护会员服务\\n\\n  示例: \\\"服务线为安有护的客户\\\" → {\\\"field\\\": \\\"ayhMemberGradeInfo.ayhmemberproductname\\\", \\\"operator\\\": \\\"MATCH\\\", \\\"value\\\": \\\"安有护\\\"}\\n\\n  反例: \\\"安有护达标的客户\\\" → 不输出该字段；原因: 达标是会员状态(status)，不是服务线\\n\\n- **ayyMemberGradeInfo.ayymemberproductname** | 操作符: NOT_CONTAINS | 值类型: enum | 枚举: ['安有医'] | 定义: 安有医会员服务线名称，用于排除查询 | 说明: 排除安有医服务线的客户时使用NOT_CONTAINS\\n\\n  示例: \\\"没有安有医服务线的客户\\\" → {\\\"field\\\": \\\"ayyMemberGradeInfo.ayymemberproductname\\\", \\\"operator\\\": \\\"NOT_CONTAINS\\\", \\\"value\\\": \\\"安有医\\\"}\\n\\n  示例: \\\"有安有护但没有安有医的客户\\\" → {\\\"field\\\": \\\"ayyMemberGradeInfo.ayymemberproductname\\\", \\\"operator\\\": \\\"NOT_CONTAINS\\\", \\\"value\\\": \\\"安有医\\\"}\\n\\n  反例: \\\"有安有医的客户\\\" → 不输出该字段；原因: 正向匹配应使用MATCH\\n\\n- **ayhMemberGradeInfo.ayhmemberproductname** | 操作符: NOT_CONTAINS | 值类型: enum | 枚举: ['安有护'] | 定义: 安有护会员服务线名称，用于排除查询 | 说明: 排除安有护服务线的客户时使用NOT_CONTAINS\\n\\n  示例: \\\"没有安有护服务线的客户\\\" → {\\\"field\\\": \\\"ayhMemberGradeInfo.ayhmemberproductname\\\", \\\"operator\\\": \\\"NOT_CONTAINS\\\", \\\"value\\\": \\\"安有护\\\"}\\n\\n  示例: \\\"有安有护但没有安有护的客户\\\" → {\\\"field\\\": \\\"ayhMemberGradeInfo.ayhmemberproductname\\\", \\\"operator\\\": \\\"NOT_CONTAINS\\\", \\\"value\\\": \\\"安有护\\\"}\\n\\n  反例: \\\"有安有护的客户\\\" → 不输出该字段；原因: 正向匹配应使用MATCH\\n\\n### 用户查询\\n泉州旭丰粉体有限公司\\n\\n=== open_intent prompt ===\\n### 任务\\n你是客户搜索查询解析器中的开放字段子模型。你的任务和普通查询解析模型相同， 都是把自然语言转换为 query_logic 和 conditions；区别是你只能处理配置给出的 少数开放字段，且这些字段上下文已全部给出，不需要 RAG 召回。\\n\\n### 规则\\n- 只能输出\\\"允许输出字段\\\"中列出的 field/operator。\\n- 对白名单字段，无论用户是裸输入还是明确说明字段名，都应尽量解析。\\n- 如果用户查询同时包含白名单字段和其他内容，只输出你能处理的白名单字段，忽略其他内容。\\n- 客户姓名(searchClientName)只表示客户本人自然人姓名，不表示投保人、被保人、客户经理、联系人、家庭成员姓名，也不表示公司、机构、地区、地址或泛指客户集合。\\n- 裸自然人姓名，以及“姓名/名字为X”“名叫X的客户”“把叫X的客户列出来”默认都是客户本人姓名；只有“投保人X”“X作为被保人”“女儿叫X”等角色直接修饰姓名的原文证据，才排除 searchClientName。\\n- 只有 X 本身是原文中独立、明确的1-4字自然人姓名时，“X有子女/有父母/有配偶/有保单”中的 X 才是客户本人姓名；“家里/家中/我家/家庭中有子女”等家庭范围表达不包含客户姓名，不得把整段家庭条件输出为 searchClientName。\\n- \\\"全部客户/所有客户/全量客户/全体客户/客户列表/客户名单\\\"等集合词不是姓名；包含\\\"公司/有限公司/集团/工厂/粉体/科技/商贸/医院/学校/银行/门店\\\"等组织机构特征的文本不是姓名，不能输出 searchClientName。\\n- 地址字段表示查询范围，operator表示查询方式。明确\\\"联系地址/通讯地址/通信地址\\\"时使用 contactAddress；明确\\\"家庭地址/家庭住址/居住地址/住址\\\"时使用 homeAddress；未明确地址类型时使用 contactOrHomeAddress，由后端同时查询联系地址和家庭地址。\\n- 公司名、机构名和普通裸地址在未明确地址类型时输出 contactOrHomeAddress + MATCH，value保留原文。\\n- 地址和机构 value 必须是用户原文中的连续完整片段；必须保留街道、社区、小区、园区、公司、有限公司、楼、座、室等语义后缀，不得缩写、改写或自行删除后缀。\\n- value 不得包含查询动作、字段名称、客户集合词或其他条件，例如“帮我查、筛下、给我看、姓名、家庭住址、学历、年龄、的客户”都不能进入地址 value。\\n- 同一句包含姓名、地址、学历、年龄等多个独立条件时，分别抽取为多个 conditions，不得把整句或前一个条件合并为地址 value；只忽略不属于开放字段且已经由普通模型负责的部分。\\n- 同一句明确包含客户姓名和客户地址时，必须同时输出姓名与地址两个开放条件，不得因地址条件存在而遗漏姓名，也不得因姓名条件存在而遗漏地址。\\n- 住在、居住在、定居、家住、籍贯、户籍、老家、家在、户口、迁居、现居、移居等表达没有明确说明联系地址或家庭地址，统一输出 contactOrHomeAddress。\\n- 裸值只要可能是地址就必须输出 contactOrHomeAddress + MATCH。宁可把模糊值当地址，不要遗漏。\\n- 判断是地址的依据（满足任一即视为地址）：包含\\\"路\\\"\\\"街\\\"\\\"巷\\\"\\\"弄\\\"\\\"小区\\\"\\\"花园\\\"\\\"公馆\\\"\\\"大厦\\\"\\\"广场\\\"\\\"园\\\"\\\"楼\\\"\\\"号\\\"\\\"栋\\\"\\\"单元\\\"\\\"层\\\"\\\"座\\\"\\\"区\\\"\\\"县\\\"\\\"市\\\"\\\"省\\\"\\\"镇\\\"\\\"乡\\\"\\\"村\\\"\\\"花苑\\\"\\\"新苑\\\"\\\"嘉园\\\"\\\"华庭\\\"\\\"名都\\\"\\\"新城\\\"\\\"国际\\\"\\\"环\\\"\\\"苑\\\"\\\"里\\\"\\\"庄\\\"\\\"营\\\"\\\"屯\\\"\\\"堡\\\"\\\"店\\\"\\\"集\\\"\\\"渡\\\"\\\"港\\\"\\\"桥\\\"\\\"站\\\"\\\"门\\\"\\\"关\\\"\\\"口\\\"\\\"岗\\\"\\\"岭\\\"\\\"坡\\\"\\\"湾\\\"\\\"湖\\\"\\\"海\\\"\\\"江\\\"\\\"河\\\"\\\"溪\\\"\\\"岛\\\"\\\"半岛\\\"\\\"三角\\\"\\\"学院\\\"\\\"大学城\\\"\\\"公司\\\"\\\"集团\\\"\\\"企业\\\"\\\"工厂\\\"\\\"银行\\\"\\\"医院\\\"\\\"学校\\\"\\\"门店\\\"\\\"高新区\\\"\\\"新区\\\"\\\"开发区\\\"\\\"街道\\\"\\\"社区\\\"\\\"弄堂\\\"\\\"胡同\\\"\\\"CBD\\\"\\\"中心\\\"\\\"城\\\"\\\"商圈\\\"\\\"汇\\\"\\\"壹号院\\\"\\\"壹号\\\"\\\"公馆\\\"等地址特征词，或以省/市/区/县/旗/州/盟结尾\\n- 中国常见区域名也是地址：京津冀、江浙沪、长三角、珠三角、粤港澳、成渝、东北、华北、华东、华南、华中、西北、西南、中关村、望京、国贸、亦庄、燕郊、通州、回龙观、天通苑\\n- 以下方向表达也应识别为地址：X环内、X环外、X旁边、X对面、X沿线、X以北、X以南、X以东、X以西、城东、城西、城南、城北、城中心、市中心；X附近、X周边、X周围按后述默认5公里GEO规则处理。\\n- 明确\\\"联系地址\\\"\\\"通讯地址\\\"\\\"通信地址\\\"等只输出 contactAddress + MATCH。\\n- 明确\\\"家庭地址\\\"\\\"家庭住址\\\"\\\"居住地址\\\"\\\"住址\\\"等只输出 homeAddress + MATCH。\\n- 裸值中的\\\"X旁边\\\"\\\"X对面\\\"\\\"X沿线\\\"\\\"X环外\\\"\\\"X环内\\\"是普通地址，未明确地址类型时输出 contactOrHomeAddress + MATCH，不要用 GEO operator。\\n- “X环外、X环内、X旁边、X对面、X沿线”等没有距离数值的相对位置表达不得补充默认距离，不得转换成 GEO_RADIUS 或 NOT_GEO_RADIUS。\\n- 明确地点的\\\"X附近\\\"\\\"X周边\\\"\\\"X周围\\\"没有距离数字时默认按5公里内查询；字段仍按地址类型选择，未明确类型使用 contactOrHomeAddress，operator=GEO_RADIUS。\\n- 当前用户位置表达（我附近、我周围、我周边、我身边、当前位置附近、坐席附近、代理人周边）没有明确距离时默认按5公里内查询；未明确地址类型使用 contactOrHomeAddress + GEO_RADIUS，value.place_name=null、is_current_location=true、distance=5、unit=\\\"km\\\"。\\n- 地点 N 公里/米内使用按地址类型选择的字段 + GEO_RADIUS；地点 N 公里/米外、超过 N 公里、以外使用按地址类型选择的字段 + NOT_GEO_RADIUS。\\n- 除“附近、周边、周围”明确约定的默认5公里规则外，原文没有距离数字时禁止编造 distance。\\n- 当前位置、附近、我周围、我的位置作为半径中心时，value.place_name 必须为 null，is_current_location 为 true。\\n- 指定地点作为半径中心时，value.place_name 必须为地点名，is_current_location 为 false。\\n- value.distance 和 value.unit 统一输出 km： \\\"3公里内\\\" -> distance=3, unit=\\\"km\\\"; \\\"500米内\\\" -> distance=0.5, unit=\\\"km\\\"; \\\"1200米内\\\" -> distance=1.2, unit=\\\"km\\\"。\\n- 如果查询是明显的地址，result_type 必须为 RESOLVED，confidence 必须为 0.95（数值，不带引号）。\\n- 如果查询是明显的人名（不包含地址特征词、不像地名），但\\\"允许输出字段\\\"中有 searchClientName，则输出 searchClientName + MATCH，result_type=RESOLVED，confidence=0.95。\\n- 如果无法区分是姓名还是地址（如\\\"张江\\\"既是人名又是地名），返回 result_type=AMBIGUOUS，confidence=0.5。\\n- 代理人、客户经理、投保人、被保人、联系人、家庭成员、家属、受益人后的姓名属于对应角色，不是客户本人姓名；不得改写成 searchClientName，也不得改写成投保人或被保人条件。\\n- 如果查询与白名单字段无关（如纯数字、保单号等），返回 result_type=NONE，conditions 为空。\\n- 如果查询只有年龄、家庭成员、保单、产品、客户标签等普通字段条件，没有明确姓名或地址，则必须返回 result_type=NONE；不得为了命中开放字段白名单而把普通条件片段改写成姓名或地址。\\n- 不要编造白名单外字段。\\n- 只输出 JSON，不输出 Markdown 或解释。\\n- JSON 中必须包含 result_type、query_logic、conditions、confidence 四个字段，不要省略任何字段。\\n\\n### 允许输出字段\\n- id=open_client_name field=searchClientName operator=MATCH value_type=text\\n  description: 客户本人自然人姓名。裸姓名、“姓名/名字为X”“名叫X的客户”“把叫X的客户列出来”属于客户本人姓名；“X有子女/有父母/有配偶/有保单”仅在X本身是原文中独立、明确的1-4字自然人姓名时成立。“家里/家中/我家/家庭中有子女”等家庭范围表达不包含客户姓名。不包括投保人、被保人、受益人、客户经理、联系人和家庭成员姓名。\\n  examples: 客户姓名是张三；名字叫李四的客户；顾清禾；把叫顾清禾的客户列出来；顾清禾有子女的客户 -> value=\\\"顾清禾\\\"；姓名为江知遥、通讯地址为星海商务区 -> 姓名条件 value=\\\"江知遥\\\"，并保留独立地址条件\\n  negative_examples: 投保人张三；客户经理张三；顾清禾作为投保人；女儿叫林溪；全部客户；所有客户名单；全量客户给我看看；家里有未成年子女；家中有老人；有子女但没有买学平险的客户\\n- id=open_contact_address_match field=contactAddress operator=MATCH value_type=text\\n  description: 用户明确查询客户本人的联系地址、通讯地址或通信地址时的文本匹配；value 必须保留原文中的完整地址后缀，单值使用 MATCH。\\n  examples: 通信地址为浙江省湖州市安吉县递铺街道 -> value=\\\"浙江省湖州市安吉县递铺街道\\\"；联系地址是海南省儋州市那大镇先锋社区 -> value=\\\"海南省儋州市那大镇先锋社区\\\"\\n  negative_examples: 投保人联系地址为青岛路8号；客户经理联系地址是春江明月；联系人通讯地址为南京西路\\n- id=open_contact_address_geo_within field=contactAddress operator=GEO_RADIUS value_type=geo_radius\\n  description: 用户明确对客户本人联系地址执行范围内查询；附近、周边、周围未给距离时固定为 5km，米必须换算成 km。\\n  examples: 联系地址在杭州大会展中心周边 -> value={place_name: \\\"杭州大会展中心\\\", is_current_location: false, distance: 5, unit: \\\"km\\\"}；联系地址在火车站500米内 -> value={place_name: \\\"火车站\\\", is_current_location: false, distance: 0.5, unit: \\\"km\\\"}\\n  negative_examples: 投保人联系地址在幸福花园3公里内；客户经理联系地址在火车站周边\\n- id=open_contact_address_geo_outside field=contactAddress operator=NOT_GEO_RADIUS value_type=geo_radius\\n  description: 用户明确对客户本人联系地址执行范围外查询；“外、以外、超过、大于”必须使用 NOT_GEO_RADIUS，米必须换算成 km。\\n  examples: 联系地址距离重庆西站超过6公里 -> operator=NOT_GEO_RADIUS, value={place_name: \\\"重庆西站\\\", is_current_location: false, distance: 6, unit: \\\"km\\\"}\\n  negative_examples: 被保人联系地址在幸福花园3公里外\\n- id=open_family_address_match field=homeAddress operator=MATCH value_type=text\\n  description: 用户明确查询客户本人的家庭地址、家庭住址、居住地址或住址时的文本匹配；value 必须保留原文中的完整地址后缀，单值使用 MATCH。\\n  examples: 居住地址为青海省海西州德令哈市河西街道 -> value=\\\"青海省海西州德令哈市河西街道\\\"；家住钱塘云湾一带的客户 -> operator=MATCH, value=\\\"钱塘云湾\\\"；家在麓湖生态城那边的客户 -> operator=MATCH, value=\\\"麓湖生态城\\\"\\n  negative_examples: 客户经理家庭地址是春江明月；被保人家住悦湖新城；家庭成员住在南京西路\\n- id=open_family_address_geo_within field=homeAddress operator=GEO_RADIUS value_type=geo_radius\\n  description: 用户明确对客户本人家庭地址执行范围内查询；附近、周边、周围未给距离时固定为 5km，米必须换算成 km。\\n  examples: 居住地址在苏州湾大剧院周围 -> value={place_name: \\\"苏州湾大剧院\\\", is_current_location: false, distance: 5, unit: \\\"km\\\"}\\n  negative_examples: 客户经理家庭地址在幸福花园3公里内\\n- id=open_family_address_geo_outside field=homeAddress operator=NOT_GEO_RADIUS value_type=geo_radius\\n  description: 用户明确对客户本人家庭地址执行范围外查询；“外、以外、超过、大于”必须使用 NOT_GEO_RADIUS，米必须换算成 km。\\n  examples: 居住地址距离重庆西站超过6公里 -> operator=NOT_GEO_RADIUS, value={place_name: \\\"重庆西站\\\", is_current_location: false, distance: 6, unit: \\\"km\\\"}\\n  negative_examples: 被保人家庭地址在幸福花园3公里外\\n- id=open_any_address_match field=contactOrHomeAddress operator=MATCH value_type=text\\n  description: 用户没有说明联系地址或家庭地址时，同时查询两类地址的文本匹配；完整保留街道、社区、小区、园区、楼、座、室、脚下等地址语义后缀；“那边、一带”只作口语边界词，不转换为 GEO。\\n  examples: 浙江省湖州市安吉县递铺街道 -> value=\\\"浙江省湖州市安吉县递铺街道\\\"；青海省海西州德令哈市河西街道 -> value=\\\"青海省海西州德令哈市河西街道\\\"；海南省儋州市那大镇先锋社区 -> value=\\\"海南省儋州市那大镇先锋社区\\\"；给我找住玉龙雪山脚下的客户 -> operator=MATCH, value=\\\"玉龙雪山脚下\\\"；家住钱塘云湾一带的客户 -> operator=MATCH, value=\\\"钱塘云湾\\\"；家在麓湖生态城那边的客户 -> operator=MATCH, value=\\\"麓湖生态城\\\"；单位名称为瀚海工程咨询院的客户 -> operator=MATCH, value=\\\"瀚海工程咨询院\\\"；大学本科学历并且机构名称是晨曦教育集团 -> 仅抽取 value=\\\"晨曦教育集团\\\"，不得把学历并入地址\\n  negative_examples: 投保人联系地址为青岛路8号；被保人家住悦湖新城；客户经理家庭地址是春江明月；全部客户；所有客户名单；全量客户给我看看\\n- id=open_any_address_geo_within field=contactOrHomeAddress operator=GEO_RADIUS value_type=geo_radius\\n  description: 用户没有说明地址类型时，同时对联系地址和家庭地址执行范围内查询；附近、周边、周围未给距离时固定为 5km；代理人/坐席周围表示当前位置，place_name 必须为 null；米统一换算为 km。\\n  examples: 查一下杭州大会展中心周边的客户 -> value={place_name: \\\"杭州大会展中心\\\", is_current_location: false, distance: 5, unit: \\\"km\\\"}；苏州湾大剧院周围的客户 -> value={place_name: \\\"苏州湾大剧院\\\", is_current_location: false, distance: 5, unit: \\\"km\\\"}；我周围2公里内有哪些客户 -> value={place_name: null, is_current_location: true, distance: 2, unit: \\\"km\\\"}；我附近的客户 -> value={place_name: null, is_current_location: true, distance: 5, unit: \\\"km\\\"}；当前位置500米内 -> value={place_name: null, is_current_location: true, distance: 0.5, unit: \\\"km\\\"}\\n  negative_examples: 家住钱塘云湾一带的客户；家在麓湖生态城那边的客户；给我找住玉龙雪山脚下的客户\\n- id=open_any_address_geo_outside field=contactOrHomeAddress operator=NOT_GEO_RADIUS value_type=geo_radius\\n  description: 用户没有说明地址类型时，同时对联系地址和家庭地址执行范围外查询；“外、以外、超过、大于”必须使用 NOT_GEO_RADIUS；米统一换算为 km。\\n  examples: 重庆西站超过6公里的客户 -> operator=NOT_GEO_RADIUS, value={place_name: \\\"重庆西站\\\", is_current_location: false, distance: 6, unit: \\\"km\\\"}；当前位置1200米以外 -> operator=NOT_GEO_RADIUS, value={place_name: null, is_current_location: true, distance: 1.2, unit: \\\"km\\\"}\\n\\n### 输出格式\\n{\\\"result_type\\\":\\\"RESOLVED\\\",\\\"query_logic\\\":\\\"AND\\\",\\\"conditions\\\":[{\\\"field\\\":\\\"contactOrHomeAddress\\\",\\\"operator\\\":\\\"MATCH\\\",\\\"value\\\":\\\"幸福花园\\\"}],\\\"confidence\\\":0.95}\\n\\n### 用户查询\\n泉州旭丰粉体有限公司\", \"contactOrHomeAddress supports MATCH\"], \"case_local_business_semantics\": []}",
+      "created_at": 1786528051,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "85d885e0-0f44-4d88-99b4-01b3dfb6999d",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"verdict\":\"not_fulfilled\",\"reason\":\"用户查询是裸公司名“泉州旭丰粉体有限公司”，没有“地址”“单位”“客户”“查”等指示词，核心约束只是该名称本身，未指明它对应哪个客户属性。Live 将其解析为 contactOrHomeAddress MATCH，等价于把公司名等同于联系/家庭地址，这属于系统自洽解析；Reference 仅给出 query_logic=AND，没有 conditions，无法佐证该字段映射。case_local_business_semantics 为空，没有权威业务口径支撑“公司名→地址”的等价映射，且 MATCH 会把结果收窄到地址字段，可能漏掉按单位/公司名称检索的客户，因此不能证明 Live 实际满足用户检索意图。\",\"confidence\":0.8}",
+      "created_at": 1786528051,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "2e014ee7-e614-4c44-83cd-7b09126f3f08",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 640,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 6428,
+        "output_tokens": 3484,
+        "provider_metrics": null,
+        "reasoning_tokens": 3313,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 9912
+      },
+      "name": null,
+      "provider_data": {
+        "id": "4b4bf200-12ae-43a2-80d6-56021d78a17a",
+        "system_fingerprint": "fp_a18b46594c_prod0820_fp8_kvcache_20260402"
+      },
+      "reasoning_content": "We need answer JSON. Need analyze. Need follow instructions. Query: \"泉州旭丰粉体有限公司\" (Quanzhou Xufeng Powder Co., Ltd.). Live conditions: contactOrHomeAddress MATCH value same. Reference query_logic AND only. Evidence matched_pattern shows open intent prompt: address/company names not name, contactOrHomeAddress MATCH. Need judge whether Live satisfies user retrieval intent. User query bare company name, likely wants customers whose address/company? Need parse.\n\nNeed infer user intent: 用户输入\"泉州旭丰粉体有限公司\" 想找客户？ Likely 客户集合 = 联系地址/家庭地址为泉州旭丰粉体有限公司的客户? Hmm \"客户搜索\" context. Query is a company name. The open prompt says company name, institution name and ordinary bare address when address type not clear output contactOrHomeAddress + MATCH, value keep original. So Live matches. Need decide fulfilled.\n\nNeed examine query semantics: \"泉州旭丰粉体有限公司\" contains \"有限公司\" organizational characteristic; not a name. Under rules, 公司名、机构名和普通裸地址在未明确地址类型时输出 contactOrHomeAddress + MATCH. User likely wants customers associated with company? Could be company as address? Hmm In customer search, a bare company name could mean customer's company/employer? There is profName field that excludes company names. Is there a company field? The open prompt describes only address and name fields; company is treated as address. But is that semantically correct? The reference only has query_logic, no conditions. case_local implementation evidence includes matched_pattern with open prompt and business semantics empty. Need evaluate.\n\nThe instruction says: authority=false, judge if Live actual satisfies user retrieval intent. Live condition contactOrHomeAddress MATCH \"泉州旭丰粉体有限公司\" means find customers whose contact or home address equals that company name. But user query is just a company name, no \"地址\" or \"客户\" words. Is the user's intent necessarily \"customers whose address is this company\"? Maybe alternative: find customers whose employer/company name is 泉州旭丰粉体有限公司. In customer search, a company name could be intended as customer's company/work unit. But available open fields? profName explicitly says company names not profName. There may be no company field in open model. The system's configured semantic maps company/organization names to address. But does that fulfill intent? Need decide.\n\nLet's deeply analyze. Rules in prompt: \"裸词规则：query 是无上下文的裸词（没有 姓名/客户/查/找 等指示词）且 Live 把它解析为姓名时，Live 与 Reference 一致只能说明系统自洽解析，不能证明该词就是姓名；除非有明确姓名结构或姓名语义证据，否则 not_fulfilled。\" That's specifically bare word parsed as name. Here bare company name parsed as address. Similar logic? Query bare \"泉州旭丰粉体有限公司\" has clear organization marker \"有限公司\"; the open prompt explicitly says company names are not names and should be contactOrHomeAddress MATCH. So there is structural evidence that it's an organization name. But user intent? Need infer what customer set user wants. Could be \"customers at/related to this company\". Maybe the only way system supports is address match. But is it actual? Let's consider.\n\nWe need decide verdict. Need perhaps fulfilled because Live condition matches intended: company name as address because \"泉州旭丰粉体有限公司\" likely is an address-like entity (company location). The open intent prompt is part of implementation evidence and defines semantics: 公司名、机构名和普通裸地址在未明确地址类型时输出 contactOrHomeAddress + MATCH. This is a documented semantic mapping. But is it business semantics? case_local_business_semantics empty. The prompt says evidence grading: second level: explicit authoritative business semantic mapping/enums/date equivalence (business confirmed). Third level: matched_pattern etc. only explain why system parsed, cannot prove parsing matches user intent. Here the semantic mapping is in model prompt, not necessarily business-confirmed. But is it authoritative? It's a system prompt used by implementation. Yet \"authority=false\", only judge actual satisfaction. Need use evidence.\n\nMaybe user with a bare company name in a customer search context wants to find clients belonging to that company (e.g., company employees). The system returns clients whose address text contains/matches that company name. But company name as address may be too narrow/wrong. Let's explore.\n\nQuery: \"泉州旭丰粉体有限公司\" is a company name. In customer management, agent might search customers by \"单位名称\" (employer/company). There may be field \"companyName\" or \"employer\" not in open fields. The prompt for profName says \"单位名称/公司名称/企业名称/机构名称后的专有名称不能映射为 profName.\" It also gives example: \"单位名称为远山工程咨询院的客户\" → 不输出 profName. But for open address field, \"单位名称为瀚海工程咨询院的客户\" -> contactOrHomeAddress MATCH? In allowed fields example: \"单位名称为瀚海工程咨询院的客户 -> operator=MATCH, value=\\\"瀚海工程咨询院\\\"\" under open_any_address_match. So system maps company name query to address. Hmm weird but system's configured behavior.\n\nNeed maybe judge whether Live's \"contactOrHomeAddress\" matches user query \"泉州旭丰粉体有限公司\". The user did not mention 地址, but the implementation prompt says bare company name should be treated as address. This is a system convention. If user wants \"客户的公司是泉州旭丰粉体有限公司\", then address match isn't correct. But maybe in this system, company names used as \"address\" because CRM records customer address as company name? No, not necessarily.\n\nLet's read instruction: \"意图拆解：写出用户最终想得到的客户集合，以及每个核心约束（语义、取值、逻辑、排除项）。\" Need output reason likely concise.\n\nPotential answer: verdict fulfilled? Let's weigh.\n\nThe query itself \"泉州旭丰粉体有限公司\" is an organization name. The Live field contactOrHomeAddress MATCH same value. It restricts client set to those whose contact or home address matches company name. Does that \"satisfy\" user? User didn't specify any attribute; in a customer search system a bare entity often means \"find customers matching this entity\" and the target field is inferred. The system's documented parsing (in prompt) decides company name => address. But the user didn't say address. Could be intended as \"客户所在单位\" not address. Without business semantics evidence, we cannot be certain. The grading says matched_pattern is third level, cannot prove parsing matches intent. case_local_business_semantics empty. There is no explicit confirmation that \"company name means address\" is authoritative business mapping. So perhaps not_fulfilled due to lack of evidence that company name as address is user intent, similar bare word rule. But the bare word rule specifically says Live parses \"it\" as name. Here Live parses as address. Is this an \"equivalent\" extension? Need maybe not.\n\nLet's consider \"用户最终想得到的客户集合\". If user types a company name, possible intents:\n1. 查这个公司名下的客户 (company as account/company name field)\n2. 查地址位于该公司的客户\n3. 查与该名称有关的客户 (fuzzy)\n\nLive only covers address. Could miss clients whose company/employer is this company but address different. Also it includes clients whose home address happens to be company name (unlikely) or contact address company name (maybe employer address). That might actually be plausible if contact address stored as company name. But not guaranteed.\n\nHowever, the \"case_local_implementation_evidence\" includes the full open intent prompt, which explicitly states \"公司名、机构名和普通裸地址在未明确地址类型时输出 contactOrHomeAddress + MATCH，value保留原文.\" This is a rule that the deployed system uses, and maybe the judge should consider this as intended semantics? But the instructions say matched_pattern only explains why system parsed, not proof. It is a system prompt, not authoritative business rule. So maybe not.\n\nLet's examine reference: {\"query_logic\": \"AND\"}. Reference has no conditions. So Live vs reference? The reference empty conditions means no target semantics. It doesn't confirm.\n\nNeed maybe output \"not_fulfilled\" because bare company name without query action/attribute is ambiguous; Live's address interpretation is one possible mapping but not proven; additionally if user intended company/employer name, Live would miss. But Live still returns some customers, so is it \"actually satisfy\"? The test likely expects us to follow given hints. The case_local_implementation_evidence mentions \"matched_pattern: ### 当前时间 ... open_intent prompt ... contactOrHomeAddress supports MATCH\". It may be designed to signal that implementation's parsing was based on open intent. The task is to judge fulfillment. Maybe they expect to say fulfilled because Live exactly follows configured rule: bare company name → contactOrHomeAddress MATCH. But the instruction says only \"core constraints\" from query; query has no explicit constraints except string. Hmm.\n\nLet's parse user intent as \"寻找与‘泉州旭丰粉体有限公司’相关的客户\"。What field? The only clue is company suffix. In a customer search system, perhaps \"公司\" is represented by address field? The open prompt explicitly lists negative examples for searchClientName: \"包含'公司/有限公司/集团/工厂/粉体/科技/商贸/医院/学校/银行/门店'等组织机构特征的文本不是姓名，不能输出 searchClientName.\" It then says company name and ordinary bare address when address type not clear output contactOrHomeAddress + MATCH. So the system's semantics: company names are not names but addresses. The judge could accept this as system behavior. But \"authority=false\" maybe means don't rely on system's internal configuration? Wait \"你是客户搜索 Judge。authority=false\" implies you don't have authority to establish semantics? The evidence hierarchy says only business-confirmed mappings are authoritative. System prompt is just implementation. So cannot use.\n\nLet's think of possible \"business semantics\" for company names. If the CRM field contactOrHomeAddress contains \"泉州旭丰粉体有限公司\" as address value, that means some customers' address field stores company name (maybe their work unit). The user searching bare company name likely expects exactly those customers. So Live's condition might be a reasonable interpretation, and maybe fulfills. But no evidence that the data model supports company field. The query text \"泉州旭丰粉体有限公司\" with \"有限公司\" strongly indicates organization name. The open prompt's design maps organization names to address. Since user did not specify \"地址\", the only way to answer is to infer from query. The field contactOrHomeAddress is broad and includes both contact and home address, minimizing miss. So perhaps fulfilled.\n\nNeed consider \"额外收窄\": Live's MATCH on contactOrHomeAddress with full company string. Does it narrow? If user wanted company name field, it's a different dimension, not just narrowing. If user wanted any customer related to this string in any field, Live narrows to address fields only. Also MATCH semantics maybe exact? Operator MATCH usually means match? The value full company name. Could be substring or exact? In examples \"单位名称为瀚海工程咨询院\" -> MATCH. If MATCH is exact match, it may require address exactly equal to company name; but user might want employees whose address contains company? Hmm.\n\nNeed maybe answer \"not_fulfilled\" with reason: 用户查询仅为裸公司名，未给出“地址/单位”等指示词；Live 将其解析为 contactOrHomeAddress 匹配，属于系统自洽解析，缺少权威业务口径证明“公司名=地址”符合用户意图；可能想找该公司的客户/单位名称客户，Live 会遗漏。 So not fulfilled.\n\nBut need maybe reason \"fulfilled\" if we deem the company name as address. Let's see which is more consistent with instructions.\n\nThe \"裸词规则\" is explicitly about bare words parsed as name. It says \"query 是无上下文的裸词（没有 姓名/客户/查/找 等指示词）且 Live 把它解析为姓名时...\" Here query has no 指示词 and Live parses as address, not name. But analogy: \"Live 与 Reference 一致只能说明系统自洽解析，不能证明该词就是姓名；除非有明确姓名结构或姓名语义证据，否则 not_fulfilled.\" For company, there IS explicit structure evidence (有限公司) that it's an organization, not name. But is there explicit semantic evidence that user means address? Not really. The structure evidence says it's an organization, but not that organization = address. The open prompt's rule \"公司名...输出 contactOrHomeAddress\" is a semantic assumption by system, not query evidence. So not_fulfilled.\n\nLet's maybe find \"case_local_business_semantics\": empty. The prompt says \"F 若依赖映射/等价表达，必须在 reason 中引用对应权威业务口径；没有口径支撑的等价声称不能作为 fulfilled 依据。\" Here treating company name as address is a mapping/equivalence. No business semantics provided. Thus not fulfilled. This is strong: Live's mapping from \"泉州旭丰粉体有限公司\" to contactOrHomeAddress is an equivalence claim (company name = address). No authoritative business rule supports it, so cannot be fulfilled. So verdict not_fulfilled.\n\nBut wait, is \"公司名作为地址\" a mapping? It is exactly field assignment. Need perhaps say \"不能证明该裸公司名被用户用作地址条件；Live 额外收窄到地址字段且缺少口径支持，可能漏掉按单位/公司名称检索的客户。\" Confidence maybe 0.75-0.85. Need output only JSON.\n\nNeed ensure JSON valid. Use Chinese quotes. No markdown. Fields verdict, reason, confidence.\n\nLet's craft reason with intent decomposition and item check. Need \"reason\" non-empty. Could be long but okay.\n\nPotential reason: \"用户查询为裸公司名‘泉州旭丰粉体有限公司’，没有‘地址/单位/客户/查’等指示词，核心约束只是该名称，未指明归属字段。Live 将其强制解析为 contactOrHomeAddress MATCH，等价于把公司名等同于联系/家庭地址，这是系统自洽解析而非用户明确意图；case_local_business_semantics 为空，没有权威业务口径支撑‘公司名→地址’的映射，且 MATCH 会把结果收窄到地址字段，可能漏掉按单位/公司名称检索的客户。因此核心交付未被证明满足。\"\n\nNeed maybe mention reference empty doesn't confirm. \"Reference 仅有 query_logic=AND，无 conditions，无法佐证字段映射.\" Good.\n\nConfidence? 0.8 maybe. Need decide. I think not_fulfilled confidence 0.75.\n\nLet's ensure no additionalProperties. Output {\"verdict\":\"not_fulfilled\",\"reason\":\"...\",\"confidence\":0.8}. The reason can include escaped quotes? Use Chinese quotes. Good.\n\nBut let's double-check if any hidden expectation: The case_local_implementation_evidence includes full open_intent prompt; maybe it is intended as \"implementation evidence\" that the parser has rules. The task says \"matched_pattern、规则命中、字段/操作符合法、Reference 一致——只能解释“系统为什么这么解析”，不能证明“解析符合用户意图”.\" So yes, this is third-level evidence. It cannot prove. So not fulfilled. Good.\n\nNeed maybe \"confidence\" high. Not 1.\n\nFinal JSON only.",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "",
+  "prompt_size": 14104,
+  "record_id": "9e61fe05-fb88-4022-9ac5-52fdc142652e",
+  "response": {
+    "content": "{\"verdict\":\"not_fulfilled\",\"reason\":\"用户查询是裸公司名“泉州旭丰粉体有限公司”，没有“地址”“单位”“客户”“查”等指示词，核心约束只是该名称本身，未指明它对应哪个客户属性。Live 将其解析为 contactOrHomeAddress MATCH，等价于把公司名等同于联系/家庭地址，这属于系统自洽解析；Reference 仅给出 query_logic=AND，没有 conditions，无法佐证该字段映射。case_local_business_semantics 为空，没有权威业务口径支撑“公司名→地址”的等价映射，且 MATCH 会把结果收窄到地址字段，可能漏掉按单位/公司名称检索的客户，因此不能证明 Live 实际满足用户检索意图。\",\"confidence\":0.8}",
+    "metrics": {
+      "cache_read_tokens": 640,
+      "cache_write_tokens": 0,
+      "input_tokens": 6428,
+      "output_tokens": 3484,
+      "reasoning_tokens": 3313,
+      "total_tokens": 9912
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 32002,
+          "endpoint": "primary",
+          "model": "deepseek-v4-flash",
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "selected_endpoint": "primary",
+      "selected_model": "deepseek-v4-flash",
+      "stage": "judge_role_boundary_experiment"
+    }
+  },
+  "trace_id": "judge-gen-exp-I045-1"
+}

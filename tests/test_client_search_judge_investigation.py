@@ -1218,7 +1218,8 @@ def test_candidate_skips_authority_environment_for_direct_evidence_case(monkeypa
     assert context["authority_tool"] is None
     assert context["environment_snapshot_sha256"] == ""
     assert context["user_prompt_extras"]["authority_mode"] == "not_required"
-    assert context["user_prompt_extras"]["authority_candidate_reasons"] == []
+    assert "authority_candidate_reasons" not in context["user_prompt_extras"]
+    assert "authority_obligation_contract" not in context["user_prompt_extras"]
     assert "authority_resolve" not in {
         getattr(tool, "name", "") for tool in context["tools"]
     }
@@ -1252,7 +1253,8 @@ def test_disabled_authority_preserves_boundary_candidates_without_building_tool(
     assert context["authority_environment"] is None
     assert context["authority_tool"] is None
     assert context["user_prompt_extras"]["authority_mode"] == "disabled_with_candidates"
-    assert context["user_prompt_extras"]["authority_candidate_reasons"]
+    assert "authority_candidate_reasons" not in context["user_prompt_extras"]
+    assert "authority_obligation_contract" not in context["user_prompt_extras"]
     prompt = "\n".join(context["system_prompt_extras"])
     assert "核心结果未交付或 blocking 维度缺失时判 not_fulfilled" in prompt
     assert "不得仅因 Authority 关闭或存在边界候选而判 not_evaluable" in prompt

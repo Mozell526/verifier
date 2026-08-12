@@ -1,0 +1,930 @@
+{
+  "caller": "judge",
+  "created_at": "2026-08-12T13:33:32Z",
+  "elapsed_ms": 107853,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "draft"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "38080b374647dbff322110a0e4bccad1a65e73b90b2eae10aabc268344a5a142",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [
+        {
+          "char_count": 149,
+          "content_sha256": "3cd4bc52ab2a3461a9fb3dd9cbe282de8068556dc426c4c32bc9a4793d8c2692",
+          "reason": "Runtime result contract is excluded from the LLM-owned context contract; marker=`JudgeResult` 协议字段",
+          "segment_id": "excluded-line-40-clause-1",
+          "source": "contextunit://project.client_search.asset.judge_boundary,project.client_search.asset.judge_business_contract,project.client_search.asset.judge_evaluation,project.client_search.asset.judge_standard"
+        }
+      ],
+      "lineage": {
+        "call_id": "",
+        "case_id": "I480",
+        "trace_id": "client_search:I480:1786541502796"
+      },
+      "messages": [
+        {
+          "char_count": 20384,
+          "content_sha256": "e5d0f4431ee0718d836d26d355a69b1d6e56dc782ca91b772bc7c0de260c6b65",
+          "role": "system"
+        },
+        {
+          "char_count": 17790,
+          "content_sha256": "70fde03568ee31c77b007f27494381ae2ed3db875435c51b014cd25b1343cf9f",
+          "role": "user"
+        }
+      ],
+      "mode": "draft",
+      "output_contract": {
+        "field_names": [
+          "acceptance_criteria",
+          "actual",
+          "actual_evidence",
+          "applicable_product_expectation_ids",
+          "authority_tool_call_ids",
+          "blocking",
+          "boundary",
+          "business_expectations",
+          "code",
+          "conditions",
+          "confidence",
+          "cost_times",
+          "downstream_consumer",
+          "downstream_impact",
+          "end_flag",
+          "error_type",
+          "evidence",
+          "evidence_ref",
+          "expectation_id",
+          "expected",
+          "expected_evidence",
+          "expected_outcome",
+          "extra",
+          "fulfillment_assessments",
+          "incomplete",
+          "intent_summary",
+          "kind",
+          "matched_level",
+          "matched_patterns",
+          "missing",
+          "msg",
+          "priority",
+          "query",
+          "query_logic",
+          "raw",
+          "reasoning_summary",
+          "required_capabilities",
+          "rewritten_query",
+          "robot_text",
+          "score",
+          "status",
+          "trace_id",
+          "user_intent",
+          "wrong"
+        ],
+        "identity": "impl.core.schema.judge.JudgeLLMOutput",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "efcb0ae015d8523c7ed9317ccb45b70fb9e9b6a246f55ce20f8e31f4ba4032a0",
+        "sha256": "efcb0ae015d8523c7ed9317ccb45b70fb9e9b6a246f55ce20f8e31f4ba4032a0"
+      },
+      "project_id": "client_search",
+      "prompt_char_count": 38174,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 17790,
+        "occurred": false
+      },
+      "role": "judge",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 259,
+          "content_sha256": "bd69f09b85c9bd1a4643b2e511a3d98c4a9b2cc4742b4c9e178491f64d5ca7c1",
+          "order": 0,
+          "role": "judge",
+          "segment_id": "client-search-draft-system-extra-1",
+          "source": "project://draft/judge.py#system_prompt_extras",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 486,
+          "content_sha256": "0509886b243fa3aaaa338bddce1fbc258e94a6d1f66991c260f0d914a37b0e5d",
+          "order": 1,
+          "role": "judge",
+          "segment_id": "client-search-draft-system-extra-2",
+          "source": "project://draft/judge.py#system_prompt_extras",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 1653,
+          "content_sha256": "8eb839cddd24a2f630d7116ed9fd825a739a589176a138fe45ef08d778074380",
+          "order": 2,
+          "role": "judge",
+          "segment_id": "client-search-draft-system-extra-3",
+          "source": "project://draft/judge.py#system_prompt_extras",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 822,
+          "content_sha256": "521aca6d6a42f70ecf7c5bfb722fd531eb59fd5e79742a1c0ead50bcbcd95770",
+          "order": 3,
+          "role": "judge",
+          "segment_id": "client-search-draft-system-extra-4",
+          "source": "project://draft/judge.py#system_prompt_extras",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 116,
+          "content_sha256": "befd589e5bfd17ec3d609e67aa70ea5fdd5475a28004f5a1318baa98e9ae834f",
+          "order": 4,
+          "role": "judge",
+          "segment_id": "client-search-draft-system-extra-5",
+          "source": "project://draft/judge.py#system_prompt_extras",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 7545,
+          "content_sha256": "85542271603a5caf81a24feff6cbfc2a1bad74f67b8011068f0f02de4e0057da",
+          "order": 5,
+          "role": "judge",
+          "segment_id": "mandatory-context-units",
+          "source": "contextunit://project.client_search.asset.judge_boundary,project.client_search.asset.judge_business_contract,project.client_search.asset.judge_evaluation,project.client_search.asset.judge_standard",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 12752,
+          "content_sha256": "a1a9067738fb6b1ab5b37a836d80134fa3d6f1d9ea1fb84fccd38855799cb304",
+          "order": 6,
+          "role": "judge",
+          "segment_id": "compiled-system",
+          "source": "impl/projects/client_search/draft/judge_execution.py#judge_trace",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 17790,
+          "content_sha256": "70fde03568ee31c77b007f27494381ae2ed3db875435c51b014cd25b1343cf9f",
+          "order": 7,
+          "role": "judge",
+          "segment_id": "case-user-payload",
+          "source": "trace://judge-evidence-view",
+          "stage": "judge"
+        }
+      ],
+      "stage": "judge",
+      "tool_plan": [
+        {
+          "logical_id": "client_search.field.search_keys",
+          "runtime_name": "client_search_field_search_keys"
+        },
+        {
+          "logical_id": "field.search_definition",
+          "runtime_name": "field_search_definition"
+        }
+      ]
+    }
+  },
+  "llm_model": "deepseek-v4-flash-0731",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "你是通用评估系统的 judge agent。\n\n## 核心原则\n只基于当前 RunTrace、项目评判标准和动态检索的知识库内容判断，不继承历史 case。\n首要职责：理解用户/下游消费者的真实业务意图 → 派生 business_expectations → 基于完整执行链路（每轮 output、最终 output、交互过程和停止事实）判断 expectations 的 fulfillment。\n\n## expectation 拆分原则\nbusiness_expectations 的粒度直接决定判断精度。每个 expectation 必须是原子可判定的——仅凭当前 Judge evidence 中的业务事实就能明确判定 fulfilled 或 not_fulfilled。\n- 一个 expectation 只描述一个可独立验证的结果维度\n- 多维度意图必须拆成多个 expectation\n- 每个 expectation 必须有明确的 acceptance_criteria\n- 每个 expectation 必须在比较 actual 前确定 blocking：只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true\n- fulfillment_assessments 只判断对应 expectation 的 status 和证据，不得重新定义 blocking\n- expectation_id 必须是描述性的中文短语，禁止使用 E1/E2/exp_01 等占位符 ID\n- reasoning_summary 必须是中文写成的判断依据\n\n## 输出词表\n`fulfillment_assessments[*].status` 必须从以下 3 个值中选择：\n  - fulfilled：该 expectation 完全满足\n  - not_fulfilled：该 expectation 未满足\n  - not_evaluable：当前无法评估\n禁用 failed/passed/incorrect/wrong/met/unmet/partially_fulfilled/partial/success/fail/ok/unknown 等同义词。\n`actual_state=empty` 表示 Live 成功返回但没有交付明确业务结果；对本应交付的 expectation 通常判定 not_fulfilled。`actual_state=unavailable` 表示无法取得或确认 Live actual；通常判定 not_evaluable。\n`fulfillment_assessments[*].expected_evidence` 与 `actual_evidence` **必须是数组**（JSON array / list），即使只有一条证据也要用 `[...]` 包裹，不可直接用字符串或对象。\n\n不要输出 overall_fulfillment；公共层会在项目契约补充完成后根据 blocking expectations 确定性派生整体状态。\n\n## 评估规范\n\n\n## 评估边界\n\n\n## 判断标准\n\n\n## 项目 ContextUnit（按 Role policy 在运行前确定性装载）\n## ContextUnit: judge_boundary: judge_boundary_protocals.md (project.client_search.asset.judge_boundary)\n# Judge Boundary Implementation - client_search\n\n本文件是 AI 根据 `projects/client_search/judge_boundary-template.md` 落地的 client_search judge 边界接入说明。用户侧标准是源头；本文件只负责把该标准接入 `impl` 的 judge/check/frontend 链路。\n\n## Source standard\n\n用户侧标准声明：client_search 的核心目标是判断当前 parser 能不能从依赖 ES 数据库中搜索到用户想要查询的客户。上游 ES 数据库字段、枚举值或实际数据缺失等当前系统无法直接控制的限制，不直接视为当前系统输出错误；模型、项目配置、prompt、项目代码、字段映射和后处理等当前系统可优化部分做得不好，应纳入评估范围。\n\n## Runtime standard for judge\n\n限制：有些用户需求受限于当前上游依赖的 ES 数据库中没有相应字段、枚举值或数据，可能无法完全满足用户意图；这类限制按业务系统能力边界判定，不直接视为当前系统输出错误。\n\n评价范围：如果是当前系统可以优化的部分做得不好，比如大模型理解、项目配置、prompt、项目代码、字段映射、值归一化、后处理或条件组合错误，就应该纳入衡量范围，按实际错误判定。\n\n核心依据：ES 数据库是核心判断依据，根据 ES 的表结构、查询规则、里面字段的枚举值来进行判断（数据库信息从原项目的配置文件/枚举值文件中获取）。原业务项目的字段定义、枚举、值映射和规则配置是系统外部/上下游能力边界的重要来源。`projects/client_search/prompt.md` 和静态 `config.md` 只是辅助参考，用于理解字段、枚举、操作符和格式要求。\n\n**关键原则：**\n- 因为上下游的 ES 数据库能力不是由本系统强弱决定的，所以评估只评价当前系统做得怎么样，不评估由于上游限制导致的偏差（无法控制的 ES 数据库）。\n- 如果是本系统可优化的部分（大模型、项目配置 prompt.md/config、项目代码、后处理逻辑、pipeline、模型能力本身等）做得不好，纳入衡量范围。\n- 由于 prompt、项目配置、后处理逻辑、pipeline 等系统内部内容都有可能出错，所以它们不能成为绝对标准。只有系统外部的约束（如下游 ES 依赖、下游数据）才是硬标准。\n- Judge 的核心：看 API 结果输出，从下游配置文件/枚举值文件中了解 API 输出的搜索字段与客户输入的搜索意图是否一致。具体字段不完全是重点，因为标准答案可能不止一个，核心是业务语义正确，在规定的枚举值内根据 API 结果能搜出正确客户列表即可。\n- 我们最终需要能从数据库中搜索到正确客户的 parser。如果 judge 发现数据库搜索结果等价，即便和 prompt.md/config.md/后处理逻辑/pipeline 的要求稍有不同也是可以接受的。\n- 什么情况下会出现等价查询，取决于用户搜索语义和 ES 查询语法。当下游不可用时，必须做好这点的判断。如果无法判断，尝试看能否做模拟查询，看查出来的数据是不是用户意图想要的。\n\n**特别注意：** 不要纠结 CONTAINS 和 MATCH 的问题，因为原项目会通过后处理处置，涉及输出为 CONTAINS 应改成 MATCH，或输出为 MATCH 应改成 CONTAINS 这种说法都是不必要的。\n\n下游不可用时的要求：不能因为无法调用 8081 就退化成机械比对 prompt/config 字段形态。judge 仍必须基于当前 parser 条件、ES 查询语法、字段语义、操作符语义、枚举能力和业务意图，尽可能判断搜索语义是否等价；只有条件语义或 ES 查询语义无法可靠判断时才返回 `not_evaluable`，并说明缺少的依据。\n\n## Implementation mapping\n\n- judge 输入读取本文件作为 `judge_boundary_spec`。\n- judge 同时读取 `projects/client_search/judge_boundary-template.md` 作为用户侧边界源头。\n- judge 同时读取 `projects/client_search/readme.md`、`config.md`、`prompt.md` 作为业务规则和能力边界辅助来源。\n- client_search adapter 会把 parser 返回的 `conditions` 和 `query_logic` 组装成下游搜索请求格式，并按项目配置尝试调用 `application.downstream_search`。\n- 下游搜索证据写入 `RunTrace.extracted_output.downstream_search` 和 `execution_trace` 的 `client_search.downstream_search` 节点。\n- 如果下游搜索成功，judge 可结合实际搜索返回判断是否能搜到用户意图客户，并在 fulfillment evidence 中说明结果集已验证。\n- 如果下游搜索不可用、未配置或 parser 无条件导致跳过，judge 必须在 fulfillment evidence 中标记 `result_set_verified=false`，但仍要做好 ES 查询语义等价判断；不能只因为没有结果集就直接 `not_evaluable` 或只做字符串级条件比对。\n- 如果 parser 条件形态与 prompt/config 略有不同，但 ES 查询语义或结果集等价，judge 可以按等价查询判 `fulfilled`。\napplication boundary 只能作为 fulfillment evidence 或项目上下文，不作为通用协议字段。\n- check agent 需要检查 judge 是否保留了下游搜索证据状态、是否把不可用结果集误当成已验证、是否在下游不可用时仍执行了 ES 查询语义等价判断、是否出现第二套 fulfilled/not_fulfilled 口径。\n\n\n## ContextUnit: judge_business_contract: judge_business_contract.md (project.client_search.asset.judge_business_contract)\n# client_search Judge business contract\n\n本 ContextUnit 是 Harness AI 从 Judge investigation 固化出的 Planning 合同，不包含\nactual、AuthorityAnalysis 原文或调查过程。\n\n- 产品期望：`find-target-customers`\n- 评估维度：`search-intent-preservation`、`downstream-query-consumability`\n- Live 责任：完整保留用户明确表达的客户筛选条件，并交付下游支持的字段、值、操作符和逻辑。\n- Live 边界：不保证数据库存在匹配客户，不承担外部客户数据缺失或服务不可用责任。\n\n当前 Case 的 frozen plan 必须覆盖：\n\n- `explicit_conditions`：明确表达的筛选条件；\n- `boolean_logic`：AND/OR/NOT 和范围关系；\n- `no_unexpressed_constraints`：不得增加会改变客户集合的未表达限制。\n\n每个 runtime expectation 必须引用产品期望和至少一个评估维度，并在 actual 可见前确定\nacceptance criteria 与 blocking。\n\n\n## ContextUnit: judge_evaluation: evaluation.md (project.client_search.asset.judge_evaluation)\n# Evaluation\n\nJudge the current client_search API output by reconstructing expected-vs-actual from the current query, current response, current downstream-search evidence when available, and the current project prompt/config references from `projects/client_search`.\n\n本文件定义”评估本 case 时的目标和重点”。边界定义和判定流程由 `judge_boundary_protocals.md` 和 `judge.md` 承载，本文件不重复。\n\n## Project-owned source references\n\n- `projects/client_search/readme.md`: 标准答案的答案结果由于数据库字段已经过时、跟 API 返回结果不一致，所以标准答案只能作为参考；judge 需要根据最新项目资料和当前运行证据进行实时标注。\n- `projects/client_search/config.md`: 原始字段定义、枚举、值映射和规则配置是 ES/search 能力边界的重要来源；静态摘要本身只是辅助指针，不是绝对标准。\n- `projects/client_search/prompt.md`: 当前 prompt 规则用于理解 parser 预期，但等价的 ES/search 结果仍然可接受。\n- `RunTrace.extracted_output.downstream_search`: 下游客户搜索探测结果。\n\n## Quality requirements\n\n- 不继承旧 case、page state、cluster 或 attribution 结论。\n- 先理解用户底层意图，再比较条件。\n- 边界优先级和判定流程见 `judge_boundary_protocals.md` 和 `judge.md`。\n- 分离 missing、wrong、extra 条件。\n- 如果 `structured_output` 为空而用户 query 非空，视为 empty-recognition，评估 query 是否应产生条件。\n- 空结果分类必须使用 API 响应中的最佳来源 query；缺少 `rewritten_query` 本身不应将非空请求变成 `empty_query`。\n\n\n## ContextUnit: judge_standard: judge.md (project.client_search.asset.judge_standard)\n# Judge Agent - client_search\n\n本文件定义 client_search 项目的 judge 构建逻辑。它必须满足用户侧边界标准 `projects/client_search/judge_boundary-template.md`：先消费 application/project adapter 在运行前附加的当前系统能力边界，再判断 API actual output 是否满足该边界内的用户搜索意图。\n\n## Judge 目标\n\n判断自然语言 query 是否被解析成正确、可执行、且在当前 `application_boundary.judge_scope` 内语义正确的结构化搜索条件。\n\njudge 不是简单比较历史标准答案，也不是检查 API 是否返回 200。`标准答案.xlsx` 只能作为 query 和历史参考；最终真值应从当前 query、当前 API actual output、adapter 提供的 `application_boundary`、当前配置、当前 prompt、项目 readme 和 judge boundary 重新推导。\n\n## 边界优先级\n\njudge 必须先消费项目 adapter 已确定的 `application_boundary`，再按项目边界区分两类问题：\n\n1. 系统能力边界：如果用户需求依赖上游 ES 数据库当前不存在的字段、枚举值、外部数据或不可控环境，且当前系统没有可表达能力，这部分只作为能力差距说明，不直接判为当前系统输出错误。\n2. 可评价系统问题：如果问题来自当前系统可优化部分，包括大模型理解、prompt、项目配置、项目代码、字段映射、值归一化、后处理或条件组合逻辑，就应纳入评估；做错应判 `incorrect`。\n\n边界依据优先级：adapter 暴露的 `application_boundary` 是当前运行能力边界；真实 ES/下游客户搜索的可查询语义、表结构、查询规则、字段和枚举能力是边界来源；原业务项目字段定义、枚举、值映射和增强规则配置是系统外部/上下游能力边界的重要来源。`projects/client_search/config.md` 和 `prompt.md` 只是辅助参考，用于理解字段、枚举、操作符和格式要求；prompt、生成配置摘要、项目代码、后处理和 pipeline 都可能出错，不能作为绝对正确标准。若 `application_boundary` 表明结果集已验证，且下游结果或 ES 查询语义能证明两个查询等价，可以接受与 prompt/config 中间形态略有不同的条件表达。\n\n## 判定步骤\n\n1. 重新理解 query 的核心筛选意图：哪些条件必须满足，哪些只是弱修饰，哪些当前系统字段或枚举不支持。\n2. 读取 `project_judge_context.application_boundary`，确定当前主评价范围：`parser_condition_semantics_only` 或 `parser_and_result_set`。\n3. 根据边界依据判断每个核心意图属于系统能力边界还是可评价系统范围。\n4. 从当前 API actual output 提取结构化条件、逻辑关系和关键返回字段。\n5. 在 `parser_and_result_set` 范围内，可把真实下游返回作为结果集验证证据，判断是否能搜到用户意图客户。\n6. 在 `parser_condition_semantics_only` 范围内，不能声称已验证 ES 实际结果集，也不要反复把下游不可用当作判定主因；应基于 parser 条件、ES 查询语法、字段语义、操作符语义、枚举能力和业务意图判断搜索语义是否等价，只有语义证据不足时才返回 `not_evaluable`，并说明缺少的依据。\n7. 比较 expected-vs-actual：字段业务含义、操作符、枚举值、单位换算、年龄/日期/金额边界、AND/OR 逻辑和条件覆盖是否正确。\n8. 如果条件形态不同但结果集证据或 ES 查询语义等价，应按“能否检索到正确客户”判定，而不是机械判字段/操作符不一致。\n9. 输出 fulfillment-first 结果，并给出 expected、actual、missing、wrong、extra、evidence 和 reasoning_summary。\n\n## 正确性重点\n\n- 字段名不应机械质疑，重点判断字段是否承载用户表达的业务含义并能形成正确查询。\n- 枚举值必须符合当前 ES/配置能力；别名、单位和金额边界必须正确归一化。\n- 年龄、日期、区间、存在性、否定、数组/集合等操作符必须符合当前查询语义。\n- 缺少用户核心意图、加入用户未表达的额外强约束、错误合并或拆分多个必须条件，都应判 `incorrect`。\n- 如果后处理把中间条件转成等价可执行形态，应判断最终业务语义是否能覆盖正确客户，不机械要求保留中间字段或操作符。\n- `application_boundary` 排除结果集验证时，不能声称结果集已验证；但必须继续依据 ES 查询语义和 parser 条件判断是否等价，不能简单退化为字段字符串比对、重复说明外部依赖不可用或直接 `not_evaluable`。\n\n## 禁止事项\n\n- 不继承旧 case、上一轮归因、历史 cluster、页面状态或历史 expected conditions。\n- 不把 `review_verdict`、`root_cause_cluster`、`source`、`run_status`、match agent 状态等来源/状态字段当作正确性依据。\n- 不用 attribute 结论反推 judge fulfillment；正确性必须先从当前 query、当前 actual output 和当前 application boundary 判断。\n- 不为了当前少数 case 写硬编码判定规则。\n- 不直接修改业务 parser、配置、prompt、标准答案或静态结果。\n\n## 与归因和 check 的分工\n\njudge 只判断输出是否正确，并说明 expected-vs-actual / expected-vs-result-set 差异。若判为 `incorrect`，attribute agent 再定位链路证据、根因、影响和修复方向。check agent 审查 judge、归因、页面和数据机制是否一致、可复现、不过拟合，是否存在第二套 correct/incorrect 口径，以及是否在 `application_boundary` 已排除结果集验证时仍把外部依赖不可用当作主要结论。\n\n\n\n\n## Judge 决策顺序\n先派生用户真正要办成的 blocking 核心业务交付，再逐项比较 actual。安全拒绝、透明说明、不编造条件只能作为独立 non-blocking 验收项，不能替代核心交付；overall 必须由 blocking assessments 聚合。证据充分时只判 fulfilled/not_fulfilled；仅职责外、输入不可用或决定性证据确实不足时判 not_evaluable。HTTP 状态、历史 verdict 和归因信息不得替代 expected-vs-actual 判断。\n\n## not_evaluable 成因契约（fulfilled.md §2.3/§10、authority.md §8.4）\n判 not_evaluable 时，必须在对应 assessment 的 actual_evidence 中显式写明成因标签，只允许五种：「结论类型：职责外」「结论类型：完全无关」「结论类型：依据不充分」「结论类型：输入坏」「结论类型：Authority 能力不可用」。Authority 开启时，职责外/职责内能力缺失/依据不充分必须真实调用 authority.resolve（在 authority_tool_call_ids 引用该次调用）；依据不充分同时给出缺料清单。Authority 关闭时不得自行声明这些治理结论，也不得仅因缺少 Authority 把用户效果判为 not_evaluable；应依据用户意图与当前实际交付判 fulfilled/not_fulfilled。完全无关/输入坏不需要 authority。缺标签或标签不可识别的 not_evaluable 会被标 needs_human_review（不静默放行）。\n\n## client_search 直接证据\n只评价当前 parser_condition_semantics_only 边界内的客户搜索条件。\n### 意图拆解（先定目标再判交付）\n先写出用户最终要得到的客户集合与每个核心约束（字段、操作符、值/单位、AND/OR 逻辑），再据此派生 business_expectations；每个可独立判断的请求维度拆一条 expectation，核心交付的 expected_outcome 必须描述用户最终要得到的客户集合/筛选条件/可执行搜索结果。\n### 逐项核对\n每个 expectation 逐维度对照 actual：条件缺失、错误映射、无依据的额外收窄分别判 not_fulfilled；wrong/missing/extra 必须来自当前 actual，不能来自猜测、历史 verdict 或归因信息。### 证据分级\n证据必须分级使用，低级别证据不能单独支撑 fulfilled：一级证据是 query 与 actual 本身（意图与交付的直接对照）；二级证据是权威业务口径（semantic_equivalence_rules 的等价条件形式/操作符兼容、value_mappings 的枚举全集与日期等价、enhanced_rules 中可被引用的确定性规则），只有实际引用到的二级证据才能支撑 fulfilled；三级证据是 matched_pattern、字段操作符合法性、Reference 一致——它们只解释条件如何被生成，不能单独证明用户意图已满足。字段定义只证明该字段声明的语义，名称相近或同属日期不能证明语义等价；枚举精确命中只证明值属于受控空间，不能证明该空间可被搜索消费；SearchHit 只用于导航，Load 后的内容也只能证明其明确声明的事项。意图约束与 actual 条件语义直接一致、不依赖映射/等价判断时，一级证据即可支撑 fulfilled。actual 使用未随附清单登记的字段名时，若 robot_text 或条件形态已明确该字段语义且与用户意图一致，不得仅因字段名不在清单中、或与清单键存在命名/别名差异而判 not_fulfilled；清单外字段按 actual 自身声明的语义核对，只有实际语义偏离意图或缺失核心约束才判 not_fulfilled。\n### 裸词规则\n请求只有裸词（无“姓名/客户/查/找/筛选”等指示词）且 actual 把该裸词当作姓名解析时，Reference 一致只说明生成路径匹配，不等于意图确认；除非存在姓名结构或语义证据（如专名、姓氏库命中、明确字段上下文），否则按未满足判 not_fulfilled。\nis_supported=false 或 actual 明确不支持某条件时，分别评价核心交付与透明边界说明，不能用说明替代核心结果。以下内容永远不能单独成为 blocking 核心交付：不错误映射、不编造条件、拒绝越界请求、告知当前限制、未识别到条件。若请求存在明确业务对象但 actual 没有可执行条件，仍要保留该对象的核心交付 expectation，Authority 关闭时按当前交付判 not_fulfilled；Authority 开启且最终判断依赖受治理标准时，先消费 Authority resolution 再判 fulfilled/not_fulfilled/not_evaluable。安全拒绝和透明说明必须另建 blocking=false 的 expectation。若 actual 只交付请求的一部分，必须按可独立判断的请求维度拆分 expectation：已交付维度照常评价；Authority 关闭时，被遗漏的 blocking 维度按实际未交付判 not_fulfilled；Authority 开启且命中 coverage_gap 时只让依赖该边界的 assessment 消费 Authority，不得把已交付维度一起降级。\n\n## client_search 最终输出拓扑与 fulfillment_assessments 字段约束（严格，以本节为唯一准则）\n最终只能输出一个符合 Judge LLM-owned schema 的 JSON object，禁止数组、Markdown、候选答案或对象外文字。顶层只允许 business_expectations、applicable_product_expectation_ids、fulfillment_assessments、expected、missing、wrong、extra、evidence、reasoning_summary。business_expectations 与 fulfillment_assessments 必须是独立顶层数组，并以 expectation_id 一一对齐。business_expectations[*].boundary 必须是 JSON object（没有内容就写 {}），绝不能写成数组。fulfillment_assessments[*] 只允许 expectation_id、status、score、expected_evidence、actual_evidence、downstream_impact、authority_tool_call_ids；expected_evidence/actual_evidence 必须是数组。禁止输出 overall_fulfillment、confidence、evidence_refs、authority_analysis_ids、actual；它们属于运行时代码派生/绑定字段，即使旧材料提到也不得由模型生成。只派生当前结论必需的验收项（通常 1-3 条，最多 4 条）；每条 evidence 最多 3 个短项，reasoning_summary 用不超过 180 个中文字符概括决定性依据，禁止复述输入资料。\n\n## Authority 状态\n本 case 无标准冲突、权威枚举空间或能力/职责边界候选信号，不提供 authority.resolve；请直接依据随附结构化资料完成判断，不得虚构 authority_tool_call_ids。\n## 工具使用原则\n所有工具的用途、调用时机和参数含义以 Agno tool schema 为准；user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息。\n\n## 禁止事项\n- 不要把 reference answer 当作默认主目标（除非 case 明确指定）\n- 不要把 HTTP 状态、run_status、attribute/cluster 结论当作满足依据\n- 不要归因内部代码、配置或 prompt 原因（属于 attribute agent）\n- Authority 的唯一运行时引用字段是 fulfillment_assessments[].authority_tool_call_ids；其中每个 ID 都必须来自本次 trace 中真实完成的 authority.resolve 调用，禁止自造。\n- 只输出结构化 schema 中声明的字段；不要自行增加未声明的历史/元数据字段。\n- 分析文字必须使用中文，包括 reasoning_summary 等所有文本字段。\n\n\n## 输出约束：judge 判定输出（自产 reference + fulfillment 判定）\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"business_expectations\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeBusinessExpectationOutput\"\n      }\n    },\n    \"applicable_product_expectation_ids\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"fulfillment_assessments\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeFulfillmentAssessmentOutput\"\n      }\n    },\n    \"expected\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"code\": {\n          \"type\": \"integer\"\n        },\n        \"msg\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"query\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"conditions\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"robot_text\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ],\n          \"minLength\": 1\n        },\n        \"query_logic\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ],\n          \"minLength\": 1\n        },\n        \"rewritten_query\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ],\n          \"minLength\": 1\n        },\n        \"end_flag\": {\n          \"type\": [\n            \"integer\",\n            \"null\"\n          ]\n        },\n        \"trace_id\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ],\n          \"minLength\": 1\n        },\n        \"matched_level\": {\n          \"type\": [\n            \"integer\",\n            \"null\"\n          ]\n        },\n        \"matched_patterns\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ],\n          \"minLength\": 1\n        },\n        \"intent_summary\": {\n          \"type\": [\n            \"string\",\n            \"null\"\n          ],\n          \"minLength\": 1\n        },\n        \"confidence\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        },\n        \"cost_times\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"code\",\n        \"msg\",\n        \"query\",\n        \"conditions\",\n        \"robot_text\",\n        \"query_logic\",\n        \"rewritten_query\"\n      ]\n    },\n    \"missing\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"wrong\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"extra\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"evidence\": {\n      \"type\": \"array\",\n      \"items\": {}\n    },\n    \"reasoning_summary\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    }\n  },\n  \"additionalProperties\": false,\n  \"$defs\": {\n    \"JudgeBusinessExpectationOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"blocking\": {\n          \"type\": \"boolean\"\n        },\n        \"downstream_consumer\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"user_intent\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected_outcome\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"required_capabilities\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"acceptance_criteria\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"boundary\": {\n          \"type\": \"object\"\n        },\n        \"priority\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"blocking\"\n      ]\n    },\n    \"JudgeFulfillmentAssessmentOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"score\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        },\n        \"expected_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"actual_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"downstream_impact\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"authority_tool_call_ids\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"status\"\n      ]\n    },\n    \"GapItem\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"kind\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"error_type\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected\": {},\n        \"actual\": {},\n        \"evidence_ref\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"raw\": {},\n        \"incomplete\": {\n          \"type\": \"boolean\"\n        }\n      },\n      \"additionalProperties\": false\n    }\n  },\n  \"required\": [\n    \"reasoning_summary\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['reasoning_summary']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n\n### 嵌套字段子结构约束\n以下字段内部的子结构也必须严格遵守，不可随意编造字段名或类型：\n- **`expected`** 字段 (项目 client_search 的 expected/live output 结构) 必须符合以下结构：\n  ```json\n  {\n    \"type\": \"object\",\n    \"properties\": {\n      \"code\": {\n        \"type\": \"integer\"\n      },\n      \"msg\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"query\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"conditions\": {\n        \"type\": \"array\",\n        \"items\": {}\n      },\n      \"robot_text\": {\n        \"type\": [\n          \"string\",\n          \"null\"\n        ],\n        \"minLength\": 1\n      },\n      \"query_logic\": {\n        \"type\": [\n          \"string\",\n          \"null\"\n        ],\n        \"minLength\": 1\n      },\n      \"rewritten_query\": {\n        \"type\": [\n          \"string\",\n          \"null\"\n        ],\n        \"minLength\": 1\n      },\n      \"end_flag\": {\n        \"type\": [\n          \"integer\",\n          \"null\"\n        ]\n      },\n      \"trace_id\": {\n        \"type\": [\n          \"string\",\n          \"null\"\n        ],\n        \"minLength\": 1\n      },\n      \"matched_level\": {\n        \"type\": [\n          \"integer\",\n          \"null\"\n        ]\n      },\n      \"matched_patterns\": {\n        \"type\": [\n          \"string\",\n          \"null\"\n        ],\n        \"minLength\": 1\n      },\n      \"intent_summary\": {\n        \"type\": [\n          \"string\",\n          \"null\"\n        ],\n        \"minLength\": 1\n      },\n      \"confidence\": {\n        \"type\": [\n          \"number\",\n          \"null\"\n        ]\n      },\n      \"cost_times\": {\n        \"type\": [\n          \"number\",\n          \"null\"\n        ]\n      }\n    },\n    \"additionalProperties\": false,\n    \"required\": [\n      \"code\",\n      \"msg\",\n      \"query\",\n      \"conditions\",\n      \"robot_text\",\n      \"query_logic\",\n      \"rewritten_query\"\n    ]\n  }\n  ```\n",
+      "created_at": 1786541504,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "c7b5b774-b4b6-45ed-896d-5ac7b34f0d44",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"user_intent\": null, \"run_trace\": {\"trace_id\": \"client_search:I480:1786541502796\", \"project_id\": \"client_search\", \"case_id\": \"I480\", \"intent_input\": {\"user_text\": \"分红\", \"user_id\": \"eval-user\", \"trace_id\": \"\", \"session_id\": \"eval-session\", \"source\": \"askbob\", \"extra_input_params\": {}}, \"normalized_request\": {\"user_text\": \"分红\", \"user_id\": \"eval-user\", \"trace_id\": \"\", \"session_id\": \"eval-session\", \"source\": \"askbob\", \"extra_input_params\": {}}, \"final_output\": {\"code\": 0, \"msg\": \"操作成功\", \"robot_text\": \"客户姓名为分红的客户\", \"end_flag\": 1, \"trace_id\": \"\", \"query\": \"分红\", \"query_logic\": \"AND\", \"conditions\": [{\"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value\": \"分红\", \"match_mode\": null}], \"matched_level\": 2, \"matched_patterns\": \"姓名-模糊匹配\", \"rewritten_query\": \"分红\", \"intent_summary\": \"客户姓名为分红的客户\", \"confidence\": 0.95, \"cost_times\": 36.0}, \"actual_state\": \"available\", \"final_output_turn\": 1, \"turns\": [{\"turn_index\": 1, \"request\": {\"user_text\": \"分红\", \"user_id\": \"eval-user\", \"trace_id\": \"\", \"session_id\": \"eval-session\", \"source\": \"askbob\", \"extra_input_params\": {}}, \"extracted_output\": {\"code\": 0, \"msg\": \"操作成功\", \"robot_text\": \"客户姓名为分红的客户\", \"end_flag\": 1, \"trace_id\": \"\", \"query\": \"分红\", \"query_logic\": \"AND\", \"conditions\": [{\"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value\": \"分红\", \"match_mode\": null}], \"matched_level\": 2, \"matched_patterns\": \"姓名-模糊匹配\", \"rewritten_query\": \"分红\", \"intent_summary\": \"客户姓名为分红的客户\", \"confidence\": 0.95, \"cost_times\": 36.0}, \"call_status\": \"succeeded\", \"runtime_ms\": 68, \"error\": null, \"fallbacks\": [], \"validation\": [], \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"client_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"client_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"client_search.request_normalization\", \"status\": \"succeeded\", \"evidence\": {\"user_text\": \"分红\", \"source\": \"askbob\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"client_search.api\", \"status\": \"suspicious\", \"evidence\": {\"code\": null}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"client_search.routing\", \"status\": \"not_verified\", \"evidence\": {\"matched_level\": null, \"matched_patterns\": null}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"client_search.downstream_search\", \"status\": \"not_verified\", \"evidence\": {}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"client_search.output_extract\", \"status\": \"succeeded\", \"evidence\": {\"logic\": \"AND\", \"condition_count\": 1}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"application_boundary\": {\"downstream_result_set_available\": false, \"downstream_status\": \"not_verified\", \"judge_scope\": \"parser_condition_semantics_only\", \"result_set_verified\": false, \"reason\": \"application live layer probed downstream customer search before judge/attribute and constrained evaluation scope to parser output semantics.\"}, \"project_fields\": {\"downstream_search\": {}, \"external_boundary_sources\": {\"config_paths\": {\"source_field_definitions\": \"/Users/xiaozijian/WorkSpace/package/client_search_jmz_raw/llm_client_search/src/main/python/data/client_search_query_parse/field_definitions_args.yaml\", \"source_field_enums\": \"/Users/xiaozijian/WorkSpace/package/client_search_jmz_raw/llm_client_search/src/main/python/data/client_search_query_parse/field_enums_args.yaml\", \"source_planfullname_enums\": \"/Users/xiaozijian/WorkSpace/package/client_search_jmz_raw/llm_client_search/src/main/python/data/client_search_query_parse/polNoInfo.plancodeinfo.planfullname_enums_args.yaml\", \"source_abbrname_enums\": \"/Users/xiaozijian/WorkSpace/package/client_search_jmz_raw/llm_client_search/src/main/python/data/client_search_query_parse/polNoInfo.plancodeinfo.abbrname_enums_args.yaml\", \"source_claimplancodename_enums\": \"/Users/xiaozijian/WorkSpace/package/client_search_jmz_raw/llm_client_search/src/main/python/data/client_search_query_parse/polNoInfo.claimdatainfo.claimplancodename_enums_args.yaml\", \"source_profname_enums\": \"/Users/xiaozijian/WorkSpace/package/client_search_jmz_raw/llm_client_search/src/main/python/data/client_search_query_parse/profName_enums_args.yaml\", \"source_value_mappings\": \"/Users/xiaozijian/WorkSpace/package/client_search_jmz_raw/llm_client_search/src/main/python/data/client_search_query_parse/value_mappings_args.yaml\", \"source_enhanced_rules\": \"/Users/xiaozijian/WorkSpace/package/client_search_jmz_raw/llm_client_search/src/main/python/data/client_search_query_parse/enhanced_rules_args.yaml\"}}, \"empty_result_reason\": \"\", \"is_empty_result\": false}}], \"conversation_transcript\": [], \"conversation_summary\": {\"turn_count\": 1, \"final_output_turn\": 1, \"completion_status\": \"completed\", \"stop_reason\": \"single_turn_completed\", \"interaction_controller_status\": \"not_run\", \"interaction_controller_error\": \"\"}, \"stop_reason\": \"single_turn_completed\", \"completion_status\": \"completed\", \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"client_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"client_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"client_search.request_normalization\", \"status\": \"succeeded\", \"evidence\": {\"user_text\": \"分红\", \"source\": \"askbob\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"client_search.api\", \"status\": \"suspicious\", \"evidence\": {\"code\": null}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"client_search.routing\", \"status\": \"not_verified\", \"evidence\": {\"matched_level\": null, \"matched_patterns\": null}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"client_search.downstream_search\", \"status\": \"not_verified\", \"evidence\": {}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"client_search.output_extract\", \"status\": \"succeeded\", \"evidence\": {\"logic\": \"AND\", \"condition_count\": 1}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"evidence_refs\": [], \"raw_response_evidence\": null, \"evidence_completeness\": {\"complete\": true, \"missing_evidence\": []}, \"application_boundary\": {\"downstream_result_set_available\": false, \"downstream_status\": \"not_verified\", \"judge_scope\": \"parser_condition_semantics_only\", \"result_set_verified\": false, \"reason\": \"application live layer probed downstream customer search before judge/attribute and constrained evaluation scope to parser output semantics.\"}, \"reference_contract\": {}, \"scenario\": \"badcase\", \"status\": \"ok\", \"error\": null}, \"capability_manifest\": {\"searchClientName\": {\"field\": \"searchClientName\", \"operators\": [\"CONTAINS\", \"MATCH\"], \"value_types\": [\"extract\"], \"description\": \"仅表示客户本人的人名；不表示客户集合、公司/机构名称、地址、产品名，也不表示家庭成员、被保人或投保人姓名\", \"definition\": \"仅表示客户本人的人名；不表示客户集合、公司/机构名称、地址、产品名，也不表示家庭成员、被保人或投保人姓名\", \"enums\": [], \"enum_ref\": \"\", \"enum_refs\": [], \"unresolved_enum_refs\": [], \"show_enum_in_prompt\": true, \"enum_candidate_limit_in_prompt\": null, \"unit\": \"\", \"notes\": \"只有满足以下任一条件才输出本字段：1）查询用“姓名/名字/名叫/叫做/姓氏”等人名指示词明确引出姓名；2）整条查询去掉“查询/查找/的客户/本人”等外壳后，仅剩一个符合中文人名结构的2至4字姓名（单姓+1至2字名，或复姓+1至2字名）；3）整条查询仅为百家姓中的单姓或复姓时，按姓氏前缀查询并设置match_mode=prefix。提取值只能是人名本身，不能包含“客户/本人/全部/所有/公司/有限公司/集团”等词。公司、机构、门店、地区或其他业务名词即使是连续中文也绝不能当作姓名；无法确认是自然人人名时宁可不输出。完整姓名必须原样保留，如“陈成”“李保”“张无”“金美”“王小明”。\", \"is_supported\": true, \"is_supported_explicit\": false}}, \"semantic_equivalence_rules\": {}, \"value_mappings\": {}, \"enhanced_rules\": {\"rules\": [{\"name\": \"姓名-姓氏前缀\", \"patterns\": [\"{SEARCH}([\\\\u4e00-\\\\u9fa5]{1,2})\", \"{SEARCH}(?:的客户|客户)?姓(?:氏)?(?:为|是)?([\\\\u4e00-\\\\u9fa5]{1,2}?)(?:的客户|客户)?\", \"{SEARCH}(?:客户)?(?:姓名|名字)?(?:为|是)?([\\\\u4e00-\\\\u9fa5]{1,2}?)姓(?:的客户|客户)?\"], \"field\": \"searchClientName\", \"operator\": \"MATCH\", \"match_mode\": \"prefix\", \"value_type\": \"capture\", \"value\": {\"group\": 1, \"transform\": \"validated_surname_prefix\"}, \"priority\": 30, \"merge_to_llm\": false}, {\"name\": \"姓名-保单上下文\", \"patterns\": [\"{SEARCH_REQUIRED}([\\\\u4e00-\\\\u9fa5]{2,4}?)(?:的)?保单\", \"(?!{SEARCH_REQUIRED})([\\\\u4e00-\\\\u9fa5]{2,4}?)(?:的)?保单\"], \"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value_type\": \"capture\", \"value\": {\"group\": 1, \"transform\": \"validated_person_name\"}, \"priority\": 26, \"merge_to_llm\": false}, {\"name\": \"姓名-字段名无值\", \"patterns\": [\"{SEARCH}(?!(?:客户|本人|我的))([\\\\u4e00-\\\\u9fa5]{2,4}?)(?:的)?(?:保单|保单号|保单编号|保单号码|身份证号|身份证号码|证件号|手机号|客户号|出生日期|生日|出生日)(?:是多少|是什么|查询|查一下)?\"], \"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value_type\": \"capture\", \"value\": {\"group\": 1}, \"priority\": 16, \"merge_to_llm\": false}, {\"name\": \"姓名-匹配\", \"patterns\": [\"{SEARCH}(?:的客户|客户)?(?:叫|名叫|姓名是|姓名为|姓名匹配)(?!的客)([\\\\u4e00-\\\\u9fa5]{2,4}?)(?:的客户|客户)?\", \"{SEARCH}(?:的客户|客户)?姓([\\\\u4e00-\\\\u9fa5])(?:的)?(?:[，,])?(?:的客户|客户)?\", \"{SEARCH}(?:的客户|客户)?名字(?:带|含|包含|有|里有|中有|里包含|为|叫|是)([\\\\u4e00-\\\\u9fa5]{1,4}?)的客户\", \"{SEARCH}找叫([\\\\u4e00-\\\\u9fa5]{2,4}?)(?:的客户|客户)?\", \"{SEARCH}([\\\\u4e00-\\\\u9fa5]{2,4}?)本人\", \"{SEARCH}(?:的客户|客户)?(?:叫|名叫|姓名是|姓名为|姓名匹配)(?!的客)([a-zA-Z ]{1,20}?)(?:的客户|客户)?\", \"{SEARCH}(?:的客户|客户)?姓([a-zA-Z ]{1,20})(?:的)?(?:[，,])?(?:的客户|客户)?\", \"{SEARCH}(?:的客户|客户)?名字(?:带|含|包含|有|里有|中有|里包含|为|叫|是)([a-zA-Z ]{1,20})的客户\", \"{SEARCH}找叫([a-zA-Z ]{1,20})(?:的客户|客户)?\", \"{SEARCH}([a-zA-Z ]{1,20})本人\", \"{SEARCH}(?:的客户|客户)?(?:叫|名叫|叫做|姓名是|姓名为|名字是|客户叫)([\\\\u4e00-\\\\u9fa5]{2,4}?)(?:的客户|客户)?\"], \"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value_type\": \"capture\", \"value\": {\"group\": 1}, \"priority\": 10, \"merge_to_llm\": false}, {\"name\": \"明确客户姓名上下文\", \"patterns\": [\"{SEARCH}(?:客户姓名|客户名字|姓名|名字)(?:是|为|叫)?([\\\\u4e00-\\\\u9fa5]{2,4}?)(?:的客户名单|的客户|客户名单|客户|名单|的人)?$\", \"{SEARCH}客户(?:姓名)?(?:是|为|叫)([\\\\u4e00-\\\\u9fa5]{2,4}?)(?:的客户名单|的客户|客户名单|客户|名单|的人)?$\", \"{SEARCH}客户([\\\\u4e00-\\\\u9fa5]{2,4}?)(?:的客户名单|的客户|客户名单|客户|名单|的人)?$\"], \"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value_type\": \"capture\", \"value\": {\"group\": 1, \"transform\": \"validated_person_name\"}, \"priority\": 90, \"confidence_level\": \"STRONG\", \"full_match_required\": true, \"merge_to_llm\": false}, {\"name\": \"姓名-模糊匹配\", \"patterns\": [\"{SEARCH}([\\\\u4e00-\\\\u9fa5]{1,3})\", \"{SEARCH}([a-zA-Z ]{1,20})\"], \"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value_type\": \"capture\", \"value\": {\"group\": 1}, \"priority\": 1, \"merge_to_llm\": false}, {\"name\": \"姓名-名下询问住院医疗\", \"patterns\": [\"{SEARCH}([\\\\u4e00-\\\\u9fa5]{2,4}?)名下是否有住院医疗保险\"], \"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value_type\": \"capture\", \"value\": {\"group\": 1}, \"priority\": 22, \"merge_to_llm\": false}, {\"name\": \"姓名-保单权益领取状态询问\", \"patterns\": [\"{SEARCH}([\\\\u4e00-\\\\u9fa5]{2,4}?)的(?:生存金|满期金|年金|红利)(?:是否|有没有|有没|是否已经)?(?:领取|领过|到账)(?:了|过|吗|么|？|\\\\?)?\"], \"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value_type\": \"capture\", \"value\": {\"group\": 1}, \"priority\": 24, \"merge_to_llm\": false}, {\"name\": \"姓名+男性兄弟姐妹\", \"patterns\": [\"{SEARCH}([\\\\u4e00-\\\\u9fa5]{1,4}?)(?:的)?(?:弟弟|哥哥|兄长|兄弟(?!姐妹))\"], \"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value_type\": \"capture\", \"value\": {\"group\": 1}, \"priority\": 24, \"merge_to_llm\": false, \"extra_conditions\": [{\"field\": \"familyInfo.familyrelation\", \"operator\": \"CONTAINS\", \"value\": \"兄弟姐妹\"}, {\"field\": \"familyInfo.familyclientsex\", \"operator\": \"MATCH\", \"value\": \"男\"}]}, {\"name\": \"姓名+女性兄弟姐妹\", \"patterns\": [\"{SEARCH}([\\\\u4e00-\\\\u9fa5]{1,4}?)(?:的)?(?:姐姐|妹妹|(?<!兄弟)姐妹)\"], \"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value_type\": \"capture\", \"value\": {\"group\": 1}, \"priority\": 24, \"merge_to_llm\": false, \"extra_conditions\": [{\"field\": \"familyInfo.familyrelation\", \"operator\": \"CONTAINS\", \"value\": \"兄弟姐妹\"}, {\"field\": \"familyInfo.familyclientsex\", \"operator\": \"MATCH\", \"value\": \"女\"}]}, {\"name\": \"姓名+父亲\", \"patterns\": [\"{SEARCH}([\\\\u4e00-\\\\u9fa5]{1,4}?)(?:的)?(?:父亲|爸爸|爸|父亲本人)\"], \"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value_type\": \"capture\", \"value\": {\"group\": 1}, \"priority\": 24, \"merge_to_llm\": false, \"extra_conditions\": [{\"field\": \"familyInfo.familyrelation\", \"operator\": \"CONTAINS\", \"value\": \"父母\"}, {\"field\": \"familyInfo.familyclientsex\", \"operator\": \"MATCH\", \"value\": \"男\"}]}, {\"name\": \"姓名+母亲\", \"patterns\": [\"{SEARCH}([\\\\u4e00-\\\\u9fa5]{1,4}?)(?:的)?(?:母亲|妈妈|妈|母亲本人)\"], \"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value_type\": \"capture\", \"value\": {\"group\": 1}, \"priority\": 24, \"merge_to_llm\": false, \"extra_conditions\": [{\"field\": \"familyInfo.familyrelation\", \"operator\": \"CONTAINS\", \"value\": \"父母\"}, {\"field\": \"familyInfo.familyclientsex\", \"operator\": \"MATCH\", \"value\": \"女\"}]}, {\"name\": \"姓名+儿子\", \"patterns\": [\"{SEARCH}([\\\\u4e00-\\\\u9fa5]{1,4}?)(?:的)?(?:儿子|男孩|男娃)\"], \"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value_type\": \"capture\", \"value\": {\"group\": 1}, \"priority\": 24, \"merge_to_llm\": false, \"extra_conditions\": [{\"field\": \"familyInfo.familyrelation\", \"operator\": \"CONTAINS\", \"value\": \"子女\"}, {\"field\": \"familyInfo.familyclientsex\", \"operator\": \"MATCH\", \"value\": \"男\"}]}, {\"name\": \"姓名+女儿\", \"patterns\": [\"{SEARCH}([\\\\u4e00-\\\\u9fa5]{1,4}?)(?:的)?(?:女儿|女孩|闺女|女娃)\"], \"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value_type\": \"capture\", \"value\": {\"group\": 1}, \"priority\": 24, \"merge_to_llm\": false, \"extra_conditions\": [{\"field\": \"familyInfo.familyrelation\", \"operator\": \"CONTAINS\", \"value\": \"子女\"}, {\"field\": \"familyInfo.familyclientsex\", \"operator\": \"MATCH\", \"value\": \"女\"}]}, {\"name\": \"姓名+男性配偶\", \"patterns\": [\"{SEARCH}([\\\\u4e00-\\\\u9fa5]{1,4}?)(?:的)?(?:丈夫|老公|先生)\"], \"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value_type\": \"capture\", \"value\": {\"group\": 1}, \"priority\": 24, \"merge_to_llm\": false, \"extra_conditions\": [{\"field\": \"familyInfo.familyrelation\", \"operator\": \"CONTAINS\", \"value\": \"配偶\"}, {\"field\": \"familyInfo.familyclientsex\", \"operator\": \"MATCH\", \"value\": \"男\"}]}, {\"name\": \"姓名+女性配偶\", \"patterns\": [\"{SEARCH}([\\\\u4e00-\\\\u9fa5]{1,4}?)(?:的)?(?:妻子|老婆|太太)\"], \"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value_type\": \"capture\", \"value\": {\"group\": 1}, \"priority\": 24, \"merge_to_llm\": false, \"extra_conditions\": [{\"field\": \"familyInfo.familyrelation\", \"operator\": \"CONTAINS\", \"value\": \"配偶\"}, {\"field\": \"familyInfo.familyclientsex\", \"operator\": \"MATCH\", \"value\": \"女\"}]}, {\"name\": \"姓名+泛化家庭关系\", \"patterns\": [\"{SEARCH}(?!(?:家里|家中|家有|家人|本人|自己|客户))([\\\\u4e00-\\\\u9fa5]{2,4}?)(?:有|家里有|家中有|的)(?:父母|爸妈)\"], \"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value_type\": \"capture\", \"value\": {\"group\": 1, \"transform\": \"validated_person_name\"}, \"priority\": 23, \"merge_to_llm\": false, \"extra_conditions\": [{\"field\": \"familyInfo.familyrelation\", \"operator\": \"CONTAINS\", \"value\": \"父母\"}]}, {\"name\": \"姓名+泛化子女关系\", \"patterns\": [\"{SEARCH}(?!(?:家里|家中|家有|家人|本人|自己|客户))([\\\\u4e00-\\\\u9fa5]{2,4}?)(?:有|育有|家里有|家中有|的)(?:子女|孩子|小孩)\"], \"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value_type\": \"capture\", \"value\": {\"group\": 1, \"transform\": \"validated_person_name\"}, \"priority\": 23, \"merge_to_llm\": false, \"extra_conditions\": [{\"field\": \"familyInfo.familyrelation\", \"operator\": \"CONTAINS\", \"value\": \"子女\"}]}, {\"name\": \"姓名+泛化兄弟姐妹关系\", \"patterns\": [\"{SEARCH}(?!(?:家里|家中|家有|家人|本人|自己|客户))([\\\\u4e00-\\\\u9fa5]{2,4}?)(?:有|家里有|家中有|的)(?:兄弟姐妹|兄妹|姐弟)\"], \"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value_type\": \"capture\", \"value\": {\"group\": 1, \"transform\": \"validated_person_name\"}, \"priority\": 23, \"merge_to_llm\": false, \"extra_conditions\": [{\"field\": \"familyInfo.familyrelation\", \"operator\": \"CONTAINS\", \"value\": \"兄弟姐妹\"}]}, {\"name\": \"姓名+泛化配偶关系\", \"patterns\": [\"{SEARCH}(?!(?:家里|家中|家有|家人|本人|自己|客户))([\\\\u4e00-\\\\u9fa5]{2,4}?)(?:有|的)(?:配偶|爱人)\"], \"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value_type\": \"capture\", \"value\": {\"group\": 1, \"transform\": \"validated_person_name\"}, \"priority\": 23, \"merge_to_llm\": false, \"extra_conditions\": [{\"field\": \"familyInfo.familyrelation\", \"operator\": \"CONTAINS\", \"value\": \"配偶\"}]}], \"negation_words\": [\"没有配置\", \"未配置\", \"没配置\", \"未购买\", \"没有\", \"没买\", \"未买\", \"缺少\", \"缺失\", \"没\", \"无\", \"不\", \"缺\", \"未\", \"非\"]}, \"critical_intent_dimensions\": [\"target_population\", \"field_semantics\", \"operator\", \"value_or_unit\", \"boolean_logic\", \"unsupported_or_out_of_boundary_request\"], \"enum_completeness_evidence\": [], \"unsupported_boundary_evidence\": {}, \"condition_comparison\": {\"tool_id\": \"client_search.condition_compare\", \"tool_type\": \"comparison\", \"status\": \"succeeded\", \"outputs\": {\"target_population\": \"分红\", \"expected\": {\"query_logic\": \"AND\", \"conditions\": [], \"expected_source\": \"not_available\", \"reference_conditions\": [], \"reference_is_oracle\": false}, \"actual\": {\"query_logic\": \"AND\", \"conditions\": [{\"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value\": \"分红\", \"match_mode\": null}]}, \"wrong\": [], \"missing\": [], \"extra\": [], \"extra_or_overbroad\": [], \"boundary_limits\": [], \"comparison_basis\": \"client_search wrong/missing/extra customer-search coverage\", \"expected_source\": \"not_available\", \"evaluable\": false, \"expected_source_label\": \"not_available\"}, \"evidence\": [{\"query\": \"分红\"}, {\"expected\": {\"query_logic\": \"AND\", \"conditions\": [], \"expected_source\": \"not_available\", \"reference_conditions\": [], \"reference_is_oracle\": false}}, {\"actual\": {\"query_logic\": \"AND\", \"conditions\": [{\"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value\": \"分红\", \"match_mode\": null}]}}, {\"wrong\": [], \"missing\": [], \"extra\": [], \"boundary_limits\": []}], \"missing_evidence\": [{\"reason\": \"current intent/config expected conditions unavailable; reference expected_conditions kept as evidence only\", \"expected_source\": \"not_available\"}], \"boundary_limits\": [], \"error\": \"\"}, \"product_use_scenarios\": {\"find-target-customers\": \"用户通过自然语言描述目标客户群体并使用客户搜索产品\"}, \"authority_environment_snapshot_sha256\": \"\", \"authority_mode\": \"not_required\"}",
+      "created_at": 1786541504,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "986eef13-cfbb-4f94-b8df-907e324c7824",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "",
+      "created_at": 1786541504,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "f4418898-82f9-4e57-a67f-7a4e7ffd93b5",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 7680,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 14108,
+        "output_tokens": 1658,
+        "provider_metrics": null,
+        "reasoning_tokens": 1543,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 15766
+      },
+      "name": null,
+      "provider_data": {
+        "id": "95707355-afcf-4ff9-a1ec-d8fcfae7ff73",
+        "model_extra": {
+          "cost": "0"
+        }
+      },
+      "reasoning_content": "Let me analyze this case carefully.\n\nThe user query is \"分红\" (dividend/bonus). The parser interpreted it as a customer name \"分红\" and output a condition: searchClientName MATCH \"分红\" with robot_text \"客户姓名为分红的客户\".\n\nKey questions:\n1. What is the user's intent? \"分红\" alone is a bare word. In the insurance customer search context, \"分红\" could mean:\n   - A customer name (but \"分红\" is not a typical Chinese person name)\n   - A policy attribute related to dividends (分红险, dividend insurance products)\n   - Something else\n\n2. The capability manifest says searchClientName only represents the customer's own personal name; it doesn't represent products, company names, etc. The notes say: only output this field when there are name indicators, or the query is a 2-4 character name that matches Chinese person name structure, or a surname.\n\n3. \"分红\" is a bare word (裸词) with no name indicators like \"姓名/客户/查/找/筛选\". The bare word rule says: if the request is only a bare word (no indicators) and actual parses it as a name, Reference consistency only shows generation path match, not intent confirmation; unless there's name structure or semantic evidence (proper noun, surname library hit, clear field context), judge as not fulfilled.\n\nLet me check the field definition more carefully. searchClientName notes: \"只有满足以下任一条件才输出本字段：1）查询用“姓名/名字/名叫/叫做/姓氏”等人名指示词明确引出姓名；2）整条查询去掉“查询/查找/的客户/本人”等外壳后，仅剩一个符合中文人名结构的2至4字姓名（单姓+1至2字名，或复姓+1至2字名）；3）整条查询仅为百家姓中的单姓或复姓时...\"\n\n\"分红\" - is this a Chinese person name structure? \"分红\" means \"dividend\" or \"share profits\". As a name, \"分红\" would be surname \"分\" + given name \"红\"? \"分\" is not a common surname (it's not in the 百家姓 typically). Actually \"分红\" is a common business term for dividends. The enhanced rule \"姓名-模糊匹配\" matches any 1-3 Chinese characters: `{SEARCH}([\\u4e00-\\u9fa5]{1,3})` with priority 1. So \"分红\" (2 chars) matched the fuzzy name matching rule.\n\nBut is \"分红\" a person name? Clearly not - it's a financial term (dividend). The user intent could be:\n- Looking for customers related to dividends (分红) - e.g., customers with dividend insurance policies\n- Or the user typed a name\n\nGiven the context of an insurance customer search system, \"分红\" is likely referring to dividend insurance (分红险) or dividend payments. But without more context, we can't confirm the user's intent.\n\nThe bare word rule applies here: \"分红\" is a bare word with no name indicators. The actual parsed it as a name. There's no name structure or semantic evidence that \"分红\" is a person name:\n- \"分红\" is not a proper noun for a person\n- \"分\" is not a typical surname in the surname library (百家姓)\n- No clear field context\n\nSo per the bare word rule, this should be judged not_fulfilled unless there's name structure evidence.\n\nWait, but let me think about what the user's intent actually is. The core principle is to understand the user's real intent first. The query is just \"分红\". In an insurance context:\n- 分红 could refer to 分红型保险 (participating/dividend insurance) - customers who bought such policies\n- The system has fields like planfullname (产品全名), abbrname (产品简称), claimplancodename. There might be dividend-related product names.\n\nActually, the question is whether the current system can express \"分红\" as a search intent. Looking at the capability manifest, only searchClientName is provided with complete capability info. The tool says: \"user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息。\"\n\nSo the only field shown is searchClientName. There's no field for dividend products shown in the capability manifest. But there are enum files referenced: planfullname_enums, abbrname_enums, claimplancodename_enums. Maybe \"分红\" relates to a product name enum?\n\nLet me use the field search tools to check whether \"分红\" might relate to a supported field.\n\nActually, let me think about the judging approach:\n\n1. Understand user intent: query \"分红\" - bare word. In insurance customer search, \"分红\" most plausibly refers to dividend-related products/policies (分红险). But it could also be a customer name.\n\n2. The parser interpreted it as customer name \"分红\" via the fuzzy name matching rule (姓名-模糊匹配, priority 1). The capability manifest explicitly states searchClientName only represents the customer's own personal name and \"公司、机构、门店、地区或其他业务名词即使是连续中文也绝不能当作姓名；无法确认是自然人人名时宁可不输出\" (companies, institutions, stores, regions or other business terms even if consecutive Chinese must never be treated as names; when unable to confirm it's a natural person's name, prefer not to output).\n\n\"分红\" is a business/financial term (dividend), not a natural person name. It doesn't match Chinese person name structure (单姓+1至2字名): \"分\" isn't a typical surname and \"红\" as given name would be possible but the combination \"分红\" is semantically a financial term. The fuzzy rule matched it purely on character count.\n\nPer the bare word rule: request has only bare word with no indicators; actual parsed it as a name. No name structure or semantic evidence (no proper noun, no surname library hit, no clear field context). So judge as not_fulfilled.\n\nWait, but I should also consider: is there any field that could support \"分红\" as a search intent? Let me search the field index for \"分红\" to see if there's a product-related field with that enum value.\n\nLet me use the tools:\n1. client_search_field_search_keys with query \"分红\" - to find candidate field keys\n2. Maybe field_search_definition for relevant fields\n\nLet me do that to be thorough. The instructions say to use tools to check field semantics.\n\nActually, the query \"分红\" in Chinese insurance context: 分红保险 (participating insurance). The planfullname enums might include product names containing \"分红\". If so, the correct parse might be a product name condition (e.g., polNoInfo.plancodeinfo.planfullname CONTAINS 分红 or similar).\n\nLet me search the field index.\n\nAlso I should consider the judgment scope: parser_condition_semantics_only, downstream result set not verified.\n\nPlan:\n1. Search field keys for \"分红\"\n2. Check relevant field definitions\n3. Determine whether \"分红\" should map to a product field rather than customer name\n4. Judge whether the actual output (searchClientName MATCH 分红) fulfills user intent\n\nLet me make the tool calls.",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"query\": \"分红\", \"limit\": 10}",
+            "name": "client_search_field_search_keys"
+          },
+          "id": "call_00_mDkNjZv830j9Wg5NmqJ43559",
+          "index": 0,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"query\": \"分红险 产品\", \"limit\": 10}",
+            "name": "client_search_field_search_keys"
+          },
+          "id": "call_01_SYM3vlFI7wfMgmY34HUz6369",
+          "index": 1,
+          "type": "function"
+        }
+      ],
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"actual\": {\"candidates\": [{\"field\": \"pTypes\", \"short_name\": \"客户持有的保险类型枚举值\"}], \"query\": \"分红\"}, \"boundary_limits\": [], \"error\": \"\", \"evidence\": \"retrieved client_search field-key candidates for 分红\", \"missing_evidence\": [], \"outputs\": {}, \"runtime_metadata\": {\"receipt\": {\"index_key\": \"client-search.field-definitions\", \"operation\": \"search_index\", \"query\": \"分红\", \"target_refs\": [\"client-search-field://pTypes\"]}}, \"status\": \"succeeded\", \"tool_id\": \"client_search.field.search_keys\", \"tool_type\": \"client_search_field_key_retrieval\"}",
+      "created_at": 1786541519,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "07780377-6553-4973-adec-45a950abdb48",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "tool",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": {
+        "limit": 10,
+        "query": "分红"
+      },
+      "tool_call_error": false,
+      "tool_call_id": "call_00_mDkNjZv830j9Wg5NmqJ43559",
+      "tool_calls": null,
+      "tool_name": "client_search_field_search_keys",
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"actual\": {\"candidates\": [{\"field\": \"agentPerspProductType\", \"short_name\": \"客户持有某个明确的综拓产品类别\"}, {\"field\": \"occurPassPayRegst\", \"short_name\": \"综拓理赔状态\"}, {\"field\": \"pCategorys\", \"short_name\": \"客户持有的寿险险种大类\"}, {\"field\": \"pTypes\", \"short_name\": \"客户持有的保险类型枚举值\"}, {\"field\": \"annPremSegNum\", \"short_name\": \"年缴保费金额（大于）\"}, {\"field\": \"ayhMemberGradeInfo.ayhmemberproductname\", \"short_name\": \"安有护会员服务线名称\"}, {\"field\": \"ayyMemberGradeInfo.ayymemberproductname\", \"short_name\": \"安有医会员服务线名称\"}, {\"field\": \"clientChurnTag\", \"short_name\": \"客户是否属于濒临失效高客；定义为可投资资产达到或超过50万元\"}], \"query\": \"分红险 产品\"}, \"boundary_limits\": [], \"error\": \"\", \"evidence\": \"retrieved client_search field-key candidates for 分红险 产品\", \"missing_evidence\": [], \"outputs\": {}, \"runtime_metadata\": {\"receipt\": {\"index_key\": \"client-search.field-definitions\", \"operation\": \"search_index\", \"query\": \"分红险 产品\", \"target_refs\": [\"client-search-field://agentPerspProductType\", \"client-search-field://occurPassPayRegst\", \"client-search-field://pCategorys\", \"client-search-field://pTypes\", \"client-search-field://annPremSegNum\", \"client-search-field://ayhMemberGradeInfo.ayhmemberproductname\", \"client-search-field://ayyMemberGradeInfo.ayymemberproductname\", \"client-search-field://clientChurnTag\"]}}, \"status\": \"succeeded\", \"tool_id\": \"client_search.field.search_keys\", \"tool_type\": \"client_search_field_key_retrieval\"}",
+      "created_at": 1786541519,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "3b9d4f53-6c55-46b5-89cb-f3d341cb64e3",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "tool",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": {
+        "limit": 10,
+        "query": "分红险 产品"
+      },
+      "tool_call_error": false,
+      "tool_call_id": "call_01_SYM3vlFI7wfMgmY34HUz6369",
+      "tool_calls": null,
+      "tool_name": "client_search_field_search_keys",
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "",
+      "created_at": 1786541519,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "db9f4ff7-2107-4203-af50-6e4e5edea95b",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 7680,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 16358,
+        "output_tokens": 107,
+        "provider_metrics": null,
+        "reasoning_tokens": 26,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 16465
+      },
+      "name": null,
+      "provider_data": {
+        "id": "97dbee69-61ec-4667-9082-caf6819bbeb0",
+        "model_extra": {
+          "cost": "0"
+        }
+      },
+      "reasoning_content": "Let me check the pTypes field and pCategorys field definitions to see if \"分红\" is a valid enum value there.",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"field\": \"pTypes\"}",
+            "name": "field_search_definition"
+          },
+          "id": "call_00_qcQAKdJayfszUHdguCPT9750",
+          "index": 0,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"field\": \"pCategorys\"}",
+            "name": "field_search_definition"
+          },
+          "id": "call_01_6DpBSCBmCDtHBjscsm5b0496",
+          "index": 1,
+          "type": "function"
+        }
+      ],
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"actual\": {\"field\": \"pTypes\", \"is_supported\": true, \"operators\": [\"CONTAINS\", \"MATCH\", \"NOT_CONTAINS\"], \"short_name\": \"客户持有的保险类型枚举值\", \"value_types\": [\"enum\"]}, \"boundary_limits\": [], \"error\": \"\", \"evidence\": \"retrieved minimal definition for pTypes\", \"missing_evidence\": [], \"outputs\": {}, \"runtime_metadata\": {\"receipt\": {\"index_key\": \"client-search.field-definitions\", \"key\": \"pTypes\", \"operation\": \"load_entry\", \"provenance\": {\"project_id\": \"client_search\", \"source_path\": \"/Users/xiaozijian/WorkSpace/package/client_search_jmz_raw/llm_client_search/src/main/python/data/client_search_query_parse/field_definitions_args.yaml\"}, \"resolved_locator\": \"field_definitions_args.yaml#field=pTypes\", \"target_refs\": [\"client-search-field://pTypes\"]}}, \"status\": \"succeeded\", \"tool_id\": \"field.search_definition\", \"tool_type\": \"client_search_field_definition\"}",
+      "created_at": 1786541523,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "536d2664-de77-4b9c-a09c-aaa3276250e9",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "tool",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": {
+        "field": "pTypes"
+      },
+      "tool_call_error": false,
+      "tool_call_id": "call_00_qcQAKdJayfszUHdguCPT9750",
+      "tool_calls": null,
+      "tool_name": "field_search_definition",
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"actual\": {\"field\": \"pCategorys\", \"is_supported\": true, \"operators\": [\"CONTAINS\", \"NOT_CONTAINS\"], \"short_name\": \"客户持有的寿险险种大类\", \"value_types\": [\"enum\"]}, \"boundary_limits\": [], \"error\": \"\", \"evidence\": \"retrieved minimal definition for pCategorys\", \"missing_evidence\": [], \"outputs\": {}, \"runtime_metadata\": {\"receipt\": {\"index_key\": \"client-search.field-definitions\", \"key\": \"pCategorys\", \"operation\": \"load_entry\", \"provenance\": {\"project_id\": \"client_search\", \"source_path\": \"/Users/xiaozijian/WorkSpace/package/client_search_jmz_raw/llm_client_search/src/main/python/data/client_search_query_parse/field_definitions_args.yaml\"}, \"resolved_locator\": \"field_definitions_args.yaml#field=pCategorys\", \"target_refs\": [\"client-search-field://pCategorys\"]}}, \"status\": \"succeeded\", \"tool_id\": \"field.search_definition\", \"tool_type\": \"client_search_field_definition\"}",
+      "created_at": 1786541523,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "af393813-cfa9-4643-9638-1b79881adba6",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "tool",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": {
+        "field": "pCategorys"
+      },
+      "tool_call_error": false,
+      "tool_call_id": "call_01_6DpBSCBmCDtHBjscsm5b0496",
+      "tool_calls": null,
+      "tool_name": "field_search_definition",
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "",
+      "created_at": 1786541523,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "d885dca6-e096-4e21-8170-2525a35258b2",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 15744,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 16965,
+        "output_tokens": 2194,
+        "provider_metrics": null,
+        "reasoning_tokens": 2072,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 19159
+      },
+      "name": null,
+      "provider_data": {
+        "id": "e55d9a35-edbc-4ce6-9d72-e08d430424fa",
+        "model_extra": {
+          "cost": "0"
+        }
+      },
+      "reasoning_content": "Now let me think about the case.\n\nUser query: \"分红\" (a bare word, meaning \"dividend\" / \"bonus\" / \"share of profits\").\n\nIn an insurance customer search context, \"分红\" likely refers to:\n1. A dividend insurance product (分红险) - customers holding participating/dividend policies\n2. Dividend payments\n3. Or possibly a customer name (unlikely - \"分红\" is not a typical Chinese person name structure)\n\nThe parser interpreted \"分红\" as a customer name (searchClientName MATCH \"分红\") with robot_text \"客户姓名为分红的客户\". It matched via the \"姓名-模糊匹配\" rule (patterns: `{SEARCH}([\\u4e00-\\u9fa5]{1,3})` with priority 1).\n\nNow, the key question per the \"裸词规则\" (bare word rule): The request is only a bare word \"分红\" with no indicator words like \"姓名/客户/查/找/筛选\". The actual output parsed it as a name. Per the rule, Reference consistency only shows the generation path matches; it doesn't confirm intent. Unless there's name structure or semantic evidence (proper noun, surname library hit, clear field context), it should be judged as not fulfilled.\n\nIs \"分红\" a plausible Chinese person name? \"分红\" (fēn hóng) means \"dividend\" - it's a common financial/business term. \"分\" is not a common surname (百家姓 does not typically include 分 as a surname; it's not a standard surname). \"红\" could be a given name character, but \"分红\" as a full name is not a standard Chinese person name structure. Actually, wait - the name rules say: 整条查询去掉外壳后，仅剩一个符合中文人名结构的2至4字姓名（单姓+1至2字名...）。\"分红\" - is 分 a surname? It's not in the 百家姓 list typically. Actually, 分 is not a common surname at all. And \"分红\" semantically is a business term for dividends.\n\nIn the insurance context, \"分红\" most likely refers to dividend-type insurance (分红险) or dividend payouts. The system has pTypes (客户持有的保险类型枚举值) and pCategorys (客户持有的寿险险种大类) fields, which are insurance type enums. Also there are product name enums (planfullname, abbrname, claimplancodename) mentioned in config paths.\n\nLet me check whether \"分红\" is an enum value in pTypes or product name enums. The field_search for \"分红\" only returned pTypes as a candidate. Let me check the pTypes enum values... The tool returned minimal definition without enums. Let me check if there's an enum file. Actually the config paths reference field_enums_args.yaml. The tool didn't return enums for pTypes. Hmm.\n\nBut regardless of whether \"分红\" could map to a product/insurance type condition, the core issue here is: the parser interpreted a bare word \"分红\" as a customer name, when \"分红\" is clearly a business/financial term (dividend), not a person name. Per the field definition notes for searchClientName: \"公司、机构、门店、地区或其他业务名词即使是连续中文也绝不能当作姓名；无法确认是自然人人名时宁可不输出\" (company, institution, store, region or other business terms even if continuous Chinese must never be treated as names; when unable to confirm it's a natural person name, prefer not to output).\n\nSo \"分红\" is a business term (dividend), not a natural person name. The parser's interpretation as customer name is wrong.\n\nThe user's actual intent with \"分红\" is ambiguous, but in the context of customer search for insurance, it most plausibly means customers related to dividend insurance (分红险) - e.g., customers holding dividend-type insurance policies. The system has pTypes (insurance type enum) which was the top candidate for \"分红\" search. If \"分红\" is an enum value of pTypes (分红型保险), then the correct parse would be a pTypes condition, not searchClientName.\n\nHowever, I don't have direct evidence of the enum values for pTypes. The capability manifest only provided searchClientName with complete capability info. Let me try to check the enum for pTypes or search more.\n\nActually, let me reconsider. The user prompt says \"user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息\" - when the prompt already provides the complete capability list for fields involved in the current case, prefer the prompt info. The capability_manifest only includes searchClientName. The judge_scope is parser_condition_semantics_only.\n\nLet me try to get the enum values for pTypes to determine if \"分红\" is a valid enum value.\n\nActually, let me look at whether the field definition tool returns enums. It returned \"value_types\": [\"enum\"] but no enums list. There may be enum_refs that need separate lookup. Let me try querying for more.\n\nActually, per evidence hierarchy: I should base my judgment on the query vs actual. The bare word rule is decisive here:\n\n1. Request \"分红\" is a bare word with no name indicators (no 姓名/客户/查/找/筛选 words).\n2. Actual parsed it as searchClientName MATCH \"分红\".\n3. \"分红\" is not a natural person name structure - it's a business term (dividend). There's no surname library hit (分 is not a common surname), no proper noun evidence, no clear field context indicating a name.\n4. Per the field definition notes, business terms must never be treated as names; when unsure, don't output the name field.\n\nTherefore, per the bare word rule, this should be judged not_fulfilled for the name interpretation. \n\nNow, what's the user's intended core deliverable? The user wants customers related to \"分红\" (dividend). The most plausible correct interpretation is customers holding dividend-type insurance (分红险). The system has pTypes (insurance type enum) which matched \"分红\" in field search. But I lack evidence that \"分红\" is a valid enum value in pTypes. Let me check whether there's more evidence.\n\nLet me try to load the pTypes enum. The field_search_definition tool returns \"minimal definition\" - it returned is_supported, operators, short_name, value_types but no enums. There might be an enum_ref field but it wasn't returned. Hmm, the tool description says \"读取一个字段是否支持搜索、短名称、操作符、值类型及少量枚举\" - reads whether a field supports search, short name, operators, value types and a few enums. But it didn't return enums for pTypes. \n\nI could try searching for \"分红\" as a value... but there's no tool for that. The evidence is limited.\n\nGiven the evidence:\n- Query: \"分红\" (bare word)\n- Actual: searchClientName MATCH \"分红\", robot_text \"客户姓名为分红的客户\"\n- Field search: \"分红\" candidate field = pTypes (客户持有的保险类型枚举值) — suggesting \"分红\" semantically relates to insurance type enum, not customer name.\n- searchClientName definition explicitly forbids treating business terms as names.\n\nNow let me think about the expectations:\n\nBusiness expectations:\n1. 核心交付：将用户查询解析为可执行的客户搜索条件，正确承载\"分红\"的搜索意图。If \"分红\" refers to dividend-type insurance, the expected condition would be pTypes related. But is that within scope? The current system might support pTypes with enum 分红. If the parser instead outputs a customer name condition, that's a wrong field mapping - it doesn't deliver customers with dividend insurance; it searches customers whose name contains \"分红\" (likely zero or irrelevant results).\n\n2. 裸词意图确认：request is a bare word \"分红\", no name indicator. Per bare word rule, parsing as name without name-structure evidence → not fulfilled.\n\nSo I'll derive:\n\nExpectation 1 (blocking): 正确识别\"分红\"的搜索意图并生成可执行条件（分红险/保险类型相关，而非姓名）。Actual: searchClientName MATCH 分红 → 把业务名词\"分红\"错误映射为客户姓名，未生成保险类型条件。not_fulfilled.\n\nActually, wait. I need to be careful. Is it certain that \"分红\" means 分红险 (dividend insurance)? The user just typed \"分红\". It's ambiguous. But in the customer search business context, the top field candidate is pTypes (insurance type enum). Without direct evidence that pTypes has 分红 enum value, can I claim the correct parse is pTypes?\n\nHmm. Let me check the value_mappings or enums. The prompt mentions config paths including field_enums_args.yaml, planfullname enums, etc. Maybe I should search field definitions for these product name fields to see if 分红 appears in enums.\n\nLet me try field_search_definition on some product fields, or use client_search_field_search_keys with queries like \"产品名称\" to find planfullname fields.\n\nActually the field search for \"分红\" returned only pTypes. That suggests in the field index, \"分红\" is most associated with pTypes. Let me try to verify pTypes enums. The tool returned minimal definition without enums - maybe enums are not available in this tool. Let me try one more search: search \"保险类型\" or check planfullname.\n\nLet me do a few more tool calls to strengthen evidence:\n1. client_search_field_search_keys with \"保险类型 分红\" \n2. field_search_definition for planfullname-related field if I can find the key.\n\nActually, let me try searching for product name fields.",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"limit\": 10, \"query\": \"保险类型 分红型\"}",
+            "name": "client_search_field_search_keys"
+          },
+          "id": "call_00_0wwY5ldFuDYXuoTAFSvE3696",
+          "index": 0,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"limit\": 10, \"query\": \"产品名称 计划名称 保单\"}",
+            "name": "client_search_field_search_keys"
+          },
+          "id": "call_01_VbjTTk4iBfub7KPv66P25998",
+          "index": 1,
+          "type": "function"
+        }
+      ],
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"actual\": {}, \"boundary_limits\": [], \"error\": \"Field navigation budget reached. Stop broadening field search; use the evidence already loaded and preserve remaining calls for authority.resolve when a governed claim or boundary depends on it.\", \"evidence\": \"\", \"missing_evidence\": [], \"outputs\": {}, \"runtime_metadata\": {\"budget_kind\": \"field_navigation\", \"calls_used\": 4, \"limit\": 4}, \"status\": \"inconclusive\", \"tool_id\": \"client_search.field.search_keys\", \"tool_type\": \"client_search_field_navigation\"}",
+      "created_at": 1786541544,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "ba0595d5-2ba2-4290-a29c-4b2a40e9e1e7",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "tool",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": {
+        "limit": 10,
+        "query": "保险类型 分红型"
+      },
+      "tool_call_error": false,
+      "tool_call_id": "call_00_0wwY5ldFuDYXuoTAFSvE3696",
+      "tool_calls": null,
+      "tool_name": "client_search_field_search_keys",
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"actual\": {}, \"boundary_limits\": [], \"error\": \"Field navigation budget reached. Stop broadening field search; use the evidence already loaded and preserve remaining calls for authority.resolve when a governed claim or boundary depends on it.\", \"evidence\": \"\", \"missing_evidence\": [], \"outputs\": {}, \"runtime_metadata\": {\"budget_kind\": \"field_navigation\", \"calls_used\": 4, \"limit\": 4}, \"status\": \"inconclusive\", \"tool_id\": \"client_search.field.search_keys\", \"tool_type\": \"client_search_field_navigation\"}",
+      "created_at": 1786541544,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "7091e937-daf9-4e58-b5d7-2cee4b053135",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "tool",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": {
+        "limit": 10,
+        "query": "产品名称 计划名称 保单"
+      },
+      "tool_call_error": false,
+      "tool_call_id": "call_01_VbjTTk4iBfub7KPv66P25998",
+      "tool_calls": null,
+      "tool_name": "client_search_field_search_keys",
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "```json\n{\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"分红意图解析为正确的客户筛选条件\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"下游客户搜索服务（ES）\",\n      \"user_intent\": \"用户输入裸词“分红”，意图检索与分红（红利）相关的客户（如持有分红型保险的客户）\",\n      \"expected_outcome\": \"解析器应将“分红”映射为表达分红业务含义的可执行条件（如客户持有的保险类型枚举 pTypes 含“分红”），使下游能检索到分红相关客户；不得把业务名词“分红”当作客户姓名\",\n      \"required_capabilities\": [\"保险类型/产品枚举识别\", \"业务名词与姓名的区分\"],\n      \"acceptance_criteria\": [\n        {\"criterion\": \"actual 不将“分红”解析为 searchClientName 姓名条件\", \"evidence_needed\": [\"actual conditions 字段\"]},\n        {\"criterion\": \"actual 生成与分红/红利业务含义一致的保险类型或产品条件\", \"evidence_needed\": [\"actual conditions 字段语义\"]}\n      ],\n      \"boundary\": {\"judge_scope\": \"parser_condition_semantics_only\", \"result_set_verified\": false, \"downstream_status\": \"not_verified\"},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"业务名词不得误映射为客户姓名\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"下游客户搜索服务（ES）\",\n      \"user_intent\": \"确保只有具备姓名结构或语义证据的词才解析为姓名条件，业务名词即使为连续中文也不得作为姓名输出\",\n      \"expected_outcome\": \"searchClientName 仅承载可确认为自然人人名的值；“分红”等业务名词不得输出到 searchClientName\",\n      \"required_capabilities\": [\"searchClientName 字段语义边界遵守\"],\n      \"acceptance_criteria\": [\n        {\"criterion\": \"actual 未把业务名词“分红”输出到 searchClientName\", \"evidence_needed\": [\"searchClientName 字段定义\", \"actual conditions\"]}\n      ],\n      \"boundary\": {\"judge_scope\": \"parser_condition_semantics_only\", \"result_set_verified\": false, \"downstream_status\": \"not_verified\"},\n      \"priority\": \"P1\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [\"find-target-customers\"],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"分红意图解析为正确的客户筛选条件\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        \"字段索引查询“分红”仅返回候选 pTypes（客户持有的保险类型枚举值），指向分红型保险意图\",\n        \"searchClientName 字段定义：仅表示客户本人的人名，业务名词不得当作姓名\"\n      ],\n      \"actual_evidence\": [\n        \"actual conditions=[{\\\"field\\\":\\\"searchClientName\\\",\\\"operator\\\":\\\"MATCH\\\",\\\"value\\\":\\\"分红\\\"}]\",\n        \"robot_text=客户姓名为分红的客户，matched_patterns=姓名-模糊匹配（裸词模糊回退规则）\",\n        \"query=\\\"分红\\\"为裸词，无姓名指示词、无姓名结构证据\"\n      ],\n      \"downstream_impact\": \"下游将按姓名含“分红”检索，无法命中用户意图的分红相关客户（如持有分红型保险的客户），结果集与意图偏离；result_set_verified=false\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"业务名词不得误映射为客户姓名\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        \"searchClientName 字段定义：公司、机构、门店、地区或其他业务名词即使是连续中文也绝不能当作姓名；无法确认是自然人人名时宁可不输出\"\n      ],\n      \"actual_evidence\": [\n        \"actual 输出 searchClientName MATCH \\\"分红\\\"\",\n        \"“分红”为金融/保险业务名词（红利、分红险），非自然人人名，且无姓氏库或姓名结构命中\"\n      ],\n      \"downstream_impact\": \"姓名检索条件被业务名词污染，可能返回姓名含“分红”的无关客户或空结果，破坏字段语义契约\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"expected\": {\n    \"code\": 0,\n    \"msg\": \"操作成功\",\n    \"query\": \"分红\",\n    \"conditions\": [\n      {\"field\": \"pTypes\", \"operator\": \"CONTAINS\", \"value\": \"分红\", \"semantic\": \"客户持有分红型保险（字段索引候选期望条件，枚举值未完整核验）\"}\n    ],\n    \"robot_text\": \"分红相关的客户（如持有分红型保险的客户）\",\n    \"query_logic\": \"AND\",\n    \"rewritten_query\": \"分红\",\n    \"end_flag\": 1,\n    \"trace_id\": \"\",\n    \"matched_level\": null,\n    \"matched_patterns\": null,\n    \"intent_summary\": \"检索与分红（红利）相关的客户\",\n    \"confidence\": null,\n    \"cost_times\": null\n  },\n  \"missing\": [\n    {\n      \"kind\": \"missing\",\n      \"error_type\": \"missing_condition\",\n      \"expected\": {\"field\": \"pTypes\", \"operator\": \"CONTAINS\", \"value\": \"分红\", \"semantic\": \"分红型保险类型条件\"},\n      \"actual\": null,\n      \"evidence_ref\": \"final_output.conditions\",\n      \"raw\": {\"conditions\": [{\"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value\": \"分红\"}]}\n    }\n  ],\n  \"wrong\": [\n    {\n      \"kind\": \"wrong\",\n      \"error_type\": \"wrong_field_mapping\",\n      \"expected\": \"分红/红利相关业务条件（保险类型或产品）\",\n      \"actual\": {\"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value\": \"分红\"},\n      \"evidence_ref\": \"final_output.conditions[0]\",\n      \"raw\": {\"robot_text\": \"客户姓名为分红的客户\", \"matched_patterns\": \"姓名-模糊匹配\"}\n    }\n  ],\n  \"extra\": [],\n  \"evidence\": [\n    {\"query\": \"分红\"},\n    {\"actual\": {\"conditions\": [{\"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value\": \"分红\"}], \"robot_text\": \"客户姓名为分红的客户\", \"matched_patterns\": \"姓名-模糊匹配\"}},\n    {\"searchClientName_definition\": \"仅表示客户本人的人名；业务名词即使是连续中文也绝不能当作姓名\"},\n    {\"field_index\": \"字段索引查询“分红”仅返回候选 pTypes（客户持有的保险类型枚举值）\"},\n    {\"application_boundary\": {\"judge_scope\": \"parser_condition_semantics_only\", \"result_set_verified\": false}}\n  ],\n  \"reasoning_summary\": \"用户裸词“分红”是金融业务名词，无姓名指示词亦无姓名结构证据；actual 经“姓名-模糊匹配”回退解析为 searchClientName MATCH“分红”，违反字段定义（业务名词不得当姓名），且字段索引显示“分红”对应保险类型枚举 pTypes，核心意图未正确交付，判 not_fulfilled。\"\n}\n```",
+      "created_at": 1786541544,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "f874de7a-4bb9-400d-8483-e401da220f92",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 16384,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 19425,
+        "output_tokens": 8417,
+        "provider_metrics": null,
+        "reasoning_tokens": 6803,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 27842
+      },
+      "name": null,
+      "provider_data": {
+        "id": "0a8716b5-b4a9-4c8e-884c-c9fbe969d1c2",
+        "model_extra": {
+          "cost": "0"
+        }
+      },
+      "reasoning_content": "Field navigation budget is reached. I have the key evidence I need:\n\n1. User query: \"分红\" - a bare word meaning \"dividend\" (a financial/business term, not a person name).\n2. Actual output: parsed as customer name \"分红\" via searchClientName MATCH 分红, robot_text \"客户姓名为分红的客户\", matched_patterns \"姓名-模糊匹配\" (priority 1 pattern `{SEARCH}([\\u4e00-\\u9fa5]{1,3})` - a very low priority fuzzy fallback).\n3. capability_manifest for searchClientName explicitly states: \"仅表示客户本人的人名；不表示客户集合、公司/机构名称、地址、产品名... 公司、机构、门店、地区或其他业务名词即使是连续中文也绝不能当作姓名；无法确认是自然人人名时宁可不输出。\"\n4. \"分红\" is a financial/business term (dividend), not a natural person name. It has no name-structure or semantic evidence (not a proper noun person name, \"分\" is not a typical surname, no surname library hit).\n5. Field search for \"分红\" returned pTypes (客户持有的保险类型枚举值) as the only candidate — suggesting \"分红\" semantically relates to insurance type enum (e.g., 分红型), not customer name.\n\nPer the bare word rule: \"请求只有裸词（无'姓名/客户/查/找/筛选'等指示词）且 actual 把该裸词当作姓名解析时，Reference 一致只说明生成路径匹配，不等于意图确认；除非存在姓名结构或语义证据（如专名、姓氏库命中、明确字段上下文），否则按未满足判 not_fulfilled。\"\n\nThe query \"分红\" is a bare word with no name indicator. The actual parsed it as customer name \"分红\". There is no name-structure or semantic evidence that \"分红\" is a person name:\n- \"分红\" is a common business term (dividend/bonus distribution)\n- No surname library hit (\"分\" is not a surname; \"分红\" is not a standard 2-4 character Chinese person name)\n- No explicit field context indicating name\n\nAlso, per searchClientName field definition notes: business terms must never be treated as names, and when uncertain, prefer not to output. \"分红\" (dividend) is a business term (in insurance context, likely referring to dividend-type insurance/分红险 or dividend distribution), so mapping it to customer name violates the field's own definition.\n\nAdditionally, field search returned pTypes (客户持有的保险类型枚举值) as candidate for \"分红\" — suggesting that the semantically correct interpretation might be an insurance-type condition (e.g., 分红型), not a customer name. However, I can't fully verify the enum values of pTypes due to budget limits. But the key point stands: interpreting \"分红\" as a customer name is incorrect — it's a business term, not a person name.\n\nNow, let me consider the user's actual intent. The user typed just \"分红\". In an insurance customer search context, \"分红\" most likely means customers with dividend-type insurance (分红险/分红型产品) or related to dividend distribution. The parser instead produced a name search for \"分红\" which would return customers whose name contains \"分红\" — that doesn't fulfill the user's likely intent of finding customers related to dividends (分红).\n\nBut wait — should I be careful about the ambiguity? \"分红\" as a bare word is ambiguous. However, the judge's job is to determine whether the parser correctly interpreted the user's search intent. The actual output claimed \"客户姓名为分红的客户\" (customers whose name is 分红). Given that:\n1. \"分红\" is not a plausible Chinese person name (no name structure/semantic evidence)\n2. The field definition explicitly forbids treating business terms as names\n3. The only field candidate for \"分红\" is the insurance type enum field\n\nThe name interpretation is a bare-word mis-parse. Per the bare word rule, this should be judged not_fulfilled.\n\nLet me also check: is there a possibility the user meant a customer literally named \"分红\"? Extremely unlikely; \"分红\" is not a standard surname+given-name structure, and there's no surname library hit. The bare word rule requires name-structure or semantic evidence to confirm a name interpretation, which is absent here.\n\nSo the core expectation: The parser should correctly interpret \"分红\" as a dividend-related search intent (likely insurance type / product related), not as a customer name. Actual delivered a customer name condition that (a) violates field definition (business term as name) and (b) doesn't correspond to the user's dividend intent.\n\nLet me now structure business_expectations:\n\nExpectation 1 (blocking): 正确识别\"分红\"的搜索意图并生成可执行条件（分红相关，如保险类型/产品分红型），而非把业务名词当作客户姓名。Acceptance criteria: actual 不应将\"分红\"解析为 searchClientName 姓名条件；应生成与分红相关的条件（如 pTypes 保险类型枚举）或明确无法表达。\n\nWait — I need to be careful about what the \"correct\" parse should be. Since field navigation budget is exhausted and I cannot confirm pTypes enums contain \"分红\", I should base my judgment on:\n- \"分红\" is a business term (dividend), not a person name → searchClientName mapping is wrong (violates field definition which says business terms must never be names).\n- The only field candidate for \"分红\" is pTypes (客户持有的保险类型枚举值), suggesting the dividend intent maps to insurance type, not name.\n\nPer the client_search judgment instructions: 裸词规则 — bare word parsed as name without name-structure evidence → not_fulfilled. This is decisive.\n\nSo the main blocking expectation: 把用户输入的裸词\"分红\"正确理解为分红/红利相关的客户筛选意图（而非客户姓名），交付可执行的搜索条件。\n\nActual: searchClientName MATCH \"分红\" → not fulfilled (wrong field mapping, business term treated as name; robot_text confirms the misunderstanding \"客户姓名为分红的客户\").\n\nExpectation 2 (non-blocking, optional): 透明/可执行的交付 — well, actual did produce executable conditions, so that's satisfied but it's the wrong condition. I think I don't need many expectations. Maybe 2:\n\n1. 分红意图识别与正确条件映射 (blocking=true) — not_fulfilled.\n2. 姓名误判风险控制：业务名词不得被当作姓名 (blocking=true?) — this overlaps with #1. Hmm, per the guidance \"只派生当前结论必需的验收项（通常 1-3 条，最多 4 条）\". \n\nActually maybe I should keep it to 2 expectations:\n1. blocking: \"分红\" 意图应映射为分红相关客户筛选（保险类型/产品），而非客户姓名。\n2. non-blocking: 交付可执行的结构化条件且不增加未表达约束 — the actual did deliver executable conditions (searchClientName MATCH 分红) but with wrong semantics. Hmm, but if I make #2 about \"可执行条件交付\", it's fulfilled (conditions exist and are executable) but that's somewhat redundant with the wrong condition.\n\nLet me think about what's the cleanest decomposition:\n\nExpectation A (blocking): 核心交付 — 将裸词\"分红\"解析为表达分红/红利业务含义的可执行客户筛选条件（应命中保险类型/产品类字段，如 pTypes 枚举），使下游能检索到分红相关客户。actual: 输出 searchClientName MATCH \"分红\"，把业务名词当作客户姓名 → not_fulfilled。Evidence: query \"分红\"（裸词，无姓名指示词）；actual conditions searchClientName MATCH 分红；robot_text \"客户姓名为分红的客户\"；searchClientName 字段定义明确\"公司、机构、门店、地区或其他业务名词即使是连续中文也绝不能当作姓名\"；字段索引中\"分红\"唯一候选为 pTypes（客户持有的保险类型枚举值）。\n\nExpectation B (blocking=false): 不将业务名词误作姓名（field_semantics 正确性）→ this is basically the same as A's wrong mapping. Actually it might be cleaner to make A the blocking core and B as the transparent boundary/说明 — but there's no \"告知限制\" content here. \n\nMaybe I'll do 2 expectations:\n1. 分红意图正确解析 (blocking=true) — not_fulfilled\n2. 姓名条件语义正确性（不得把业务名词当姓名）(blocking=true?) — hmm, per instructions \"每个可独立判断的请求维度拆一条 expectation\". The request has essentially one dimension: what does \"分红\" mean? The main failing is the name mis-parse. I could combine them into one blocking expectation about intent mapping, and add a non-blocking expectation about executable delivery.\n\nActually, let me reconsider: since this is a bare word, the intent itself is ambiguous. But the judge's job: determine if actual output correctly captures the user's likely intent. The parser output \"客户姓名为分红的客户\" — treating 分红 as a person name. Given:\n- \"分红\" is a common insurance/financial term (dividend)\n- Field definition forbids business terms as names\n- Field index maps 分红 → pTypes (insurance type enum)\n- No name structure evidence\n\nThe name interpretation is unsupported. → not_fulfilled for the core deliverable.\n\nLet me write 2 expectations:\n\n1. expectation_id: \"分红意图解析为正确业务条件\" — blocking=true. expected_outcome: 将\"分红\"解析为表达分红业务含义的客户筛选条件（如客户持有的保险类型/产品含分红型），供下游检索分红相关客户；不得把业务名词当作客户姓名。acceptance_criteria: 实际条件字段语义与\"分红/红利\"业务含义一致且可执行；若被解析为 searchClientName 姓名条件，则判定未满足。status: not_fulfilled.\n\n2. expectation_id: \"结构化可执行条件与逻辑交付\" — blocking=false? Hmm. The actual delivered a condition, so this would be fulfilled. But is it a meaningful independent dimension? The instructions say \"若 actual 只交付请求的一部分，必须按可独立判断的请求维度拆分 expectation\". Here actual delivered a condition but wrong semantics. I think 1 expectation for the core + maybe a transparency one isn't applicable (no is_supported=false). \n\nActually, per \"安全拒绝和透明说明必须另建 blocking=false 的 expectation\" — there's no such content here. And \"以下内容永远不能单独成为 blocking 核心交付：不错误映射、不编造条件...\" — these are non-blocking if used.\n\nI'll go with 2 expectations:\n1. blocking: 分红意图正确解析（核心交付）\n2. non-blocking: 不把业务名词误判为客户姓名（字段语义边界）— actually this is part of the core. Hmm.\n\nLet me simplify: 2 expectations is fine:\n- E1 (blocking): \"分红业务意图的客户筛选条件交付\" — not_fulfilled\n- E2 (non-blocking): \"不将业务名词误作客户姓名（姓名语义边界）\" — not_fulfilled (the actual violated searchClientName field definition which says business terms must never be treated as names)\n\nHmm, but E2 is basically the same root cause as E1. The guidance says each expectation must be an independently verifiable result dimension. E1 is about delivering the right condition; E2 is about field-semantics correctness (not mapping business term to name). They're related but E2 is a guardrail that's independently verifiable: searchClientName's definition explicitly forbids this. Actually I think it's cleaner to keep just the core blocking expectation plus maybe one about executable output.\n\nActually, let me reconsider — maybe 2 expectations:\n\n1. blocking: \"分红意图映射为可执行的正确客户筛选条件\"（核心交付）— not_fulfilled\n2. blocking=false: \"业务名词不得映射为客户姓名\" — not_fulfilled (as a guardrail on field semantics)\n\nBoth will be not_fulfilled. Hmm, but that might be redundant. The judge guidelines: \"每个 expectation 必须是原子可判定的\" — E1: does the actual deliver a condition matching 分红 business intent? No. E2: does the actual avoid mis-mapping a business term to name? No. Both are atomic and independently verifiable. I'll include both, but keep E2 non-blocking since the blocking determination is about whether it blocks the user's core purpose — E1 is the core. E2 is a guardrail quality dimension (not blocking by itself but related). Hmm, actually the bare-word rule says it should be judged not_fulfilled — that's about the name interpretation of the bare word, which is E1/E2 territory.\n\nAlternatively, I could make just ONE blocking expectation and one non-blocking about downstream impact... Let me just go with 2 expectations as above.\n\nNow, downstream_impact for the assessment: 下游按 searchClientName MATCH \"分红\" 检索，会查找姓名含\"分红\"的客户，无法命中用户意图的分红相关客户（如持有分红型保险的客户），检索结果与用户意图偏离。result_set_verified=false (downstream not verified).\n\nactual_state: available (Live returned output). So not not_evaluable.\n\nFor the not_fulfilled judgment, I don't need authority (authority_mode = not_required). authority_tool_call_ids: [].\n\nNow build the output:\n\nexpected object (per schema):\n```json\n{\n  \"code\": 0,\n  \"msg\": \"操作成功\",\n  \"query\": \"分红\",\n  \"conditions\": [...expected conditions...],\n  \"robot_text\": \"...\",\n  \"query_logic\": \"AND\",\n  \"rewritten_query\": \"分红\"\n}\n```\n\nWhat should expected conditions be? Per the evidence, the semantically plausible expected condition is pTypes (客户持有的保险类型枚举值) CONTAINS \"分红\" (分红型), since field search mapped \"分红\" → pTypes. But I couldn't verify pTypes enums contain \"分红\" (budget reached). I should express expected conditions with the dividend-related intent but be careful not to over-claim. I'll put expected conditions as a dividend-related condition (e.g., pTypes 枚举含\"分红\") with a note, but the primary expected is: 不输出 searchClientName 姓名条件。Actually the expected.conditions should reflect what the parser should have output. I can put:\n```json\n[\n  {\"field\": \"pTypes\", \"operator\": \"CONTAINS\", \"value\": \"分红\", \"note\": \"分红型保险类型（候选）\"}\n]\n```\nHmm, but I'm not 100% sure pTypes enums include 分红. The field search returned pTypes as the ONLY candidate for query \"分红\", which is decent evidence that 分红 maps to the insurance-type enum. I'll include it but frame expected conditions cautiously. Alternatively, I can leave expected conditions as empty with the expected_source not_available like condition_comparison did. The condition_comparison tool itself said expected_source: not_available, reference_conditions: [], evaluable: false — the tool couldn't determine expected conditions either.\n\nGiven the field navigation budget is exhausted, I cannot confirm pTypes enum values. So the expected conditions should reflect the semantic intent without over-claiming: the expected is that \"分红\" maps to a dividend-related insurance-type/product condition, NOT to customer name. I'll put expected conditions as a dividend-related condition placeholder with clear semantic description, but I should be honest in evidence.\n\nActually, per the schema, expected.conditions is an array of items (any type). I'll put:\n```json\n[\n  {\"field\": \"pTypes\", \"operator\": \"CONTAINS\", \"value\": \"分红\", \"semantic\": \"客户持有分红型保险（依据字段索引候选）\"}\n]\n```\n\nHmm, but the tool budget note says \"Stop broadening field search; use the evidence already loaded\". I should use what I have. The evidence I have:\n- field search \"分红\" → only candidate pTypes (客户持有的保险类型枚举值)\n- searchClientName definition: business terms must never be treated as names; only names with indicators or name-structure evidence.\n- query \"分红\" is a bare word with no name indicators, no name structure evidence.\n\nSo the expected is a dividend-related condition. I'll include pTypes as the candidate expected condition with a note that enum value not verified (field navigation budget reached) — but that uncertainty goes into evidence/reasoning, not into making the whole thing not_evaluable. The core determination (name parse is wrong) is solid regardless.\n\nWait, should the blocking expectation be not_fulfilled or should I consider whether \"分红\" intent mapping is confirmable enough? The bare-word rule is decisive: bare word parsed as name without name-structure/semantic evidence → not_fulfilled. \"分红\" clearly lacks name evidence (it's a common financial term; 分 is not a standard surname in 百家姓; no indicator). So not_fulfilled is the right call.\n\nmissing/wrong/extra:\n- missing: 分红业务意图对应的保险类型/产品条件（如 pTypes 分红型）缺失。\n- wrong: searchClientName MATCH \"分红\" — 把业务名词\"分红\"错误映射为客户姓名，字段语义错误。\n- extra: 无未表达约束被增加（MATCH 姓名条件本身是错误映射，算 wrong 不算 extra）。Actually the condition itself is wrong mapping. I'll put it in wrong.\n\nevidence array: list of evidence items (query, actual conditions, capability manifest, field search result, condition_comparison).\n\nreasoning_summary (≤180 chars): 用户裸词\"分红\"为金融业务名词，无姓名指示词且无姓名结构证据；actual 按\"姓名-模糊匹配\"将其解析为 searchClientName MATCH\"分红\"，违反字段定义（业务名词不得当姓名），且字段索引显示\"分红\"对应 pTypes 保险类型枚举，核心意图未正确交付，判 not_fulfilled。\n\nNow, the schema: fulfillment_assessments[*] fields: expectation_id, status, score, expected_evidence (array), actual_evidence (array), downstream_impact, authority_tool_call_ids.\n\nbusiness_expectations[*] fields: expectation_id, blocking, downstream_consumer, user_intent, expected_outcome, required_capabilities, acceptance_criteria, boundary (object), priority.\n\nLet me write both expectations:\n\nExpectation 1:\n- expectation_id: \"分红意图解析为正确的客户筛选条件\"\n- blocking: true\n- downstream_consumer: \"下游客户搜索服务（ES）\"\n- user_intent: \"用户输入裸词\\\"分红\\\"，意图检索与分红（红利）相关的客户（如持有分红型保险的客户）\"\n- expected_outcome: \"解析器应将\\\"分红\\\"映射为表达分红业务含义的可执行条件（如客户持有的保险类型枚举 pTypes 含\\\"分红\\\"），使下游能检索到分红相关客户；不得把业务名词\\\"分红\\\"当作客户姓名。\"\n- required_capabilities: [\"pTypes 保险类型枚举识别\", \"业务名词与姓名的区分\"]\n- acceptance_criteria: [\n    {\"criterion\": \"actual 不将\\\"分红\\\"解析为 searchClientName 姓名条件\", \"evidence_needed\": [\"actual conditions 字段\"]},\n    {\"criterion\": \"actual 生成与分红/红利业务含义一致的保险类型或产品条件\", \"evidence_needed\": [\"actual conditions 字段语义\"]}\n  ]\n- boundary: {\"judge_scope\": \"parser_condition_semantics_only\", \"result_set_verified\": false}\n- priority: \"P0\"\n\nExpectation 2:\n- expectation_id: \"业务名词不得误映射为客户姓名\"\n- blocking: false\n- downstream_consumer: \"下游客户搜索服务（ES）\"\n- user_intent: \"确保只有具备姓名结构/语义证据的词才解析为姓名条件\"\n- expected_outcome: \"searchClientName 仅承载可确认为自然人人名的值；业务名词（如\\\"分红\\\"）即使为连续中文也不得作为姓名输出\"\n- required_capabilities: [\"searchClientName 字段语义边界\"]\n- acceptance_criteria: [{\"criterion\": \"actual 未把业务名词\\\"分红\\\"输出到 searchClientName\", \"evidence_needed\": [\"searchClientName 字段定义\", \"actual conditions\"]}]\n- boundary: {\"judge_scope\": \"parser_condition_semantics_only\", \"result_set_verified\": false}\n- priority: \"P1\"\n\nAssessments:\n1. expectation_id: \"分红意图解析为正确的客户筛选条件\", status: \"not_fulfilled\", score: 0\n   - expected_evidence: [\"字段索引查询\\\"分红\\\"仅返回候选 pTypes（客户持有的保险类型枚举值）\", \"searchClientName 定义：业务名词不得当作姓名\"]\n   - actual_evidence: [\"actual conditions=[searchClientName MATCH 分红]\", \"robot_text=客户姓名为分红的客户\", \"matched_patterns=姓名-模糊匹配（裸词模糊回退规则）\"]\n   - downstream_impact: \"下游按姓名含\\\"分红\\\"检索，无法命中用户意图的分红相关客户（如持有分红型保险的客户），结果集与意图偏离。result_set_verified=false\"\n   - authority_tool_call_ids: []\n\n2. expectation_id: \"业务名词不得误映射为客户姓名\", status: \"not_fulfilled\", score: 0\n   - expected_evidence: [\"searchClientName 字段定义：仅表示客户本人的人名；公司、机构、门店、地区或其他业务名词即使是连续中文也绝不能当作姓名\"]\n   - actual_evidence: [\"query=\\\"分红\\\"（裸词，无姓名指示词、无姓名结构证据）\", \"actual 输出 searchClientName MATCH \\\"分红\\\"\"]\n   - downstream_impact: \"污染姓名检索条件，可能返回姓名含\\\"分红\\\"的无关客户或空结果\"\n   - authority_tool_call_ids: []\n\nWait — should E2 be blocking or non-blocking? The instructions say blocking=true only for expectations whose failure blocks the user's core purpose, safety bottom line, or project hard contract. E1 is the core. E2 is a sub-aspect of the same error (field semantics). I'll keep E2 non-blocking to avoid double counting blocking. Actually, hmm — the searchClientName field definition is a project hard contract (\"绝不能当作姓名\"). One could argue E2 is also blocking per \"项目强契约\". But to keep the overall derived from E1, I'll make E1 blocking and E2 non-blocking. Actually, the field definition IS a hard contract — treating business terms as names violates the project's field contract. But since E1 (core deliverable) already captures the failure, and blocking aggregation is driven by blocking expectations, having both blocking would still yield not fulfilled either way. The guidance: \"只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true\". E2's failure (mapping business term to name) does violate the field's hard contract and also blocks the core purpose. I'll set E2 blocking=false to keep the aggregate focused on the core deliverable... \n\nHmm, actually let me think. Both relate to the same single error. The purpose of blocking flag is to determine overall fulfillment. E1 captures the core delivery failure. E2 is a semantic-boundary guardrail that is also a project contract. I think it's defensible to make E2 non-blocking since E1 already covers the outcome. Let me go with E1 blocking=true, E2 blocking=false.\n\napplicable_product_expectation_ids: [\"find-target-customers\"]\n\nNow for the expected object — required fields: code, msg, query, conditions, robot_text, query_logic, rewritten_query. I'll fill:\n- code: 0\n- msg: \"操作成功\"\n- query: \"分红\"\n- conditions: I'll include the candidate expected condition:\n```json\n[\n  {\"field\": \"pTypes\", \"operator\": \"CONTAINS\", \"value\": \"分红\", \"semantic\": \"客户持有分红型保险（候选期望条件，依据字段索引）\"}\n]\n```\n- robot_text: \"持有分红型/红利相关保险的客户\" — hmm, this is my reconstruction. Actually expected robot_text — what should the robot say? \"客户持有分红型保险的客户\" or something. Let me use \"分红相关的客户（如持有分红型保险）\". \n- query_logic: \"AND\"\n- rewritten_query: \"分红\"\n- end_flag: 1, trace_id: \"\", matched_level: null, matched_patterns: null, intent_summary: \"检索与分红相关的客户\", confidence: null, cost_times: null\n\nHmm, but I should be careful: I'm asserting pTypes CONTAINS 分红 as expected condition, but I couldn't verify the enum value. To be safe, I'll frame the expected condition as the semantic target with the note in evidence that enum value verification was limited by field navigation budget. Alternatively I could leave conditions as [] with intent described in robot_text. But the schema requires conditions array (can be empty). The condition_comparison tool itself left expected conditions empty with expected_source \"not_available\". \n\nHmm. Which is more honest? My core judgment (name parse wrong) doesn't depend on pTypes enum being exactly \"分红\". The expected is: a dividend-related condition, not a name condition. I'll include the pTypes candidate condition with the semantic note since field index strongly suggests it, but I'll make clear in evidence that this is a candidate based on field-index semantics. Actually, to avoid over-claiming enum value, I could write the expected condition as {\"field\": \"pTypes\", \"operator\": \"CONTAINS\", \"value\": \"分红\", \"value_verified\": false, \"semantic\": \"客户持有的保险类型枚举（字段索引候选）\"}.\n\nHmm, but schema says conditions items are {} (any). Fine.\n\nActually, let me reconsider whether to include pTypes in expected conditions at all. The evidence for it: field search \"分红\" returned only pTypes. That's reasonable support that \"分红\" is an insurance-type enum value (分红型). I'll include it but annotate.\n\nmissing: [\n  {\"kind\": \"missing\", \"error_type\": \"missing_condition\", \"expected\": {\"field\": \"pTypes\", \"operator\": \"CONTAINS\", \"value\": \"分红\", \"semantic\": \"分红型保险类型条件\"}, \"actual\": null, \"evidence_ref\": \"final_output.conditions\", \"raw\": {\"conditions\": [{\"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value\": \"分红\"}]}}\n]\nwrong: [\n  {\"kind\": \"wrong\", \"error_type\": \"wrong_field_mapping\", \"expected\": \"分红相关业务条件（保险类型/产品）\", \"actual\": {\"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value\": \"分红\"}, \"evidence_ref\": \"final_output.conditions[0]\", \"raw\": {\"robot_text\": \"客户姓名为分红的客户\", \"matched_patterns\": \"姓名-模糊匹配\"}}\n]\nextra: [] (没有未表达的额外约束 — the condition itself is a wrong mapping, not an extra constraint)\n\nevidence: [\n  {\"query\": \"分红\"},\n  {\"actual\": {\"conditions\": [{\"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value\": \"分红\"}], \"robot_text\": \"客户姓名为分红的客户\", \"matched_patterns\": \"姓名-模糊匹配\"}},\n  {\"searchClientName_definition\": \"仅表示客户本人的人名；公司、机构、门店、地区或其他业务名词即使是连续中文也绝不能当作姓名\"},\n  {\"field_index\": \"字段索引查询\\\"分红\\\"仅返回候选 pTypes（客户持有的保险类型枚举值）\"},\n  {\"application_boundary\": {\"judge_scope\": \"parser_condition_semantics_only\", \"result_set_verified\": false}}\n]\n\nreasoning_summary: ≤180 chars. \"用户裸词“分红”是金融业务名词，无姓名指示词亦无姓名结构证据；actual 经“姓名-模糊匹配”解析为 searchClientName MATCH“分红”，违反字段定义（业务名词不得当姓名），且字段索引显示“分红”对应保险类型枚举 pTypes，核心意图未正确交付，判 not_fulfilled。\" — count roughly: that's about 130 chars. Good.\n\nNow let me double check the \"裸词规则\" application. Query is just \"分红\". No indicators. Actual parsed as name. Is there name-structure evidence? \"分红\" = 分(1 char) + 红(1 char). Surname \"分\" is not in 百家姓 commonly (百家姓 includes 东方、上官 etc. but not 分). Actually there might be a surname 分 in some rare lists, but not standard. Given the field definition explicitly says business terms must never be names and \"无法确认是自然人人名时宁可不输出\", and \"分红\" is clearly a financial term, there's no name evidence. So not_fulfilled per bare-word rule. \n\nAlso the match came from \"姓名-模糊匹配\" (priority 1) — the fallback rule `{SEARCH}([\\u4e00-\\u9fa5]{1,3})` which matches any 1-3 Chinese chars. This is a low-priority fuzzy fallback, exactly the kind of bare-word-to-name parse the rule warns about.\n\nOne more consideration: is \"分红\" possibly referring to a real intent like dividend (红利) customers? In insurance context, \"分红\" strongly suggests dividend-type insurance (分红险). The system does have insurance-type enum fields (pTypes, pCategorys) and product name enums (planfullname, abbrname). So the user's likely intent is customers with dividend insurance. The parser failed to express this and instead guessed a name. That's a clear mis-parse.\n\nNote: I should also consider whether the parser could be \"right\" if the user actually wanted a customer named 分红 — but per the rules, without name-structure evidence we judge not fulfilled. Also the field definition forbids it.\n\nSo final: two expectations, both not_fulfilled; E1 blocking, E2 non-blocking.\n\nScore: 0 for both.\n\ndownstream_impact for both assessments — required field (minLength 1). Fill as above.\n\nNow output JSON. Ensure:\n- business_expectations and fulfillment_assessments are top-level arrays aligned by expectation_id.\n- boundary is an object.\n- expected_evidence / actual_evidence are arrays.\n- No overall_fulfillment, no authority_tool_call_ids fabrication (empty arrays).\n- authority_tool_call_ids: [] (empty array is allowed — schema requires array of strings, empty is fine).\n\nLet me also double-check the schema: expected object requires code, msg, query, conditions, robot_text, query_logic, rewritten_query. Optional: end_flag, trace_id, matched_level, matched_patterns, intent_summary, confidence, cost_times. I'll include all optional ones with appropriate values (null allowed for most, but end_flag integer or null — I'll set to 1? Actually expected end_flag — the Live returned 1; expected would be similar. I'll set end_flag: 1, trace_id: \"\", matched_level: null, matched_patterns: null, intent_summary: \"检索与分红（红利）相关的客户\", confidence: null, cost_times: null).\n\nHmm, matched_patterns for expected could be null. Fine.\n\nLet me now also make sure I don't claim result_set_verified. In downstream_impact I'll note result_set_verified=false.\n\nWrite final JSON.",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "client_search",
+  "prompt_size": 47371,
+  "record_id": "f68437e5-85cc-4c03-9c16-354c6c5d8486",
+  "response": {
+    "content": "```json\n{\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"分红意图解析为正确的客户筛选条件\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"下游客户搜索服务（ES）\",\n      \"user_intent\": \"用户输入裸词“分红”，意图检索与分红（红利）相关的客户（如持有分红型保险的客户）\",\n      \"expected_outcome\": \"解析器应将“分红”映射为表达分红业务含义的可执行条件（如客户持有的保险类型枚举 pTypes 含“分红”），使下游能检索到分红相关客户；不得把业务名词“分红”当作客户姓名\",\n      \"required_capabilities\": [\"保险类型/产品枚举识别\", \"业务名词与姓名的区分\"],\n      \"acceptance_criteria\": [\n        {\"criterion\": \"actual 不将“分红”解析为 searchClientName 姓名条件\", \"evidence_needed\": [\"actual conditions 字段\"]},\n        {\"criterion\": \"actual 生成与分红/红利业务含义一致的保险类型或产品条件\", \"evidence_needed\": [\"actual conditions 字段语义\"]}\n      ],\n      \"boundary\": {\"judge_scope\": \"parser_condition_semantics_only\", \"result_set_verified\": false, \"downstream_status\": \"not_verified\"},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"业务名词不得误映射为客户姓名\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"下游客户搜索服务（ES）\",\n      \"user_intent\": \"确保只有具备姓名结构或语义证据的词才解析为姓名条件，业务名词即使为连续中文也不得作为姓名输出\",\n      \"expected_outcome\": \"searchClientName 仅承载可确认为自然人人名的值；“分红”等业务名词不得输出到 searchClientName\",\n      \"required_capabilities\": [\"searchClientName 字段语义边界遵守\"],\n      \"acceptance_criteria\": [\n        {\"criterion\": \"actual 未把业务名词“分红”输出到 searchClientName\", \"evidence_needed\": [\"searchClientName 字段定义\", \"actual conditions\"]}\n      ],\n      \"boundary\": {\"judge_scope\": \"parser_condition_semantics_only\", \"result_set_verified\": false, \"downstream_status\": \"not_verified\"},\n      \"priority\": \"P1\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [\"find-target-customers\"],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"分红意图解析为正确的客户筛选条件\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        \"字段索引查询“分红”仅返回候选 pTypes（客户持有的保险类型枚举值），指向分红型保险意图\",\n        \"searchClientName 字段定义：仅表示客户本人的人名，业务名词不得当作姓名\"\n      ],\n      \"actual_evidence\": [\n        \"actual conditions=[{\\\"field\\\":\\\"searchClientName\\\",\\\"operator\\\":\\\"MATCH\\\",\\\"value\\\":\\\"分红\\\"}]\",\n        \"robot_text=客户姓名为分红的客户，matched_patterns=姓名-模糊匹配（裸词模糊回退规则）\",\n        \"query=\\\"分红\\\"为裸词，无姓名指示词、无姓名结构证据\"\n      ],\n      \"downstream_impact\": \"下游将按姓名含“分红”检索，无法命中用户意图的分红相关客户（如持有分红型保险的客户），结果集与意图偏离；result_set_verified=false\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"业务名词不得误映射为客户姓名\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        \"searchClientName 字段定义：公司、机构、门店、地区或其他业务名词即使是连续中文也绝不能当作姓名；无法确认是自然人人名时宁可不输出\"\n      ],\n      \"actual_evidence\": [\n        \"actual 输出 searchClientName MATCH \\\"分红\\\"\",\n        \"“分红”为金融/保险业务名词（红利、分红险），非自然人人名，且无姓氏库或姓名结构命中\"\n      ],\n      \"downstream_impact\": \"姓名检索条件被业务名词污染，可能返回姓名含“分红”的无关客户或空结果，破坏字段语义契约\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"expected\": {\n    \"code\": 0,\n    \"msg\": \"操作成功\",\n    \"query\": \"分红\",\n    \"conditions\": [\n      {\"field\": \"pTypes\", \"operator\": \"CONTAINS\", \"value\": \"分红\", \"semantic\": \"客户持有分红型保险（字段索引候选期望条件，枚举值未完整核验）\"}\n    ],\n    \"robot_text\": \"分红相关的客户（如持有分红型保险的客户）\",\n    \"query_logic\": \"AND\",\n    \"rewritten_query\": \"分红\",\n    \"end_flag\": 1,\n    \"trace_id\": \"\",\n    \"matched_level\": null,\n    \"matched_patterns\": null,\n    \"intent_summary\": \"检索与分红（红利）相关的客户\",\n    \"confidence\": null,\n    \"cost_times\": null\n  },\n  \"missing\": [\n    {\n      \"kind\": \"missing\",\n      \"error_type\": \"missing_condition\",\n      \"expected\": {\"field\": \"pTypes\", \"operator\": \"CONTAINS\", \"value\": \"分红\", \"semantic\": \"分红型保险类型条件\"},\n      \"actual\": null,\n      \"evidence_ref\": \"final_output.conditions\",\n      \"raw\": {\"conditions\": [{\"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value\": \"分红\"}]}\n    }\n  ],\n  \"wrong\": [\n    {\n      \"kind\": \"wrong\",\n      \"error_type\": \"wrong_field_mapping\",\n      \"expected\": \"分红/红利相关业务条件（保险类型或产品）\",\n      \"actual\": {\"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value\": \"分红\"},\n      \"evidence_ref\": \"final_output.conditions[0]\",\n      \"raw\": {\"robot_text\": \"客户姓名为分红的客户\", \"matched_patterns\": \"姓名-模糊匹配\"}\n    }\n  ],\n  \"extra\": [],\n  \"evidence\": [\n    {\"query\": \"分红\"},\n    {\"actual\": {\"conditions\": [{\"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value\": \"分红\"}], \"robot_text\": \"客户姓名为分红的客户\", \"matched_patterns\": \"姓名-模糊匹配\"}},\n    {\"searchClientName_definition\": \"仅表示客户本人的人名；业务名词即使是连续中文也绝不能当作姓名\"},\n    {\"field_index\": \"字段索引查询“分红”仅返回候选 pTypes（客户持有的保险类型枚举值）\"},\n    {\"application_boundary\": {\"judge_scope\": \"parser_condition_semantics_only\", \"result_set_verified\": false}}\n  ],\n  \"reasoning_summary\": \"用户裸词“分红”是金融业务名词，无姓名指示词亦无姓名结构证据；actual 经“姓名-模糊匹配”回退解析为 searchClientName MATCH“分红”，违反字段定义（业务名词不得当姓名），且字段索引显示“分红”对应保险类型枚举 pTypes，核心意图未正确交付，判 not_fulfilled。\"\n}\n```",
+    "metrics": {
+      "cache_read_tokens": 47488,
+      "cache_write_tokens": 0,
+      "input_tokens": 66856,
+      "output_tokens": 12376,
+      "reasoning_tokens": 10444,
+      "total_tokens": 79232
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 107832,
+          "endpoint": "fallback1",
+          "model": "deepseek-v4-flash-0731",
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "selected_endpoint": "fallback1",
+      "selected_model": "deepseek-v4-flash-0731",
+      "stage": "judge"
+    }
+  },
+  "trace_id": "client_search:I480:1786541502796"
+}

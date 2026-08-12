@@ -412,8 +412,9 @@ def test_authority_disabled_context_does_not_inject_unusable_pre_obligations() -
         ),
     )
 
-    contract = context["user_prompt_extras"]["authority_obligation_contract"]
-    assert contract["authority_available"] is False
-    assert "pre_obligations" not in contract
-    assert "fulfilled/not_fulfilled" in contract["required_action"]
-    assert "do not claim governed semantics" in contract["required_action"]
+    extras = context["user_prompt_extras"]
+    assert extras["authority_mode"] == "disabled_with_candidates"
+    assert "authority_candidate_reasons" not in extras
+    assert "authority_obligation_contract" not in extras
+    prompt = "\n".join(context["system_prompt_extras"])
+    assert "不得仅因 Authority 关闭或存在边界候选而判 not_evaluable" in prompt

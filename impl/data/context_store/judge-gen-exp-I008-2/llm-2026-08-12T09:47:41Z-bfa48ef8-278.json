@@ -1,0 +1,269 @@
+{
+  "caller": "llm",
+  "created_at": "2026-08-12T09:47:41Z",
+  "elapsed_ms": 46823,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "production"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "d8ebf62d07566ae343bc05de10ec5917d99520b99b08689d97e2966fe13fc6fc",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [],
+      "lineage": {
+        "call_id": "",
+        "case_id": "",
+        "trace_id": "judge-gen-exp-I238-1"
+      },
+      "messages": [
+        {
+          "char_count": 1392,
+          "content_sha256": "2cdba78b3c10331f16a07a8c452276a3f4e36dcb9f7f44a8923d2a7ede04e3a8",
+          "role": "system"
+        },
+        {
+          "char_count": 433,
+          "content_sha256": "9d05838e1569095c11636fefc2cfb32a245abb1ef62f99d08b533d350bc693c0",
+          "role": "user"
+        }
+      ],
+      "mode": "production",
+      "output_contract": {
+        "field_names": [
+          "confidence",
+          "reason",
+          "verdict"
+        ],
+        "identity": "__main__.JudgeVerdict",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "e71d2c22a8ac6f9c288e402c4876cab1867e9a1ca77be42a22ca7f07d25478bd",
+        "sha256": "e71d2c22a8ac6f9c288e402c4876cab1867e9a1ca77be42a22ca7f07d25478bd"
+      },
+      "project_id": "default",
+      "prompt_char_count": 1825,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 433,
+        "occurred": false
+      },
+      "role": "llm",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "llm"
+          ],
+          "allowed_stages": [
+            "judge_role_boundary_experiment"
+          ],
+          "char_count": 646,
+          "content_sha256": "9cfbd20dd94ec93ac42756db2d1da47e23fd081c434a46dad74677d2938054df",
+          "order": 0,
+          "role": "llm",
+          "segment_id": "compiled-system",
+          "source": "impl/core/llm_client.py#complete_json-auto-governance",
+          "stage": "judge_role_boundary_experiment"
+        },
+        {
+          "allowed_roles": [
+            "llm"
+          ],
+          "allowed_stages": [
+            "judge_role_boundary_experiment"
+          ],
+          "char_count": 433,
+          "content_sha256": "9d05838e1569095c11636fefc2cfb32a245abb1ef62f99d08b533d350bc693c0",
+          "order": 1,
+          "role": "llm",
+          "segment_id": "case-user-payload",
+          "source": "trace://llm-call-payload",
+          "stage": "judge_role_boundary_experiment"
+        }
+      ],
+      "stage": "judge_role_boundary_experiment",
+      "tool_plan": []
+    }
+  },
+  "llm_model": "deepseek-v4-flash",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "\n你是客户搜索 Judge。authority=false。只判断 Live 是否实际满足用户检索意图，输出 {\"verdict\":\"fulfilled|not_fulfilled\",\"reason\":\"...\",\"confidence\":0-1}。\n必须先推理再给结论：\n1) 意图拆解：写出用户最终想得到的客户集合，以及每个核心约束（语义、取值、逻辑、排除项）。\n2) 逐项核对：把 Live 每个条件与核心约束逐项对照，指出缺失/错误/额外收窄。\n3) 证据分级：\n   - 一级：query 原文 与 Live 条件；\n   - 二级：明确、权威的业务语义映射、枚举全集、日期等价公式（业务方确认固化的口径）；\n   - 三级：matched_pattern、规则命中、字段/操作符合法、Reference 一致——只能解释“系统为什么这么解析”，不能证明“解析符合用户意图”。\n只有核心约束全部覆盖、无改变客户集合的额外收窄时才能 fulfilled。\n裸词规则：query 是无上下文的裸词（没有 姓名/客户/查/找 等指示词）且 Live 把它解析为姓名时，Live 与 Reference 一致只能说明系统自洽解析，不能证明该词就是姓名；除非有明确姓名结构或姓名语义证据，否则 not_fulfilled。\n如实拒绝、透明说明不能替代核心交付。F 若依赖映射/等价表达，必须在 reason 中引用对应权威业务口径；没有口径支撑的等价声称不能作为 fulfilled 依据。\n\n\n## 输出约束\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"verdict\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    },\n    \"reason\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    },\n    \"confidence\": {\n      \"type\": \"number\"\n    }\n  },\n  \"additionalProperties\": false,\n  \"required\": [\n    \"verdict\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['verdict']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n",
+      "created_at": 1786528014,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "21c335c7-5442-42cf-b739-a496c0039592",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"query\": \"在我这买过保险的投保人都有谁\", \"live\": {\"conditions\": [{\"field\": \"isBuyInsurance\", \"operator\": \"CONTAINS\", \"value\": [\"客户\", \"准客\"]}, {\"field\": \"polNoInfo.applicantname\", \"operator\": \"EXISTS\", \"value\": \"\"}], \"query_logic\": \"AND\", \"robot_text\": \"客户类型包含客户、准客\\n并且有投保人姓名的客户\"}, \"reference\": {\"conditions\": [{\"field\": \"isBuyInsurance\", \"operator\": \"CONTAINS\", \"value\": [\"客户\", \"准客\"]}, {\"field\": \"polNoInfo.applicantname\", \"operator\": \"EXISTS\", \"value\": \"\"}], \"query_logic\": \"AND\"}, \"case_local_implementation_evidence\": [\"matched_pattern: ### 当前时间\\n2026-08-12 02:00:13 (Asia/Shanghai)\\n### 今天星期\\n周三\\n\\n### 相关字段参考（根据查询内容动态召回）\\n\\n\\n- **isBuyInsurance** | 操作符: CONTAINS | 值类型: enum | 枚举: ['客户', '准客', '用户'] | 定义: 客户类型；客户/准客=买过保险，用户=没有买过保险 | 说明: 客户=已签约，准客=潜在客户已接触，用户=未购买；买过保险→客户或准客，没有买过保险→用户。重要：只有查询明确包含‘有保险/没有保险/没保险/买过保险/未投保/是否投保/全部客户/所有客户/全量客户’等保险状态关键词时才输出此字段。‘客户’作为普通名词后缀（如‘姓X的客户’‘XX岁的客户’‘购买过XX产品的客户’）不表示保险状态，严禁输出此字段\\n\\n  示例: \\\"全部客户\\\" → {\\\"field\\\": \\\"isBuyInsurance\\\", \\\"operator\\\": \\\"CONTAINS\\\", \\\"value\\\": [\\\"客户\\\", \\\"准客\\\", \\\"用户\\\"]}\\n\\n  示例: \\\"有保险的客户\\\" → {\\\"field\\\": \\\"isBuyInsurance\\\", \\\"operator\\\": \\\"CONTAINS\\\", \\\"value\\\": [\\\"客户\\\", \\\"准客\\\"]}\\n\\n  示例: \\\"没有保险的客户\\\" → {\\\"field\\\": \\\"isBuyInsurance\\\", \\\"operator\\\": \\\"CONTAINS\\\", \\\"value\\\": [\\\"用户\\\"]}\\n\\n  反例: \\\"5月盘客客户\\\" → 不输出该字段；原因: “盘客”是业务动作，不表示买过保险或没买保险，不能映射到客户类型\\n\\n  反例: \\\"姓张的客户\\\" → 不输出该字段；原因: ‘客户’在这里只是普通名词后缀，查询意图是找姓张的人，不是在问保险购买状态\\n\\n  反例: \\\"购买过盛世金越的客户\\\" → 不输出该字段；原因: ‘客户’只是普通名词后缀，查询意图是限定产品而非保险类型；已通过产品字段限定时不额外输出客户类型\\n\\n  反例: \\\"45岁以上的客户\\\" → 不输出该字段；原因: ‘客户’只是普通名词后缀，查询意图是年龄筛选，不是在问保险购买状态\\n\\n- **polNoInfo.applicantname** | 操作符: MATCH | 值类型: extract | 定义: 保单投保人姓名。只有投保人角色直接修饰姓名，或明确说明某人作为投保人时才使用。 | 说明: 必须存在“投保人X”“投保人姓名为X”“X作为投保人”等直接角色归属证据；裸姓名、客户姓名或“X有保单”不能映射到本字段。\\n\\n  示例: \\\"投保人叫张三的客户\\\" → {\\\"field\\\": \\\"polNoInfo.applicantname\\\", \\\"operator\\\": \\\"MATCH\\\", \\\"value\\\": \\\"张三\\\"}\\n\\n  示例: \\\"姚礼芳7月到12月作为投保人，累计还有几份保单缴费\\\" → {\\\"field\\\": \\\"polNoInfo.applicantname\\\", \\\"operator\\\": \\\"MATCH\\\", \\\"value\\\": \\\"姚礼芳\\\"}\\n\\n  反例: \\\"顾清禾\\\" → 不输出该字段；原因: 裸姓名表示客户本人，不是投保人姓名\\n\\n  反例: \\\"把叫顾清禾的客户列出来\\\" → 不输出该字段；原因: 这是客户本人姓名，没有投保人角色证据\\n\\n  反例: \\\"顾清禾有保单的客户\\\" → 不输出该字段；原因: 有保单不等于顾清禾是投保人\\n\\n- **polNoInfo.plancodeinfo.insname** | 操作符: MATCH | 值类型: extract | 定义: 保单被保人姓名。只有被保人或被保险人角色直接修饰姓名，或明确说明某人作为被保人时才使用。 | 说明: 必须存在“被保人X”“被保人姓名为X”“X作为被保人”等直接角色归属证据；裸姓名和客户姓名不能映射到本字段。\\n\\n  示例: \\\"被保人叫李四的客户\\\" → {\\\"field\\\": \\\"polNoInfo.plancodeinfo.insname\\\", \\\"operator\\\": \\\"MATCH\\\", \\\"value\\\": \\\"李四\\\"}\\n\\n  示例: \\\"江知遥作为被保人的保单客户\\\" → {\\\"field\\\": \\\"polNoInfo.plancodeinfo.insname\\\", \\\"operator\\\": \\\"MATCH\\\", \\\"value\\\": \\\"江知遥\\\"}\\n\\n  反例: \\\"江知遥\\\" → 不输出该字段；原因: 裸姓名表示客户本人，不是被保人姓名\\n\\n  反例: \\\"客户姓名为江知遥\\\" → 不输出该字段；原因: 客户姓名没有被保人角色证据\\n\\n- **policies_insure_date** | 操作符: RANGE | 值类型: date | 格式: yyyy-MM-dd HH:mm:ss | 定义: 保单投保日期，嵌套字段；‘去年购买/买了/买过/投保某险种’中的‘去年’也是投保日期条件。该字段当前不支持搜索，但必须解析以便给出不支持提示 | 说明: 本月取当月1日至月末；下月取下月1日至月末；下周取下周一至周天；未来一周取今天至往后顺延6天；未来一个月取今天至往后延顺29天\\n\\n  示例: \\\"今年投保的客户（当前时间为2026-04-29）\\\" → {\\\"field\\\": \\\"policies_insure_date\\\", \\\"operator\\\": \\\"RANGE\\\", \\\"value\\\": {\\\"min\\\": \\\"2026-01-01 00:00:00\\\", \\\"max\\\": \\\"2026-12-31 23:59:59\\\"}}\\n\\n  示例: \\\"去年投保的客户（当前时间为2026-04-29）\\\" → {\\\"field\\\": \\\"policies_insure_date\\\", \\\"operator\\\": \\\"RANGE\\\", \\\"value\\\": {\\\"min\\\": \\\"2025-01-01 00:00:00\\\", \\\"max\\\": \\\"2025-12-31 23:59:59\\\"}}\\n\\n  示例: \\\"去年购买了保险的客户名单（当前时间为2026-04-29）\\\" → {\\\"field\\\": \\\"policies_insure_date\\\", \\\"operator\\\": \\\"RANGE\\\", \\\"value\\\": {\\\"min\\\": \\\"2025-01-01 00:00:00\\\", \\\"max\\\": \\\"2025-12-31 23:59:59\\\"}}\\n\\n  示例: \\\"最近一年买保险的人（当前时间为2026-04-29）\\\" → {\\\"field\\\": \\\"policies_insure_date\\\", \\\"operator\\\": \\\"RANGE\\\", \\\"value\\\": {\\\"min\\\": \\\"2025-04-29 00:00:00\\\", \\\"max\\\": \\\"2026-04-29 00:00:00\\\"}}\\n\\n- **polNoInfo.plancodeinfo.abbrname** | 操作符: NOT_CONTAINS | 值类型: enum | 定义: 保单投保险种简称，嵌套字段，枚举值通过独立配置文件维护\\n\\n  示例: \\\"没买e生保的客户\\\" → {\\\"field\\\": \\\"polNoInfo.plancodeinfo.abbrname\\\", \\\"operator\\\": \\\"NOT_CONTAINS\\\", \\\"value\\\": [\\\"e生保\\\"]}\\n\\n- **validSinsPol** | 操作符: NOT_CONTAINS | 值类型: enum | 枚举: ['综拓', 'O2O', '意健险'] | 说明: 该字段仅表示是否有效短险保单，不表示准客来源，若需要查询准客来源，应映射到pcustSourcType\\n\\n  示例: \\\"没有综拓短险的客户\\\" → {\\\"field\\\": \\\"validSinsPol\\\", \\\"operator\\\": \\\"NOT_CONTAINS\\\", \\\"value\\\": [\\\"综拓\\\"]}\\n\\n  示例: \\\"未购买了意健险的客户\\\" → {\\\"field\\\": \\\"validSinsPol\\\", \\\"operator\\\": \\\"NOT_CONTAINS\\\", \\\"value\\\": [\\\"意健险\\\"]}\\n\\n- **polNoInfo.plancodeinfo.abbrname** | 操作符: MATCH | 值类型: enum | 定义: 保单投保险种简称，嵌套字段，枚举值通过独立配置文件维护 | 说明: 口语可能在标准产品简称后额外添加“险”，如“智盈重疾险”应先去掉泛化后缀并匹配标准枚举“智盈重疾”；只允许在完整枚举值之后忽略一个“险”，不能对任意文本模糊截断；活动、活动季、守护季名称不属于产品简称。\\n\\n  示例: \\\"我的哪些客户投保了智盈重疾险的？\\\" → {\\\"field\\\": \\\"polNoInfo.plancodeinfo.abbrname\\\", \\\"operator\\\": \\\"MATCH\\\", \\\"value\\\": \\\"智盈重疾\\\"}\\n\\n  示例: \\\"买了e生保的客户\\\" → {\\\"field\\\": \\\"polNoInfo.plancodeinfo.abbrname\\\", \\\"operator\\\": \\\"MATCH\\\", \\\"value\\\": \\\"e生保\\\"}\\n\\n- **is_life_insured** | 操作符: MATCH | 值类型: enum | 枚举: ['仅投保人', '仅被保人', '投被保人'] | 定义: 表示客户在寿险保单中的投保人/被保人身份关系。 | 说明: 仅投保人、仅被保人、投被保人是身份关系枚举，不表示客户是否购买寿险或是否为寿险客户。\\n\\n  示例: \\\"仅仅是投保人的客户\\\" → {\\\"field\\\": \\\"is_life_insured\\\", \\\"operator\\\": \\\"MATCH\\\", \\\"value\\\": \\\"仅投保人\\\"}\\n\\n  示例: \\\"仅仅是被保人的客户\\\" → {\\\"field\\\": \\\"is_life_insured\\\", \\\"operator\\\": \\\"MATCH\\\", \\\"value\\\": \\\"投被保人\\\"}\\n\\n- **isBuyHealth** | 操作符: MATCH | 值类型: enum | 枚举: ['有购买', '没有购买'] | 定义: 是否健康险客户\\n\\n  示例: \\\"有健康险的客户\\\" → {\\\"field\\\": \\\"isBuyHealth\\\", \\\"operator\\\": \\\"MATCH\\\", \\\"value\\\": \\\"有购买\\\"}\\n\\n  示例: \\\"没有买健康险的客户\\\" → {\\\"field\\\": \\\"isBuyHealth\\\", \\\"operator\\\": \\\"MATCH\\\", \\\"value\\\": \\\"没有购买\\\"}\\n\\n- **isBuyPension** | 操作符: MATCH | 值类型: enum | 枚举: ['有购买', '没有购买'] | 定义: 是否养老险客户\\n\\n  示例: \\\"有养老险的客户\\\" → {\\\"field\\\": \\\"isBuyPension\\\", \\\"operator\\\": \\\"MATCH\\\", \\\"value\\\": \\\"有购买\\\"}\\n\\n  示例: \\\"没有买养老险的客户\\\" → {\\\"field\\\": \\\"isBuyPension\\\", \\\"operator\\\": \\\"MATCH\\\", \\\"value\\\": \\\"没有购买\\\"}\\n\\n### 用户查询\\n在我这买过保险的投保人都有谁\\n\\n=== open_intent prompt ===\\n### 任务\\n你是客户搜索查询解析器中的开放字段子模型。你的任务和普通查询解析模型相同， 都是把自然语言转换为 query_logic 和 conditions；区别是你只能处理配置给出的 少数开放字段，且这些字段上下文已全部给出，不需要 RAG 召回。\\n\\n### 规则\\n- 只能输出\\\"允许输出字段\\\"中列出的 field/operator。\\n- 对白名单字段，无论用户是裸输入还是明确说明字段名，都应尽量解析。\\n- 如果用户查询同时包含白名单字段和其他内容，只输出你能处理的白名单字段，忽略其他内容。\\n- 客户姓名(searchClientName)只表示客户本人自然人姓名，不表示投保人、被保人、客户经理、联系人、家庭成员姓名，也不表示公司、机构、地区、地址或泛指客户集合。\\n- 裸自然人姓名，以及“姓名/名字为X”“名叫X的客户”“把叫X的客户列出来”默认都是客户本人姓名；只有“投保人X”“X作为被保人”“女儿叫X”等角色直接修饰姓名的原文证据，才排除 searchClientName。\\n- 只有 X 本身是原文中独立、明确的1-4字自然人姓名时，“X有子女/有父母/有配偶/有保单”中的 X 才是客户本人姓名；“家里/家中/我家/家庭中有子女”等家庭范围表达不包含客户姓名，不得把整段家庭条件输出为 searchClientName。\\n- \\\"全部客户/所有客户/全量客户/全体客户/客户列表/客户名单\\\"等集合词不是姓名；包含\\\"公司/有限公司/集团/工厂/粉体/科技/商贸/医院/学校/银行/门店\\\"等组织机构特征的文本不是姓名，不能输出 searchClientName。\\n- 地址字段表示查询范围，operator表示查询方式。明确\\\"联系地址/通讯地址/通信地址\\\"时使用 contactAddress；明确\\\"家庭地址/家庭住址/居住地址/住址\\\"时使用 homeAddress；未明确地址类型时使用 contactOrHomeAddress，由后端同时查询联系地址和家庭地址。\\n- 公司名、机构名和普通裸地址在未明确地址类型时输出 contactOrHomeAddress + MATCH，value保留原文。\\n- 地址和机构 value 必须是用户原文中的连续完整片段；必须保留街道、社区、小区、园区、公司、有限公司、楼、座、室等语义后缀，不得缩写、改写或自行删除后缀。\\n- value 不得包含查询动作、字段名称、客户集合词或其他条件，例如“帮我查、筛下、给我看、姓名、家庭住址、学历、年龄、的客户”都不能进入地址 value。\\n- 同一句包含姓名、地址、学历、年龄等多个独立条件时，分别抽取为多个 conditions，不得把整句或前一个条件合并为地址 value；只忽略不属于开放字段且已经由普通模型负责的部分。\\n- 同一句明确包含客户姓名和客户地址时，必须同时输出姓名与地址两个开放条件，不得因地址条件存在而遗漏姓名，也不得因姓名条件存在而遗漏地址。\\n- 住在、居住在、定居、家住、籍贯、户籍、老家、家在、户口、迁居、现居、移居等表达没有明确说明联系地址或家庭地址，统一输出 contactOrHomeAddress。\\n- 裸值只要可能是地址就必须输出 contactOrHomeAddress + MATCH。宁可把模糊值当地址，不要遗漏。\\n- 判断是地址的依据（满足任一即视为地址）：包含\\\"路\\\"\\\"街\\\"\\\"巷\\\"\\\"弄\\\"\\\"小区\\\"\\\"花园\\\"\\\"公馆\\\"\\\"大厦\\\"\\\"广场\\\"\\\"园\\\"\\\"楼\\\"\\\"号\\\"\\\"栋\\\"\\\"单元\\\"\\\"层\\\"\\\"座\\\"\\\"区\\\"\\\"县\\\"\\\"市\\\"\\\"省\\\"\\\"镇\\\"\\\"乡\\\"\\\"村\\\"\\\"花苑\\\"\\\"新苑\\\"\\\"嘉园\\\"\\\"华庭\\\"\\\"名都\\\"\\\"新城\\\"\\\"国际\\\"\\\"环\\\"\\\"苑\\\"\\\"里\\\"\\\"庄\\\"\\\"营\\\"\\\"屯\\\"\\\"堡\\\"\\\"店\\\"\\\"集\\\"\\\"渡\\\"\\\"港\\\"\\\"桥\\\"\\\"站\\\"\\\"门\\\"\\\"关\\\"\\\"口\\\"\\\"岗\\\"\\\"岭\\\"\\\"坡\\\"\\\"湾\\\"\\\"湖\\\"\\\"海\\\"\\\"江\\\"\\\"河\\\"\\\"溪\\\"\\\"岛\\\"\\\"半岛\\\"\\\"三角\\\"\\\"学院\\\"\\\"大学城\\\"\\\"公司\\\"\\\"集团\\\"\\\"企业\\\"\\\"工厂\\\"\\\"银行\\\"\\\"医院\\\"\\\"学校\\\"\\\"门店\\\"\\\"高新区\\\"\\\"新区\\\"\\\"开发区\\\"\\\"街道\\\"\\\"社区\\\"\\\"弄堂\\\"\\\"胡同\\\"\\\"CBD\\\"\\\"中心\\\"\\\"城\\\"\\\"商圈\\\"\\\"汇\\\"\\\"壹号院\\\"\\\"壹号\\\"\\\"公馆\\\"等地址特征词，或以省/市/区/县/旗/州/盟结尾\\n- 中国常见区域名也是地址：京津冀、江浙沪、长三角、珠三角、粤港澳、成渝、东北、华北、华东、华南、华中、西北、西南、中关村、望京、国贸、亦庄、燕郊、通州、回龙观、天通苑\\n- 以下方向表达也应识别为地址：X环内、X环外、X旁边、X对面、X沿线、X以北、X以南、X以东、X以西、城东、城西、城南、城北、城中心、市中心；X附近、X周边、X周围按后述默认5公里GEO规则处理。\\n- 明确\\\"联系地址\\\"\\\"通讯地址\\\"\\\"通信地址\\\"等只输出 contactAddress + MATCH。\\n- 明确\\\"家庭地址\\\"\\\"家庭住址\\\"\\\"居住地址\\\"\\\"住址\\\"等只输出 homeAddress + MATCH。\\n- 裸值中的\\\"X旁边\\\"\\\"X对面\\\"\\\"X沿线\\\"\\\"X环外\\\"\\\"X环内\\\"是普通地址，未明确地址类型时输出 contactOrHomeAddress + MATCH，不要用 GEO operator。\\n- “X环外、X环内、X旁边、X对面、X沿线”等没有距离数值的相对位置表达不得补充默认距离，不得转换成 GEO_RADIUS 或 NOT_GEO_RADIUS。\\n- 明确地点的\\\"X附近\\\"\\\"X周边\\\"\\\"X周围\\\"没有距离数字时默认按5公里内查询；字段仍按地址类型选择，未明确类型使用 contactOrHomeAddress，operator=GEO_RADIUS。\\n- 当前用户位置表达（我附近、我周围、我周边、我身边、当前位置附近、坐席附近、代理人周边）没有明确距离时默认按5公里内查询；未明确地址类型使用 contactOrHomeAddress + GEO_RADIUS，value.place_name=null、is_current_location=true、distance=5、unit=\\\"km\\\"。\\n- 地点 N 公里/米内使用按地址类型选择的字段 + GEO_RADIUS；地点 N 公里/米外、超过 N 公里、以外使用按地址类型选择的字段 + NOT_GEO_RADIUS。\\n- 除“附近、周边、周围”明确约定的默认5公里规则外，原文没有距离数字时禁止编造 distance。\\n- 当前位置、附近、我周围、我的位置作为半径中心时，value.place_name 必须为 null，is_current_location 为 true。\\n- 指定地点作为半径中心时，value.place_name 必须为地点名，is_current_location 为 false。\\n- value.distance 和 value.unit 统一输出 km： \\\"3公里内\\\" -> distance=3, unit=\\\"km\\\"; \\\"500米内\\\" -> distance=0.5, unit=\\\"km\\\"; \\\"1200米内\\\" -> distance=1.2, unit=\\\"km\\\"。\\n- 如果查询是明显的地址，result_type 必须为 RESOLVED，confidence 必须为 0.95（数值，不带引号）。\\n- 如果查询是明显的人名（不包含地址特征词、不像地名），但\\\"允许输出字段\\\"中有 searchClientName，则输出 searchClientName + MATCH，result_type=RESOLVED，confidence=0.95。\\n- 如果无法区分是姓名还是地址（如\\\"张江\\\"既是人名又是地名），返回 result_type=AMBIGUOUS，confidence=0.5。\\n- 代理人、客户经理、投保人、被保人、联系人、家庭成员、家属、受益人后的姓名属于对应角色，不是客户本人姓名；不得改写成 searchClientName，也不得改写成投保人或被保人条件。\\n- 如果查询与白名单字段无关（如纯数字、保单号等），返回 result_type=NONE，conditions 为空。\\n- 如果查询只有年龄、家庭成员、保单、产品、客户标签等普通字段条件，没有明确姓名或地址，则必须返回 result_type=NONE；不得为了命中开放字段白名单而把普通条件片段改写成姓名或地址。\\n- 不要编造白名单外字段。\\n- 只输出 JSON，不输出 Markdown 或解释。\\n- JSON 中必须包含 result_type、query_logic、conditions、confidence 四个字段，不要省略任何字段。\\n\\n### 允许输出字段\\n- id=open_client_name field=searchClientName operator=MATCH value_type=text\\n  description: 客户本人自然人姓名。裸姓名、“姓名/名字为X”“名叫X的客户”“把叫X的客户列出来”属于客户本人姓名；“X有子女/有父母/有配偶/有保单”仅在X本身是原文中独立、明确的1-4字自然人姓名时成立。“家里/家中/我家/家庭中有子女”等家庭范围表达不包含客户姓名。不包括投保人、被保人、受益人、客户经理、联系人和家庭成员姓名。\\n  examples: 客户姓名是张三；名字叫李四的客户；顾清禾；把叫顾清禾的客户列出来；顾清禾有子女的客户 -> value=\\\"顾清禾\\\"；姓名为江知遥、通讯地址为星海商务区 -> 姓名条件 value=\\\"江知遥\\\"，并保留独立地址条件\\n  negative_examples: 投保人张三；客户经理张三；顾清禾作为投保人；女儿叫林溪；全部客户；所有客户名单；全量客户给我看看；家里有未成年子女；家中有老人；有子女但没有买学平险的客户\\n- id=open_contact_address_match field=contactAddress operator=MATCH value_type=text\\n  description: 用户明确查询客户本人的联系地址、通讯地址或通信地址时的文本匹配；value 必须保留原文中的完整地址后缀，单值使用 MATCH。\\n  examples: 通信地址为浙江省湖州市安吉县递铺街道 -> value=\\\"浙江省湖州市安吉县递铺街道\\\"；联系地址是海南省儋州市那大镇先锋社区 -> value=\\\"海南省儋州市那大镇先锋社区\\\"\\n  negative_examples: 投保人联系地址为青岛路8号；客户经理联系地址是春江明月；联系人通讯地址为南京西路\\n- id=open_contact_address_geo_within field=contactAddress operator=GEO_RADIUS value_type=geo_radius\\n  description: 用户明确对客户本人联系地址执行范围内查询；附近、周边、周围未给距离时固定为 5km，米必须换算成 km。\\n  examples: 联系地址在杭州大会展中心周边 -> value={place_name: \\\"杭州大会展中心\\\", is_current_location: false, distance: 5, unit: \\\"km\\\"}；联系地址在火车站500米内 -> value={place_name: \\\"火车站\\\", is_current_location: false, distance: 0.5, unit: \\\"km\\\"}\\n  negative_examples: 投保人联系地址在幸福花园3公里内；客户经理联系地址在火车站周边\\n- id=open_contact_address_geo_outside field=contactAddress operator=NOT_GEO_RADIUS value_type=geo_radius\\n  description: 用户明确对客户本人联系地址执行范围外查询；“外、以外、超过、大于”必须使用 NOT_GEO_RADIUS，米必须换算成 km。\\n  examples: 联系地址距离重庆西站超过6公里 -> operator=NOT_GEO_RADIUS, value={place_name: \\\"重庆西站\\\", is_current_location: false, distance: 6, unit: \\\"km\\\"}\\n  negative_examples: 被保人联系地址在幸福花园3公里外\\n- id=open_family_address_match field=homeAddress operator=MATCH value_type=text\\n  description: 用户明确查询客户本人的家庭地址、家庭住址、居住地址或住址时的文本匹配；value 必须保留原文中的完整地址后缀，单值使用 MATCH。\\n  examples: 居住地址为青海省海西州德令哈市河西街道 -> value=\\\"青海省海西州德令哈市河西街道\\\"；家住钱塘云湾一带的客户 -> operator=MATCH, value=\\\"钱塘云湾\\\"；家在麓湖生态城那边的客户 -> operator=MATCH, value=\\\"麓湖生态城\\\"\\n  negative_examples: 客户经理家庭地址是春江明月；被保人家住悦湖新城；家庭成员住在南京西路\\n- id=open_family_address_geo_within field=homeAddress operator=GEO_RADIUS value_type=geo_radius\\n  description: 用户明确对客户本人家庭地址执行范围内查询；附近、周边、周围未给距离时固定为 5km，米必须换算成 km。\\n  examples: 居住地址在苏州湾大剧院周围 -> value={place_name: \\\"苏州湾大剧院\\\", is_current_location: false, distance: 5, unit: \\\"km\\\"}\\n  negative_examples: 客户经理家庭地址在幸福花园3公里内\\n- id=open_family_address_geo_outside field=homeAddress operator=NOT_GEO_RADIUS value_type=geo_radius\\n  description: 用户明确对客户本人家庭地址执行范围外查询；“外、以外、超过、大于”必须使用 NOT_GEO_RADIUS，米必须换算成 km。\\n  examples: 居住地址距离重庆西站超过6公里 -> operator=NOT_GEO_RADIUS, value={place_name: \\\"重庆西站\\\", is_current_location: false, distance: 6, unit: \\\"km\\\"}\\n  negative_examples: 被保人家庭地址在幸福花园3公里外\\n- id=open_any_address_match field=contactOrHomeAddress operator=MATCH value_type=text\\n  description: 用户没有说明联系地址或家庭地址时，同时查询两类地址的文本匹配；完整保留街道、社区、小区、园区、楼、座、室、脚下等地址语义后缀；“那边、一带”只作口语边界词，不转换为 GEO。\\n  examples: 浙江省湖州市安吉县递铺街道 -> value=\\\"浙江省湖州市安吉县递铺街道\\\"；青海省海西州德令哈市河西街道 -> value=\\\"青海省海西州德令哈市河西街道\\\"；海南省儋州市那大镇先锋社区 -> value=\\\"海南省儋州市那大镇先锋社区\\\"；给我找住玉龙雪山脚下的客户 -> operator=MATCH, value=\\\"玉龙雪山脚下\\\"；家住钱塘云湾一带的客户 -> operator=MATCH, value=\\\"钱塘云湾\\\"；家在麓湖生态城那边的客户 -> operator=MATCH, value=\\\"麓湖生态城\\\"；单位名称为瀚海工程咨询院的客户 -> operator=MATCH, value=\\\"瀚海工程咨询院\\\"；大学本科学历并且机构名称是晨曦教育集团 -> 仅抽取 value=\\\"晨曦教育集团\\\"，不得把学历并入地址\\n  negative_examples: 投保人联系地址为青岛路8号；被保人家住悦湖新城；客户经理家庭地址是春江明月；全部客户；所有客户名单；全量客户给我看看\\n- id=open_any_address_geo_within field=contactOrHomeAddress operator=GEO_RADIUS value_type=geo_radius\\n  description: 用户没有说明地址类型时，同时对联系地址和家庭地址执行范围内查询；附近、周边、周围未给距离时固定为 5km；代理人/坐席周围表示当前位置，place_name 必须为 null；米统一换算为 km。\\n  examples: 查一下杭州大会展中心周边的客户 -> value={place_name: \\\"杭州大会展中心\\\", is_current_location: false, distance: 5, unit: \\\"km\\\"}；苏州湾大剧院周围的客户 -> value={place_name: \\\"苏州湾大剧院\\\", is_current_location: false, distance: 5, unit: \\\"km\\\"}；我周围2公里内有哪些客户 -> value={place_name: null, is_current_location: true, distance: 2, unit: \\\"km\\\"}；我附近的客户 -> value={place_name: null, is_current_location: true, distance: 5, unit: \\\"km\\\"}；当前位置500米内 -> value={place_name: null, is_current_location: true, distance: 0.5, unit: \\\"km\\\"}\\n  negative_examples: 家住钱塘云湾一带的客户；家在麓湖生态城那边的客户；给我找住玉龙雪山脚下的客户\\n- id=open_any_address_geo_outside field=contactOrHomeAddress operator=NOT_GEO_RADIUS value_type=geo_radius\\n  description: 用户没有说明地址类型时，同时对联系地址和家庭地址执行范围外查询；“外、以外、超过、大于”必须使用 NOT_GEO_RADIUS；米统一换算为 km。\\n  examples: 重庆西站超过6公里的客户 -> operator=NOT_GEO_RADIUS, value={place_name: \\\"重庆西站\\\", is_current_location: false, distance: 6, unit: \\\"km\\\"}；当前位置1200米以外 -> operator=NOT_GEO_RADIUS, value={place_name: null, is_current_location: true, distance: 1.2, unit: \\\"km\\\"}\\n\\n### 输出格式\\n{\\\"result_type\\\":\\\"RESOLVED\\\",\\\"query_logic\\\":\\\"AND\\\",\\\"conditions\\\":[{\\\"field\\\":\\\"contactOrHomeAddress\\\",\\\"operator\\\":\\\"MATCH\\\",\\\"value\\\":\\\"幸福花园\\\"}],\\\"confidence\\\":0.95}\\n\\n### 用户查询\\n在我这买过保险的投保人都有谁\", \"isBuyInsurance supports CONTAINS\", \"polNoInfo.applicantname supports EXISTS\"], \"case_local_business_semantics\": []}",
+      "created_at": 1786528014,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "04b2db71-6c95-4c47-b2a7-c47ef762d37f",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"verdict\":\"not_fulfilled\",\"reason\":\"用户意图是找出“在我这买过保险的投保人”，即限定在我客户范围内、已购买保险且本人具有投保人身份的客户。Live 的条件 `isBuyInsurance` CONTAINS [客户,准客] 按业务口径（客户/准客=买过保险）覆盖了“买过保险”；但第二个条件 `polNoInfo.applicantname` EXISTS 只表示客户名下保单存在投保人姓名，并不能证明该客户本人就是投保人——被保人等非投保人角色的保单同样会带有投保人姓名。字段定义也只支持“投保人+姓名”式的角色归属，且没有权威业务口径说明 EXISTS 等价于“客户本人是投保人”。因此 Live 缺少对投保人角色的精确约束，返回集合可能扩大为所有有保单的买过保险客户，核心检索意图未被完整满足。\",\"confidence\":0.68}",
+      "created_at": 1786528014,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "c9e9dd81-97ea-44a6-adb8-5f366729afae",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 7424,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 7446,
+        "output_tokens": 5345,
+        "provider_metrics": null,
+        "reasoning_tokens": 5146,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 12791
+      },
+      "name": null,
+      "provider_data": {
+        "id": "6de20835-6603-481c-9388-2a5cc28f8c71",
+        "system_fingerprint": "fp_a18b46594c_prod0820_fp8_kvcache_20260402"
+      },
+      "reasoning_content": "We need answer JSON. Need judge. Need analyze query vs live conditions.\n\nWe need output verdict. We need reason.\n\nQuery: \"在我这买过保险的投保人都有谁\" = \"Who are the policyholders/applicants who bought insurance from me?\" Intent: customers? Let's parse. User wants list of \"投保人\" (applicants/policyholders) who bought insurance from me (\"在我这买过保险\"). The target set: people who bought insurance from me, specifically those in role of 投保人. \n\nLive conditions: isBuyInsurance CONTAINS [\"客户\",\"准客\"] AND polNoInfo.applicantname EXISTS. Robot text: 客户类型包含客户、准客 并且有投保人姓名的客户.\n\nNeed judge if live satisfies user intent.\n\nCore constraints from query:\n1. 买过保险 (bought insurance) — business semantic: 客户/准客 = 买过保险, 用户 = 没有买过. So isBuyInsurance CONTAINS [\"客户\",\"准客\"] maps exactly. This matches evidence definition. Good.\n2. 投保人 (applicant) — query asks \"投保人都有谁\" = who are the applicants. The target entity is 投保人. How to represent? polNoInfo.applicantname EXISTS means customers who have an applicant name in policy info, i.e., customers with a policy where applicant name exists. Does this capture \"投保人\"? Need consider the customer base is client. Query asks \"在我这买过保险的投保人都有谁\" — likely means customers in my book who are applicants for policies bought from me. The condition applicantname EXISTS requires the customer has at least one 投保人 name. But what does applicantname represent? Definition: 保单投保人姓名. EXISTS operator. This ensures there is an applicant name. For any customer with insurance, presumably they have applicant name on policy. Does this distinguish that the customer themselves is the applicant? Hmm.\n\nPotential issue: The query asks for 投保人 (applicants) as the target, not \"客户 who have 投保人姓名\". The condition polNoInfo.applicantname EXISTS selects customers who have a policy with applicant name. But it doesn't filter that the customer is the applicant. However, in this customer-search system, the returned objects are customers. The condition \"有投保人姓名的客户\" may be a proxy for \"投保人客户\" (customers who are applicants). Is that a valid mapping? Need use given semantics. The field definition says applicantname only used when \"投保人 role directly modifies name, or explicitly states someone as 投保人\". Query has \"投保人都有谁\" — 投保人 role is direct. But there's no specific name. The EXISTS operator without value? The reference does the same. Live matches reference exactly. But our role: judge whether Live actually satisfies user intent, not just matching reference. Need decide.\n\nQuery: \"在我这买过保险的投保人都有谁\". If I ask \"who are the applicants who bought insurance from me\", I want the set of applicants (people who appear as applicant in policies sold by me). In a customer-list system, output is customers, and each customer may have multiple roles. A customer \"有投保人姓名\" could mean there exists an applicant name in their policy info. Is every such customer an applicant themselves? Not necessarily; the customer record may include policies where the customer's relation could be 投保人 or 被保人. But if looking at polNoInfo.applicantname in a customer's policy info, then that customer's policy has an applicant name. If the customer is not the applicant, would their policy still have applicantname? If the customer is 被保人 on a policy where someone else is applicant, then customer record may have a policy with applicantname of another person. But then applicantname EXISTS would include them, even though they're not applicants. Conversely, a customer who is applicant would also have applicantname EXISTS. So the condition might over-include 被保人-only customers. But does it over-include? Need know data model. polNoInfo.applicantname = 保单投保人姓名. It's nested under policy. If a customer has any policy, and that policy has an applicant name, then EXISTS true, regardless of whether the customer is the applicant or the insured. The query asks for \"投保人\" (applicants), which is a role. The mapping via \"有投保人姓名的客户\" is not precise: it doesn't constrain that the customer themselves is applicant. However, business semantics might define \"投保人客户\" differently. Need not overthink? Live also lacks constraint that the customer's relation is applicant (like is_life_insured 仅投保人), which would be more precise. But the field definition doesn't provide a filter for \"客户是投保人\" except is_life_insured enum. Actually is_life_insured field: 仅投保人/仅被保人/投被保人. Query \"投保人\" could be mapped to is_life_insured MATCH \"仅投保人\"? But not necessarily, because user asks \"投保人都谁\" — applicants, not \"仅投保人\". Also is_life_insured applies to 寿险保单 and is identity relation. But user didn't specify life insurance. So maybe not.\n\nAlternative: The user says \"投保人都有谁\" — maybe \"投保人\" is the role they want. Condition applicantname EXISTS: \"有投保人姓名的客户\" — if a customer has any applicant name associated, then we can show that applicant name? Actually query asks \"都有谁\" = give me the names/persons. Live returns customer list with robot text \"有投保人姓名的客户\" — it returns customers that have applicant names. If the customer has an applicant name on their policy, likely they are the applicant. In typical policy data model: each policy has owner/applicant and insured. In a customer database, polNoInfo likely stores each customer's relationship to policies. If the customer is not the applicant but is the insured, the policy would still show applicantname (someone else). Thus EXISTS would include insured-only customers. But is polNoInfo per customer policies, or in customer's policy list? Yes. So to find \"投保人客户\" you'd need role condition. But maybe the system treats \"有投保人姓名的客户\" as \"客户在保单中是投保人\" because applicantname is stored on the customer's policy info; but not guaranteed.\n\nHowever, the evaluation context: Live equals reference exactly. We need decide if that is sufficient. The prompt says bare-name rule etc. Not necessarily relevant. We need judge strictly: \"必须判断 Live 是否实际满足用户检索意图\". We need determine whether the live conditions fully cover core constraints and no extra narrowing.\n\nLet's parse intent more granularly:\n\nOriginal: \"在我这买过保险的投保人都有谁\"\n- \"在我这\" = in my book / from me (agent's own customers)\n- \"买过保险\" = have bought insurance\n- \"投保人\" = applicant/policyholder role\n- \"都有谁\" = who are they\n\nThe target customer collection: customers who bought insurance from me AND are applicants (投保人). Actually maybe \"投保人都有谁\" uses 投保人 as the category of people to list — i.e., among my customers who bought insurance, who are the applicants (as opposed to just insured beneficiaries)? So target = applicants.\n\nLive:\n1. isBuyInsurance CONTAINS 客户/准客 — matches \"买过保险\". Good.\n2. polNoInfo.applicantname EXISTS — \"有投保人姓名的客户\". Does this mean the customer is an applicant? It requires existence of applicant name. In the customer-centric model, each customer's policy info may include applicant name of the policy, which could be the customer or another person. But if we're searching \"投保人都谁\", we want customers whose role is applicant. EXISTS doesn't enforce role.\n\nAlso, event \"买过保险\" and \"投保人\" both relate to policies. Is there a redundancy? Every bought-insurance person has a policy with applicant; so the second condition might add nothing? But user asked specifically 投保人, so must filter role. Does polNoInfo.applicantname EXISTS actually filter? If every insured customer's policy has applicantname, then yes no filtering. But query wants \"投保人\" not just \"有投保人\" (who has an applicant). likely need role filter.\n\nBut maybe \"投保人\" in common Chinese insurance contexts means \"policyholder/applicant who bought the policy\" — 买保险的人 is the 投保人. In query \"在我这买过保险的投保人都有谁\", the phrase \"买过保险的投保人\" may be semantically redundant: an applicant is the one who bought insurance. So target set = applicants among my clients who bought insurance. The system's condition \"有投保人姓名的客户\" may be an attempt to ensure applicant name exists for display, but doesn't distinguish. However, if every buyer is an applicant in their own policy (in the agent's book), then EXISTS is fine. Need business evidence? None provided. case_local_business_semantics is empty. The evidence includes field definitions: polNoInfo.applicantname definition says \"保单投保人姓名\" and \"只有投保人角色直接修饰姓名，或明确说明某人作为投保人时才使用.\" Here query has \"投保人都有谁\" — 投保人 role directly modifies \"都有谁\"? It's not modifying a name. The field's operator in live is EXISTS, not MATCH. The field definition describes when to use MATCH with a name. It doesn't say EXISTS means role filter. Is EXISTS supported? Evidence says \"polNoInfo.applicantname supports EXISTS\". But does that mean query \"投保人\" maps to EXISTS? Not proven. Need a business rule that maps \"买过保险的投保人\" to applicants existence. Without evidence, the EXISTS condition may be an unsupported proxy.\n\nAlso consider \"投保人都有谁\" is asking for list of applicant names/persons. In customer search, the entity returned is customer. But the desired output is \"投保人\" — perhaps applicants who are also customers in the book. The use of polNoInfo.applicantname EXISTS may return all customers with any policy applicant, but not necessarily applicant role.\n\nLet's examine exact field definition from evidence:\n- isBuyInsurance: enum ['客户','准客','用户']; definition: 客户类型；客户/准客=买过保险，用户=没有买过保险. 说明: 客户=已签约，准客=潜在客户已接触，用户=未购买；买过保险→客户或准客，没有买过保险→用户。重要：只有查询明确包含‘有保险/没有保险/没保险/买过保险/未投保/是否投保/全部客户/所有客户/全量客户’等保险状态关键词时才输出此字段。... Query has \"买过保险\" so valid.\n\n- polNoInfo.applicantname: 定义: 保单投保人姓名。只有投保人角色直接修饰姓名，或明确说明某人作为投保人时才使用。说明: 必须存在“投保人X”“投保人姓名为X”“X作为投保人”等直接角色归属证据；裸姓名、客户姓名或“X有保单”不能映射到本字段。 Examples: 投保人叫张三的客户 → MATCH 张三. Negative examples: 裸姓名; 客户姓名; X有保单.\n\nThe query \"投保人都有谁\" has 投保人 role, but no specific X. The field is for 姓名 when role directly modifies name or explicitly someone as 投保人. Here no name. Using EXISTS is not described in definition. The definition only discusses MATCH with extract name. Using EXISTS as a role filter (\"有投保人姓名的客户\") might be a system-specific workaround. Is this consistent with user's intent? User asks \"投保人都有谁\" — they want applicants. The condition \"有投保人姓名\" (has applicant name) does not equal \"是投保人\" (is an applicant). But maybe in the customer entity, \"polNoInfo.applicantname\" being present in that customer's policy info means the customer is one of the policy's roles. Actually if the policy's applicant name is on the customer record, the customer might be the applicant or related. Need know schema: polNoInfo is likely \"保单信息\" nested under customer; applicantname is a field on the policy. Every policy has applicant. For a customer with a policy, applicantname exists even if customer is not applicant. Thus EXISTS selects any customer with any policy. That would be equivalent to \"有保单的客户\", which makes the whole query \"customer type 客户/准客 AND has policy info\" — essentially all customers who bought insurance, ignoring the 投保人 aspect. But the user specifically asked 投保人. If the desired set should exclude customers who are only 被保人, then Live is not precise.\n\nBut in this dataset, \"客户/准客=买过保险\" is already derived from 保单. So the second condition likely redundant. The query asks \"投保人都有谁\" — maybe they want the applicant names displayed. The existence of applicantname is needed to show names. So maybe it's okay.\n\nWe need evaluate based on \"reference\" also same. But judge rule says: Live 与 Reference 一致只能说明系统自洽解析，不能证明解析符合用户意图. We must judge semantics independently.\n\nLet's look at other possible interpretation: \"在我这买过保险的投保人都有谁\" = \"Who are the policyholders who bought insurance from me?\" In insurance, \"投保人\" is the person who signs/contracts the insurance, pays premium. \"在我这买过保险的投保人\" — the applicants whose insurance was purchased at my place. The agent wants to identify those customers. In a customer search system, these are customers with a policy where they are the applicant. The proper field to filter might be a role field like is_life_insured or role in policy. But is_life_insured is only life insurance and has enums. No general applicant role filter given. The system likely uses applicantname EXISTS as \"有投保人姓名\" because there is no role flag. Whether it satisfies depends on data model.\n\nCould also map \"投保人\" to polNoInfo.applicantname MATCH? No, no name. So EXISTS is the only way to use the field without a value. It says \"有投保人姓名的客户\". The user asked \"投保人都谁\" — to return the applicant persons, one needs their names. So \"有投保人姓名的客户\" is a reasonable proxy: customers who have applicant name in their policy info. But if we list customer name, is that the applicant? Not guaranteed.\n\nLet's consider \"客户\" vs \"投保人\" in query: \"在我这买过保险的投保人都有谁\" — literally \"Who are the applicants who bought insurance with me?\" If a customer \"张三\" bought a policy as 投保人, they should be included. If \"李四\" was insured under a policy bought by 张三, should 李四 be included? The phrase \"投保人\" excludes 李四. Live condition polNoInfo.applicantname EXISTS: 李四's customer record includes the policy with applicantname 张三, so EXISTS true, 李四 would appear. That is wrong. Without evidence that polNoInfo only stores policies where the customer is applicant, we can't assume. Field definition \"保单投保人姓名\" suggests it's a field in policy info, not necessarily tied to customer-as-applicant. So likely over-includes.\n\nHowever, the target might be \"客户\" not \"人员\": The robot text says \"有投保人姓名的客户\" — returns customers that have applicant names. Perhaps each customer record's polNoInfo.applicantname refers to \"该客户作为投保人时的姓名\" — i.e., per customer-role records. If the data is pre-joined by role, then a customer who is only insured might still have policy record with applicantname = other person. But the existence of applicantname alone doesn't indicate role. The field name \"applicantname\" is about the applicant's name, not \"customer is applicant\". So I lean over-inclusive.\n\nBut also could under-include? If a customer is an applicant on a policy but applicant name missing? unlikely.\n\nNeed decide verdict. Let's check if any core constraint absent. \"在我这\" — does Live have any condition for \"my customers\" / agent book? The system presumably context is the agent's own customer book; no explicit field. Query_logic AND. No field for \"在我这\" (agent). In these scenarios, \"我这\" likely means the current agent's clients, an implicit scope not represented. Not necessarily a missing condition. But could be: user wants applicants among their own customers; the system inherently limits to current agent's customer list. So okay.\n\n\"买过保险\" maps to isBuyInsurance CONTAINS [\"客户\",\"准客\"]. Good.\n\n\"投保人\" maps to polNoInfo.applicantname EXISTS. Is this an exact mapping? The user wants people who are applicants. \"有投保人姓名\" is a property of the customer's policy info, not role. Need evidence in case_local_business_semantics to establish this mapping. It is empty. Evidence level for field definitions: They are authoritative business semantics. But the definition does not support EXISTS as role filter. The only operator defined in examples is MATCH. The evidence \"polNoInfo.applicantname supports EXISTS\" is a local implementation evidence (third level) showing system can use EXISTS, not that it semantically means applicant. So no authoritative mapping.\n\nCould there be an alternative field condition to express \"投保人\"? None listed besides is_life_insured (寿险). But query says 保险 not 寿险. So no perfect condition exists. The system perhaps uses applicantname EXISTS as best proxy. But our judgment should be strict: If mapping is not supported by authoritative business semantics, not fulfilled.\n\nAlso, robot_text says \"有投保人姓名的客户\" — if user asked \"投保人都谁\", the result should be applicant names, not customers with an applicant name. But maybe output columns would include names. Hmm.\n\nLet's also consider the phrase \"买过保险的投保人\" — in Chinese, 投保人是保单的 purchase party, so \"买过保险的投保人\" is redundant/telic because applicant by definition bought insurance. The user likely wants \"投保人\" list among clients. The condition isBuyInsurance ensures customer type. OK.\n\nLet's structure reasoning:\n1. Intent: get set of customers who are 投保人 (applicants) and bought insurance from current agent.\n2. Check:\n   - isBuyInsurance CONTAINS 客户/准客 covers \"买过保险\" (per authoritative definition: 客户/准客=买过保险). Meets.\n   - \"投保人\" requirement: Live uses polNoInfo.applicantname EXISTS, meaning \"客户有投保人姓名\". Field definition only establishes applicantname is 保单投保人姓名 and should be used when applicant role directly modifies a name or explicitly indicates someone as applicant. There's no authoritative rule that \"EXISTS(applicantname)\" identifies customers who themselves are the applicant; it merely means the customer's policy record contains some applicant name. A customer whose policy was taken by someone else (e.g., as 被保人) would also satisfy EXISTS, so this condition can over-include and fails to isolate the 投保人 role. Or under the data model, it might be equivalent to any policy existence, making it redundant rather than a role filter.\n   - No third condition for role (e.g., relation/role field) is present.\n3. Therefore core constraint \"投保人\" not fully covered; Live doesn't prove those customers are applicants. Extra narrowing? It doesn't narrow; it may alter set. Verdict not_fulfilled.\n\nBut wait: Is there a chance the judge should consider \"投保人都有谁\" = customer type \"投保人\" not role filter? In the customer search domain, a \"投保人客户\" might be defined as customer with applicant identity. The system might not have a better field. However, with no business semantics, strict judge likely says not fulfilled.\n\nNeed also consider if query \"投保人\" could be parsed as \"有投保人姓名\" because the system uses applicantname EXISTS to find customers with applicant data for display. The matching Reference also same, but reference doesn't prove correctness.\n\nLet's assess confidence. We have some ambiguity about data model. But strict criteria: only core constraints fully covered can be fulfilled; this is a semantic mapping that lacks authoritative support. I'd set confidence 0.6-0.7 maybe. Need reason concise.\n\nLet's draft JSON:\n{\"verdict\":\"not_fulfilled\",\"reason\":\"用户意图是找出“在我这买过保险的投保人”，即在我客户范围内、已购买保险且本人具有投保人身份的客户。Live 的条件 isBuyInsurance CONTAINS [客户,准客] 按业务口径（客户/准客=买过保险）正确覆盖“买过保险”；但第二个条件 polNoInfo.applicantname EXISTS 仅表示客户名下保单存在投保人姓名，不能证明该客户本人就是投保人（被保人等其他角色客户的保单同样带有投保人姓名），field 定义也只支持“投保人+姓名”或明确的投保人角色归属，未提供 EXISTS 作为“客户本人是投保人”的权威语义映射。缺少对投保人角色的精确约束，返回集合可能扩大为所有有保单的买过保险客户，因此核心意图未被完整满足。\",\"confidence\":0.68}\n\nNeed maybe mention \"在我这\" not handled? Should include? The query's \"我这\" may be implied current agent scope; no explicit condition but system context. Don't need.\n\nCould there be an issue with \"投保人都有谁\" asking for applicant entities, and Live returns customers. But customer search system returns customers. The condition is about customers having applicant name. Fine.\n\nLet's consider alternative verdict fulfilled. Suppose the task's gold reference also same condition, maybe intended mapping is accepted. But the judge instructions explicitly say Live matching Reference is not sufficient and bare-name rules etc. We need be strict. Is \"有投保人姓名的客户\" a reasonable representation of \"投保人客户\"? In some systems, polNoInfo.applicantname EXISTS is used to filter customers who have policies where they are the applicant? The field name is \"applicantname\" — if stored under customer's polNoInfo, the applicant name is on the policy; if the customer is insured but not applicant, the policy's applicantname would still be there. Unless polNoInfo.applicantname is specifically \"客户作为投保人时的姓名\" in policy info. Definition says \"保单投保人姓名\" — policy applicant name. So yes any policy has one. Thus exists is not role filter.\n\nBut maybe the customer entity in this system only includes policies where the customer is 投保人? No, field definitions include 被保人 insname too. So customer can have policies as insured. Then EXISTS(applicantname) would return insured-only customers too. Therefore not fulfilled.\n\nLet's also mention \"没有额外收窄\" but over-inclusion. Verdict not_fulfilled.\n\nNeed ensure reason uses Chinese quotes not unescaped. Fine.\n\nShould we include \"isBuyInsurance\" and \"polNoInfo.applicantname\" with quotes? In JSON string, using double quotes would need escaping. Better use single quotes or Chinese. Use Chinese quotes \"\". I can use 引号: isBuyInsurance 等 without quotes maybe. Use backticks? Backticks are fine in JSON string. Use `isBuyInsurance` etc. No problem.\n\nNeed output only JSON object, no markdown. confidence number 0.68.\n\nDouble-check schema: verdict required, reason required? In required only verdict. But \"以下字段必须非空: ['verdict']\" — reason not strictly required by schema? Schema required only verdict. But we should include reason and confidence for quality. The prompt says output must include all required fields and each type. We can include reason and confidence. They are in properties. Fine.\n\nNeed not include additional properties. Final JSON.\n\nLet's make reason maybe more concise but complete.\n\nFinal.",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "",
+  "prompt_size": 16108,
+  "record_id": "bfa48ef8-278d-45cb-9d78-017c1aab3c89",
+  "response": {
+    "content": "{\"verdict\":\"not_fulfilled\",\"reason\":\"用户意图是找出“在我这买过保险的投保人”，即限定在我客户范围内、已购买保险且本人具有投保人身份的客户。Live 的条件 `isBuyInsurance` CONTAINS [客户,准客] 按业务口径（客户/准客=买过保险）覆盖了“买过保险”；但第二个条件 `polNoInfo.applicantname` EXISTS 只表示客户名下保单存在投保人姓名，并不能证明该客户本人就是投保人——被保人等非投保人角色的保单同样会带有投保人姓名。字段定义也只支持“投保人+姓名”式的角色归属，且没有权威业务口径说明 EXISTS 等价于“客户本人是投保人”。因此 Live 缺少对投保人角色的精确约束，返回集合可能扩大为所有有保单的买过保险客户，核心检索意图未被完整满足。\",\"confidence\":0.68}",
+    "metrics": {
+      "cache_read_tokens": 7424,
+      "cache_write_tokens": 0,
+      "input_tokens": 7446,
+      "output_tokens": 5345,
+      "reasoning_tokens": 5146,
+      "total_tokens": 12791
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 46821,
+          "endpoint": "primary",
+          "model": "deepseek-v4-flash",
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "selected_endpoint": "primary",
+      "selected_model": "deepseek-v4-flash",
+      "stage": "judge_role_boundary_experiment"
+    }
+  },
+  "trace_id": "judge-gen-exp-I008-2"
+}
