@@ -25,7 +25,6 @@ from impl.core.portable_artifact import (
     write_portable_export,
 )
 from impl.projects.client_search.draft.field_tools import (
-    _field_search_strategy,
     _load_field_key_index,
     build_field_key_index_registry,
 )
@@ -141,8 +140,46 @@ def _exact_strategy(query: str, entries: Sequence[InvestigationKeyEntry], limit:
     return ranked[:limit]
 
 
+
+_LEGACY_IGNORED_QUERY_CHARS = set("客户的有是和与及或并且一个哪些名单帮我找查询")
+
+
+def _legacy_searchable_chars(value: Any) -> set[str]:
+    return {
+        char
+        for char in str(value or "").casefold()
+        if (
+            not char.isspace()
+            and char not in _LEGACY_IGNORED_QUERY_CHARS
+            and (char.isalpha() or "\u4e00" <= char <= "\u9fff")
+        )
+    }
+
+
+def _legacy_char_heuristic(query, entries, limit):
+    """Frozen experiment baseline; not Draft Judge core."""
+    query_text = str(query or "").strip()
+    query_chars = _legacy_searchable_chars(query_text)
+    if not query_chars:
+        return []
+    candidates = []
+    for entry in entries:
+        score = len(query_chars & _legacy_searchable_chars(entry.search_text))
+        if entry.key.casefold() in query_text.casefold():
+            score += 100
+        if "岁" in query_text or "周岁" in query_text:
+            if "年龄" in entry.name or "age" in entry.key.casefold():
+                score += 20
+            if "family" in entry.key.casefold():
+                score -= 5
+        if score >= 2:
+            candidates.append((entry, float(score)))
+    candidates.sort(key=lambda item: (-item[1], item[0].key))
+    return candidates[:limit]
+
+
 def _current_strategy(query: str, entries: Sequence[InvestigationKeyEntry], limit: int):
-    return [(entry, float(score or 0), {"lexical": float(score or 0)}) for entry, score in _field_search_strategy(query, entries, limit)]
+    return [(entry, float(score or 0), {"lexical": float(score or 0)}) for entry, score in _legacy_char_heuristic(query, entries, limit)]
 
 
 def _source_phrase_idf_strategy(entries: Sequence[InvestigationKeyEntry], *, min_query_coverage: float = 0.0) -> Strategy:

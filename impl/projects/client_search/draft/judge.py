@@ -35,12 +35,17 @@ from impl.projects.client_search.live import FIELD_PATTERNS, boundary_from_trace
 from impl.projects.client_search.draft.enhanced_rules_key_index import (
     retrieve_enhanced_rules_for_fields,
 )
+from impl.projects.client_search.draft.catalog import (
+    FIELD_INDEX_KEY,
+    MAPPINGS_INDEX_KEY,
+    STRONG_HIT_FLOOR,
+    build_draft_catalog_registry,
+    create_catalog_tools,
+    search_catalog,
+)
 from impl.projects.client_search.draft.field_tools import (
-    build_field_key_index_registry,
-    create_field_key_search_tool,
     create_minimal_field_definition_tool,
     load_explicit_field_support,
-    search_field_key_index,
 )
 from impl.tools import ToolContext, ToolResult
 from impl.tools import build_agno_tools
@@ -59,6 +64,16 @@ _RANGE_CAPABLE_OPERATORS = frozenset({
 # MaterialDecision/CoverageGap）推导（_operator_conflict_fields），不再硬编码字段名。
 _JUDGE_TOOL_CALL_LIMIT = 8
 _FIELD_NAVIGATION_CALL_LIMIT = 4
+_LIVE_OPERATOR_DELIVERY_PROTOCOL = (
+    "## 比较 Live 操作符\n"
+    "对照 Live 已交付的操作符本身评价。"
+    "排他「以下」编码为 `LT n` 是「n周岁以下」的合法交付；"
+    "不得因 stuffed capability_manifest 未列出 LT、SearchHit、或未 Load 的规则"
+    "而要求改成 LTE 或 RANGE-including-n。"
+    "parser 生成配方（enhanced_rules 的 operator/pattern）不是 Evidence，"
+    "不能用来证明 live LT 错误。"
+    "SearchHit 不是 Evidence。"
+)
 _FIELD_PATH_TOKEN = re.compile(r"\b[A-Za-z][A-Za-z0-9]*(\.[A-Za-z][A-Za-z0-9_]*)+")
 
 
@@ -200,15 +215,13 @@ def _request_enum_hits(
 def _manifest_label_fragments(
     field: str,
     entry: Dict[str, Any],
-    value_mapping: Optional[Dict[str, Any]] = None,
 ) -> set[str]:
-    """字段的标签语料 fragment 集合：字段名 + 枚举 + 值映射别名（用户口语→标准值）。"""
+    """字段的标签语料 fragment 集合：仅能力清单字段名 + 枚举。
+
+    口语 value_mapping 别名不是已 Load 事实，不得用于反向命中。
+    """
     parts = [str(entry.get("field") or field)]
     parts += [str(enum) for enum in (entry.get("enums") or [])]
-    if isinstance(value_mapping, dict):
-        mapped = value_mapping.get(field)
-        if isinstance(mapped, dict):
-            parts += [str(key) for key in mapped] + [str(val) for val in mapped.values()]
     fragments: set[str] = set()
     for part in parts:
         fragments.update(_text_fragments(part, minimum=2, maximum=6))
@@ -218,21 +231,22 @@ def _manifest_label_fragments(
 def _semantic_field_hits(
     request_text: str,
     full_manifest: Dict[str, Any],
-    value_mapping: Optional[Dict[str, Any]] = None,
     *,
     max_fragment_df: int = 3,
 ) -> Set[str]:
-    """请求文本与清单字段标签语料做 CJK fragment 匹配。
+    """请求文本与清单字段/枚举标签语料做 CJK fragment 匹配。
 
+    fragments 仅来自能力清单的字段名与枚举；口语 value_mapping 别名不是已 Load
+    事实，必须经 Catalog Search→Load 后才能作为映射证据，不得在此反向注入字段。
     只用跨字段低频 fragment（df<=max_fragment_df），避免「客户」「保险」等通用词误命中。
-    用于 actual 使用了清单外字段名时，反查请求真正对应的清单字段（按枚举/值映射
+    用于 actual 使用了清单外字段名时，反查请求真正对应的清单字段（按字段/枚举
     标签语义命中），避免紧凑清单被压成空而误判 not_evaluable。
     """
     request_fragments = _text_fragments(request_text, minimum=2, maximum=6)
     if not request_fragments:
         return set()
     field_fragments = {
-        field: _manifest_label_fragments(field, entry, value_mapping)
+        field: _manifest_label_fragments(field, entry)
         for field, entry in full_manifest.items()
         if isinstance(entry, dict)
     }
@@ -252,7 +266,6 @@ def _semantic_field_hits(
 def _extract_fields_from_trace(
     trace: RunTrace,
     full_manifest: Optional[Dict[str, Any]] = None,
-    value_mapping: Optional[Dict[str, Any]] = None,
 ) -> Set[str]:
     fields = set()
     output = trace_extracted_output(trace) if trace_extracted_output(trace) else {}
@@ -281,14 +294,10 @@ def _extract_fields_from_trace(
                 if name and name in request_text:
                     fields.add(field)
             fields.update(_request_enum_hits(trace, full_manifest))
-            # 机制下沉：请求文本的字段语义命中总是并入 trace_fields（不再只
-            # 在 actual 使用清单外字段时才反查）。让 LLM 在 compact manifest
-            # 中看到请求真正对应的候选字段（枚举/值映射标签语义命中），自行
-            # 裁决字段归属与孤词姓名例外的适用性，而不是因清单被压成空/漏
-            # 字段而误判 fulfilled/not_evaluable。
-            fields.update(
-                _semantic_field_hits(request_text, full_manifest, value_mapping)
-            )
+            # 机制下沉：请求文本的字段/枚举标签语义命中总是并入 trace_fields。
+            # 口语 value_mapping 别名不是已 Load 事实（P2），不得在此反向注入；
+            # 须 Catalog Search→Load 后才能作为映射证据。
+            fields.update(_semantic_field_hits(request_text, full_manifest))
     return fields
 
 
@@ -330,6 +339,8 @@ def _declares_closed_world(capability: Dict[str, Any]) -> bool:
 def _enum_completeness_evidence(
     trace: RunTrace,
     compact_manifest: Dict[str, Any],
+    *,
+    authority_enabled: bool = True,
 ) -> list[Dict[str, Any]]:
     """Describe whether an actual enum expansion has evidence of being complete."""
 
@@ -421,18 +432,30 @@ def _enum_completeness_evidence(
                 "Under parser_condition_semantics_only, when actual enumerates values all inside "
                 "the registry and no conflicting material claims exist, completeness relative to "
                 "the parser's deliverable set is directly decidable (current_behavior); it does "
-                "NOT prove the downstream legal-value universe (external_fact), so enum-value-"
-                "authority stays open for judgments depending on the external legal-value universe "
-                "or when materials conflict about the same legal-value set: if it affects a "
-                "blocking assessment, call authority.resolve and treat unresolved as not_evaluable. "
-                "If the user explicitly listed the same values, completeness of the category "
+                "NOT prove the downstream legal-value universe (external_fact). "
+                + (
+                    "enum-value-authority stays open for judgments depending on the external "
+                    "legal-value universe or when materials conflict about the same legal-value "
+                    "set: if it affects a blocking assessment, call authority.resolve and treat "
+                    "unresolved as not_evaluable. "
+                    if authority_enabled
+                    else (
+                        "Judge from user intent versus Live delivery; missing blocking core "
+                        "delivery is not_fulfilled. "
+                    )
+                )
+                + "If the user explicitly listed the same values, completeness of the category "
                 "expansion is not at issue."
             ),
         })
     return evidence
 
 
-def _unsupported_boundary_evidence(trace: RunTrace) -> Dict[str, Any]:
+def _unsupported_boundary_evidence(
+    trace: RunTrace,
+    *,
+    authority_enabled: bool = True,
+) -> Dict[str, Any]:
     """Expose graceful handling of an unsupported constraint as boundary evidence."""
 
     output = trace_extracted_output(trace) or {}
@@ -483,20 +506,21 @@ def _unsupported_boundary_evidence(trace: RunTrace) -> Dict[str, Any]:
             acknowledged_request_constraint and supported_condition_count == 0
         ),
         "decision_rule": (
-            "When actual clearly identifies a requested constraint as unsupported and still emits "
-            "the remaining supported conditions, evaluate the retained conditions normally; the "
-            "omitted unsupported constraint is a core-delivery item whose capability cannot be "
-            "confirmed, so its delivery assessment is not_evaluable (no affirmative business "
-            "conclusion), while the boundary-handling subgoal (transparent notice, no fabricated "
-            "conditions) is fulfilled. "
-            "When actual identifies the request's own term as unsupported AND emits no conditions "
-            "(all_conditions_unsupported), derive the request's core-delivery expectation first: "
-            "not_evaluable when the capability is unconfirmed (out-of-manifest), or not_fulfilled "
-            "when the request condition hits an in-manifest expressible field but actual omits it; "
-            "judge boundary-handling subgoals fulfilled. A transparent rejection alone must not "
-            "turn the whole case fulfilled. When the unsupported label does not overlap the "
-            "request text (the system re-labeled the request into a different capability "
-            "category), the core delivery keeps the out-of-boundary not_evaluable handling."
+            (
+                "Authority is enabled; judge from user intent versus Live delivery. "
+                "Missing blocking core delivery is not_fulfilled; not_evaluable is allowed only "
+                "after authority.resolve for 职责外/unresolved, including unconfirmed capability. "
+                "A transparent refusal is a separate non-blocking subgoal; it must not make the "
+                "case fulfilled. Capability-boundary candidates, unsupported notices, and empty "
+                "conditions must not emit not_evaluable except after that resolve."
+            )
+            if authority_enabled
+            else (
+                "Authority is disabled; judge from user intent versus Live delivery. "
+                "Missing blocking core delivery is not_fulfilled. "
+                "A transparent refusal is a separate non-blocking subgoal; it must not make the "
+                "case fulfilled."
+            )
         ),
     }
 
@@ -562,8 +586,12 @@ def _compact_value_mappings(context: Dict[str, Any], trace_fields: Set[str]) -> 
     return {field: full_mappings[field] for field in trace_fields if field in full_mappings}
 
 
-def _build_field_tools(spec: ProjectSpec) -> list[Any]:
-    """构建 client_search 字段认知 VerifiableTool（主 Judge 与 Authority 共享）。"""
+def _build_field_tools(
+    spec: ProjectSpec,
+    *,
+    embedding_provider: Any = None,
+) -> list[Any]:
+    """构建 Draft Catalog Search→Load 与字段定义 Load（主 Judge 与 Authority 共享）。"""
     try:
         field_provider = load_field_provider(spec)
     except Exception as exc:
@@ -572,104 +600,215 @@ def _build_field_tools(spec: ProjectSpec) -> list[Any]:
     if field_provider is None:
         return []
     try:
-        field_index_registry = build_field_key_index_registry(spec, field_provider)
+        catalog_registry = build_draft_catalog_registry(spec, field_provider)
     except Exception as exc:
         logger.warning(
-            f"[client_search.judge] Failed to build field key index for {spec.project_id}: {exc}"
+            f"[client_search.judge] Failed to build Draft Catalog for {spec.project_id}: {exc}"
         )
-        field_index_registry = None
+        catalog_registry = None
+    tools: list[Any] = []
+    if catalog_registry is not None:
+        tools.extend(
+            create_catalog_tools(
+                catalog_registry,
+                embedding_provider=embedding_provider,
+            )
+        )
     definition_tool = (
-        create_minimal_field_definition_tool(field_provider, field_index_registry)
-        if field_index_registry is not None
+        create_minimal_field_definition_tool(field_provider, catalog_registry)
+        if catalog_registry is not None
         else create_minimal_field_definition_tool(field_provider)
     )
-    return [
-        create_field_key_search_tool(spec, field_index_registry),
-        definition_tool,
-    ]
+    tools.append(definition_tool)
+    return tools
 
 
 
 def _enrich_unsupported_boundary_evidence(
     spec: ProjectSpec, trace: RunTrace, evidence: Dict[str, Any]
 ) -> Dict[str, Any]:
-    """Resolve unsupported notices to explicit field capability facts via Key-Index Search→Load."""
+    """Search→Load supplement for unsupported-boundary evidence.
+
+    Search the user request only. A SearchHit is not evidence. Only a strong
+    hit may Load; a miss is silent (facts stay empty, incoming decision_rule
+    is left unchanged). Facts only: explicit unsupported field capability.
+    """
     if not evidence:
         return evidence
-    labels = [
-        str(item).strip()
-        for item in evidence.get("unsupported_constraint_labels") or []
-        if str(item).strip()
-    ]
-    request_text = " ".join(
-        str(source.get(key) or "")
-        for source in (trace.normalized_request, trace.input)
-        if isinstance(source, dict)
-        for key in ("user_text", "query", "user_intent", "question")
-        if source.get(key)
-    )
-    query = " ".join([*labels, request_text]).strip()
+    query = _request_text_from_trace(trace).strip()
     explicit_unsupported: list[dict[str, Any]] = []
     if query:
-        # This is a deterministic gate, not a broad recall surface: only the top
-        # Key-Index locator may control status. Lower-ranked fuzzy hits remain
-        # navigation suggestions and must not silently widen the boundary.
-        hits = search_field_key_index(spec, query, limit=1)
-        if hits:
-            hit = hits[0]
-            field = str(hit.get("field") or "").strip()
+        # Deterministic gate: only strong exact Catalog hits may Load.
+        # Rewrite/weak hits are navigation suggestions, not evidence.
+        try:
+            catalog_registry = build_draft_catalog_registry(spec)
+            hits, _searched = search_catalog(
+                catalog_registry,
+                query,
+                index_keys=(FIELD_INDEX_KEY,),
+                limit=8,
+            )
+        except Exception as exc:
+            logger.warning(
+                f"[client_search.judge] Catalog search failed during unsupported enrichment: {exc}"
+            )
+            hits = []
+        seen_fields: set[str] = set()
+        for hit in hits:
+            if float(hit.score or 0) < STRONG_HIT_FLOOR:
+                continue
+            field = str(hit.key or "").strip()
+            if not field or field in seen_fields:
+                continue
+            seen_fields.add(field)
             supported, explicit = load_explicit_field_support(spec, field)
             if explicit and not supported:
                 explicit_unsupported.append({
                     "field": field,
-                    "short_name": str(hit.get("short_name") or field),
+                    "short_name": str(hit.name or field),
                     "is_supported": False,
                     "is_supported_explicit": True,
                 })
     enriched = dict(evidence)
     enriched["explicit_unsupported_fields"] = explicit_unsupported
     enriched["explicit_unsupported_capability"] = bool(explicit_unsupported)
-    authority_enabled = bool(
-        ((spec.verifier or {}).get("authority") or {}).get("enabled", True)
-    )
-    if authority_enabled:
-        decision_rule = (
-            " When Key-Index Search→Load resolves the requested constraint to a field with "
-            "is_supported=false and is_supported_explicit=true, field presence does not mean "
-            "deliverable capability and does not decide responsibility. The frozen investigation "
-            "records this as a coverage gap: Authority must distinguish out-of-scope from an "
-            "in-scope missing capability. Consume the Authority resolution before the dependent "
-            "blocking assessment; transparent refusal remains a separate non-blocking subgoal."
-        )
-    else:
-        decision_rule = (
-            " When Key-Index Search→Load resolves the requested constraint to a field with "
-            "is_supported=false and is_supported_explicit=true, it proves the current delivery "
-            "limitation but does not decide responsibility. Authority is disabled: evaluate whether "
-            "the Live output satisfies the user's requested result using current observable evidence. "
-            "A missing blocking result is not_fulfilled; do not emit not_evaluable merely because a "
-            "capability or responsibility boundary candidate exists. Transparent refusal remains a "
-            "separate non-blocking subgoal."
-        )
-    enriched["decision_rule"] = str(enriched.get("decision_rule") or "") + decision_rule
     return enriched
 
 
-def _build_judge_tools(spec: ProjectSpec) -> list[Any]:
-    field_tools = _build_field_tools(spec)
-    navigation_state = {"calls": 0}
+def _load_mapping_facts_from_catalog(
+    spec: ProjectSpec, trace: RunTrace
+) -> list[Dict[str, Any]]:
+    """Search→Load spoken value mappings for the user request.
+
+    Search the user request only across value_mappings. A SearchHit is not
+    evidence. Only a strong exact hit may Load; a miss is silent (empty list).
+    Facts only: {field, spoken, normalized} from the loaded mapping object.
+    """
+    query = _request_text_from_trace(trace).strip()
+    if not query:
+        return []
+    try:
+        catalog_registry = build_draft_catalog_registry(spec)
+        hits, _searched = search_catalog(
+            catalog_registry,
+            query,
+            index_keys=(MAPPINGS_INDEX_KEY,),
+            limit=8,
+        )
+    except Exception as exc:
+        logger.warning(
+            f"[client_search.judge] Catalog search failed during mapping fact load: {exc}"
+        )
+        return []
+    facts: list[Dict[str, Any]] = []
+    seen: set[str] = set()
+    for hit in hits:
+        if float(hit.score or 0) < STRONG_HIT_FLOOR:
+            continue
+        key = str(hit.key or "").strip()
+        if not key or key in seen:
+            continue
+        try:
+            loaded, _receipt = catalog_registry.load(MAPPINGS_INDEX_KEY, key)
+        except Exception as exc:
+            logger.warning(
+                f"[client_search.judge] Catalog load failed for mapping {key}: {exc}"
+            )
+            continue
+        content = loaded.get("content") if isinstance(loaded, dict) else None
+        if not isinstance(content, dict):
+            continue
+        field = str(content.get("field") or "").strip()
+        spoken = str(content.get("spoken") or "").strip()
+        if not field or not spoken:
+            continue
+        seen.add(key)
+        facts.append({
+            "field": field,
+            "spoken": spoken,
+            "normalized": content.get("normalized"),
+        })
+    return facts
+
+
+def _build_judge_tools(
+    spec: ProjectSpec,
+    *,
+    embedding_provider: Any = None,
+) -> list[Any]:
+    if embedding_provider is None:
+        field_tools = _build_field_tools(spec)
+    else:
+        field_tools = _build_field_tools(spec, embedding_provider=embedding_provider)
+    navigation_state = {"calls": 0, "strong_hit_queries": set()}
+
+    def _tool_call_cache_key(kwargs: dict[str, Any]) -> str:
+        return json.dumps(
+            kwargs,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            default=str,
+        )
+
+    def _search_query_key(kwargs: dict[str, Any]) -> str:
+        return str(kwargs.get("query") or "").strip()
+
+    def _search_result_has_strong_hit(result: Any) -> bool:
+        actual = getattr(result, "actual", None)
+        if not isinstance(actual, dict):
+            return False
+        for candidate in actual.get("candidates") or []:
+            if not isinstance(candidate, dict):
+                continue
+            try:
+                score = float(candidate.get("score") or 0)
+            except (TypeError, ValueError):
+                continue
+            if score >= STRONG_HIT_FLOOR:
+                return True
+        return False
+
+    def _search_cached_execute(tool_id: str, execute):
+        cache: dict[str, Any] = {}
+
+        def execute_once(**kwargs):
+            key = _tool_call_cache_key(kwargs)
+            if key in cache:
+                return deepcopy(cache[key])
+            query_key = _search_query_key(kwargs)
+            if query_key and query_key in navigation_state["strong_hit_queries"]:
+                result = ToolResult(
+                    tool_id=tool_id,
+                    tool_type="client_search_field_navigation",
+                    status="inconclusive",
+                    error=(
+                        "strong hit already available for this query, Load it. "
+                        "Search a different constraint if one remains; "
+                        "do not retry or paraphrase this query."
+                    ),
+                    runtime_metadata={
+                        "budget_kind": "field_navigation",
+                        "stop_reason": "strong_hit_already_available",
+                        "limit": _FIELD_NAVIGATION_CALL_LIMIT,
+                        "calls_used": navigation_state["calls"],
+                    },
+                )
+                cache[key] = deepcopy(result)
+                return deepcopy(cache[key])
+            result = execute(**kwargs)
+            if query_key and _search_result_has_strong_hit(result):
+                navigation_state["strong_hit_queries"].add(query_key)
+            cache[key] = deepcopy(result)
+            return deepcopy(cache[key])
+
+        return execute_once
 
     def _budgeted_cached_execute(tool_id: str, execute):
         cache: dict[str, Any] = {}
 
         def execute_once(**kwargs):
-            key = json.dumps(
-                kwargs,
-                ensure_ascii=False,
-                sort_keys=True,
-                separators=(",", ":"),
-                default=str,
-            )
+            key = _tool_call_cache_key(kwargs)
             if key in cache:
                 return deepcopy(cache[key])
             if navigation_state["calls"] >= _FIELD_NAVIGATION_CALL_LIMIT:
@@ -695,10 +834,14 @@ def _build_judge_tools(spec: ProjectSpec) -> list[Any]:
         return execute_once
 
     for field_tool in field_tools:
-        if field_tool.execute_fn is not None:
-            field_tool.execute_fn = _budgeted_cached_execute(
-                field_tool.tool_id, field_tool.execute_fn
-            )
+        if field_tool.execute_fn is None:
+            continue
+        wrapper = (
+            _search_cached_execute
+            if field_tool.tool_id == "investigation.search_index"
+            else _budgeted_cached_execute
+        )
+        field_tool.execute_fn = wrapper(field_tool.tool_id, field_tool.execute_fn)
     return build_agno_tools(field_tools)
 
 
@@ -954,7 +1097,7 @@ def build_intent_frame(
     if context is None:
         context = build_judge_context(spec, trace)
     trace_fields = _extract_fields_from_trace(
-        trace, context.get("capability_manifest"), context.get("value_mappings")
+        trace, context.get("capability_manifest")
     )
     compact_manifest = _compact_capability_manifest(context, trace_fields, trace=trace)
     return {
@@ -1250,7 +1393,7 @@ def _build_core_context(
         ),
         {},
     )
-    trace_fields = _extract_fields_from_trace(trace, context.get("capability_manifest"), context.get("value_mappings"))
+    trace_fields = _extract_fields_from_trace(trace, context.get("capability_manifest"))
     compact_manifest = _compact_capability_manifest(context, trace_fields, trace=trace)
     intent_frame["capability_manifest"] = compact_manifest
     semantic_rules = _compact_semantic_rules(context, trace_fields)
@@ -1263,10 +1406,18 @@ def _build_core_context(
         intent_frame.get("critical_intent_dimensions")
         or context.get("critical_intent_dimensions")
     )
-    enum_completeness_evidence = _enum_completeness_evidence(trace, compact_manifest)
-    unsupported_boundary_evidence = _enrich_unsupported_boundary_evidence(
-        spec, trace, _unsupported_boundary_evidence(trace)
+    authority_enabled = bool(
+        ((spec.verifier or {}).get("authority") or {}).get("enabled", True)
     )
+    enum_completeness_evidence = _enum_completeness_evidence(
+        trace, compact_manifest, authority_enabled=authority_enabled
+    )
+    unsupported_boundary_evidence = _enrich_unsupported_boundary_evidence(
+        spec, trace, _unsupported_boundary_evidence(
+            trace, authority_enabled=authority_enabled
+        )
+    )
+    loaded_mapping_facts = _load_mapping_facts_from_catalog(spec, trace)
 
     comparison = condition_comparison(spec, trace)
     authority_candidate_reasons = _authority_candidate_reasons(
@@ -1276,9 +1427,6 @@ def _build_core_context(
         unsupported_boundary_evidence=unsupported_boundary_evidence,
         compact_manifest=compact_manifest,
         mapping_values=mapping_values,
-    )
-    authority_enabled = bool(
-        ((spec.verifier or {}).get("authority") or {}).get("enabled", True)
     )
     authority_candidate_present = bool(authority_candidate_reasons) or embedding_provider is not None
     authority_required = authority_enabled and authority_candidate_present
@@ -1304,20 +1452,26 @@ def _build_core_context(
             "先派生用户真正要办成的 blocking 核心业务交付，再逐项比较 actual。"
             "安全拒绝、透明说明、不编造条件只能作为独立 non-blocking 验收项，不能替代核心交付；"
             "overall 必须由 blocking assessments 聚合。"
-            "证据充分时只判 fulfilled/not_fulfilled；仅职责外、输入不可用或决定性证据确实不足时判 not_evaluable。"
-            "HTTP 状态、历史 verdict 和归因信息不得替代 expected-vs-actual 判断。"
+            + (
+                "证据充分时只判 fulfilled/not_fulfilled；Authority 关闭时不得因职责外候选、不支持提示或空条件打 not_evaluable；职责外 not_evaluable 仅在 Authority 已 resolved 之后；Authority 关闭时其余合法 not_evaluable 仅限输入坏、完全无关，或 actual/trace 确实不可用。"
+                if authority_enabled
+                else "只判 fulfilled/not_fulfilled；缺失 blocking 核心交付判 not_fulfilled。"
+            )
+            + "HTTP 状态、历史 verdict 和归因信息不得替代 expected-vs-actual 判断。"
         ),
-        (
-            "## not_evaluable 成因契约（fulfilled.md §2.3/§10、authority.md §8.4）\n"
-            "判 not_evaluable 时，必须在对应 assessment 的 actual_evidence 中显式写明成因标签，"
-            "只允许五种：「结论类型：职责外」「结论类型：完全无关」「结论类型：依据不充分」"
-            "「结论类型：输入坏」「结论类型：Authority 能力不可用」。"
-            "Authority 开启时，职责外/职责内能力缺失/依据不充分必须真实调用 authority.resolve"
-            "（在 authority_tool_call_ids 引用该次调用）；依据不充分同时给出缺料清单。"
-            "Authority 关闭时不得自行声明这些治理结论，也不得仅因缺少 Authority 把用户效果判为 not_evaluable；"
-            "应依据用户意图与当前实际交付判 fulfilled/not_fulfilled。"
-            "完全无关/输入坏不需要 authority。缺标签或标签不可识别的 not_evaluable 会被标 "
-            "needs_human_review（不静默放行）。"
+        *(
+            [(
+                "## not_evaluable 成因契约（fulfilled.md §2.3/§10、authority.md §8.4）\n"
+                "判 not_evaluable 时，必须在对应 assessment 的 actual_evidence 中显式写明成因标签，"
+                "只允许四种：「结论类型：职责外」「结论类型：完全无关」「结论类型：依据不充分」"
+                "「结论类型：输入坏」。"
+                "Authority 开启时，职责外/职责内能力缺失/依据不充分必须真实调用 authority.resolve"
+                "（在 authority_tool_call_ids 引用该次调用）；依据不充分同时给出缺料清单。"
+                "完全无关/输入坏不需要 authority。缺标签或标签不可识别的 not_evaluable 会被标 "
+                "needs_human_review（不静默放行）。"
+            )]
+            if authority_enabled
+            else []
         ),
         (
             "## client_search 直接证据\n"
@@ -1329,6 +1483,10 @@ def _build_core_context(
             "### 逐项核对\n"
             "每个 expectation 逐维度对照 actual：条件缺失、错误映射、无依据的额外收窄分别判 "
             "not_fulfilled；wrong/missing/extra 必须来自当前 actual，不能来自猜测、历史 verdict 或归因信息。"
+            "### 工具预算\n"
+            f"调查工具最多 {_JUDGE_TOOL_CALL_LIMIT} 次。每个独立约束最多 Search 一次："
+            "出现 strong hit 后立刻 Load，再搜下一个约束；不要改写同一 query 重搜。"
+            "证据够了就输出 JSON 判定，把剩余次数留给 Load，不要用尽预算。\n"
             "### 证据分级\n"
             "证据必须分级使用，低级别证据不能单独支撑 fulfilled："
             "一级证据是 query 与 actual 本身（意图与交付的直接对照）；"
@@ -1344,18 +1502,28 @@ def _build_core_context(
             "not_fulfilled；清单外字段按 actual 自身声明的语义核对，只有实际语义偏离意图或缺失核心约束才判 "
             "not_fulfilled。\n"
             "### 裸词规则\n"
-            "请求只有裸词（无“姓名/客户/查/找/筛选”等指示词）且 actual 把该裸词当作姓名解析时，"
-            "Reference 一致只说明生成路径匹配，不等于意图确认；除非存在姓名结构或语义证据"
-            "（如专名、姓氏库命中、明确字段上下文），否则按未满足判 not_fulfilled。\n"
+            "If actual treats a token as a person name, Reference/path match alone is not intent proof. "
+            "Without independent name evidence, do not mark that dimension fulfilled. "
+            "独立姓名证据指资料明确该 token 是人名（或该形态就是姓名检索）；"
+            "live 把它写成姓名、路径碰巧叫 searchClientName，都不够支撑 fulfilled（§2.1）。\n"
+            "inlive 空间列出的操作符或 match_mode 只证明可达，不证明本次输入必须用上每一种。"
+            "只有 Load 到的、且明确覆盖当前输入形态的规则，才能要求某个具体 mode；"
+            "不得因为字段同时声明 prefix 与 suffix，就把未 Load 的 mode 加成缺失条件。\n"
             "is_supported=false 或 actual 明确不支持某条件时，分别评价核心交付与透明边界说明，不能用说明替代核心结果。"
             "以下内容永远不能单独成为 blocking 核心交付：不错误映射、不编造条件、拒绝越界请求、告知当前限制、未识别到条件。"
             "若请求存在明确业务对象但 actual 没有可执行条件，仍要保留该对象的核心交付 expectation，"
-            "Authority 关闭时按当前交付判 not_fulfilled；Authority 开启且最终判断依赖受治理标准时，"
-            "先消费 Authority resolution 再判 fulfilled/not_fulfilled/not_evaluable。"
+            + (
+                "Authority 关闭时按当前交付判 not_fulfilled；Authority 开启且最终判断依赖受治理标准时，"
+                "先消费 Authority resolution 再判 fulfilled/not_fulfilled/not_evaluable。"
+                if authority_enabled
+                else "按当前交付判 not_fulfilled。"
+            )
+            + (
             "安全拒绝和透明说明必须另建 blocking=false 的 expectation。"
             "若 actual 只交付请求的一部分，必须按可独立判断的请求维度拆分 expectation：已交付维度照常评价；"
             "Authority 关闭时，被遗漏的 blocking 维度按实际未交付判 not_fulfilled；Authority 开启且命中"
             " coverage_gap 时只让依赖该边界的 assessment 消费 Authority，不得把已交付维度一起降级。"
+            )
         ),
         (
             "## client_search 最终输出拓扑与 fulfillment_assessments 字段约束（严格，以本节为唯一准则）\n"
@@ -1372,6 +1540,20 @@ def _build_core_context(
             "reasoning_summary 用不超过 180 个中文字符概括决定性依据，禁止复述输入资料。"
         ),
     ]
+    system_extras.append(
+        (
+            "## Catalog Search→Load 消费契约\n"
+            "工具如何调用以 Agno tool schema 为准。"
+            "user prompt 中塞入的 capability_manifest / value_mappings / semantic_equivalence_rules / enhanced_rules 只是导航线索，不是 Evidence。"
+            "每个独立约束 Search 一次（省略 index_key 即搜全部索引）；该 query 精确/强命中后立刻 Load 1–2 个 key，再搜下一个约束。不要改写同一 query 重搜，不要按索引 fan-out。"
+            "字段导航预算只计 Load / field.search_definition，Search 不计入。"
+            "口语别名、枚举归属、is_supported 必须经 investigation.search_index 后再 investigation.load_entry 取得；"
+            "SearchHit 不是 Evidence，也不是同义证明。"
+            "用户请求能在 Catalog 中导航时，先 Search→Load；未命中则保持沉默，依据用户意图与 Live 交付及已 Load 事实判断。"
+            "loaded_mapping_facts 是已 Load 的 mapping 事实，不是 SearchHit。"
+        )
+    )
+    system_extras.append(_LIVE_OPERATOR_DELIVERY_PROTOCOL)
     if authority_required:
         system_extras.append(
             "## authority.resolve 使用规则（证据空间内现场裁决）\n"
@@ -1392,7 +1574,8 @@ def _build_core_context(
             "（依据不充分→not_evaluable + 缺料清单），不得用缺口依据本身宣布 resolved。"
             "不带 claim 的 resolved/unresolved 提问模式仍可用于先确定业务问题。"
             "工具失败不得伪装成 unresolved 或 gap_only。"
-            f"字段 Key-Index Search→Load 导航合计最多 {_FIELD_NAVIGATION_CALL_LIMIT} 次；"
+            f"字段 Key-Index Load / field.search_definition 合计最多 {_FIELD_NAVIGATION_CALL_LIMIT} 次，Search 不计入该预算；"
+            "每个独立约束 Search 一次（省略 index_key 即搜全部索引）；该 query 精确/强命中后立刻 Load，再搜下一个约束，不要按索引 fan-out Search。"
             "不要用同义词反复扩搜。若候选信号对应的 blocking 结论仍依赖受治理断言，"
             "必须停止字段导航并至少保留一次总工具预算给 authority.resolve。"
         )
@@ -1400,10 +1583,10 @@ def _build_core_context(
         system_extras.append(
             "## Authority 状态\n"
             "本 case 存在可能影响语义、等价、能力或职责判断的 Authority 候选信号，但 "
-            "verifier.authority.enabled=false，因此不提供 authority.resolve。不得声称职责内外、"
-            "正式语义或资料优先级已获权威确认；仍须依据用户意图与 Live 当前可见交付完成效果评价，"
-            "核心结果未交付或 blocking 维度缺失时判 not_fulfilled，不得仅因 Authority 关闭或存在"
-            "边界候选而判 not_evaluable。"
+            "verifier.authority.enabled=false，因此不提供 authority.resolve。"
+            "不得声称职责内外、正式语义或资料优先级已获权威确认；"
+            "依据用户意图与 Live 当前可见交付完成效果评价，"
+            "缺失 blocking 核心交付判 not_fulfilled。"
         )
     else:
         system_extras.append(
@@ -1414,7 +1597,14 @@ def _build_core_context(
 
     authority_env = None
     authority_tool = None
-    tools = list(_build_judge_tools(spec))
+    catalog_embedding = embedding_provider
+    if catalog_embedding is None:
+        from impl.projects.client_search.draft.catalog_embedding import (
+            resolve_catalog_embedding_provider,
+        )
+
+        catalog_embedding = resolve_catalog_embedding_provider()
+    tools = list(_build_judge_tools(spec, embedding_provider=catalog_embedding))
     environment_snapshot_sha256 = ""
     if authority_required:
         authority_env = build_authority_environment(
@@ -1424,7 +1614,9 @@ def _build_core_context(
             embedding_provider=embedding_provider,
             trace_id=str(trace.trace_id or ""),
             case_id=str(getattr(trace, "case_id", "") or ""),
-            gateway_tools=_build_field_tools(spec),
+            gateway_tools=_build_field_tools(
+                spec, embedding_provider=catalog_embedding
+            ),
             # Draft candidate runtime records business-source drift and
             # continues; Solidify/Promotion keep the strict default.
             business_source_staleness_policy="warn",
@@ -1456,9 +1648,9 @@ def _build_core_context(
             "triggers": authority_candidate_reasons,
             "authority_available": False,
             "required_action": (
-                "evaluate user intent against the observable Live delivery and prefer "
-                "fulfilled/not_fulfilled; do not claim governed semantics or emit not_evaluable "
-                "merely because Authority is disabled or a boundary candidate exists"
+                "evaluate user intent against the observable Live delivery; "
+                "missing blocking core delivery is not_fulfilled; "
+                "do not claim governed semantics or 职责内外"
             ),
         }
     )
@@ -1467,6 +1659,13 @@ def _build_core_context(
         "semantic_equivalence_rules": semantic_rules,
         "value_mappings": mapping_values,
         "enhanced_rules": enhanced,
+        "loaded_mapping_facts": loaded_mapping_facts,
+        "catalog_consumption": {
+            "locator_not_evidence": True,
+            "compare_live_operator_as_delivered": True,
+            "exclusive_below_lt_valid_without_loaded_inclusive_rule": True,
+            "parser_generation_recipes_not_fulfillment_oracle": True,
+        },
         "critical_intent_dimensions": critical_dimensions,
         "enum_completeness_evidence": enum_completeness_evidence,
         "unsupported_boundary_evidence": unsupported_boundary_evidence,
@@ -1517,7 +1716,20 @@ def _build_core_context(
                 "fulfillment_assessments[*].evidence_refs",
                 "fulfillment_assessments[*].authority_analysis_ids",
             ],
-            "excluded_clause_markers": ["`JudgeResult` 协议字段"],
+            "excluded_clause_markers": [
+                "`JudgeResult` 协议字段",
+                *(
+                    [
+                        "不直接视为当前系统输出错误",
+                        "不直接判为当前系统输出错误",
+                        "才返回 `not_evaluable`",
+                        "才返回 not_evaluable",
+                        "not_evaluable",
+                    ]
+                    if not authority_enabled
+                    else []
+                ),
+            ],
             "required_tools": ["authority.resolve"] if authority_required else [],
             "max_prompt_chars": 160000,
             "segments": [
@@ -1562,4 +1774,7 @@ class ClientSearchJudge(ProjectJudge):
             result.business_expectations, result.fulfillment_assessments
         )
         result.summary = summary_from_fulfillment(to_dict(result))
-        return result
+        from impl.projects.client_search.draft.judge_execution import (
+            fail_closed_authority_off_judge_result,
+        )
+        return fail_closed_authority_off_judge_result(self.spec, result)

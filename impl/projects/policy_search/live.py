@@ -1,11 +1,11 @@
-"""Policy Search 单轮真实服务适配。"""
+"""Policy Search 真实服务适配。主体单轮；追问场景走同一 POST 的多轮循环。"""
 from __future__ import annotations
 
 import urllib.error
 from typing import Any, Dict
 from urllib.parse import urljoin
 
-from impl.core.live_protocol import LiveServiceUnavailableError, RealServiceLive, SingleTurnLive
+from impl.core.live_protocol import LiveServiceUnavailableError, MultiTurnInteractiveLive, RealServiceLive
 from impl.core.live_transport import LiveHTTPStatusError, LiveTransport
 
 
@@ -15,7 +15,7 @@ def _single_response(raw_response: list[Any]) -> Dict[str, Any]:
     return dict(raw_response[0])
 
 
-class PolicySearchLive(RealServiceLive, SingleTurnLive):
+class PolicySearchLive(RealServiceLive, MultiTurnInteractiveLive):
     """通过受控 transport 调用 policy-search。"""
 
     def deliver_real(self, request: Any, transport: LiveTransport) -> LiveTransport:
@@ -105,3 +105,21 @@ class PolicySearchLive(RealServiceLive, SingleTurnLive):
             "parse_status": extracted_output.get("status"),
             "filter_root_type": tree.get("type") if isinstance(tree, dict) else None,
         }
+
+    def _has_visible_goal_evidence(self, output: Any) -> bool:
+        if not isinstance(output, dict) or not output:
+            return False
+        if output.get("filter"):
+            return True
+        if str(output.get("message") or "").strip():
+            return True
+        return str(output.get("status") or "") in {"SUCCESS", "UNSUPPORTED"}
+
+    def _summarize_assistant(self, extracted: Dict[str, Any]) -> str:
+        if not extracted:
+            return "empty"
+        message = str(extracted.get("message") or "").strip()
+        if message:
+            return message
+        status = str(extracted.get("status") or "").strip()
+        return f"status={status}" if status else "ok"

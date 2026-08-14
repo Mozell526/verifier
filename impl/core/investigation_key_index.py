@@ -35,6 +35,7 @@ class KeyIndexSearchHit:
     name: str
     target_ref: str
     score: float | None = None
+    matched_channels: tuple[str, ...] = ()
 
     def as_dict(self) -> dict[str, Any]:
         result: dict[str, Any] = {
@@ -45,6 +46,8 @@ class KeyIndexSearchHit:
         }
         if self.score is not None:
             result["score"] = self.score
+        if self.matched_channels:
+            result["matched_channels"] = list(self.matched_channels)
         return result
 
 

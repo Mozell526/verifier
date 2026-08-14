@@ -414,7 +414,7 @@ def test_improved_review_rejects_completed_report_with_runtime_failure(tmp_path:
     )
     draft_loop.run_iteration("demo", "mock")
 
-    with pytest.raises(ValueError, match="infrastructure failures"):
+    with pytest.raises(ValueError, match="no comparable Draft sides"):
         draft_loop.record_review(
             "demo",
             "mock",
@@ -456,7 +456,7 @@ def test_improved_review_rejects_terminal_role_output_failure(
     )
     draft_loop.run_iteration("demo", "mock")
 
-    with pytest.raises(ValueError, match="infrastructure failures"):
+    with pytest.raises(ValueError, match="no comparable Draft sides"):
         draft_loop.record_review(
             "demo",
             "mock",
@@ -808,19 +808,155 @@ def test_draft_loop_requires_matching_cited_role_review_when_investigation_exist
             evidence=["iterations/001-run.json#rows[0]"],
         )
 
+    with pytest.raises(ValueError, match="rendered comparison table"):
+        draft_loop.record_review(
+            "demo",
+            "mock",
+            decision="unchanged",
+            route="solidify",
+            reason="role review cited but the comparison table is missing",
+            evidence=[
+                "iterations/001-run.json#rows[0]",
+                "iterations/001-role-review.json",
+            ],
+        )
+
+    table_path = (
+        spec.project_package_path()
+        / "draft"
+        / ".state"
+        / "mock"
+        / "iterations"
+        / "001-run-comparison-table.md"
+    )
+    table_path.write_text(
+        "| case | query 输入 | live 输出 | production mock 结果 | draft mock 结果 | harness 分析 |\n"
+        "|---|---|---|---|---|---|\n"
+        "| case-1 | q | out | a | b | - |\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="harness analysis is not filled"):
+        draft_loop.record_review(
+            "demo",
+            "mock",
+            decision="unchanged",
+            route="solidify",
+            reason="table exists but the harness analysis is still a placeholder",
+            evidence=[
+                "iterations/001-run.json#rows[0]",
+                "iterations/001-role-review.json",
+                "iterations/001-run-comparison-table.md",
+            ],
+        )
+
+    table_path.write_text(
+        "| case | query 输入 | live 输出 | production mock 结果 | draft mock 结果 | harness 分析 |\n"
+        "|---|---|---|---|---|---|\n"
+        "| case-1 | q | out | a | b | 两侧生成覆盖一致，无差异 |\n",
+        encoding="utf-8",
+    )
     state = draft_loop.record_review(
         "demo",
         "mock",
         decision="unchanged",
         route="solidify",
-        reason="role review and frozen run report are both cited",
+        reason="role review, run report and comparison table are all cited",
         evidence=[
             "iterations/001-run.json#rows[0]",
             "iterations/001-role-review.json",
+            "iterations/001-run-comparison-table.md",
         ],
     )
     assert state.status == "active"
     assert review_path.is_file()
+
+
+def test_draft_loop_run_blocked_by_unresolved_gate_feedback(tmp_path: Path, monkeypatch):
+    spec = _project(tmp_path)
+    monkeypatch.setattr(draft_loop, "load_project", lambda project_id: spec)
+    monkeypatch.setattr(
+        draft_loop,
+        "run_frozen_iteration",
+        lambda project_id, role, cases, **kwargs: {"rows": cases, "run_status": "completed"},
+    )
+    draft_loop.start_loop(
+        "demo",
+        "mock",
+        {"iteration_cases": [{"case_key": "case-1"}]},
+        objective="improve generation",
+        review="must be better",
+        max_iterations=2,
+    )
+    feedback = (
+        spec.project_package_path()
+        / "draft"
+        / ".state"
+        / "mock"
+        / "solidify-gate-feedback.json"
+    )
+    feedback.write_text('{"gate":"AUTHORITY_GATE"}', encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="unresolved Draft gate feedback"):
+        draft_loop.run_iteration("demo", "mock")
+
+    feedback.unlink()
+    draft_loop.run_iteration("demo", "mock")
+
+
+def test_judge_comparison_table_requires_spec_anchor_and_matching_cases(tmp_path: Path):
+    report_path = tmp_path / "001-run.json"
+    report_path.write_text(
+        json.dumps({
+            "run_status": "completed",
+            "rows": [{"case_key": "case-1"}, {"case_key": "case-2"}],
+        }),
+        encoding="utf-8",
+    )
+    table_path = tmp_path / "001-run-comparison-table.md"
+    header = (
+        "| case | query 输入 | live 输出 | production judge 结果 | draft judge 结果 | harness 分析 |\n"
+        "|---|---|---|---|---|---|\n"
+    )
+
+    table_path.write_text(
+        header + "| case-1 | q | out | F | NF | draft 对，反面 #1 如实拒绝不算办成 |\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="does not match the frozen run report"):
+        draft_loop._require_comparison_table("judge", report_path)
+
+    table_path.write_text(
+        header
+        + "| case-1 | q | out | F | NF | draft 对，反面 #1 如实拒绝不算办成 |\n"
+        + "| case-2 | q | out | F | NF | 两侧都对 |\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="must cite fulfilled.md"):
+        draft_loop._require_comparison_table("judge", report_path)
+
+    table_path.write_text(
+        header
+        + "| case-1 | q | out | F | NF | draft 对，反面 #1 如实拒绝不算办成 |\n"
+        + "| case-2 | q | out | F | NF | 歧义-缺 normative 资料：术语表未裁决 |\n",
+        encoding="utf-8",
+    )
+    assert draft_loop._require_comparison_table("judge", report_path) == table_path
+
+    table_path.write_text(
+        header
+        + "| case-1 | q | out | F | NF | draft 对，反面 #1 如实拒绝不算办成 |\n"
+        + "| case-2 | q | out | F | NF | 检索缺口：空间资料在，本轮未 Load |\n",
+        encoding="utf-8",
+    )
+    assert draft_loop._require_comparison_table("judge", report_path) == table_path
+
+    table_path.write_text(
+        header
+        + "| case-1 | q | out | F | NF | draft 对，反面 #1 如实拒绝不算办成 |\n"
+        + "| case-2 | q | out | F | NF | 不计分。人判不完：无尺子 |\n",
+        encoding="utf-8",
+    )
+    assert draft_loop._require_comparison_table("judge", report_path) == table_path
 
 
 def test_draft_iteration_classifies_balance_and_auth_as_unrecoverable_provider_failures():

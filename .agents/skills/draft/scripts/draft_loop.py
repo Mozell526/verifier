@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import tempfile
 from typing import Any, Mapping, Optional
@@ -13,8 +14,8 @@ from typing import Any, Mapping, Optional
 from impl.core.draft_role_review import (
     draft_role_review_path,
     require_draft_role_review,
+    require_improved_run_report,
     role_review_required,
-    run_report_invalid_sides,
 )
 from impl.core.investigation import detect_source_revision
 from impl.core.path_contract import (
@@ -52,6 +53,15 @@ _DECISION_ROUTES = {
     "insufficient_evidence": {"investigate", "solidify"},
     "blocked": {"blocked"},
 }
+# Presence of a gate feedback file means the owning gate failed and has not
+# been re-run to success; the loop must not consume budget on top of it.
+_GATE_FEEDBACK_FILES = (
+    "investigation-gate-feedback.json",
+    "solidify-gate-feedback.json",
+)
+# Judge harness analysis must cite a fulfilled.md anchor: a 判断顺序 step,
+# a § scenario/clause, a 反面 checklist item, 歧义-缺, 检索缺口, or 不计分.
+_JUDGE_HARNESS_ANCHOR = re.compile(r"§|反面|判断顺序|歧义|检索缺口|不计分")
 
 
 def start_loop(
@@ -193,6 +203,17 @@ def run_iteration(
     _assert_identity(state, project_id, role)
     if state.status not in {"active"}:
         raise ValueError(f"Draft Loop is not active: status={state.status}")
+    pending_feedback = [
+        state_path.parent / name
+        for name in _GATE_FEEDBACK_FILES
+        if (state_path.parent / name).is_file()
+    ]
+    if pending_feedback:
+        raise RuntimeError(
+            "unresolved Draft gate feedback blocks this run; follow the "
+            "harness_prompt and re-run the owning gate until it passes: "
+            + ", ".join(str(path) for path in pending_feedback)
+        )
     if state.iterations and not state.iterations[-1].decision:
         raise ValueError("previous Draft iteration still awaits Harness review")
     if len(state.iterations) >= state.max_iterations:
@@ -368,18 +389,19 @@ def record_review(
             raise ValueError(
                 "Judge/Mock Draft Loop review must cite the validated role review artifact"
             )
+        # A blocked review records an infrastructure failure; there are no
+        # comparable per-case results to tabulate.
+        if decision != "blocked":
+            table_path = _require_comparison_table(role, report_path)
+            if not _evidence_mentions_path(state_path, evidence, table_path):
+                raise ValueError(
+                    "Judge/Mock Draft Loop review must cite the per-case comparison table"
+                )
     evidence = _validate_review_evidence(spec, state_path, latest, evidence)
     if decision == "improved":
         report_path = _resolve_reference(spec, latest.run_report, "draft_loop.run_report")
         report = json.loads(report_path.read_text(encoding="utf-8"))
-        if report.get("run_status") != "completed" or not report.get("rows"):
-            raise ValueError("improved review requires a completed non-empty Current/Draft report")
-        invalid_sides = _invalid_runtime_sides(report)
-        if invalid_sides:
-            raise ValueError(
-                "improved review cannot use a run with infrastructure failures: "
-                + ", ".join(invalid_sides)
-            )
+        require_improved_run_report(report)
     latest.decision = decision
     latest.route = route
     latest.reason = reason.strip()
@@ -394,9 +416,72 @@ def record_review(
     return state
 
 
-def _invalid_runtime_sides(report: Mapping[str, Any]) -> list[str]:
-    """Compatibility wrapper around the shared deterministic run gate."""
-    return run_report_invalid_sides(report)
+def _require_comparison_table(role: str, report_path: Path) -> Path:
+    """Deterministic per-case comparison-table gate for Judge/Mock reviews.
+
+    The renderer emits facts and `-` placeholders; the Harness must fill the
+    final analysis column for every frozen case before the review is accepted.
+    Judge analyses must additionally cite a fulfilled.md anchor so the review
+    yardstick stays on the spec instead of drifting to live/production output.
+    """
+    table_path = report_path.with_name(report_path.stem + "-comparison-table.md")
+    if not table_path.is_file():
+        raise ValueError(
+            f"Draft Loop review requires the rendered comparison table: {table_path}"
+        )
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    expected_cases = {
+        str(row.get("case_key"))
+        for row in report.get("rows") or []
+        if isinstance(row, Mapping) and row.get("case_key") is not None
+    }
+    rows = _parse_comparison_rows(table_path)
+    table_cases = {case for case, _ in rows}
+    if expected_cases and table_cases != expected_cases:
+        missing = sorted(expected_cases - table_cases)
+        extra = sorted(table_cases - expected_cases)
+        raise ValueError(
+            "comparison table does not match the frozen run report cases: "
+            f"missing={missing} extra={extra}"
+        )
+    unfilled = sorted(case for case, analysis in rows if analysis in {"", "-"})
+    if unfilled:
+        raise ValueError(
+            "comparison table harness analysis is not filled for: "
+            + ", ".join(unfilled)
+        )
+    if role == "judge":
+        unanchored = sorted(
+            case for case, analysis in rows
+            if not _JUDGE_HARNESS_ANCHOR.search(analysis)
+        )
+        if unanchored:
+            raise ValueError(
+                "judge comparison-table harness analysis must cite fulfilled.md "
+                "anchors (判断顺序 step, § clause, 反面 item, 歧义-缺, 检索缺口, or 不计分) for: "
+                + ", ".join(unanchored)
+            )
+    return table_path
+
+
+def _parse_comparison_rows(table_path: Path) -> list[tuple[str, str]]:
+    """Return (case_key, harness_analysis) pairs from the rendered table."""
+    rows: list[tuple[str, str]] = []
+    header_seen = False
+    for line in table_path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("|"):
+            continue
+        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+        if not header_seen:
+            header_seen = True
+            continue
+        if cells and all(cell and set(cell) <= {"-", ":", " "} for cell in cells):
+            continue  # markdown separator row
+        if len(cells) < 2:
+            continue
+        rows.append((cells[0], cells[-1]))
+    return rows
 
 
 def _state_path(spec: Any, role: str) -> Path:

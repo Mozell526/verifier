@@ -1,6 +1,6 @@
 ---
 name: draft
-description: 围绕 objective 调查真实业务项目，固化为候选 Role/Context/Tool，在冻结数据上持续比较 current/draft，只有被证明更优且无退化才建议 promotion。
+description: 围绕 objective 调查真实业务项目，固化为候选 Role/Context/Tool，在冻结数据上持续比较 current/draft，有把握的净胜才建议进入 promotion 检查。
 ---
 
 # Draft Skill
@@ -57,7 +57,7 @@ Manifest 使用 `InvestigationManifest`，只索引真实 `EvidenceRef`、`ToolR
 
 执行者找模板和门禁脚本时读取 `MAP.md`。未执行 `validate_investigation.py`，或门禁失败时，不得进入 Solidify。
 
-门禁失败后，Harness AI 必须读取 `draft/.state/<role>/investigation-gate-feedback.json`（Investigate）或 `draft/.state/<role>/solidify-gate-feedback.json`（Solidify）中的 `harness_prompt`。当 `authority_problem=true` 时，不得把失败当作普通 JSON/测试格式问题：先按 `owner_stage` 返回对应阶段，依据 `diagnosis`、`missing_proof` 和 `improvement_options` 调查实现，再用 `pass_condition` 重跑验证。`prohibited_shortcuts` 是防止迎合门禁的硬约束；反馈给出的是调查方向，不是允许机械照抄的唯一补丁。Runtime 只提供 Tool audit、Search/Load、Environment snapshot 等观察事实，反馈和工程整改均属于 Draft Harness 控制面，不得写入 Production Judge 或业务三态。
+门禁失败后，Harness AI 必须读取 `draft/.state/<role>/investigation-gate-feedback.json`（Investigate）或 `draft/.state/<role>/solidify-gate-feedback.json`（Solidify）中的 `harness_prompt`。feedback 文件存在即代表该门禁未解决：`draft_loop.py run` 会确定性拒绝执行，直到对应门禁重跑通过（通过时自动清除 feedback）。当 `authority_problem=true` 时，不得把失败当作普通 JSON/测试格式问题：先按 `owner_stage` 返回对应阶段，依据 `diagnosis`、`missing_proof` 和 `improvement_options` 调查实现，再用 `pass_condition` 重跑验证。`prohibited_shortcuts` 是防止迎合门禁的硬约束；反馈给出的是调查方向，不是允许机械照抄的唯一补丁。Runtime 只提供 Tool audit、Search/Load、Environment snapshot 等观察事实，反馈和工程整改均属于 Draft Harness 控制面，不得写入 Production Judge 或业务三态。
 
 结构门禁通过不等于调查足够。进入 Solidify 前，Harness AI 还必须按 objective 和 ROLE.md 做语义交接审查：关键业务链是否连到当前 gap、链路节点是否有真实 EvidenceRef、决定结论的当前事实是否有可执行 Tool 路径，操作索引能否从当前 trace 导航到最小决定性验证。Attribute 的通用架构图不能替代 case 所需的分支、匹配、捕获或后处理观察。若 objective 依赖的 ToolRequirement 仍有 `implementation_gap`，必须明确路由为“Solidify 补实现”或“本轮只能 unresolved”；不得一边承认关键验证缺失，一边围绕无关机制写候选 Role。
 
@@ -172,25 +172,31 @@ Loop 开始时冻结 production Current revision、objective、review 和 iterat
 Skill 只在以下条件成立时停止为成功：
 
 ```text
-Draft proven better than frozen Current under objective/config.review
-AND no visible regression on iteration cases
+Draft 相对冻结 Current，在 objective/config.review 下有把握的净胜 > 0
 ```
 
-相同、局部改善伴随退化、证据不足、字段更多、文本更长、confidence 更高都不算成功。Review 将问题路由为：
+有把握：能一句话说清 Draft 更好或更差，依据是本轮 objective/review，不要求每个 Role 先订一本规范。人判不完、两边都像对、资料不够、这轮没判完 → 不计分，且禁止拿这些案改候选。单案不否决整轮。净胜 = 有把握更好的条数 − 有把握更差的条数。字段更多、文本更长、confidence 更高、跟 production 打分更像，都不算更好。
+
+Role-specific 填写规则见该 Role 的 `ROLE.md`；不要在 SKILL 正文展开 Role 判定口径，也不为每个 Role 补规范文件。长期再优化决策函数；短期按净胜拍。
+
+Review 将问题路由为：
 
 - 调查材料/关键未知不足 → Investigate；其中 Runtime 侧“职责外/依据不充分”类
   not_evaluable 暴露的缺料清单（`spec/alg/authority.md` §8.5）必须路由回 Investigate
   补证，不能留在判定层反复 not_evaluable；
 - Context/Tool/候选 Role 使用方式不足 → Solidify；
 - loader、数据、协议或环境失败 → blocker；
-- 被证明更优且无退化 → promotion-only checks。
+- 净胜 > 0 允许记 improved → promotion-only checks（仍须人工确认 Promote；unseen 只在这一步跑）。还要继续改候选就记 unchanged，不要进 promotion_checks。
 
-unseen cases 只在 promotion-only checks 使用，不逐轮暴露给 Harness AI。达到 max_iterations、预算、连续无新信息或环境阻塞时诚实停止，不降低标准。
+unseen cases 只在 promotion-only checks 使用，不逐轮暴露给 Harness AI。达到 max_iterations、预算、连续无新信息或环境阻塞时诚实停止。
 
-Judge/Mock 每轮先用 `scripts/review_iteration.py` 生成 `draft/.state/<role>/iterations/<NNN>-role-review.json`，覆盖合同 source IDs 和全部 Role 专属 criterion；只有 `improved/promotion_checks` 时全部 criterion 都必须通过。Draft Loop review 必须同时引用该 receipt 与最新 Current/Draft run report。
+Judge/Mock 每轮先用 `scripts/review_iteration.py` 生成 `draft/.state/<role>/iterations/<NNN>-role-review.json`，覆盖合同 source IDs 和全部 Role 专属 criterion。`improved` 只要求 `relative_improvement_no_regression` 为 pass，以及 Draft 侧还有可比较的行（不能整侧执行失败）；其余 criterion 照记，fail 不否决 improved。Draft Loop review 必须同时引用该 receipt 与最新 Current/Draft run report。
 
 `/draft loop` 使用 `scripts/draft_loop.py start/run/review/status` 保存冻结事实和每轮判断。
-每轮 review 必须随 role-review receipt 产出 Current/Draft 逐 case 对比表：用 `scripts/render_loop_comparison_table.py` 从冻结 iteration-cases 与 run report 确定性渲染，表文件与 run report 同目录落盘（`<NNN>-comparison-table.md`）并在 review 中引用。基础列固定为 `case / query 输入 / live 输出 / production <role> 结果 / draft <role> 结果`，逐 case 保留两侧原始判定，禁止只贴聚合指标；场景列按被测场景扩展——judge 权威场景自动追加 `authority(production) / authority(draft)`（调用数 + resolution 状态），其他场景用 `--scenario-columns` 注入对应列。Python 脚本只负责：预校验全部 case、冻结身份、环境依赖预检、执行两侧 Role、逐 case 原子落盘、保存异常和阻止非法状态；它不解释业务结果，也不决定 Draft 是否更好。协议 `run` 只产原始 Current/Draft 事实；Harness AI 必须按 ROLE.md/config.review 审查，并通过 `review` 明确记录 decision、route、reason 和真实报告指针后才能进入下一轮。修改 frozen Current 或 iteration cases 时必须重新 start，不得继续旧比较。业务源码 revision 变化只记录 drift，不自动触发 Draft 更新；是否更新 Investigation/Solidify/Candidate Role 由用户启动 Draft 后决定。
+`run` 在存在未解决的 `investigation-gate-feedback.json` / `solidify-gate-feedback.json` 时拒绝执行；
+对应门禁（`validate_investigation.py` / `solidify.py`）重跑通过会自动清除反馈文件。
+`review` 确定性校验对比表：文件必须存在、cases 对齐、harness 分析已填；各 Role 的填写规则只在该 Role 的 `ROLE.md`。evidence 必须引用该表；不满足则 review 不落盘。
+每轮 review 必须随 role-review receipt 产出 Current/Draft 逐 case 对比表：用 `scripts/render_loop_comparison_table.py` 从冻结 iteration-cases 与 run report 确定性渲染，表文件与 run report 同目录落盘（`<NNN>-comparison-table.md`）并在 review 中引用。基础列固定为 `case / query 输入 / live 输出 / production <role> 结果 / draft <role> 结果 / harness 分析`（`harness 分析` 为必出最后一列，排在场景列之后），逐 case 保留两侧原始判定，禁止只贴聚合指标；场景列按被测场景扩展——judge 权威场景自动追加 `authority(production) / authority(draft)`（调用数 + resolution 状态），其他场景用 `--scenario-columns` 注入对应列。渲染后 Harness AI 必须逐 case 填写 `harness 分析`；Python 渲染器对该列只填 `-`，不得撰写分析。Python 脚本只负责：预校验全部 case、冻结身份、环境依赖预检、执行两侧 Role、逐 case 原子落盘、保存异常和阻止非法状态；它不解释业务结果，也不决定 Draft 是否更好。协议 `run` 只产原始 Current/Draft 事实；Harness AI 必须按 ROLE.md/config.review 审查，并通过 `review` 明确记录 decision、route、reason 和真实报告指针后才能进入下一轮。修改 frozen Current 或 iteration cases 时必须重新 start，不得继续旧比较。业务源码 revision 变化只记录 drift，不自动触发 Draft 更新；是否更新 Investigation/Solidify/Candidate Role 由用户启动 Draft 后决定。
 
 `draft_loop.py run --workers <N>`：`--workers 0`（默认）按
 `execution.batch_concurrency_default/max` 自动并行；case 之间相互独立，允许并发执行
@@ -200,41 +206,7 @@ Current/Draft。每行 run report 记录实际 `workers` 与墙钟 `elapsed_seco
 单个 case 的端点故障不得冻结整批并行。业务/校验类错误按 Role 行为事实记录，不驱动
 退避；端点故障退避重试仍失败时按工具失败落盘，review 依据 audit 判 side 有效性。
 
-Judge Loop 每侧 run report 额外落盘 authority.resolve 的运行时快照（
-`authority_tool_call_ids` / `authority_audit` / `environment_snapshot_sha256`），
-review 必须核对：被 assessment 引用的调用是否真实存在于 audit（引用缺失 →
-needs_human_review）、是否有 `tool_failure`（能力不可用，如限流）被当作相对改善。
-`run_report_invalid_sides` 会把"authority 工具失败且被引用"的 side 判为无效，
-防止把限流失败当成 Draft 相对改善；职责外/依据不充分类 not_evaluable 必须有
-authority 调用记录（`spec/alg/authority.md` §8.4），没查证不等于查不了。
-
-### Judge Authority 判后责任门禁
-
-Judge 的前置 `authority_obligation_contract.pre_obligations` 只用于引导，不是免责清单。
-每侧最终结果进入 review/history 前，Harness 必须对判决实际动用的规范性断言做判后核对：
-
-1. 先用确定性集合核对随附 compact manifest、enum、mapping、operator 与 MaterialDecision 投影；
-2. 对散文规则只允许窄域语义审计，任务限于识别“判决引用了哪些随附资料中不存在的规则”，不得重新判案；
-3. 用 `claim.subject` 对账真实 `authority.resolve(question, claim)` audit；旧 question-only 调用不能冒充 claim 担保；
-4. 输出控制面 `checked_claims`、`assessment_actions` 和 findings，不向 Core `JudgeResult` 增加项目专属字段。
-
-未背书断言必须按可验证事实归责，优先级为：
-
-- `compaction_miss`：全量 MaterialDecision 管辖，但 compact projection 漏出；整改 Solidify/压缩资产，不罚 Judge；
-- `availability_miss`：随附资料不足且本 case 未构造 Authority；整改 Investigate/可用性门禁，不罚 Judge；
-- `judge_failed_to_call`：Authority 已可用，Judge 仍以未担保断言支撑肯定结论；依赖 assessment 建议降为 `not_evaluable`，该 case 不得计为 Draft 赢案。
-
-`contradicted` 不能支撑肯定结论并进入人工复核；`ungoverned`、`gap_only`（及兼容旧
-`unresolved`）只允许依赖项为 `not_evaluable`。若 compact 资料已经直接背书，则不得为了
-调用率强制 Authority，也不得产生 availability/judge finding。每条 finding 必须有具体
-`remediation_target`，不能只写“Authority 有问题”。
-
-Judge Loop 业务样本前必须运行四象限探针：有 Authority+可裁决、有 Authority+缺口、
-无 Authority+compact 资料背书、无 Authority+真实缺口。探针套件须改造冻结真实案例，
-每象限至少 3 条；控制面合成探针只能证明门禁分支接线，不能替代这 12 条端到端模型考试。
-门禁回放考试仅以资料闭环标签计分：已知脏案检出率 >=90%、闭环干净案误报 <=1，且
-所有 finding 均可定位整改资产；任一不通过，当轮业务 Loop 作废。边界/reference 可疑案
-保留观察但不计门禁准确率。
+Judge Loop 额外核对 authority audit：被引用的调用必须真实存在，工具失败不得当成相对改善。判后责任、四象限探针与消费规则见 `judge/ROLE.md`。
 
 正式 Attribute Loop 在调用 LLM 前必须验证 Context/证据注册依赖可用，并在每侧 Role 返回后检查本次运行审计。预检只能减少无效消耗，不能证明长运行期间依赖持续可用；任何 Context Search/Load 基础设施异常、证据注册失败或 runtime Reviewer 基础设施异常都使本轮报告失败并保留已完成事实。无效 ID、权限、预算等请求错误作为 Role 行为事实留给 Harness review，不得和基础设施失败混为一类。不得靠重试把失败伪装为有效比较。
 

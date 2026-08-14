@@ -21,4 +21,4 @@ EvidenceRef 指向业务价值、输入协议、实体规则、字段约束、�
 候选生成路径按 `MockDemandSpace → BusinessValue/EvaluationDimension → coverage requirement → variation → validity constraints` 消费调查资产。稳定合同注册为 Mock 可见 mandatory ContextUnit；若项目没有配置 Investigation/Context asset，则等价于 `ContextUnit=[]`。配置了 Investigation asset时必须生成 Solidify receipt，证明合同 source IDs 已映射到候选资产并在成功 runtime observable 中被消费。
 
 ## Draft Loop review
-每轮必须生成标准 Role review receipt，逐项检查：需求空间覆盖、维度可评估性、具体事实内部一致、variation、无 case/Judge hardcode、候选真实消费调查资产、相对 Current 改善且无退化。只有全部通过才允许 `improved/promotion_checks`；Draft Loop evidence 必须同时引用 Role review receipt 和最新 run report。
+每轮必须生成标准 Role review receipt，逐项检查：需求空间覆盖、维度可评估性、具体事实内部一致、variation、无 case/Judge hardcode、候选真实消费调查资产、相对 Current 的有把握净胜。`improved` 只看 `relative_improvement_no_regression` 净胜 > 0；人判不完的案不计分、不改候选。Draft Loop evidence 必须同时引用 Role review receipt 和最新 run report。

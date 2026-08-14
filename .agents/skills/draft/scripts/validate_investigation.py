@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -23,6 +24,43 @@ def _load_tool_inputs(value: str) -> dict:
     if not isinstance(loaded, dict):
         raise TypeError("--tool-inputs must be a JSON object keyed by tool_id")
     return loaded
+
+
+def _require_key_index_selection_receipts(
+    package: Path, project_root: Path, project_id: str, role: str
+) -> None:
+    """A Manifest-registered Key-Index is a formal asset; it must be backed by
+    a passing selection-phase receipt from validate_key_index_experiment.py
+    whose report is still byte-identical."""
+    manifest = json.loads((package / "manifest.json").read_text(encoding="utf-8"))
+    registered = {
+        str(item.get("index_key") or "").strip()
+        for item in manifest.get("key_indexes") or []
+        if str(item.get("index_key") or "").strip()
+    }
+    if not registered:
+        return
+    gates_dir = project_root / "draft" / ".state" / role / "key-index-gates"
+    covered: set[str] = set()
+    for receipt_path in sorted(gates_dir.glob("*-selection.json")) if gates_dir.is_dir() else []:
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        if receipt.get("project_id") != project_id or receipt.get("role") != role:
+            continue
+        if receipt.get("phase") != "selection" or receipt.get("decision_status") != "selected":
+            continue
+        report_path = project_root / str(receipt.get("report_location") or "")
+        if not report_path.is_file():
+            continue
+        if hashlib.sha256(report_path.read_bytes()).hexdigest() != receipt.get("report_sha256"):
+            continue
+        covered.update(str(key) for key in receipt.get("index_keys") or [])
+    missing = sorted(registered - covered)
+    if missing:
+        raise ValueError(
+            "Manifest key_indexes registered without a passing Key-Index selection "
+            "receipt (run validate_key_index_experiment.py --phase selection on the "
+            "frozen experiment report first): " + ", ".join(missing)
+        )
 
 
 def main() -> int:
@@ -57,6 +95,7 @@ def main() -> int:
         if item["mapping"].kind == "tool" and item["available"]
     }
     tool_inputs = _load_tool_inputs(args.tool_inputs) if args.tool_inputs else None
+    feedback_path = project_root / "draft" / ".state" / args.role / "investigation-gate-feedback.json"
     try:
         result = validate_investigation_package(
             package,
@@ -69,16 +108,20 @@ def main() -> int:
             tool_test_inputs=tool_inputs,
             source_root=spec.source_root_path() if spec.has_business_source else None,
         )
+        _require_key_index_selection_receipts(
+            package, project_root, args.project, args.role
+        )
     except Exception as exc:  # noqa: BLE001 - CLI must preserve gate diagnosis
         feedback = build_authority_gate_feedback(
             project_id=args.project, role=args.role, owner_stage="investigate", error=exc
         )
-        feedback_path = project_root / "draft" / ".state" / args.role / "investigation-gate-feedback.json"
         write_gate_feedback(feedback_path, feedback)
         print(f"{type(exc).__name__}: {exc}", file=sys.stderr)
         print(feedback["diagnosis"], file=sys.stderr)
         print(f"Harness feedback: {feedback_path}", file=sys.stderr)
         return 1
+    # The gate passed: stale feedback must not keep blocking the Draft Loop.
+    feedback_path.unlink(missing_ok=True)
     if args.execute_tools:
         receipt = write_investigation_validation_receipt(
             spec,

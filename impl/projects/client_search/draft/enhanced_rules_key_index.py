@@ -44,15 +44,27 @@ def retrieve_enhanced_rules_for_fields(
     spec_id: str = "client_search",
     limit: int = _RETRIEVE_LIMIT,
 ) -> dict[str, Any]:
-    """按键命中：返回 trace 涉及字段的规则片段（与 Draft compact 结构一致）。
+    """按键命中：返回 trace 涉及字段的规则定位键（不是 operator/pattern 正文）。
 
-    rules 是命中字段的扁平规则列表；negation_words 总是携带（共享小词表）。
+    merge_to_llm=false 的生成配方不注入。rules 仅含 name/field 定位键；
+    negation_words 总是携带（共享小词表）。
     """
     index = build_enhanced_rules_key_index(spec_id)
     wanted = {str(field).strip() for field in fields if str(field).strip()}
     rules: list[dict[str, Any]] = []
     for field in sorted(wanted):
-        rules.extend(index.get(field) or [])
+        for rule in index.get(field) or []:
+            if not isinstance(rule, dict):
+                continue
+            if rule.get("merge_to_llm") is False:
+                continue
+            locator = {
+                key: rule[key]
+                for key in ("name", "field")
+                if key in rule and str(rule.get(key) or "").strip()
+            }
+            if locator:
+                rules.append(locator)
     compact: dict[str, Any] = {}
     if rules:
         compact["rules"] = rules[:limit]

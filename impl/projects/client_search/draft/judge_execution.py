@@ -25,6 +25,128 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from impl.core.llm_client import LlmClient
 
+
+_MISSING_CORE_DELIVERY_ID = "核心业务交付"
+_ABORT_EVIDENCE_MARKERS = ("llm_call_failed", "tool_budget_exceeded", "tool_budget abort")
+
+
+def _authority_enabled(spec: ProjectSpec) -> bool:
+    return bool(((spec.verifier or {}).get("authority") or {}).get("enabled", True))
+
+
+def _item_status(item: Any) -> str:
+    if isinstance(item, dict):
+        return str(item.get("status") or "").strip().lower()
+    return str(getattr(item, "status", "") or "").strip().lower()
+
+
+def _set_item_status(item: Any, status: str) -> None:
+    if isinstance(item, dict):
+        item["status"] = status
+    else:
+        item.status = status
+
+
+def _evidence_marks_judge_abort(result: JudgeResult) -> bool:
+    chunks: list[str] = [str(result.reasoning_summary or "")]
+    for item in result.evidence or []:
+        if isinstance(item, str):
+            chunks.append(item)
+        elif isinstance(item, dict):
+            chunks.append(json.dumps(item, ensure_ascii=False))
+        else:
+            chunks.append(str(item))
+    blob = " ".join(chunks)
+    return any(marker in blob for marker in _ABORT_EVIDENCE_MARKERS)
+
+
+def _attach_missing_core_delivery_nf(result: JudgeResult, *, reason: str) -> None:
+    """Honest missing-core-delivery NF shape.
+
+    finalize_judge_result re-derives overall from assessments; empty
+    assessments become not_evaluable. Authority-off fail-closed therefore
+    supplies one blocking NF assessment instead of leaving the RoleResult
+    as not_evaluable.
+    """
+    if list(result.fulfillment_assessments or []):
+        return
+    expectation_id = _MISSING_CORE_DELIVERY_ID
+    expectations = list(result.business_expectations or [])
+    expectations.append(BusinessExpectation(
+        expectation_id=expectation_id,
+        blocking=True,
+        downstream_consumer="用户请求的核心业务结果",
+        user_intent="用户请求的核心业务交付",
+        expected_outcome="交付用户请求的核心业务结果",
+        acceptance_criteria=["存在可核验的核心业务交付"],
+        priority="high",
+    ))
+    assessments = list(result.fulfillment_assessments or [])
+    assessments.append(FulfillmentAssessment(
+        expectation_id=expectation_id,
+        status="not_fulfilled",
+        actual_evidence=[reason],
+        downstream_impact="缺失 blocking 核心交付",
+    ))
+    result.business_expectations = expectations
+    result.fulfillment_assessments = assessments
+
+
+def fail_closed_authority_off_judge_result(
+    spec: ProjectSpec, result: JudgeResult
+) -> JudgeResult:
+    """Authority-off Draft return path: RoleResult cannot emit overall NE.
+
+    Core `_minimal_honest_judge_result` / `_derive_overall_status` stay
+    unchanged so frozen Current (Authority-on abort → NE) is untouched.
+    """
+    if _authority_enabled(spec):
+        return result
+
+    for assessment in result.fulfillment_assessments or []:
+        if _item_status(assessment) == "not_evaluable":
+            _set_item_status(assessment, "not_fulfilled")
+
+    abort = _evidence_marks_judge_abort(result)
+    empty = not list(result.fulfillment_assessments or [])
+    overall = dict(result.overall_fulfillment or {})
+    derived = _derive_overall_status(
+        list(result.business_expectations or []),
+        list(result.fulfillment_assessments or []),
+    )
+    if empty or abort or derived == "not_evaluable" or str(overall.get("status") or "").strip().lower() == "not_evaluable":
+        if empty or abort:
+            reason = "missing blocking core delivery"
+            if abort:
+                reason = str(result.reasoning_summary or "").strip() or "llm_call_failed"
+            _attach_missing_core_delivery_nf(result, reason=reason)
+        derived = _derive_overall_status(
+            list(result.business_expectations or []),
+            list(result.fulfillment_assessments or []),
+        )
+        if derived == "not_evaluable":
+            _attach_missing_core_delivery_nf(
+                result, reason="missing blocking core delivery"
+            )
+            derived = _derive_overall_status(
+                list(result.business_expectations or []),
+                list(result.fulfillment_assessments or []),
+            )
+        if derived == "not_evaluable":
+            derived = "not_fulfilled"
+
+    overall["status"] = derived
+    overall["assessment_count"] = len(result.fulfillment_assessments or [])
+    overall["blocking_expectations"] = [
+        str(item.get("expectation_id") if isinstance(item, dict) else getattr(item, "expectation_id", "") or "")
+        for item in (result.business_expectations or [])
+        if bool(item.get("blocking") if isinstance(item, dict) else getattr(item, "blocking", False))
+    ]
+    result.overall_fulfillment = overall
+    result.summary = summary_from_fulfillment(to_dict(result))
+    return result
+
+
 def build_judge_evidence_view(trace: RunTrace) -> Dict[str, Any]:
     """把完整 RunTrace 确定性投影为 Judge 可消费的业务事实。
 
@@ -87,8 +209,10 @@ def _judge_self_check(
     *,
     require_expected: bool = False,
     capability_fields: Optional[Set[str]] = None,
+    status_vocab: Optional[Set[str]] = None,
 ) -> list[Dict[str, Any]]:
     """Detect fulfillment inconsistencies before constructing JudgeResult."""
+    vocab = set(status_vocab) if status_vocab is not None else set(_FULFILLMENT_STATUS_VOCAB)
     inconsistencies: list[Dict[str, Any]] = []
     assessments = data.get("fulfillment_assessments") or []
     valid_ids = {
@@ -109,12 +233,12 @@ def _judge_self_check(
                 "where": f"fulfillment_assessments[{index}].expectation_id",
                 "value": expectation_id,
             })
-        if status and status not in _FULFILLMENT_STATUS_VOCAB:
+        if status and status not in vocab:
             inconsistencies.append({
                 "kind": "status_off_vocabulary",
                 "where": f"fulfillment_assessments[{index}].status",
                 "value": status,
-                "expected": "|".join(sorted(_FULFILLMENT_STATUS_VOCAB)),
+                "expected": "|".join(sorted(vocab)),
             })
         call_ids = [
             str(call_id)
@@ -162,10 +286,17 @@ def _judge_self_check(
                             "where": f"expected.conditions[{index}].field",
                             "value": field,
                             "expected": (
-                                "expected 只能引用 capability_manifest 内的字段；"
-                                "清单外维度的能力/职责归属必须先经 authority.resolve 裁决"
-                                "（authority.md §8.1/§8.2），不得用清单外伪字段构造期望，"
-                                "也不得自行断定“职责外→not_evaluable”"
+                                (
+                                    "expected 只能引用 capability_manifest 内的字段；"
+                                    "清单外维度的能力/职责归属必须先经 authority.resolve 裁决"
+                                    "（authority.md §8.1/§8.2），不得用清单外伪字段构造期望，"
+                                    "也不得自行断定“职责外→not_evaluable”"
+                                )
+                                if "not_evaluable" in vocab
+                                else (
+                                    "expected 只能引用 capability_manifest 内的字段；"
+                                    "不得用清单外伪字段构造期望"
+                                )
                             ),
                         })
     return inconsistencies
@@ -188,6 +319,15 @@ def judge_trace(
     spec/info-volume.md 后只产 fulfillment + expected/actual + gaps，不再产 verdict。
     """
     from impl.core.context.project import load_role_mandatory_context
+
+    authority_enabled = bool(
+        ((spec.verifier or {}).get("authority") or {}).get("enabled", True)
+    )
+    status_vocab = (
+        {"fulfilled", "not_fulfilled"}
+        if not authority_enabled
+        else set(_FULFILLMENT_STATUS_VOCAB)
+    )
 
     mandatory_context = load_role_mandatory_context(
         spec,
@@ -220,7 +360,10 @@ def judge_trace(
     else:
         governance_config.setdefault("trace_id", str(trace.trace_id or ""))
         governance_config.setdefault("case_id", str(getattr(trace, "case_id", "") or ""))
-    excluded_markers = governance_config.get("excluded_clause_markers") or []
+    excluded_markers = list(governance_config.get("excluded_clause_markers") or [])
+    if not authority_enabled and "not_evaluable" not in excluded_markers:
+        excluded_markers.append("not_evaluable")
+        governance_config["excluded_clause_markers"] = excluded_markers
     if excluded_markers:
         from impl.core.context_governance import slice_context_clauses
         excluded_segments = list(governance_config.get("excluded_segments") or [])
@@ -283,20 +426,36 @@ def judge_trace(
         "- reasoning_summary 必须是中文写成的判断依据\n\n"
     )
     if has_actual:
-        system += (
-            "## 输出词表\n"
-            "`fulfillment_assessments[*].status` 必须从以下 3 个值中选择：\n"
-            "  - fulfilled：该 expectation 完全满足\n"
-            "  - not_fulfilled：该 expectation 未满足\n"
-            "  - not_evaluable：当前无法评估\n"
-            "禁用 failed/passed/incorrect/wrong/met/unmet/partially_fulfilled/partial/success/fail/ok/unknown 等同义词。\n"
-            "`actual_state=empty` 表示 Live 成功返回但没有交付明确业务结果；"
-            "对本应交付的 expectation 通常判定 not_fulfilled。"
-            "`actual_state=unavailable` 表示无法取得或确认 Live actual；通常判定 not_evaluable。\n"
-            "`fulfillment_assessments[*].expected_evidence` 与 `actual_evidence` **必须是数组**（JSON array / list），"
-            "即使只有一条证据也要用 `[...]` 包裹，不可直接用字符串或对象。\n\n"
-            "不要输出 overall_fulfillment；公共层会在项目契约补充完成后根据 blocking expectations 确定性派生整体状态。\n\n"
-        )
+        if authority_enabled:
+            system += (
+                "## 输出词表\n"
+                "`fulfillment_assessments[*].status` 必须从以下 3 个值中选择：\n"
+                "  - fulfilled：该 expectation 完全满足\n"
+                "  - not_fulfilled：该 expectation 未满足\n"
+                "  - not_evaluable：当前无法评估\n"
+                "禁用 failed/passed/incorrect/wrong/met/unmet/partially_fulfilled/partial/success/fail/ok/unknown 等同义词。\n"
+                "`actual_state=empty` 表示 Live 成功返回但没有交付明确业务结果；"
+                "对本应交付的 expectation 通常判定 not_fulfilled。"
+                "`actual_state=unavailable` 表示无法取得或确认 Live actual；通常判定 not_evaluable。\n"
+                "`fulfillment_assessments[*].expected_evidence` 与 `actual_evidence` **必须是数组**（JSON array / list），"
+                "即使只有一条证据也要用 `[...]` 包裹，不可直接用字符串或对象。\n\n"
+                "不要输出 overall_fulfillment；公共层会在项目契约补充完成后根据 blocking expectations 确定性派生整体状态。\n\n"
+            )
+        else:
+            system += (
+                "## 输出词表\n"
+                "`fulfillment_assessments[*].status` 必须从以下 2 个值中选择：\n"
+                "  - fulfilled：该 expectation 完全满足\n"
+                "  - not_fulfilled：该 expectation 未满足\n"
+                "禁用 failed/passed/incorrect/wrong/met/unmet/partially_fulfilled/partial/success/fail/ok/unknown 等同义词。\n"
+                "`actual_state=empty` 表示 Live 成功返回但没有交付明确业务结果；"
+                "对本应交付的 expectation 通常判定 not_fulfilled。"
+                "`actual_state=unavailable` 表示无法取得或确认 Live actual；不得标 fulfilled；"
+                "若用户要的是一个结果，按 not_fulfilled 处理。\n"
+                "`fulfillment_assessments[*].expected_evidence` 与 `actual_evidence` **必须是数组**（JSON array / list），"
+                "即使只有一条证据也要用 `[...]` 包裹，不可直接用字符串或对象。\n\n"
+                "不要输出 overall_fulfillment；公共层会在项目契约补充完成后根据 blocking expectations 确定性派生整体状态。\n\n"
+            )
     system += (
         f"## 评估规范\n{evaluation}\n\n"
         f"## 评估边界\n{judge_boundary}\n\n"
@@ -336,8 +495,11 @@ def judge_trace(
 
     system += (
         "## 工具使用原则\n"
-        "所有工具的用途、调用时机和参数含义以 Agno tool schema 为准；"
-        "user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息。\n\n"
+        "工具如何调用以 Agno tool schema 为准。"
+        "user prompt 中塞入的 capability_manifest / value_mappings / semantic_equivalence_rules / enhanced_rules 只是导航线索，不是 Evidence。"
+        "口语别名、枚举归属、is_supported 必须经 investigation.search_index 后再 investigation.load_entry 取得；"
+        "SearchHit 不是 Evidence，也不是同义证明。"
+        "用户请求能在 Catalog 中导航时，先 Search→Load；未命中则保持沉默，依据用户意图与 Live 交付及已 Load 事实判断。\n\n"
         "## 禁止事项\n"
         "- 不要把 reference answer 当作默认主目标（除非 case 明确指定）\n"
         "- 不要把 HTTP 状态、run_status、attribute/cluster 结论当作满足依据\n"
@@ -433,9 +595,13 @@ def judge_trace(
         reprompt_inconsistencies = [{"kind": "enforce_blocked", "where": "structured_output", "detail": str(exc)}]
         data = _reprompt_judge(client, system, user, {}, reprompt_inconsistencies, trace.trace_id, output_spec=output_spec)
         if data.get("error"):
-            return _minimal_honest_judge_result(spec, trace, data)
+            return fail_closed_authority_off_judge_result(
+                spec, _minimal_honest_judge_result(spec, trace, data)
+            )
     if data.get("error"):
-        return _minimal_honest_judge_result(spec, trace, data)
+        return fail_closed_authority_off_judge_result(
+            spec, _minimal_honest_judge_result(spec, trace, data)
+        )
 
     from impl.projects.client_search.live import capability_manifest as _capability_manifest
 
@@ -449,6 +615,7 @@ def judge_trace(
         business_expectations,
         require_expected=not _has_input_reference(trace),
         capability_fields=capability_fields,
+        status_vocab=status_vocab,
     )
     if inconsistencies:
         data = _reprompt_judge(client, system, user, data, inconsistencies, trace.trace_id, output_spec=output_spec)
@@ -458,6 +625,7 @@ def judge_trace(
             business_expectations,
             require_expected=not _has_input_reference(trace),
             capability_fields=capability_fields,
+            status_vocab=status_vocab,
         )
         if inconsistencies:
             data["reasoning_summary"] = (data.get("reasoning_summary") or "") + f" [self_check_failed: {json.dumps(inconsistencies, ensure_ascii=False)}]"
@@ -489,12 +657,15 @@ def judge_trace(
             )
             business_expectations = list(data.get("business_expectations") or [])
             if not business_expectations:
-                return _applicability_conflict_judge_result(spec, trace, data)
+                return fail_closed_authority_off_judge_result(
+                    spec, _applicability_conflict_judge_result(spec, trace, data)
+                )
             inconsistencies = _judge_self_check(
                 data,
                 business_expectations,
                 require_expected=not _has_input_reference(trace),
                 capability_fields=capability_fields,
+                status_vocab=status_vocab,
             )
             if inconsistencies:
                 data["reasoning_summary"] = (
@@ -502,10 +673,13 @@ def judge_trace(
                     + f" [self_check_failed: {json.dumps(inconsistencies, ensure_ascii=False)}]"
                 )
         else:
-            return _not_applicable_judge_result(
+            return fail_closed_authority_off_judge_result(
                 spec,
-                trace,
-                reason=str(data.get("reasoning_summary") or ""),
+                _not_applicable_judge_result(
+                    spec,
+                    trace,
+                    reason=str(data.get("reasoning_summary") or ""),
+                ),
             )
 
     result = _build_judge_result_from_data(spec, trace, data, user_intent, boundary_standard)
@@ -528,7 +702,7 @@ def judge_trace(
             ),
             "tool_call_ids": sorted(authority_tool.audit.keys()),
         }]
-    return result
+    return fail_closed_authority_off_judge_result(spec, result)
 
 
 def generate_reference(

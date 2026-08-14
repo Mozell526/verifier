@@ -1,11 +1,11 @@
-"""Policy Search 单轮用户模拟。"""
+"""Policy Search 用户模拟。主体单轮；interactive scenario 才补下一轮。"""
 from __future__ import annotations
 
 import uuid
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
-from impl.core.mock_protocol import ProjectMock, SingleTurnMock
-from impl.core.schema import MockIntentOutput
+from impl.core.mock_protocol import MultiTurnInteractiveMock, ProjectMock
+from impl.core.schema import MockContinueDecision, MockIntentOutput
 from impl.projects.policy_search.rich_mock import MockDemand
 
 
@@ -31,16 +31,26 @@ SCENARIO_EXAMPLES: Dict[str, Dict[str, Any]] = {
         "query": "我销售的保单",
     },
     "context_disambiguation": {
-        "intent": "沿用上一轮张三投保人的条件并进一步限定今年生效",
-        "query": "那今年生效的呢",
+        "intent": "上一轮保额条件缺失，本轮补金额",
+        "query": "50万以上",
         "contexts": [
-            {"role": "user", "content": "查张三作为投保人的保单", "sub_agent": ""},
-            {"role": "assistant", "content": "已为你查询张三作为投保人的保单。", "sub_agent": "POLICY_SEARCH"},
+            {"role": "user", "content": "帮我查一下保额比较高的保单", "sub_agent": ""},
+            {"role": "assistant", "content": "“保额”缺少必要的条件，请补充后重试", "sub_agent": "POLICY_SEARCH"},
         ],
     },
     "clarification": {
         "intent": "表达了年缴保费筛选方向但没有提供必要金额条件",
         "query": "年缴保费的保单",
+    },
+    "clarification_reply": {
+        "intent": "上一轮只点名保额，本轮用金额短答补槽",
+        "query": "保额的保单",
+        "next_query": "50万以上",
+    },
+    "clarification_then_new_query": {
+        "intent": "上一轮在问生效时间，本轮改口提完整新问题",
+        "query": "先问生效时间",
+        "next_query": "张三且保费超过30万的保单",
     },
     "unsupported": {
         "intent": "筛选投诉次数超过三次但首期不支持的保单",
@@ -53,7 +63,27 @@ SCENARIO_EXAMPLES: Dict[str, Dict[str, Any]] = {
 }
 
 
-class PolicySearchMock(SingleTurnMock, ProjectMock):
+def _user_context_from(payload: Dict[str, Any]) -> Dict[str, Any]:
+    context: Dict[str, Any] = {"contexts": list(payload.get("contexts") or [])}
+    next_query = str(payload.get("next_query") or "").strip()
+    if next_query:
+        context["next_query"] = next_query
+    return context
+
+
+def demand_template(demand: MockDemand) -> Dict[str, Any]:
+    template: Dict[str, Any] = {
+        "contexts": list(demand.contexts),
+        "diversity_seed": demand.demand_id,
+    }
+    if demand.query:
+        template["mock_query"] = demand.query
+    if demand.next_query:
+        template["next_query"] = demand.next_query
+    return template
+
+
+class PolicySearchMock(MultiTurnInteractiveMock, ProjectMock):
     def build_user_intent_for_case(
         self,
         scenario: str,
@@ -72,7 +102,7 @@ class PolicySearchMock(SingleTurnMock, ProjectMock):
         return MockIntentOutput(
             user_intent=str(requested_intent or task.get("user_intent") or ""),
             query=str(task.get("mock_query") or ""),
-            user_context={"contexts": list(task.get("contexts") or [])},
+            user_context=_user_context_from(task),
             system_understanding="用户通过自然语言筛选保单，系统返回查询语法树而非保单列表。",
             scenario=scenario,
         )
@@ -82,10 +112,7 @@ class PolicySearchMock(SingleTurnMock, ProjectMock):
         return self.generate_mock_case(
             scenario=demand.scenario,
             intent=demand.user_intent,
-            template={
-                "mock_query": demand.query,
-                "contexts": list(demand.contexts),
-            },
+            template=demand_template(demand),
         )
 
     def build_user_intent(self, scenario: str) -> MockIntentOutput:
@@ -93,7 +120,7 @@ class PolicySearchMock(SingleTurnMock, ProjectMock):
         return MockIntentOutput(
             user_intent=str(example["intent"]),
             query=str(example["query"]),
-            user_context={"contexts": list(example.get("contexts") or [])},
+            user_context=_user_context_from(example),
             system_understanding="用户通过自然语言筛选保单，系统返回查询语法树而非保单列表。",
             scenario=scenario or "atomic_condition",
         )
@@ -132,3 +159,77 @@ class PolicySearchMock(SingleTurnMock, ProjectMock):
         extra = request.get("extra_input_params") or {}
         args = extra.get("policySearchParseArgs") or {}
         return str(args.get("query") or "")
+
+    def infer_user_intent(self, initial_request: Dict[str, Any]) -> MockIntentOutput:
+        extra = initial_request.get("extra_input_params") or {}
+        contexts = list(((extra.get("args") or {}).get("contexts") or []))
+        query = self.extract_mock_message(initial_request)
+        return MockIntentOutput(
+            user_intent=query,
+            query=query,
+            user_context={"contexts": contexts},
+            system_understanding="用户通过自然语言筛选保单，系统返回查询语法树而非保单列表。",
+            scenario="",
+        )
+
+    def decide_next_action(
+        self,
+        intent: MockIntentOutput,
+        accumulated_output: Dict[str, Any],
+    ) -> MockContinueDecision:
+        """只按 scenario 和本轮 status 决定是否追问，不调用模型。"""
+        scenario = str(getattr(intent, "scenario", "") or "")
+        if scenario not in set(self.spec.interactive_scenarios):
+            return MockContinueDecision(action="stop", stop_reason="goal_satisfied")
+        turns = [
+            turn
+            for turn in ((accumulated_output or {}).get("turns") or [])
+            if isinstance(turn, dict)
+        ]
+        if len(turns) != 1:
+            return MockContinueDecision(action="stop", stop_reason="goal_satisfied")
+        last_output = turns[0].get("extract_output") or turns[0].get("extracted_output") or {}
+        if str(last_output.get("status") or "") != "UNSUPPORTED":
+            return MockContinueDecision(action="stop", stop_reason="goal_satisfied")
+        next_query = str((intent.user_context or {}).get("next_query") or "").strip()
+        if not next_query:
+            return MockContinueDecision(action="stop", stop_reason="goal_satisfied")
+        return MockContinueDecision(action="continue")
+
+    def build_next_request(
+        self,
+        intent: MockIntentOutput,
+        accumulated_output: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        turns = [
+            turn
+            for turn in ((accumulated_output or {}).get("turns") or [])
+            if isinstance(turn, dict)
+        ]
+        last_turn = turns[-1] if turns else {}
+        last_request = dict(last_turn.get("live_request") or {})
+        last_output = last_turn.get("extract_output") or last_turn.get("extracted_output") or {}
+        previous_query = self.extract_mock_message(last_request)
+        assistant = str(last_output.get("message") or "").strip() or "请补充查询条件"
+        next_query = str((intent.user_context or {}).get("next_query") or "").strip()
+        if not next_query:
+            raise ValueError("interactive case is missing next_query")
+        extra = dict(last_request.get("extra_input_params") or {})
+        parse_args = dict(extra.get("policySearchParseArgs") or {})
+        parse_args["query"] = next_query
+        extra["policySearchParseArgs"] = parse_args
+        extra["args"] = {
+            "contexts": [
+                {"role": "user", "content": previous_query, "sub_agent": ""},
+                {"role": "assistant", "content": assistant, "sub_agent": "POLICY_SEARCH"},
+            ]
+        }
+        request = dict(last_request)
+        session_id = str(last_request.get("session_id") or f"verifier-policy-{uuid.uuid4().hex[:12]}")
+        request["session_id"] = session_id
+        request["trace_id"] = f"{session_id}-turn{len(turns) + 1}"
+        request["extra_input_params"] = extra
+        return request
+
+    def safety_max_turns(self) -> int:
+        return 3

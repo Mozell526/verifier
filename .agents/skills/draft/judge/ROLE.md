@@ -62,4 +62,35 @@ Runtime 暴露的新缺料只作为用户人工发起下一轮 Investigate 的�
 - 只使用真实 load 后资料作为 basis，不能把 Key-Index hit、搜索分数或未加载摘要当 Evidence。
 
 ## Draft Loop review
-每轮必须生成标准 Role review receipt，逐项检查：业务期望支撑、pre-actual 原子 expectation、blocking、dimension 覆盖、fulfilled 外部证据、not_fulfilled 的 Live 边界、not_evaluable 证据缺口、缺输出不逃逸、外部约束不误归责、无内部/unseen 泄漏、相对 Current 改善且无退化。还必须审计 Runtime authority 调用是否满足上一节。只有全部通过才允许 `improved/promotion_checks`；Loop evidence 必须同时引用 Role review receipt 和最新 run report。
+业务判定正确性的唯一基准是 `spec/alg/fulfilled.md`（判断顺序、§4 场景类型、反面清单）；资料定位与证据效力按 `spec/alg/material-positioning.md`。live 输出是被测对象的行为事实（current_behavior），不得自我背书为「正确交付」；与 live/production 输出的一致率不是评判标准。Authority 关着不要 NE；核心未交付是 NF。fulfilled.md §4 的举例只说明场景类型，不能当该条 case 的金牌读法。
+
+每轮必须生成标准 Role review receipt，逐项检查：业务期望支撑、pre-actual 原子 expectation、blocking、dimension 覆盖、fulfilled 外部证据、not_fulfilled 的 Live 边界、not_evaluable 证据缺口、缺输出不逃逸、外部约束不误归责、无内部/unseen 泄漏、相对 Current 的有把握净胜。还必须审计 Runtime authority 调用是否满足上一节。最易漂移的三项判据固定为：
+
+- `expectation_support`：先核支撑资料的 `conclusion_kind`。normative_rule / external_fact 可裁决应该如何；`inlive_boundary` 只证明可达空间（有什么字段/枚举/映射目标值），不证明这次选得对（positioning §4 不变量 2）。Load 到资料不等于定位正确；current_behavior 与解析配方不能当尺子。F 仍须同时满足 fulfilled §2.1：职责内、材料够、证据能证明用户要的结果拿到了。不得由 live 自身输出背书，也不得是无资料支撑的模型意见。
+- `not_fulfilled_live_boundary`：只检查归责边界——外部原因（fulfilled.md §4.4）不得归责系统；这不是「与 live 交付一致性」检查，Judge 判 live 交付不足本身不构成失败。
+- `relative_improvement_no_regression`：只对「这轮有把握」的翻转计净胜。有把握更好 +1，有把握更差 −1；人判不完、无尺子、检索缺口、工具中断不计分，且禁止拿这些案改候选。有把握的理由用本轮 objective/review；Judge 若刚好能引用 fulfilled.md 反面清单或空间命中就写上，不是入场券。单案不否决。净胜 > 0 才允许 `improved`（另见 SKILL：Draft 侧还要有可比较的行）；还要继续改候选就记 unchanged。其余 criterion 照记，fail 不否决 improved。
+
+review 必须对 Current 与 Draft 两侧判定扫 fulfilled.md 反面清单，任一侧踩线都如实记录；不得只审 Draft 不审基准侧。Loop evidence 必须同时引用 Role review receipt 和最新 run report。每轮必须产出并引用 `scripts/render_loop_comparison_table.py` 渲染的逐 case 对比表（基础列：case / query 输入 / live 输出 / production 结果 / draft 结果 / harness 分析）；对比表必须含 harness 分析列，由 Harness AI 填写。模板见 `reference/loop-comparison-table.md`。不得只贴聚合指标。
+
+`harness 分析` 不是 Role 判定。每格写清：有把握哪侧更好、还是两侧都对/都错、还是不计分。能引用 fulfilled.md 锚点（判断顺序、§、反面）就写；人判不完标「歧义-缺」或「不计分」，检索缺口标「检索缺口」。不计分的案不进净胜、不改候选。禁止只写「与 production 一致」；禁止用 Judge 的 reasoning 冒充 harness。Review 引用该表前，这一列不得再是 `-`。
+
+## Judge Authority 判后责任与四象限
+
+Judge Loop 每侧 run report 额外落盘 authority.resolve 的运行时快照（`authority_tool_call_ids` / `authority_audit` / `environment_snapshot_sha256`）。review 必须核对：被 assessment 引用的调用是否真实存在于 audit（引用缺失 → needs_human_review）、是否有 `tool_failure`（能力不可用，如限流）被当作相对改善。`run_report_invalid_sides` 会把「authority 工具失败且被引用」的 side 判为无效；职责外/依据不充分类 not_evaluable 必须有 authority 调用记录（`spec/alg/authority.md` §8.4），没查证不等于查不了。
+
+Judge 的前置 `authority_obligation_contract.pre_obligations` 只用于引导，不是免责清单。每侧最终结果进入 review/history 前，Harness 必须对判决实际动用的规范性断言做判后核对：
+
+1. 先用确定性集合核对随附 compact manifest、enum、mapping、operator 与 MaterialDecision 投影；
+2. 对散文规则只允许窄域语义审计，任务限于识别「判决引用了哪些随附资料中不存在的规则」，不得重新判案；
+3. 用 `claim.subject` 对账真实 `authority.resolve(question, claim)` audit；旧 question-only 调用不能冒充 claim 担保；
+4. 输出控制面 `checked_claims`、`assessment_actions` 和 findings，不向 Core `JudgeResult` 增加项目专属字段。
+
+未背书断言必须按可验证事实归责，优先级为：
+
+- `compaction_miss`：全量 MaterialDecision 管辖，但 compact projection 漏出；整改 Solidify/压缩资产，不罚 Judge；
+- `availability_miss`：随附资料不足且本 case 未构造 Authority；整改 Investigate/可用性门禁，不罚 Judge；
+- `judge_failed_to_call`：Authority 已可用，Judge 仍以未担保断言支撑肯定结论；依赖 assessment 建议降为 `not_evaluable`，该 case 不得计为 Draft 赢案。
+
+`contradicted` 不能支撑肯定结论并进入人工复核；`ungoverned`、`gap_only`（及兼容旧 `unresolved`）只允许依赖项为 `not_evaluable`。若 compact 资料已经直接背书，则不得为了调用率强制 Authority，也不得产生 availability/judge finding。每条 finding 必须有具体 `remediation_target`，不能只写「Authority 有问题」。
+
+Judge Loop 业务样本前必须运行四象限探针：有 Authority+可裁决、有 Authority+缺口、无 Authority+compact 资料背书、无 Authority+真实缺口。探针套件须改造冻结真实案例，每象限至少 3 条；控制面合成探针只能证明门禁分支接线，不能替代这 12 条端到端模型考试。门禁回放考试仅以资料闭环标签计分：已知脏案检出率 >=90%、闭环干净案误报 <=1，且所有 finding 均可定位整改资产；任一不通过，当轮业务 Loop 作废。边界/reference 可疑案保留观察但不计门禁准确率。

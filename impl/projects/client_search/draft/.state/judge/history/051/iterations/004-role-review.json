@@ -1,0 +1,216 @@
+{
+  "contract_coverage": [
+    {
+      "evidence": [
+        "Authority 关闭，Draft 30 条 authority_tool_call_ids 均为空；solidify 仍映射该 source"
+      ],
+      "source_id": "authority-claim-index"
+    },
+    {
+      "evidence": [
+        "073/113/133 能力缺口仍被 Draft 写成 NF；088/093 明确不支持改为 overall NF（Authority-off 正确，不再 NE）；138 因 tool-limit llm_call_failed 泄漏 overall NE"
+      ],
+      "source_id": "authority-coverage-gaps"
+    },
+    {
+      "evidence": [
+        "Draft 装载 candidate investigation；本轮无 authority.resolve 消费报告材料"
+      ],
+      "source_id": "authority-investigation-report"
+    },
+    {
+      "evidence": [
+        "draft_runtime.context_governance.snapshot.tool_plan 30/30 含 investigation.search_index、investigation.load_entry、field.search_definition",
+        "008 evidence loaded_mapping_fact orphanType::孤儿单→纯存续单客户；128 catalog_search 合家福四索引无候选；RoleResult 无 matched_channels/embedding"
+      ],
+      "source_id": "authority-search-load"
+    },
+    {
+      "evidence": [
+        "088/093 空条件不可消费被 Draft 判 NF；128 可消费但改写目标被正确判 NF"
+      ],
+      "source_id": "dimension:downstream-query-consumability"
+    },
+    {
+      "evidence": [
+        "128 Draft NF 指出合家福被静默替换为合家欢且 catalog miss；008 Draft F 接受 catalog 映射的纯存续单客户"
+      ],
+      "source_id": "dimension:search-intent-preservation"
+    },
+    {
+      "evidence": [
+        "008 Catalog 映射使孤儿单 overall F；128 保持 NF 不是 false-F；118 Draft F 对齐 live 等待续保；138 llm_call_failed 未形成目标客户评估"
+      ],
+      "source_id": "expectation:find-target-customers"
+    },
+    {
+      "evidence": [
+        "088 Current F / Draft NF（Authority-off missing-core 正确）；093 Current NE / Draft NF（Authority-off 正确）；058 live 客户年龄<17，Draft NF 过严；138 Draft overall NE 泄漏"
+      ],
+      "source_id": "live_boundary"
+    }
+  ],
+  "criteria": [
+    {
+      "criterion_id": "expectation_support",
+      "evidence": [
+        "004-run.json#source-badcase-008",
+        "004-run.json#source-badcase-128"
+      ],
+      "finding": "008 Draft F：loaded_mapping_fact orphanType::孤儿单→纯存续单客户，live 纯存续单客户，Catalog consumption 是 intended win（本轮 production NF 不是 gold）。128 继续把合家福=合家欢判 not_fulfilled（catalog 四索引无候选），未假阳性。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "atomic_pre_actual_expectations",
+      "evidence": [
+        "004-run.json draft rows 仅有 business_expectations 与 fulfillment_assessments 同框，无独立 judge_plan_audit"
+      ],
+      "finding": "本轮 run report 没有与 assessment 分离的 pre-actual 计划冻结件，无法证明 expectation 在看到 actual 前原子冻结。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "expectation_topology",
+      "evidence": [
+        "004-run.json#source-badcase-088",
+        "004-run.json#source-badcase-093",
+        "004-run.json#source-badcase-128"
+      ],
+      "finding": "088 核心“盘客月份筛选条件交付”blocking NF、辅助“不支持的盘客条件透明说明”F。093 核心车牌可执行条件 NF、透明限制说明 F。128 blocking“合家福产品筛选条件语义保真”拦住静默改写。拓扑可读。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "pre_actual_blocking",
+      "evidence": [
+        "004-run.json#source-badcase-128"
+      ],
+      "finding": "产品名称静默改写作为 blocking 语义阻止了 overall fulfilled。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "dimension_coverage",
+      "evidence": [
+        "004-run.json#source-badcase-138"
+      ],
+      "finding": "138 Draft evidence=llm_call_failed（actual tool calls 10 exceed configured limit 8），assessment_count=0，未形成可比较维度评估，属 side error。其余 29 条有 fulfillment_assessments。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "fulfilled_external_evidence",
+      "evidence": [
+        "004-run.json#source-badcase-008",
+        "004-run.json#source-badcase-128",
+        "004-run.json#source-badcase-118"
+      ],
+      "finding": "008 fulfilled 绑定 loaded_mapping_fact，不是无证据肯定。128 未在无映射证据时 fulfilled。118 fulfilled 绑定 live polNoInfo.polStatus=等待续保 与增强规则“保单状态-续保”。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "not_fulfilled_live_boundary",
+      "evidence": [
+        "004-run.json#source-badcase-058",
+        "004-run.json#source-badcase-088",
+        "004-run.json#source-badcase-093"
+      ],
+      "finding": "088/093 空条件+不支持提示：Draft overall NF 是 Authority-off 下 missing-core 的正确读（production F/NE 不是 gold）。058 live 已是 clientAge LT 17（客户年龄<17），Draft 以含本数/少儿 0-17 与 LT 不在支持操作符集合为由 blocking NF，相对已交付 live 过严。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "not_evaluable_evidence_gap",
+      "evidence": [
+        "004-run.json#source-badcase-138",
+        "004-run.json Draft overall NE=1/30（138），expectation-level NE=0"
+      ],
+      "finding": "Authority 关闭时 138 泄漏 overall NE（llm_call_failed: tool calls 10>limit 8）。Iter 3 hide-NE 曾把 Draft overall NE 压到 0/30；本轮回退。088/093 仍正确保持 NF 而非 NE。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "missing_output_no_escape",
+      "evidence": [
+        "004-run.json#source-badcase-148",
+        "004-run.json#source-badcase-138"
+      ],
+      "finding": "148 姓名命中未让住院医疗保险条件逃逸为 F。138 因 llm_call_failed 未评估，也未把业务员/保险缺口逃逸为 F。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "external_constraint_non_attribution",
+      "evidence": [
+        "004-run.json#source-badcase-088",
+        "004-run.json#source-badcase-093",
+        "004-run.json#source-badcase-058",
+        "004-run.json#source-badcase-073"
+      ],
+      "finding": "088/093 明确不支持收成 missing-core NF 是 Authority-off 正确读，不再是 NE 误用。058 把已交付 live LT17 归责为 NF（操作符/含本数过严）。073 投保日期不支持+提示仍 blocking NF，与 088 同类能力边界。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "authority_anchor_scope",
+      "evidence": [
+        "004-run.json draft_runtime.authority_tool_call_ids 30/30 为空；project.yaml verifier.authority.enabled=false"
+      ],
+      "finding": "Authority 关闭，Draft 未调用 authority.resolve，也未伪造 call id。Current 本轮亦 30/30 空。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "authority_obligation_consumption",
+      "evidence": [
+        "004-run.json current_runtime/draft_runtime.authority_audit 均为 {}"
+      ],
+      "finding": "无 Authority 工具失败被当成相对改善；关闭状态下没有义务调用。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "authority_unresolved_conservatism",
+      "evidence": [
+        "004-run.json#source-badcase-008",
+        "004-run.json#source-badcase-128"
+      ],
+      "finding": "008 不再在无映射时 NF 断言孤儿单应为在职有效客户；本轮以 loaded_mapping_fact 支持 F。128 在 catalog 无等价证据时保持 NF，未 fulfilled。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "no_runtime_authority_investigation",
+      "evidence": [
+        "004-run.json 无 authority.resolve；Draft evidence 未写入调查层 resolved/unresolved 资产"
+      ],
+      "finding": "未观察到把 Runtime 结论回写成调查包或 Claim Index。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "no_internal_or_unseen_leakage",
+      "evidence": [
+        "frozen_cases_sha256=bf9e77ee33b34d912316db83007134ae9cd708987be936cfbb03020ac51844d4",
+        "004-run.json case_count=30"
+      ],
+      "finding": "只跑冻结 30 条 iteration cases，未混入 unseen；未 --restart。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "relative_improvement_no_regression",
+      "evidence": [
+        "004-run.json#source-badcase-008",
+        "004-run.json#source-badcase-128",
+        "004-run.json#source-badcase-088",
+        "004-run.json#source-badcase-138",
+        "004-run-comparison-table.md",
+        "wall elapsed_seconds=1659.799 workers=4"
+      ],
+      "finding": "Catalog win：008 D3 NF→D4 F（orphanType::孤儿单→纯存续单客户）。128 保持 NF 不是 false-F。088/093 NF 在 Authority-off 下正确。但 138 D3 NF→D4 overall NE（llm_call_failed），iter 3 的 0 Draft NE 被打破；058 对已交付 live LT17 过严 NF。相对本轮 production 12/30 flips（Draft 14F/15NF/1NE vs 18F/9NF/3NE）。138 属 terminal llm_call_failed，不能记 improved，不得 promotion。",
+      "status": "fail"
+    }
+  ],
+  "decision": "unchanged",
+  "iteration": 4,
+  "project_id": "client_search",
+  "role": "judge",
+  "route": "solidify",
+  "run_report": {
+    "location": "draft/.state/judge/iterations/004-run.json",
+    "location_scope": "project_package",
+    "sha256": "3428e12a58b911821ba63aa66437e19347a364865a1fa684dbdc90d126e41bf6"
+  },
+  "run_report_sha256": "3428e12a58b911821ba63aa66437e19347a364865a1fa684dbdc90d126e41bf6",
+  "schema_version": 1,
+  "solidify_receipt_sha256": "99a6cbb1e7303357bf01726e9d10a5ae593d66814986a58f3ab8083e021110f6",
+  "summary": "Authority-off Catalog consumption 本轮开火：008 孤儿单 Draft F，evidence 含 loaded_mapping_fact orphanType::孤儿单→纯存续单客户，live 为纯存续单客户，本轮 production NF，这是 intended win；003 在职单两侧 F。128 合家福 Draft NF（catalog 四索引无候选，live 合家欢 rewrite 无等价证据），不是 false-F，production NE。088 7月盘客 Draft NF（空条件+不支持提示，blocking 核心交付未交付，透明说明 F），production F，Authority-off 下 Draft 正确。093 车牌 Draft NF vs production NE，Authority-off 无 NE，Draft 正确。118 续保 live 等待续保，Draft F，production NE，Draft 是对已交付 live 的更好读。FAIL：138 陈金秀 Draft overall NE（llm_call_failed: actual tool calls 10 exceed configured limit 8），Authority 关闭；iter 3 Draft NE=0/30，本轮泄漏 1 条。058 17周岁以下 live 已是客户年龄<17，Draft NF 相对 live 过严。相对本轮 production 12/30 overall flips；Draft 14F/15NF/1NE vs production 18F/9NF/3NE。冻结 Current/cases 未变，未 --restart。workers=4，elapsed_seconds=1659.799。不得宣称 selected，不得 promotion。下一步 Solidify：堵住 Authority-off 下 138 的 NE 泄漏，并收敛 058 对已交付 live 边界的过严 NF。"
+}

@@ -171,7 +171,7 @@ def test_role_review_rejects_missing_criterion_or_contract_source(
 
 
 @pytest.mark.parametrize("role", ["judge", "mock"])
-def test_improved_role_review_rejects_non_passing_criterion(
+def test_improved_role_review_allows_non_relative_criterion_fail(
     tmp_path: Path, monkeypatch, role: str
 ):
     spec = _project(tmp_path, role)
@@ -179,9 +179,36 @@ def test_improved_role_review_rejects_non_passing_criterion(
     _solidify(monkeypatch, tmp_path, role, source_ids)
     report = _report(spec, role)
     criteria = _criteria(role)
-    criteria[0]["status"] = "not_evaluable"
+    criteria[0]["status"] = "fail"
 
-    with pytest.raises(ValueError, match="every role criterion to pass"):
+    path = write_draft_role_review(
+        spec,
+        role,
+        1,
+        run_report=report,
+        decision="improved",
+        route="promotion_checks",
+        summary="Net confident wins are positive; other criteria stay recorded.",
+        criteria=criteria,
+        contract_coverage=_coverage(source_ids),
+    )
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert payload["decision"] == "improved"
+    assert payload["criteria"][0]["status"] == "fail"
+
+
+@pytest.mark.parametrize("role", ["judge", "mock"])
+def test_improved_role_review_rejects_failed_relative_improvement(
+    tmp_path: Path, monkeypatch, role: str
+):
+    spec = _project(tmp_path, role)
+    source_ids = [f"{role}:source"]
+    _solidify(monkeypatch, tmp_path, role, source_ids)
+    report = _report(spec, role)
+    criteria = _criteria(role)
+    criteria[-1]["status"] = "fail"
+
+    with pytest.raises(ValueError, match="relative_improvement_no_regression to pass"):
         write_draft_role_review(
             spec,
             role,
@@ -189,7 +216,7 @@ def test_improved_role_review_rejects_non_passing_criterion(
             run_report=report,
             decision="improved",
             route="promotion_checks",
-            summary="Evidence is incomplete.",
+            summary="A scored regression must not be relabelled improved.",
             criteria=criteria,
             contract_coverage=_coverage(source_ids),
         )
@@ -263,6 +290,43 @@ def test_role_review_becomes_stale_after_run_or_solidify_change(tmp_path: Path, 
     assert historical is not None
 
 
+def test_role_review_rejects_fabricated_case_anchor(tmp_path: Path, monkeypatch):
+    role = "judge"
+    spec = _project(tmp_path, role)
+    source_ids = ["judge:source"]
+    _solidify(monkeypatch, tmp_path, role, source_ids)
+    report = _report(spec, role, rows=[{"case_key": "case-1"}])
+    criteria = _criteria(role)
+    criteria[0]["evidence"] = ["001-run.json#case-does-not-exist"]
+
+    with pytest.raises(ValueError, match="absent from the run report"):
+        write_draft_role_review(
+            spec,
+            role,
+            1,
+            run_report=report,
+            decision="unchanged",
+            route="solidify",
+            summary="A criterion cites a case that the run report does not contain.",
+            criteria=criteria,
+            contract_coverage=_coverage(source_ids),
+        )
+
+    criteria[0]["evidence"] = ["001-run.json#case-1"]
+    path = write_draft_role_review(
+        spec,
+        role,
+        1,
+        run_report=report,
+        decision="unchanged",
+        route="solidify",
+        summary="All case anchors resolve to real run report cases.",
+        criteria=criteria,
+        contract_coverage=_coverage(source_ids),
+    )
+    assert path.is_file()
+
+
 def test_no_investigation_asset_does_not_require_role_review(tmp_path: Path):
     spec = _project(tmp_path, "mock", with_investigation=False)
     report = _report(spec, "mock")
@@ -296,7 +360,7 @@ def test_improved_role_review_rejects_terminal_role_execution_failure(
     _solidify(monkeypatch, tmp_path, role, source_ids)
     report = _report(spec, role, rows=[row])
 
-    with pytest.raises(ValueError, match="execution failures"):
+    with pytest.raises(ValueError, match="no comparable Draft sides"):
         write_draft_role_review(
             spec,
             role,
@@ -343,7 +407,7 @@ def test_loaded_improved_role_review_rejects_terminal_role_execution_failure(
     payload["criteria"] = _criteria(role)
     review_path.write_text(json.dumps(payload), encoding="utf-8")
 
-    with pytest.raises(ValueError, match="execution failures"):
+    with pytest.raises(ValueError, match="no comparable Draft sides"):
         require_draft_role_review(spec, role, 1, run_report=report)
 
 
@@ -378,12 +442,23 @@ def test_judge_current_missing_authority_environment_is_not_invalid():
 
 
 def test_judge_draft_missing_authority_environment_is_invalid():
-    # Judge draft 侧按 authority.md §8 必须接线 authority_tool；缺失则不能
-    # 作为相对改善证据。
+    # Authority 开启时 current 有 runtime、draft 没有，才是未接线。
     row = _healthy_judge_row("judge-002")
+    row["current_runtime"] = {
+        "environment": "ok",
+        "authority_audit": {},
+        "environment_snapshot_sha256": "abc",
+    }
     row["draft_runtime"] = {"environment": "missing", "authority_audit": {}}
     report = {"role": "judge", "rows": [row]}
     assert draft_role_review.run_report_invalid_sides(report) == ["judge-002/draft"]
+
+
+def test_judge_authority_off_missing_environment_is_not_invalid():
+    row = _healthy_judge_row("judge-004")
+    row["draft_runtime"] = {"environment": "missing", "authority_audit": {}}
+    report = {"role": "judge", "rows": [row]}
+    assert draft_role_review.run_report_invalid_sides(report) == []
 
 
 def test_judge_current_missing_environment_still_invalid_on_llm_failure():
@@ -412,6 +487,35 @@ def test_improved_role_review_accepts_judge_current_without_authority_runtime(
         decision="improved",
         route="promotion_checks",
         summary="Draft judge improves business outcomes without regressions.",
+        criteria=_criteria(role),
+        contract_coverage=_coverage(source_ids),
+    )
+    assert path.is_file()
+
+
+def test_improved_role_review_allows_partial_draft_abort(
+    tmp_path: Path, monkeypatch
+):
+    role = "judge"
+    spec = _project(tmp_path, role)
+    source_ids = [f"{role}:source"]
+    _solidify(monkeypatch, tmp_path, role, source_ids)
+    abort_row = _healthy_judge_row("judge-abort")
+    abort_row["draft"] = {"evidence": ["llm_call_failed"]}
+    report = _report(
+        spec,
+        role,
+        rows=[_healthy_judge_row("judge-ok"), abort_row],
+    )
+
+    path = write_draft_role_review(
+        spec,
+        role,
+        1,
+        run_report=report,
+        decision="improved",
+        route="promotion_checks",
+        summary="One aborted Draft row is unscored and does not veto net wins.",
         criteria=_criteria(role),
         contract_coverage=_coverage(source_ids),
     )

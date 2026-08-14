@@ -9,7 +9,7 @@ project:
   - attribute
   - check
   - scenario
-  - single_turn
+  - multi_turn
   resources:
     source:
       repository: ''
@@ -34,12 +34,12 @@ runtime:
   local_deployment:
     enabled: false
   interaction:
-    mode: single_turn
+    mode: multi_turn
   ready: []
   services:
     primary:
       base_url: http://127.0.0.1:8050
-      endpoint: /api/v1/policy-search/parse
+      endpoint: /api/v1/policy-search/policy-search-parse
       method: POST
       timeout_seconds: 120
       healthcheck:
@@ -57,6 +57,8 @@ runtime:
     - agent_identity
     - context_disambiguation
     - clarification
+    - clarification_reply
+    - clarification_then_new_query
     - unsupported
     - surface_generalization
   adapter:
@@ -102,9 +104,13 @@ verifier:
     - agent_identity
     - context_disambiguation
     - clarification
+    - clarification_reply
+    - clarification_then_new_query
     - unsupported
     - surface_generalization
-    interactive: []
+    interactive:
+    - clarification_reply
+    - clarification_then_new_query
   judge:
     boundary:
       document: judge_boundary.md

@@ -38,6 +38,7 @@ def main() -> int:
     if not isinstance(observables, list):
         raise TypeError("--runtime-observables must resolve to a JSON list")
     spec = load_project(args.project)
+    feedback_path = spec.project_package_path(".") / "draft" / ".state" / args.role / "solidify-gate-feedback.json"
     try:
         path = write_solidify_receipt(
             spec, args.role, mappings=mappings, runtime_observables=observables
@@ -61,12 +62,13 @@ def main() -> int:
             project_id=args.project, role=args.role, owner_stage="solidify",
             error=exc, affected_subjects=subjects,
         )
-        feedback_path = spec.project_package_path(".") / "draft" / ".state" / args.role / "solidify-gate-feedback.json"
         write_gate_feedback(feedback_path, feedback)
         print(f"{type(exc).__name__}: {exc}", file=sys.stderr)
         print(feedback["diagnosis"], file=sys.stderr)
         print(f"Harness feedback: {feedback_path}", file=sys.stderr)
         return 1
+    # The gate passed: stale feedback must not keep blocking the Draft Loop.
+    feedback_path.unlink(missing_ok=True)
     print(
         json.dumps(
             {

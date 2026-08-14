@@ -2,10 +2,12 @@
 """Render per-case Current/Draft comparison table from frozen Draft Loop facts.
 
 基础列（每轮必出）：case / query 输入 / live 输出 / production <role> 结果 /
-draft <role> 结果。场景列按被测场景扩展：--scenario-columns 传
+draft <role> 结果 / harness 分析。场景列按被测场景扩展：--scenario-columns 传
 {"列名": "row 内点号路径"}；role=judge 且任一侧存在 authority 调用时自动追加
-authority(production) / authority(draft) 列（调用数 + resolution 状态）。
-输出 Markdown 到 stdout，并默认落盘到 run report 同目录 <NNN>-comparison-table.md。
+authority(production) / authority(draft) 列（调用数 + resolution 状态），插在
+production/draft 之后、harness 分析之前。harness 分析由 Harness AI 填写，
+渲染器对该列一律写 `-`，不得撰写分析。
+输出 Markdown 到 stdout，并默认落盘到 run report 同目录 <NNN>-run-comparison-table.md。模板见 reference/loop-comparison-table.md。
 """
 from __future__ import annotations
 
@@ -17,7 +19,9 @@ from typing import Any, Mapping
 from impl.core.project_loader import load_project
 from impl.core.schema import DraftLoopState
 
-BASE_COLUMNS = ("case", "query 输入", "live 输出", "production <role> 结果", "draft <role> 结果")
+FACT_COLUMNS = ("case", "query 输入", "live 输出", "production <role> 结果", "draft <role> 结果")
+HARNESS_COLUMN = "harness 分析"
+BASE_COLUMNS = FACT_COLUMNS + (HARNESS_COLUMN,)
 
 
 def _dotted(row: Mapping[str, Any], path: str) -> Any:
@@ -122,12 +126,13 @@ def _render(
         or (row.get("draft_runtime") or {}).get("authority_tool_call_ids")
         for row in rows
     )
-    columns = list(BASE_COLUMNS)
+    columns = list(FACT_COLUMNS)
     if has_authority:
         columns.append("authority(production)")
         columns.append("authority(draft)")
     for label in scenario_columns:
         columns.append(str(label))
+    columns.append(HARNESS_COLUMN)
 
     lines = ["| " + " | ".join(columns) + " |", "|" + "|".join("---" for _ in columns) + "|"]
     for index, row in enumerate(rows):
@@ -145,13 +150,15 @@ def _render(
             cells.append(_authority_cell(row, "draft"))
         for path in scenario_columns.values():
             cells.append(_cell_text(_dotted(row, path)))
+        cells.append("-")
         lines.append("| " + " | ".join(cells) + " |")
     lines.append("")
     lines.append(
         f"> 对比表由 `render_loop_comparison_table.py` 从冻结 iteration-cases 与 run report 确定性渲染；"
-        f"基础列 = case / query 输入 / live 输出 / production {role} 结果 / draft {role} 结果，"
+        f"基础列 = case / query 输入 / live 输出 / production {role} 结果 / draft {role} 结果 / harness 分析，"
         f"场景列按被测场景扩展。"
     )
+    lines.append("> harness 分析由 Harness AI 填写，不是 Role 判定。")
     return "\n".join(lines)
 
 

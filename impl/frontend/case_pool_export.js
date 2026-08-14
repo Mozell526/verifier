@@ -18,7 +18,79 @@
     {header: 'Judge JSON', key: 'judgeJson', width: 54},
     {header: '归因摘要', key: 'attributionSummary', width: 42},
     {header: 'Attribute JSON', key: 'attributeJson', width: 54},
+    {header: 'Trace 摘要', key: 'traceSummary', width: 54},
   ];
+
+  function lastColumnLetter(count) {
+    let remaining = Number(count) || 0;
+    let letters = '';
+    while (remaining > 0) {
+      const offset = (remaining - 1) % 26;
+      letters = String.fromCharCode(65 + offset) + letters;
+      remaining = Math.floor((remaining - 1) / 26);
+    }
+    return letters || 'A';
+  }
+
+  function fieldValueText(field) {
+    if (!field || !field.found) {
+      return '无值';
+    }
+    if (field.value === null) {
+      return 'null';
+    }
+    if (field.value === undefined || field.value === '') {
+      return field.value === '' ? '' : '无值';
+    }
+    if (typeof field.value === 'object') {
+      return JSON.stringify(field.value);
+    }
+    return String(field.value);
+  }
+
+  function fieldLabel(field) {
+    const path = String((field && field.path) || 'output');
+    return path.split('.').pop() || path;
+  }
+
+  function formatTraceShow(show, options) {
+    if (!show || !show.available) {
+      return '无 Trace';
+    }
+    const overview = show.overview || {};
+    const mock = show.mock || {};
+    const scenario = String(mock.scenario || (options && options.scenario) || '-');
+    const lines = [
+      'Mock: ' + (mock.user_intent || mock.query || '无 Mock Intent'),
+      '场景: ' + scenario,
+    ];
+    const overviewParts = [];
+    if (overview.completion_status) {
+      overviewParts.push(String(overview.completion_status));
+    }
+    overviewParts.push((overview.turn_count ?? 0) + ' 轮');
+    if (overview.final_output_turn !== null && overview.final_output_turn !== undefined && overview.final_output_turn !== '') {
+      overviewParts.push('最终输出轮 ' + overview.final_output_turn);
+    }
+    if (overview.stop_reason) {
+      overviewParts.push('停止 ' + overview.stop_reason);
+    }
+    lines.push('概览: ' + overviewParts.join(' · '));
+    (show.turns || []).forEach((turn, index) => {
+      const item = turn || {};
+      const heading = ['T' + (item.turn_index || index + 1), item.status || '-'];
+      if (item.runtime_ms !== null && item.runtime_ms !== undefined && item.runtime_ms !== '') {
+        heading.push(item.runtime_ms + 'ms');
+      }
+      lines.push('');
+      lines.push(heading.join('  '));
+      lines.push('    输入: ' + (item.mock_message || '主展示字段无值'));
+      (item.output || []).forEach(field => {
+        lines.push('    ' + fieldLabel(field) + ': ' + fieldValueText(field));
+      });
+    });
+    return lines.join('\n');
+  }
 
   function truncateCell(text) {
     const value = String(text ?? '');
@@ -92,7 +164,7 @@
       views: [{state: 'frozen', ySplit: 1}],
     });
     worksheet.columns = COLUMNS.map(column => ({...column}));
-    worksheet.autoFilter = {from: 'A1', to: 'L1'};
+    worksheet.autoFilter = {from: 'A1', to: lastColumnLetter(COLUMNS.length) + '1'};
 
     const header = worksheet.getRow(1);
     header.height = 24;
@@ -153,6 +225,7 @@
     createWorkbook,
     download,
     fileName,
+    formatTraceShow,
     truncateCell,
   });
 })(typeof globalThis === 'undefined' ? window : globalThis);

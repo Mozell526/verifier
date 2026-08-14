@@ -5,8 +5,10 @@ coverage manifest，不进入 MockCase 或 Judge 链路。
 """
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Dict, Iterable, List
 
 
@@ -17,6 +19,7 @@ class MockDemand:
     user_intent: str
     query: str
     contexts: List[Dict[str, str]] = field(default_factory=list)
+    next_query: str = ""
     coverage: Dict[str, Any] = field(default_factory=dict)
 
 
@@ -330,36 +333,6 @@ def _compound_demands() -> list[MockDemand]:
     return demands
 
 
-def _context_demands() -> list[MockDemand]:
-    histories = [
-        ("查陈晓华作为投保人的保单", "那今年生效的呢", "追加时间条件"),
-        ("找保额超过30万的有效保单", "只看分红险", "追加险类条件"),
-        ("查被保人45岁以上的", "改成投保人", "纠正角色"),
-        ("筛选今年承保的保单", "再排除已经失效的", "追加状态条件"),
-        ("找合同号尾号4826的", "7319的也要", "追加并列值"),
-        ("查九月份到期的保单", "不对，是十月份", "纠正时间"),
-        ("找年缴保费两万以上的", "放宽到一万", "纠正数值"),
-        ("查女性被保人的保单", "年龄还要在30到45之间", "追加年龄区间"),
-    ]
-    suffixes = ("", "，麻烦了", "？")
-    demands: list[MockDemand] = []
-    for index, (previous, current, intent) in enumerate(histories, start=1):
-        contexts = [
-            {"role": "user", "content": previous, "sub_agent": ""},
-            {"role": "assistant", "content": "已按上一轮条件完成查询。", "sub_agent": "POLICY_SEARCH"},
-        ]
-        for variant, suffix in enumerate(suffixes, start=1):
-            demands.append(MockDemand(
-                demand_id=f"context-{index:02d}-{variant}",
-                scenario="context_disambiguation",
-                user_intent=f"基于上一轮筛选结果{intent}",
-                query=current.rstrip("？?") + suffix,
-                contexts=contexts,
-                coverage={"kind": "context", "context_operation": intent, "surface_style": f"context_{variant}"},
-            ))
-    return demands
-
-
 def _clarification_demands() -> list[MockDemand]:
     queries = [
         "年缴保费的保单", "帮我按年龄找一下", "查最近生效的", "想看保单状态", "找姓陈的",
@@ -376,6 +349,159 @@ def _clarification_demands() -> list[MockDemand]:
         )
         for index, query in enumerate(queries, start=1)
     ]
+
+
+# 多轮手写集：代理人查保单时，开口像一次筛选，系统澄清后再补槽或改口。
+# T1 放 parseArgs.query 且 contexts 为空；T2 由 runtime 读 user_context.next_query。
+_HANDWRITTEN_MULTITURN = [
+    ("mt-r-01", "clarification_reply", "合同号尾号缺具体数字", "查合同号尾号的保单", "4826"),
+    ("mt-r-02", "clarification_reply", "合同号尾号口头补全", "合同号尾号那张保单", "4826吧"),
+    ("mt-r-03", "clarification_reply", "保额偏高缺具体金额", "帮我查一下保额比较高的保单", "50万以上"),
+    ("mt-r-04", "clarification_reply", "补保额并顺口加上有效", "筛一下保额高的保单", "三十万以上，还要有效"),
+    ("mt-r-05", "clarification_reply", "保额用大概口吻补值", "保额高的那些保单", "大概三十万左右"),
+    ("mt-r-06", "clarification_reply", "把保额条件说完整", "帮我查一下保额比较高的保单", "保额不低于50万的"),
+    ("mt-r-07", "clarification_reply", "总期缴保费缺金额", "查总期缴保费的保单", "5万以上"),
+    ("mt-r-08", "clarification_reply", "交费多补累计已缴", "交费比较多的客户保单", "已经交了五万以上"),
+    ("mt-r-09", "clarification_reply", "首期保费缺金额", "查首期保费的保单", "五千以上"),
+    ("mt-r-10", "clarification_reply", "年缴区间缺上界", "年缴保费三万到的保单", "三万到五万"),
+    ("mt-r-11", "clarification_reply", "姓氏残缺补全名", "帮我找姓陈的保单", "陈晓华"),
+    ("mt-r-12", "clarification_reply", "陈先生角色消歧成投保人", "查陈先生的保单", "投保人陈晓华"),
+    ("mt-r-13", "clarification_reply", "最近生效补具体月份", "查最近生效的保单", "8月"),
+    ("mt-r-14", "clarification_reply", "快到期补到期月", "有没有快到期的保单", "九月到期"),
+    ("mt-r-15", "clarification_reply", "快到期用相对时间答", "快到期的保单", "下个月"),
+    ("mt-r-16", "clarification_reply", "今年消歧成投保", "筛选今年的保单", "今年投保的"),
+    ("mt-r-17", "clarification_reply", "九月或生效消歧成生效", "查九月或是生效的保单", "九月生效"),
+    ("mt-r-18", "clarification_reply", "投保还是生效选投保", "查投保还是生效时间的保单", "投保日期"),
+    ("mt-r-19", "clarification_reply", "满期日期补月份", "查满期日期的保单", "十月份"),
+    ("mt-r-20", "clarification_reply", "承保时间补今年", "查承保时间的保单", "今年"),
+    ("mt-r-21", "clarification_reply", "按被保人年龄缺值", "按被保人年龄帮我筛保单", "35岁以上"),
+    ("mt-r-22", "clarification_reply", "年纪大的投保人补下限", "年纪大的投保人保单", "四十五以上"),
+    ("mt-r-23", "clarification_reply", "投保人年龄补区间", "查投保人年龄的保单", "40到55岁"),
+    ("mt-r-24", "clarification_reply", "被保人还是投保人选被保人", "查被保人还是投保人的保单", "被保人"),
+    ("mt-r-25", "clarification_reply", "被保人性别二选一", "被保人女的还是男的保单", "女的"),
+    ("mt-r-26", "clarification_reply", "犹豫期补还在期内", "查还在犹豫期的保单", "还在犹豫期"),
+    ("mt-r-27", "clarification_reply", "犹豫期和剩余天数选期内", "犹豫期内还是离结束还有几天的保单", "还在犹豫期"),
+    ("mt-r-28", "clarification_reply", "能加保短答可以", "能加保的保单", "可以加保"),
+    ("mt-r-29", "clarification_reply", "理赔过补次数", "理赔过的保单", "超过一次"),
+    ("mt-r-30", "clarification_reply", "理赔次数和状态选次数", "查理赔过的那些保单", "累计赔付次数"),
+    ("mt-r-31", "clarification_reply", "按保单状态选拒保", "按保单状态帮我筛一下保单", "拒保的"),
+    ("mt-r-32", "clarification_reply", "口头险类补万能帐户", "查万能那种保单", "万能帐户"),
+    ("mt-r-33", "clarification_reply", "分红还是万能选分红", "分红还是万能的保单", "分红险"),
+    ("mt-r-34", "clarification_reply", "缴费方式补趸交", "按缴费方式帮我筛保单", "趸交"),
+    ("mt-r-35", "clarification_reply", "一次交清还是年交选趸交", "一次交清还是年交的保单", "一次交清"),
+    ("mt-r-36", "clarification_reply", "手机尾号补数字", "查手机尾号的保单", "1234"),
+    ("mt-r-37", "clarification_reply", "被保人电话尾号", "查被保人电话尾号的保单", "1357"),
+    ("mt-r-38", "clarification_reply", "身份证尾号", "查身份证尾号的保单", "6842"),
+    ("mt-r-39", "clarification_reply", "领过红利补金额", "领过红利的保单", "一千以上"),
+    ("mt-r-40", "clarification_reply", "自保件确认是", "自己买自己的保单", "自保件"),
+    ("mt-r-41", "clarification_reply", "应缴日补日期", "该交费的保单", "8月10号之后"),
+    ("mt-r-42", "clarification_reply", "意外还是医疗选学平险", "意外还是医疗的保单", "学平险"),
+    ("mt-r-43", "clarification_reply", "保单年度补第几年", "按保单年度筛一下保单", "第三年"),
+    ("mt-r-44", "clarification_reply", "产品名残缺补全", "康宁那个保单", "康宁终身"),
+    ("mt-r-45", "clarification_reply", "生效时间补到具体月", "帮我查一下生效时间的保单", "今年8月"),
+    ("mt-s-01", "clarification_then_new_query", "不补合同号尾号，改查分红险", "查合同号尾号的保单", "今年生效的分红险保单"),
+    ("mt-s-02", "clarification_then_new_query", "不补保额，改查投保人", "帮我查一下保额比较高的保单", "陈晓华投保的保单"),
+    ("mt-s-03", "clarification_then_new_query", "不补姓名，改查合同号", "帮我找姓陈的保单", "合同号尾号4826的保单"),
+    ("mt-s-04", "clarification_then_new_query", "不补生效月，改查女被保人", "查最近生效的保单", "被保人是女的保单"),
+    ("mt-s-05", "clarification_then_new_query", "不补犹豫期，改查已缴且有效", "查还在犹豫期的保单", "已经交了十万以上并且还有效的保单"),
+    ("mt-s-06", "clarification_then_new_query", "不选险类，改查寿险未失效", "查万能那种保单", "寿险公司的单子，别是失效的"),
+    ("mt-s-07", "clarification_then_new_query", "不选状态，改查被保人", "按保单状态帮我筛一下保单", "周海宁做被保人的保单"),
+    ("mt-s-08", "clarification_then_new_query", "不补到期，改查年龄和性别", "快到期的保单", "投保人三十五到五十岁、被保人是男的保单"),
+    ("mt-s-09", "clarification_then_new_query", "不加保了，改查投保日", "能加保的保单", "八月份投保的保单"),
+    ("mt-s-10", "clarification_then_new_query", "不理赔次数，改查趸交", "理赔过的保单", "趸交的那些保单"),
+    ("mt-s-11", "clarification_then_new_query", "不补年缴区间，改查险种", "年缴保费三万到的保单", "康宁终身的保单"),
+    ("mt-s-12", "clarification_then_new_query", "不答自保件，改查年缴", "自己买自己的保单", "年缴两万以上的保单"),
+    ("mt-s-13", "clarification_then_new_query", "不补手机尾号，改查有效", "查手机尾号的保单", "还有效的保单"),
+    ("mt-s-14", "clarification_then_new_query", "时间消歧放弃，改查分红", "查九月或是生效的保单", "查分红险保单"),
+    ("mt-s-15", "clarification_then_new_query", "红利先不补，改查投保人", "领过红利的保单", "查陈晓华投保的保单"),
+    ("mt-s-16", "clarification_then_new_query", "年龄不补，改查合同号", "按被保人年龄帮我筛保单", "合同号尾号4826的保单"),
+    ("mt-s-17", "clarification_then_new_query", "不补身份证尾号，改查今年有效", "查身份证尾号的保单", "今年承保还有效的保单"),
+    ("mt-s-18", "clarification_then_new_query", "不补交费金额，改查被保人", "交费比较多的客户保单", "周海宁做被保人而且还有效的保单"),
+    ("mt-s-19", "clarification_then_new_query", "不补首期，改查女被保人今年生效", "查首期保费的保单", "被保人是女的、今年生效的保单"),
+    ("mt-s-20", "clarification_then_new_query", "不选缴费方式，改查康宁", "按缴费方式帮我筛保单", "康宁终身而且保额50万以上的保单"),
+]
+
+
+_PRIOR_LIVE_CACHE_PATH = Path(__file__).resolve().parents[2] / "data" / "policy_search" / "context_prior_live.json"
+_PRIOR_LIVE_CACHE: dict[str, dict[str, str]] | None = None
+
+
+def _prior_live_cache() -> dict[str, dict[str, str]]:
+    global _PRIOR_LIVE_CACHE
+    if _PRIOR_LIVE_CACHE is None:
+        if not _PRIOR_LIVE_CACHE_PATH.is_file():
+            raise ValueError(f"missing live prior cache: {_PRIOR_LIVE_CACHE_PATH}")
+        payload = json.loads(_PRIOR_LIVE_CACHE_PATH.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict):
+            raise ValueError("live prior cache must be an object")
+        _PRIOR_LIVE_CACHE = {
+            str(query): dict(item)
+            for query, item in payload.items()
+            if str(query).strip() and isinstance(item, dict)
+        }
+    return _PRIOR_LIVE_CACHE
+
+
+def _prior_assistant_content(previous: str) -> str:
+    item = _prior_live_cache().get(previous)
+    if not item:
+        raise ValueError(f"missing live prior parse for {previous!r}")
+    status = str(item.get("status") or "").strip()
+    if status != "UNSUPPORTED":
+        raise ValueError(f"context last-turn prior must be live UNSUPPORTED: {previous!r} status={status}")
+    message = str(item.get("message") or "").strip()
+    if not message:
+        raise ValueError(f"empty live prior message for {previous!r}")
+    return message
+
+
+def _context_demands() -> list[MockDemand]:
+    """把交互多轮收成 last-turn：query 是第二句，contexts 戴上一轮开口和 live 澄清。"""
+    demands: list[MockDemand] = []
+    seen: set[str] = set()
+    index = 0
+    for _demand_id, _scenario, intent, previous, current in _HANDWRITTEN_MULTITURN:
+        normalized = normalize_query(current)
+        if not normalized or normalized in seen:
+            continue
+        item = _prior_live_cache().get(previous)
+        if not item or str(item.get("status") or "").strip() != "UNSUPPORTED":
+            continue
+        seen.add(normalized)
+        index += 1
+        demands.append(MockDemand(
+            demand_id=f"context-{index:02d}",
+            scenario="context_disambiguation",
+            user_intent=f"上一轮未闭合澄清后{intent}",
+            query=current,
+            contexts=[
+                {"role": "user", "content": previous, "sub_agent": ""},
+                {"role": "assistant", "content": _prior_assistant_content(previous), "sub_agent": "POLICY_SEARCH"},
+            ],
+            coverage={"kind": "context", "context_operation": intent},
+        ))
+    return demands
+
+
+def build_multiturn_demands(config: Dict[str, Any]) -> list[MockDemand]:
+    """手写多轮：T1 是查保单开口，T2 补澄清槽或改口完整新问题。"""
+    _ = config
+    demands: list[MockDemand] = []
+    seen: set[tuple[str, str, str]] = set()
+    for demand_id, scenario, intent, query, next_query in _HANDWRITTEN_MULTITURN:
+        key = (scenario, normalize_query(query), normalize_query(next_query))
+        if key in seen:
+            continue
+        seen.add(key)
+        demands.append(MockDemand(
+            demand_id=demand_id,
+            scenario=scenario,
+            user_intent=intent,
+            query=query,
+            next_query=next_query,
+            coverage={"kind": scenario},
+        ))
+    return demands
 
 
 def build_mock_demands(config: Dict[str, Any]) -> list[MockDemand]:

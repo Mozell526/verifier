@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "project_id": "client_search",
+  "role": "judge",
+  "gate": "AUTHORITY_GATE",
+  "authority_problem": false,
+  "owner_stage": "investigate",
+  "diagnosis_code": "cleared_after_rerun",
+  "diagnosis": "Re-ran validate_investigation.py --execute-tools with tool_id client_search.condition_compare; tool smoke succeeded. Prior failure was bare tool_id key condition_compare in --tool-inputs (ID mismatch), not a missing implementation.",
+  "missing_proof": [],
+  "improvement_options": [],
+  "affected_subjects": [],
+  "pass_condition": "Already revalidated successfully.",
+  "prohibited_shortcuts": [
+    "不得修改冻结 Case、expected_status 或 Production Judge 来迎合门禁",
+    "不得把 SearchHit 或手工构造的 AuthorityResolution 冒充决定性 Runtime 证据"
+  ],
+  "cleared_at": "2026-08-12T23:50:00+08:00",
+  "harness_prompt": "[Draft Authority Gate Feedback]\n\nCleared: prior unknown tool_id condition_compare was an inputs key mismatch; client_search.condition_compare smoke succeeded on rerun.\n"
+}

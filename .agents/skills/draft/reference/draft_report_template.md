@@ -26,9 +26,11 @@
 
 ### Current vs Draft
 
-| Case | Current 目标相关行为 | Draft 行为 | 关键实验/证据 |
-| --- | --- | --- | --- |
-| `<case>` | `<事实>` | `<事实>` | `<可复现证据>` |
+真实对比表是 `scripts/render_loop_comparison_table.py` 渲染的 `<NNN>-run-comparison-table.md`，不得手写替代。
+
+| case | query 输入 | live 输出 | production 结果 | draft 结果 | harness 分析 |
+| --- | --- | --- | --- | --- | --- |
+| `<case>` | `<live 用户请求>` | `<冻结 trace 的 Live 对外输出>` | `<production 该 role 原始判定>` | `<draft 该 role 原始判定>` | `<Harness AI 按该 Role 的 ROLE.md 填写>` |
 
 ### 泛化验证（unseen cases）
 

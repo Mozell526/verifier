@@ -1,7 +1,7 @@
 """client_search Draft-only field-key lookup.
 
-The generic Judge protocol receives project tools opaquely. This module owns the
-client_search-specific candidate lookup and its YAML-backed short-name policy.
+Field Collection projection and Load of one field definition. Catalog search
+lives in catalog.py; this module does not own query reject lexicons.
 """
 from __future__ import annotations
 
@@ -18,21 +18,6 @@ from impl.tools import ToolResult, VerifiableTool
 from impl.projects.client_search.field_provider import (
     ClientSearchFieldDefinitionProvider,
 )
-
-
-_IGNORED_QUERY_CHARS = set("客户的有是和与及或并且一个哪些名单帮我找查询")
-
-
-def _searchable_chars(value: Any) -> set[str]:
-    return {
-        char
-        for char in str(value or "").casefold()
-        if (
-            not char.isspace()
-            and char not in _IGNORED_QUERY_CHARS
-            and (char.isalpha() or "\u4e00" <= char <= "\u9fff")
-        )
-    }
 
 
 def _short_name(value: Any) -> str:
@@ -119,31 +104,11 @@ def _load_field_key_index(spec: ProjectSpec) -> InvestigationKeyIndex:
     )
 
 
-def _field_search_strategy(query, entries, limit):
-    query_text = str(query or "").strip()
-    query_chars = _searchable_chars(query_text)
-    if not query_chars:
-        return []
-    candidates = []
-    for entry in entries:
-        score = len(query_chars & _searchable_chars(entry.search_text))
-        if entry.key.casefold() in query_text.casefold():
-            score += 100
-        if "岁" in query_text or "周岁" in query_text:
-            if "年龄" in entry.name or "age" in entry.key.casefold():
-                score += 20
-            if "family" in entry.key.casefold():
-                score -= 5
-        if score >= 2:
-            candidates.append((entry, float(score)))
-    candidates.sort(key=lambda item: (-item[1], item[0].key))
-    return candidates[:limit]
-
-
-def build_field_key_index_registry(
+def field_index_components(
     spec: ProjectSpec,
     provider: ClientSearchFieldDefinitionProvider | None = None,
-) -> InvestigationKeyIndexRegistry:
+):
+    """Return (index, resolver, validator) for the field Collection."""
     provider = provider or ClientSearchFieldDefinitionProvider(spec)
     index = _load_field_key_index(spec)
     known_fields = {entry.key for entry in index.entries}
@@ -173,93 +138,24 @@ def build_field_key_index_registry(
             },
         }
 
+    return index, resolve_target, validate_target
+
+
+def build_field_key_index_registry(
+    spec: ProjectSpec,
+    provider: ClientSearchFieldDefinitionProvider | None = None,
+) -> InvestigationKeyIndexRegistry:
+    from impl.projects.client_search.draft.catalog import make_exact_strategy
+
+    index, resolve_target, validate_target = field_index_components(spec, provider)
     registry = InvestigationKeyIndexRegistry()
     registry.register(
         index,
         resolver=resolve_target,
-        search_strategy=_field_search_strategy,
+        search_strategy=make_exact_strategy(index),
         target_validator=validate_target,
     )
     return registry
-
-
-def search_field_key_index(
-    spec: ProjectSpec,
-    query: str,
-    *,
-    limit: int = 8,
-) -> list[dict[str, str]]:
-    """Project facade over the generic investigation key-index protocol."""
-    registry = build_field_key_index_registry(spec)
-    hits, _receipt = registry.search(
-        "client-search.field-definitions",
-        query,
-        limit=max(1, min(int(limit), 8)),
-    )
-    return [
-        {"field": hit.key, "short_name": hit.name}
-        for hit in hits
-    ]
-
-
-def create_field_key_search_tool(
-    spec: ProjectSpec,
-    registry: InvestigationKeyIndexRegistry | None = None,
-) -> VerifiableTool:
-    def search_field_keys(**kwargs: Any) -> ToolResult:
-        query = str(kwargs.get("query") or "").strip()
-        try:
-            active_registry = registry or build_field_key_index_registry(spec)
-            hits, receipt = active_registry.search(
-                "client-search.field-definitions",
-                query,
-                limit=max(1, min(int(kwargs.get("limit") or 8), 8)),
-            )
-            candidates = [
-                {"field": hit.key, "short_name": hit.name}
-                for hit in hits
-            ]
-            return ToolResult(
-                tool_id="client_search.field.search_keys",
-                tool_type="client_search_field_key_retrieval",
-                status="succeeded",
-                actual={"query": query, "candidates": candidates},
-                evidence=f"retrieved client_search field-key candidates for {query}",
-                runtime_metadata={"receipt": receipt.as_dict()},
-            )
-        except Exception as exc:
-            return ToolResult(
-                tool_id="client_search.field.search_keys",
-                tool_type="client_search_field_key_retrieval",
-                status="failed",
-                error=f"Error searching client_search field keys: {exc}",
-            )
-
-    search_field_keys.__name__ = "client_search_field_key_search"
-    return VerifiableTool(
-        tool_id="client_search.field.search_keys",
-        description=(
-            "根据 client_search 用户请求检索少量可能相关的字段 key 和短名称。"
-            "本工具对外函数名是 client_search_field_search（旧名 investigation_search_index 已废弃）；"
-            "短名称来自项目字段定义 YAML；只返回候选 key，不返回完整字段定义。"
-        ),
-        applicable_scenario="client_search-judge-planning",
-        parameters={
-            "type": "object",
-            "properties": {
-                "query": {
-                    "type": "string",
-                    "description": "用户当前的自然语言客户搜索请求。",
-                },
-                "limit": {
-                    "type": "integer",
-                    "description": "最多返回的候选数量，默认 8。",
-                },
-            },
-            "required": ["query"],
-        },
-        execute_fn=search_field_keys,
-    )
 
 
 def create_minimal_field_definition_tool(
@@ -324,7 +220,10 @@ def create_minimal_field_definition_tool(
     lookup_definition.__name__ = "field_search_definition"
     return VerifiableTool(
         tool_id="field.search_definition",
-        description="按字段 key 读取一个字段是否支持搜索、短名称、操作符、值类型及少量枚举。",
+        description=(
+            "按字段 key 读取一个字段是否支持搜索、短名称、操作符、值类型及少量枚举。"
+            "operators 列表只描述该字段支持哪些操作符，并不使 live 排他 `LT n` 非法。"
+        ),
         applicable_scenario="client_search-judge",
         parameters={
             "type": "object",

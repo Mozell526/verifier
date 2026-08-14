@@ -130,7 +130,7 @@
   </div>
 </main>
 <script src="vendor/exceljs.min.js"></script>
-<script src="case_pool_export.js"></script>
+<script src="case_pool_export.js?v=20260813-trace-summary-1"></script>
 <script>
 const PAGE_VERSION='20260717-vnext-mockcase-request-key-1';
 async function post(path, body){
@@ -474,10 +474,18 @@ function exportAttributionSummary(item){
   if(summaryText){lines.push(typeof summaryText==='string'?summaryText:JSON.stringify(summaryText,null,2));}
   return lines.join('\n');
 }
+function exportTraceSummary(item){
+  const show=item.frontend_view?.project_extensions?.trace_show;
+  const formatter=globalThis.CasePoolExporter && globalThis.CasePoolExporter.formatTraceShow;
+  if(typeof formatter!=='function'){
+    throw new Error('导出组件未加载 Trace 摘要，请强制刷新页面后重试');
+  }
+  return formatter(show,{scenario:inferCaseScenario(item) || ''});
+}
 function buildCasePoolExportRows(entries){
   return (entries || []).map(({item,view})=>{
     const row=tableRow(view);
-    return {id:row.id || item.id || '',source:item.source || '',executionMode:runModeLabel(view),scenario:inferCaseScenario(view) || '',input:caseInputPayload(view),output:view.output,reference:caseReference(view),status:exportStatusText(view),judgeSummary:exportJudgeSummary(view),judgeJson:view.judge || null,attributionSummary:exportAttributionSummary(view),attributeJson:view.attribute || null};
+    return {id:row.id || item.id || '',source:item.source || '',executionMode:runModeLabel(view),scenario:inferCaseScenario(view) || '',input:caseInputPayload(view),output:view.output,reference:caseReference(view),status:exportStatusText(view),judgeSummary:exportJudgeSummary(view),judgeJson:view.judge || null,attributionSummary:exportAttributionSummary(view),attributeJson:view.attribute || null,traceSummary:exportTraceSummary(view)};
   });
 }
 async function exportCurrentCasePoolXlsx(){

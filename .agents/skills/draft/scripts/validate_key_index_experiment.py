@@ -1,8 +1,16 @@
 #!/usr/bin/env python3
-"""Validate Key-Index investigation, simulation, and frozen-loop selection evidence."""
+"""Validate Key-Index investigation, simulation, and frozen-loop selection evidence.
+
+A passing run writes a deterministic gate receipt to
+``draft/.state/<role>/key-index-gates/<experiment_id>-<phase>.json``.
+``validate_investigation.py`` requires a matching selection receipt for every
+Key-Index registered in the Investigation Manifest, so an index cannot be
+registered as a formal asset without passing this gate.
+"""
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -240,18 +248,77 @@ def validate(report: dict, *, phase: str = "simulation", require_selected: bool 
     return [f"unknown phase: {phase}"]
 
 
+def _covered_index_keys(report: dict, phase: str) -> list[str]:
+    """Index keys this receipt vouches for: selection covers the selected
+    candidate, simulation covers the shortlist, investigate covers nothing."""
+    decision = report.get("decision") or {}
+    if phase == "selection":
+        chosen = {str(decision.get("selected_candidate") or "")}
+    elif phase == "simulation":
+        chosen = {str(item) for item in decision.get("shortlist") or []}
+    else:
+        return []
+    keys: set[str] = set()
+    for candidate in report.get("candidates") or []:
+        if str(candidate.get("candidate_id") or "") not in chosen:
+            continue
+        key = str(((candidate.get("suite") or {}).get("index_key")) or "").strip()
+        if key:
+            keys.add(key)
+    return sorted(keys)
+
+
+def write_gate_receipt(report_path: Path, report: dict, phase: str) -> Path:
+    from impl.core.portable_artifact import write_portable_export
+    from impl.core.project_loader import load_project, resolve_project_package_root
+
+    spec = load_project(str(report["project_id"]))
+    package_root = resolve_project_package_root(spec, must_exist=True)
+    resolved_report = report_path.resolve()
+    try:
+        report_location = resolved_report.relative_to(package_root).as_posix()
+    except ValueError as exc:
+        raise ValueError(
+            "Key-Index experiment report must live inside the project package "
+            f"so its receipt stays auditable: {resolved_report}"
+        ) from exc
+    decision = report.get("decision") or {}
+    receipt = {
+        "schema_version": 1,
+        "project_id": str(report["project_id"]),
+        "role": str(report["role"]),
+        "experiment_id": str(report["experiment_id"]),
+        "phase": phase,
+        "report_location": report_location,
+        "report_sha256": hashlib.sha256(resolved_report.read_bytes()).hexdigest(),
+        "decision_status": str(decision.get("status") or ""),
+        "selected_candidate": str(decision.get("selected_candidate") or ""),
+        "index_keys": _covered_index_keys(report, phase),
+    }
+    receipt_path = (
+        package_root / "draft" / ".state" / str(report["role"]) / "key-index-gates"
+        / f"{report['experiment_id']}-{phase}.json"
+    )
+    write_portable_export(receipt_path, receipt)
+    return receipt_path
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("report", type=Path)
     parser.add_argument("--phase", choices=("investigate", "simulation", "selection"), default="simulation")
     parser.add_argument("--require-selected", action="store_true", help="compatibility alias for --phase selection")
     args = parser.parse_args()
-    errors = validate(json.loads(args.report.read_text()), phase=args.phase, require_selected=args.require_selected)
+    phase = "selection" if args.require_selected else args.phase
+    report = json.loads(args.report.read_text())
+    errors = validate(report, phase=phase)
     if errors:
         for error in errors:
             print(f"ERROR: {error}")
         return 1
-    print(f"Key-Index {('selection' if args.require_selected else args.phase)} gate passed")
+    receipt_path = write_gate_receipt(args.report, report, phase)
+    print(f"Key-Index {phase} gate passed")
+    print(f"Gate receipt: {receipt_path}")
     return 0
 
 

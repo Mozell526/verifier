@@ -9,6 +9,7 @@
 | `reference/draft_config_template.yaml` | Harness/Skill 构造 DraftConfig 的参考骨架；不是 `draft_loop.py` 直接加载的统一 Config loader | 用户准备配置时 |
 | `reference/project_yaml_draft_switch_template.yaml` | `project.yaml` 灰度开关模板 | 配置 `<role>_draft.enabled` 时 |
 | `reference/draft_report_template.md` | 最终结论报告模板 | 出具结论时 |
+| `reference/loop-comparison-table.md` | Draft Loop 逐 case 对比表模板（基础列：case / query 输入 / live 输出 / production 结果 / draft 结果 / harness 分析）；Python 渲染器只填事实，`harness 分析` 先为 `-`，由 Harness AI 填写，禁止手写替代。Role-specific review 基准见该 Role 的 `ROLE.md`（Judge：`judge/ROLE.md`） | 每轮 review 必出 |
 | `scripts/introspect_protocol.py` | 协议自省 | 写 draft 前检查抽象方法 |
 | `scripts/check_draft.py` | draft 可编译、可加载、协议与灰度校验；promotion 模式还必须运行 unseen cases | 候选实现后 |
 | `scripts/validate_investigation.py` | 调查包结构、引用与实现入口门禁 | Solidify 前必须运行 |
@@ -53,6 +54,11 @@ Key-Index 在证明前是 Draft 候选，不是正式调查资产。执行者按
 5. 只有 `--phase selection`（或兼容 `--require-selected`）与 Loop 都通过的候选才形成 `selected`，登记
    为 Manifest `key_indexes`，并刷新最终实现和 `solidify.py` receipt；`no_index/unresolved` 不得被
    静默改成全量 fallback。
+
+该顺序由确定性门禁强制：`validate_key_index_experiment.py` 通过时把收据写入
+`draft/.state/<role>/key-index-gates/<experiment_id>-<phase>.json`（含实验报告 sha256 与覆盖的
+index_keys）；`validate_investigation.py` 要求 Manifest 里每个 `key_indexes` 都有报告哈希仍一致的
+passing selection 收据，否则调查门禁失败。没跑实验就登记 Index 无法通过结构门禁。
 
 每次比较前冻结 probes 和候选实现。badcase、reference answer、expected trace 与人工答案词只能作为
 评价信息，不能进入 Builder、Entry projection 或 query rewrite。SearchHit 是导航结果，Load 后的真实

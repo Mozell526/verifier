@@ -122,23 +122,20 @@ def write_draft_role_review(
         raise ValueError(
             "Draft role review receipt is only required for a configured Investigation asset"
         )
-    normalized_criteria = _validate_criteria(normalized_role, criteria)
+    case_keys = _report_case_keys(report)
+    normalized_criteria = _validate_criteria(
+        normalized_role, criteria,
+        report_name=report_path.name, case_keys=case_keys,
+    )
     normalized_coverage = _validate_contract_coverage(
         contract_coverage,
         required_source_ids=set(solidify.get("required_source_ids") or []),
+        report_name=report_path.name,
+        case_keys=case_keys,
     )
     if decision == "improved":
-        _require_improved_run_report(report)
-        failed = [
-            item["criterion_id"]
-            for item in normalized_criteria
-            if item["status"] != "pass"
-        ]
-        if failed:
-            raise ValueError(
-                "improved role review requires every role criterion to pass: "
-                + ", ".join(failed)
-            )
+        require_improved_run_report(report)
+        _require_improved_relative_criterion(normalized_criteria)
     payload = {
         "schema_version": DRAFT_ROLE_REVIEW_VERSION,
         "project_id": spec.project_id,
@@ -269,7 +266,11 @@ def require_draft_role_review(
     if route is not None and raw.get("route") != route:
         raise ValueError("Draft role review route does not match Draft Loop review")
     _text(raw.get("summary"), "Draft role review summary")
-    normalized_criteria = _validate_criteria(normalized_role, raw.get("criteria"))
+    case_keys = _report_case_keys(_read_object(report_path, "Draft run report"))
+    normalized_criteria = _validate_criteria(
+        normalized_role, raw.get("criteria"),
+        report_name=report_path.name, case_keys=case_keys,
+    )
     _validate_contract_coverage(
         raw.get("contract_coverage"),
         required_source_ids=(
@@ -277,19 +278,12 @@ def require_draft_role_review(
             if check_current_solidify and solidify is not None
             else None
         ),
+        report_name=report_path.name,
+        case_keys=case_keys,
     )
     if raw.get("decision") == "improved":
-        _require_improved_run_report(_read_object(report_path, "Draft run report"))
-        failed = [
-            item["criterion_id"]
-            for item in normalized_criteria
-            if item["status"] != "pass"
-        ]
-        if failed:
-            raise ValueError(
-                "improved role review contains non-passing criteria: "
-                + ", ".join(failed)
-            )
+        require_improved_run_report(_read_object(report_path, "Draft run report"))
+        _require_improved_relative_criterion(normalized_criteria)
     return raw
 
 
@@ -302,9 +296,11 @@ def run_report_invalid_sides(report: Mapping[str, Any]) -> list[str]:
     re-labelled as a relative improvement by a review receipt.
     """
     invalid: list[str] = []
-    # judge 的 current 侧是生产部署：本身没有 authority runtime，
+    # judge current 侧是生产部署：本身没有 authority runtime，
     # environment=missing 是正常状态而非执行失败（authority.md §8）。
-    # 其它角色/侧（attribute、judge draft 未接线 authority）缺失环境仍判无效。
+    # Authority 关闭时 draft 同样没有 authority_tool，environment=missing
+    # 与 current 一致，不能把整侧判成执行失败。draft missing 而 current ok
+    # 才是未接线。
     role = str(report.get("role") or "").strip().lower()
     for row in report.get("rows") or []:
         if not isinstance(row, Mapping):
@@ -361,10 +357,17 @@ def run_report_invalid_sides(report: Mapping[str, Any]) -> list[str]:
                 or bool(row.get(f"{side}_error"))
                 or bool(evidence & _TERMINAL_ROLE_FAILURE_EVIDENCE)
             )
-            environment_missing = (
-                runtime.get("environment") == "missing"
-                and not (role == "judge" and side == "current")
-            )
+            environment_missing = runtime.get("environment") == "missing"
+            if environment_missing and role == "judge":
+                if side == "current":
+                    environment_missing = False
+                elif side == "draft":
+                    current_runtime = row.get("current_runtime") or {}
+                    if (
+                        isinstance(current_runtime, Mapping)
+                        and current_runtime.get("environment") == "missing"
+                    ):
+                        environment_missing = False
             if (
                 environment_missing
                 or context_failed
@@ -377,19 +380,76 @@ def run_report_invalid_sides(report: Mapping[str, Any]) -> list[str]:
     return invalid
 
 
-def _require_improved_run_report(report: Mapping[str, Any]) -> None:
-    """Enforce the deterministic evidence floor when writing or loading."""
+def require_improved_run_report(report: Mapping[str, Any]) -> None:
+    """Deterministic floor for recording improved: the run must be comparable.
+
+    A single aborted Draft row does not veto the round. improved is blocked
+    only when every Draft side is invalid, so a one-row all-fail report still
+    fails and a mixed 1/N abort does not.
+    """
     if report.get("run_status") != "completed" or not report.get("rows"):
-        raise ValueError("improved role review requires a completed non-empty run report")
-    invalid_sides = run_report_invalid_sides(report)
-    if invalid_sides:
+        raise ValueError("improved review requires a completed non-empty Current/Draft report")
+    rows = [row for row in report.get("rows") or [] if isinstance(row, Mapping)]
+    draft_invalid = [
+        side for side in run_report_invalid_sides(report) if side.endswith("/draft")
+    ]
+    if len(draft_invalid) >= len(rows):
         raise ValueError(
-            "improved role review cannot use a run with execution failures: "
-            + ", ".join(invalid_sides)
+            "improved review cannot use a run with no comparable Draft sides: "
+            + ", ".join(draft_invalid)
         )
 
 
-def _validate_criteria(role: str, value: Any) -> list[dict[str, Any]]:
+def _require_improved_relative_criterion(criteria: Sequence[Mapping[str, Any]]) -> None:
+    relative = next(
+        (
+            item for item in criteria
+            if item.get("criterion_id") == "relative_improvement_no_regression"
+        ),
+        None,
+    )
+    if relative is None or relative.get("status") != "pass":
+        raise ValueError(
+            "improved role review requires relative_improvement_no_regression to pass"
+        )
+
+
+def _report_case_keys(report: Mapping[str, Any]) -> set[str]:
+    return {
+        str(row.get("case_key"))
+        for row in report.get("rows") or []
+        if isinstance(row, Mapping) and row.get("case_key") is not None
+    }
+
+
+def _validate_report_anchors(
+    evidence: Sequence[str], owner: str, report_name: str, case_keys: set[str]
+) -> None:
+    """Reject `<report>#<case>` anchors that do not resolve to a real case.
+
+    Free-text evidence stays untouched; only the exact anchor convention used
+    by review receipts is dereferenced, so a pass finding cannot cite a
+    fabricated case.
+    """
+    prefix = f"{report_name}#"
+    for item in evidence:
+        if not item.startswith(prefix):
+            continue
+        fragment = item[len(prefix):]
+        if fragment.startswith("rows[") or fragment in case_keys:
+            continue
+        raise ValueError(
+            f"{owner} evidence references a case absent from the run report: {item}"
+        )
+
+
+def _validate_criteria(
+    role: str,
+    value: Any,
+    *,
+    report_name: str,
+    case_keys: set[str],
+) -> list[dict[str, Any]]:
     if not isinstance(value, Sequence) or isinstance(value, (str, bytes)):
         raise TypeError("Draft role review criteria must be a list")
     expected = set(_criteria_ids(role))
@@ -416,6 +476,9 @@ def _validate_criteria(role: str, value: Any) -> list[dict[str, Any]]:
         if status not in _ALLOWED_STATUSES:
             raise ValueError(f"unsupported Draft role review status: {status}")
         evidence = _string_list(item.get("evidence"), f"criteria[{index}].evidence")
+        _validate_report_anchors(
+            evidence, f"criteria[{index}]", report_name, case_keys
+        )
         finding = _text(item.get("finding"), f"criteria[{index}].finding")
         normalized.append(
             {
@@ -437,6 +500,8 @@ def _validate_contract_coverage(
     value: Any,
     *,
     required_source_ids: set[str] | None,
+    report_name: str,
+    case_keys: set[str],
 ) -> list[dict[str, Any]]:
     """Validate review evidence against the receipt generation it belongs to.
 
@@ -464,12 +529,16 @@ def _validate_contract_coverage(
         seen.add(source_id)
         if required_source_ids is not None and source_id not in required_source_ids:
             raise ValueError(f"contract coverage references unknown source ID: {source_id}")
+        coverage_evidence = _string_list(
+            item.get("evidence"), f"contract_coverage[{index}].evidence"
+        )
+        _validate_report_anchors(
+            coverage_evidence, f"contract_coverage[{index}]", report_name, case_keys
+        )
         normalized.append(
             {
                 "source_id": source_id,
-                "evidence": _string_list(
-                    item.get("evidence"), f"contract_coverage[{index}].evidence"
-                ),
+                "evidence": coverage_evidence,
             }
         )
     missing = sorted(required_source_ids - seen) if required_source_ids is not None else []
