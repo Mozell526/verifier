@@ -165,6 +165,7 @@ Gate 行为不变。
 | Authority 能力/职责边界裁决 | authority.md §8.1/§8.2 | 产品有没有某能力、某事项属不属于职责 | `inlive_boundary` 资料是 resolve 这类问题的证据 |
 | `locator` / keyindex `target_ref` | investigate-authority-judge.md §9、investigate-keyindex.md | 资料的物理/结构定位 | 定位（positioning）是语义分类，与物理定位正交 |
 | `CoverageGap.conclusion_kind` | investigate-authority-judge.md §11 | 缺的是哪一类定位的资料 | 缺口标注必须与缺失资料的定位一致；缺能力空间资料时记 `inlive_boundary` |
+| 产品功能三态 | product-function.md | 用户要办的这类事，现在是不是产品已经有的功能 | 不同问题：本协议管资料站在哪；产品功能管事情种类现在立住了没有。不得用 `inlive_boundary` / 字段空间去代替"有没有这项功能" |
 
 ## 7. 引用关系（各 spec 分工）
 

@@ -1,0 +1,272 @@
+{
+  "note": "T4c in-memory abstraction probe. Not the frozen T4 12-row score. Official files were not written.",
+  "principle": "你只回答一件事：用户要的事，这次办成了没有。\n对任何输入只问下面两件事。不要先给问句贴类型标签。\n\n第一问（已有字段标准）：\n对这次交出来的每一个字段：如果该字段已经有标准，就消费那条只读检查，不要另立门槛，也不要忽略它。\n如果该字段本轮没有已有标准，不要发明标准，也不要因为没有标准就判这一字段失败。\n第一问看的是值对不对得起该字段已经有的标准，不看用户怎么措辞。\n\n第二问（整句有没有被说清）：\n用户要的事以原始问句为准。摘要、改写、意图标签都不能替换问句。\n把这次交出来的全部条件合在一起，对着原始问句看：要的事有没有被说完。\n\n办成的标准是：原句要求交出来的条件，这次是否都有对应交付。\n不是“检索结果集会不会因此变”，也不是“有没有写出具体值”。\n问句指定了要找或要交的东西，即使这次没有写出具体值，也算还要了；没有对应条件就是没说清。\n问句里只是在提出请求、没有指定要找或要交的东西，不是另一件要办的事。\n\n不要为了迁就已经交出来的条件，把原句还要交的那一部分丢掉。\n没有另一件没被交代的事：再看第一问。\n任一已有标准撑不住 → not_fulfilled。\n全部已有标准都撑住，或本轮没有任何已有标准 → fulfilled。\n\n交付读不到 → unclear。不要用 unclear 逃避已经能开口的情况。\n不要剥词凑字段。不要为样本加例外。\n不要先给问句分类再换规则。\n不要因为交出来不止一个字段就判失败。\n不要因为问句短就另设门槛。",
+  "treatment": "generic_two_question_asked_to_deliver_q1_evidence_shortcircuit_disabled",
+  "banned_in_principle": [],
+  "ids": [
+    "SYN-yangjie",
+    "SYN-gongzhan",
+    "I007",
+    "I248",
+    "SYN-help-look-yangjie",
+    "SYN-please-find-yangjie",
+    "SYN-show-me-wangkunlin",
+    "SYN-help-look-gongzhan",
+    "SYN-zhangwei-policy-nameonly",
+    "SYN-zhangwei-policyno-nameonly",
+    "SYN-query-product-both",
+    "HB009",
+    "SYN-lookup-clientno"
+  ],
+  "llm": {
+    "treatment": "generic_two_question_asked_to_deliver_q1_evidence_shortcircuit_disabled",
+    "n": 13,
+    "ids": [
+      "HB009",
+      "I007",
+      "I248",
+      "SYN-gongzhan",
+      "SYN-help-look-gongzhan",
+      "SYN-help-look-yangjie",
+      "SYN-lookup-clientno",
+      "SYN-please-find-yangjie",
+      "SYN-query-product-both",
+      "SYN-show-me-wangkunlin",
+      "SYN-yangjie",
+      "SYN-zhangwei-policy-nameonly",
+      "SYN-zhangwei-policyno-nameonly"
+    ],
+    "rows": [
+      {
+        "id": "HB009",
+        "query": "李明的重疾险",
+        "llm_status": "not_fulfilled",
+        "llm_reason": "重疾险已交付为疾病保险条件，AND标识及无额外限制也成立；但原句明确指定的客户本人姓名“李明”没有对应条件，核心目标客户范围未被完整表达，因此这次未办成。",
+        "source": "llm",
+        "expected_present": true,
+        "evidence_source": "原始问句",
+        "error": null
+      },
+      {
+        "id": "I007",
+        "query": "张忠波保单号",
+        "llm_status": "not_fulfilled",
+        "llm_reason": "姓名张忠波已按既有字段标准正确交付，但原句还明确提出保单号诉求；最终条件、说明和意图摘要均未对应这一部分，因此核心业务意图未完整交付。",
+        "source": "llm",
+        "expected_present": true,
+        "evidence_source": "client_search.condition_compare",
+        "error": null
+      },
+      {
+        "id": "I248",
+        "query": "红莲保单",
+        "llm_status": "not_fulfilled",
+        "llm_reason": "姓名条件符合红莲的只读字段标准，但原句还要求保单，最终没有交付买过保险或保单存在条件，AND也因缺少该操作数未形成完整合取，因此核心目的未办成。",
+        "source": "llm",
+        "expected_present": true,
+        "evidence_source": "client_search.condition_compare",
+        "error": null
+      },
+      {
+        "id": "SYN-gongzhan",
+        "query": "共展",
+        "llm_status": "not_fulfilled",
+        "llm_reason": "实际把“共展”交付为客户本人姓名条件，但该值没有已识别的姓氏，无法满足 searchClientName 的既有字段标准，因此本次未办成。",
+        "source": "llm",
+        "expected_present": true,
+        "evidence_source": "client_search.condition_compare",
+        "error": null
+      },
+      {
+        "id": "SYN-help-look-gongzhan",
+        "query": "帮忙看看共展",
+        "llm_status": "fulfilled",
+        "llm_reason": "原句中的目标词“共展”已由searchClientName MATCH条件完整交付，值与问句一致，AND逻辑下没有缺失或额外约束，因此核心搜索意图已满足；本次仅判断解析语义，未验证结果集。",
+        "source": "llm",
+        "expected_present": true,
+        "evidence_source": "client_search.condition_compare",
+        "error": null
+      },
+      {
+        "id": "SYN-help-look-yangjie",
+        "query": "帮忙看看杨杰",
+        "llm_status": "fulfilled",
+        "llm_reason": "原句唯一核心约束是客户姓名杨杰；实际完整交付searchClientName MATCH 杨杰，值符合既有字段标准，单条件AND无语义偏差，也未增加其他限制，因此各项均fulfilled。",
+        "source": "llm",
+        "expected_present": true,
+        "evidence_source": "原始问句",
+        "error": null
+      },
+      {
+        "id": "SYN-lookup-clientno",
+        "query": "帮我查一下这个客户号 C000888123456",
+        "llm_status": "fulfilled",
+        "llm_reason": "原句要求按客户号查询，实际交付了 clientNo=MATCH 且值为 C000888123456 的条件；该值非空，未缺失或增加其他筛选，因此核心交付已满足。",
+        "source": "llm",
+        "expected_present": true,
+        "evidence_source": "client_search.condition_compare",
+        "error": null
+      },
+      {
+        "id": "SYN-please-find-yangjie",
+        "query": "麻烦找下杨杰",
+        "llm_status": "fulfilled",
+        "llm_reason": "原句仅要求查找杨杰。实际完整交付客户本人姓名条件searchClientName MATCH 杨杰，符合只读字段标准，单条件逻辑清楚且无额外限制，因此各项核心交付均已办成。",
+        "source": "llm",
+        "expected_present": true,
+        "evidence_source": "原始问句",
+        "error": null
+      },
+      {
+        "id": "SYN-query-product-both",
+        "query": "查询李明的重疾险",
+        "llm_status": "fulfilled",
+        "llm_reason": "实际完整交付了姓名李明和重疾险对应的疾病保险条件，并以AND连接；姓名值通过已有字段标准，险种字段本轮无额外标准，不存在缺失、错误或未表达限制，因此办成。",
+        "source": "llm",
+        "expected_present": true,
+        "evidence_source": "原始问句",
+        "error": null
+      },
+      {
+        "id": "SYN-show-me-wangkunlin",
+        "query": "给我看看王坤林",
+        "llm_status": "fulfilled",
+        "llm_reason": "原句明确要查看王坤林，实际交付了客户本人姓名字段searchClientName及MATCH值“王坤林”，符合既有字段标准，且没有遗漏或增加筛选条件。",
+        "source": "llm",
+        "expected_present": true,
+        "evidence_source": "client_search.condition_compare",
+        "error": null
+      },
+      {
+        "id": "SYN-yangjie",
+        "query": "杨杰",
+        "llm_status": "fulfilled",
+        "llm_reason": "用户仅要求按姓名杨杰查找客户；实际交付了searchClientName MATCH 杨杰，姓名值完整且符合该字段已有标准，整句意图已被完整表达。",
+        "source": "llm",
+        "expected_present": true,
+        "evidence_source": "client_search.condition_compare",
+        "error": null
+      },
+      {
+        "id": "SYN-zhangwei-policy-nameonly",
+        "query": "张伟保单",
+        "llm_status": "fulfilled",
+        "llm_reason": "实际交付了searchClientName=张伟，符合该字段既有标准；原句未指定具体保单险种或产品值，因此无需增加其他条件，核心搜索意图已完整交付。",
+        "source": "llm",
+        "expected_present": true,
+        "evidence_source": "client_search.condition_compare",
+        "error": null
+      },
+      {
+        "id": "SYN-zhangwei-policyno-nameonly",
+        "query": "张伟的保单号",
+        "llm_status": "not_fulfilled",
+        "llm_reason": "姓名条件正确，张伟也满足既有姓名标准；但原句还明确要求保单号，实际没有polNo或等价条件，因此整句未被完整交付。",
+        "source": "llm",
+        "expected_present": true,
+        "evidence_source": "原始问句",
+        "error": null
+      }
+    ],
+    "score": {
+      "must_ok": [
+        {
+          "id": "SYN-yangjie",
+          "query": "杨杰",
+          "policy": "fulfilled",
+          "llm_status": "fulfilled",
+          "error": null
+        },
+        {
+          "id": "SYN-gongzhan",
+          "query": "共展",
+          "policy": "not_fulfilled",
+          "llm_status": "not_fulfilled",
+          "error": null
+        },
+        {
+          "id": "I007",
+          "query": "张忠波保单号",
+          "policy": "not_fulfilled",
+          "llm_status": "not_fulfilled",
+          "error": null
+        },
+        {
+          "id": "I248",
+          "query": "红莲保单",
+          "policy": "not_fulfilled_forbidden",
+          "llm_status": "not_fulfilled",
+          "error": null
+        },
+        {
+          "id": "SYN-help-look-yangjie",
+          "query": "帮忙看看杨杰",
+          "policy": "fulfilled",
+          "llm_status": "fulfilled",
+          "error": null
+        },
+        {
+          "id": "SYN-please-find-yangjie",
+          "query": "麻烦找下杨杰",
+          "policy": "fulfilled",
+          "llm_status": "fulfilled",
+          "error": null
+        },
+        {
+          "id": "SYN-show-me-wangkunlin",
+          "query": "给我看看王坤林",
+          "policy": "fulfilled",
+          "llm_status": "fulfilled",
+          "error": null
+        },
+        {
+          "id": "SYN-zhangwei-policyno-nameonly",
+          "query": "张伟的保单号",
+          "policy": "not_fulfilled_forbidden",
+          "llm_status": "not_fulfilled",
+          "error": null
+        },
+        {
+          "id": "SYN-query-product-both",
+          "query": "查询李明的重疾险",
+          "policy": "fulfilled",
+          "llm_status": "fulfilled",
+          "error": null
+        },
+        {
+          "id": "HB009",
+          "query": "李明的重疾险",
+          "policy": "not_fulfilled_forbidden",
+          "llm_status": "not_fulfilled",
+          "error": null
+        },
+        {
+          "id": "SYN-lookup-clientno",
+          "query": "帮我查一下这个客户号 C000888123456",
+          "policy": "fulfilled",
+          "llm_status": "fulfilled",
+          "error": null
+        }
+      ],
+      "must_fail": [
+        {
+          "id": "SYN-help-look-gongzhan",
+          "query": "帮忙看看共展",
+          "policy": "not_fulfilled",
+          "llm_status": "fulfilled",
+          "error": null
+        },
+        {
+          "id": "SYN-zhangwei-policy-nameonly",
+          "query": "张伟保单",
+          "policy": "not_fulfilled_forbidden",
+          "llm_status": "fulfilled",
+          "error": null
+        }
+      ],
+      "observe": [],
+      "must_ok_n": 11,
+      "must_fail_n": 2
+    }
+  }
+}

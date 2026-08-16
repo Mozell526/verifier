@@ -1,0 +1,266 @@
+{
+  "id": "I485",
+  "query": "昊轩",
+  "role": "undecided_given_name",
+  "expected_status": null,
+  "source": "set_a",
+  "live_error": null,
+  "judge_error": null,
+  "live": {
+    "trace_id": "client_search:I485:1786797178970",
+    "fields": [
+      "searchClientName"
+    ],
+    "values": [
+      "昊轩"
+    ],
+    "robot_text": "客户姓名为昊轩的客户",
+    "matched_patterns": "姓名-模糊匹配",
+    "intent_summary": "客户姓名为昊轩的客户",
+    "conditions": [
+      {
+        "field": "searchClientName",
+        "operator": "MATCH",
+        "value": "昊轩",
+        "match_mode": null
+      }
+    ],
+    "extracted": {
+      "code": 0,
+      "msg": "操作成功",
+      "robot_text": "客户姓名为昊轩的客户",
+      "end_flag": 1,
+      "trace_id": null,
+      "query": "昊轩",
+      "query_logic": "AND",
+      "conditions": [
+        {
+          "field": "searchClientName",
+          "operator": "MATCH",
+          "value": "昊轩",
+          "match_mode": null
+        }
+      ],
+      "matched_level": 2,
+      "matched_patterns": "姓名-模糊匹配",
+      "rewritten_query": "昊轩",
+      "intent_summary": "客户姓名为昊轩的客户",
+      "confidence": 0.95,
+      "cost_times": 153.0
+    }
+  },
+  "judge_status": "not_fulfilled",
+  "judge_reasoning": "输入是未带姓名指示词的裸词，当前证据不能独立确认“昊轩”为客户本人姓名；Live 却直接生成姓名 MATCH 条件并作确定性表述，造成未表达的客户集合收窄，且未提示澄清。",
+  "judge": {
+    "trace_id": "client_search:I485:1786797178970",
+    "project_id": "client_search",
+    "business_expectations": [
+      {
+        "expectation_id": "基于明确姓名意图交付目标客户搜索",
+        "blocking": true,
+        "downstream_consumer": "find-target-customers；search-intent-preservation、downstream-query-consumability",
+        "user_intent": "用户仅输入“昊轩”，未明确说明这是客户本人姓名或其他查询对象。",
+        "expected_outcome": "只有在独立证据确认“昊轩”为客户本人姓名时，才能交付客户姓名搜索条件；本例证据不足，应避免擅自收窄客户集合。",
+        "required_capabilities": [
+          "识别用户明确表达的客户筛选条件",
+          "保持目标字段语义与用户意图一致",
+          "不得增加未表达的姓名约束"
+        ],
+        "acceptance_criteria": [
+          "裸词没有姓名指示或独立姓名证据时，不应直接生成客户本人姓名条件。",
+          "若无法确认查询对象，应请求澄清，而不是声称已确定客户姓名。"
+        ],
+        "boundary": {
+          "judge_scope": "parser_condition_semantics_only",
+          "result_set_verified": false
+        },
+        "priority": "核心",
+        "evidence_refs": []
+      },
+      {
+        "expectation_id": "对歧义裸词提供透明澄清",
+        "blocking": false,
+        "downstream_consumer": "find-target-customers；search-intent-preservation",
+        "user_intent": "用户输入的“昊轩”存在查询对象不明确的情况。",
+        "expected_outcome": "输出应说明需要确认“昊轩”是否为客户本人姓名。",
+        "required_capabilities": [
+          "识别无法确认的查询对象",
+          "透明说明限制并请求补充信息"
+        ],
+        "acceptance_criteria": [
+          "不得把未确认的裸词直接表述为已确定的客户姓名。",
+          "应提供明确的澄清提示。"
+        ],
+        "boundary": {},
+        "priority": "辅助",
+        "evidence_refs": []
+      }
+    ],
+    "fulfillment_assessments": [
+      {
+        "expectation_id": "基于明确姓名意图交付目标客户搜索",
+        "status": "not_fulfilled",
+        "score": 0.0,
+        "expected_evidence": [
+          "输入仅为裸词“昊轩”，没有姓名、名字或客户本人等指示词。",
+          "当前证据未独立确认“昊轩”是客户本人的人名。"
+        ],
+        "actual_evidence": [
+          "Live 输出将“昊轩”映射为 searchClientName。",
+          "Live 条件为 searchClientName MATCH 昊轩，robot_text 表述为客户姓名查询。"
+        ],
+        "downstream_impact": "会把未明确的查询对象收窄为客户本人姓名，可能导致目标客户集合偏离用户真实意图；下游结果集未验证。",
+        "confidence": null,
+        "evidence_refs": [],
+        "authority_tool_call_ids": []
+      },
+      {
+        "expectation_id": "对歧义裸词提供透明澄清",
+        "status": "not_fulfilled",
+        "score": 0.0,
+        "expected_evidence": [
+          "歧义裸词应提示用户确认查询对象或姓名属性。"
+        ],
+        "actual_evidence": [
+          "robot_text 直接声称“客户姓名为昊轩的客户”。",
+          "输出未包含任何澄清或不确定性说明。"
+        ],
+        "downstream_impact": "用户无法得知系统对“昊轩”作了未经确认的姓名语义解释。",
+        "confidence": null,
+        "evidence_refs": [],
+        "authority_tool_call_ids": []
+      }
+    ],
+    "overall_fulfillment": {
+      "status": "not_fulfilled",
+      "assessment_count": 2,
+      "blocking_expectations": [
+        "基于明确姓名意图交付目标客户搜索"
+      ]
+    },
+    "expected": {
+      "code": 0,
+      "msg": "需要确认查询对象",
+      "query": "昊轩",
+      "conditions": [],
+      "robot_text": "请确认“昊轩”是否为客户本人姓名",
+      "query_logic": "AND",
+      "rewritten_query": "昊轩"
+    },
+    "actual": {
+      "code": 0,
+      "msg": "操作成功",
+      "robot_text": "客户姓名为昊轩的客户",
+      "end_flag": 1,
+      "trace_id": null,
+      "query": "昊轩",
+      "query_logic": "AND",
+      "conditions": [
+        {
+          "field": "searchClientName",
+          "operator": "MATCH",
+          "value": "昊轩",
+          "match_mode": null
+        }
+      ],
+      "matched_level": 2,
+      "matched_patterns": "姓名-模糊匹配",
+      "rewritten_query": "昊轩",
+      "intent_summary": "客户姓名为昊轩的客户",
+      "confidence": 0.95,
+      "cost_times": 153.0
+    },
+    "missing": [
+      {
+        "kind": "透明说明",
+        "error_type": "未请求确认",
+        "expected": "说明“昊轩”是否为客户本人姓名尚无法确认",
+        "actual": "未提供澄清提示",
+        "evidence_ref": "final_output.robot_text",
+        "raw": {
+          "kind": "透明说明",
+          "error_type": "未请求确认",
+          "expected": "说明“昊轩”是否为客户本人姓名尚无法确认",
+          "actual": "未提供澄清提示",
+          "evidence_ref": "final_output.robot_text",
+          "incomplete": false
+        },
+        "incomplete": false
+      }
+    ],
+    "wrong": [
+      {
+        "kind": "条件语义",
+        "error_type": "无独立证据的姓名归类",
+        "expected": "歧义裸词不直接生成客户本人姓名条件",
+        "actual": {
+          "field": "searchClientName",
+          "operator": "MATCH",
+          "value": "昊轩"
+        },
+        "evidence_ref": "final_output.conditions",
+        "raw": {
+          "kind": "条件语义",
+          "error_type": "无独立证据的姓名归类",
+          "expected": "歧义裸词不直接生成客户本人姓名条件",
+          "actual": {
+            "field": "searchClientName",
+            "operator": "MATCH",
+            "value": "昊轩"
+          },
+          "evidence_ref": "final_output.conditions",
+          "incomplete": false
+        },
+        "incomplete": false
+      }
+    ],
+    "extra": [],
+    "evidence": [
+      {
+        "query": "昊轩"
+      },
+      {
+        "actual_condition": {
+          "field": "searchClientName",
+          "operator": "MATCH",
+          "value": "昊轩",
+          "match_mode": null
+        }
+      },
+      {
+        "field_definition": "searchClientName 仅表示客户本人的人名；当前资料未证明“昊轩”属于该语义。"
+      },
+      {
+        "source": "client_search.condition_compare",
+        "wrong": [],
+        "missing": [],
+        "extra": []
+      }
+    ],
+    "reasoning_summary": "输入是未带姓名指示词的裸词，当前证据不能独立确认“昊轩”为客户本人姓名；Live 却直接生成姓名 MATCH 条件并作确定性表述，造成未表达的客户集合收窄，且未提示澄清。",
+    "summary": {
+      "reason": "not_fulfilled · blocking=[基于明确姓名意图交付目标客户搜索] · 输入是未带姓名指示词的裸词，当前证据不能独立确认“昊轩”为客户本人姓名；Live 却直接生成姓名 MATCH 条件并作确定性表述，造成未表达的客户集合收窄，且未提示澄清。",
+      "primary_failure_dimensions": [
+        {
+          "expectation_id": "基于明确姓名意图交付目标客户搜索",
+          "status": "not_fulfilled",
+          "blocking": true,
+          "downstream_impact": "会把未明确的查询对象收窄为客户本人姓名，可能导致目标客户集合偏离用户真实意图；下游结果集未验证。",
+          "evidence": "Live 输出将“昊轩”映射为 searchClientName。 | Live 条件为 searchClientName MATCH 昊轩，robot_text 表述为客户姓名查询。 | 输入仅为裸词“昊轩”，没有姓名、名字或客户本人等指示词。 | 当前证据未独立确认“昊轩”是客户本人的人名。"
+        },
+        {
+          "expectation_id": "对歧义裸词提供透明澄清",
+          "status": "not_fulfilled",
+          "blocking": false,
+          "downstream_impact": "用户无法得知系统对“昊轩”作了未经确认的姓名语义解释。",
+          "evidence": "robot_text 直接声称“客户姓名为昊轩的客户”。 | 输出未包含任何澄清或不确定性说明。 | 歧义裸词应提示用户确认查询对象或姓名属性。"
+        }
+      ],
+      "reason_source": "aggregated_fulfillment",
+      "fulfillment_status": "not_fulfilled",
+      "assessment_count": 2,
+      "blocking_count": 1,
+      "is_formal_attribution": true
+    }
+  }
+}

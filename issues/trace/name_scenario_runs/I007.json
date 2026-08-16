@@ -1,0 +1,220 @@
+{
+  "id": "I007",
+  "query": "张忠波保单号",
+  "role": "name_plus_policy",
+  "expected_status": "fulfilled",
+  "source": "set_a",
+  "live_error": null,
+  "judge_error": null,
+  "live": {
+    "trace_id": "client_search:I007:1786796117059",
+    "fields": [
+      "searchClientName"
+    ],
+    "values": [
+      "张忠波"
+    ],
+    "robot_text": "客户姓名为张忠波的客户",
+    "matched_patterns": "疑似姓名候选、姓名-字段名无值",
+    "intent_summary": "客户姓名为张忠波的客户",
+    "conditions": [
+      {
+        "field": "searchClientName",
+        "operator": "MATCH",
+        "value": "张忠波",
+        "match_mode": null
+      }
+    ],
+    "extracted": {
+      "code": 0,
+      "msg": "操作成功",
+      "robot_text": "客户姓名为张忠波的客户",
+      "end_flag": 1,
+      "trace_id": null,
+      "query": "张忠波保单号",
+      "query_logic": "AND",
+      "conditions": [
+        {
+          "field": "searchClientName",
+          "operator": "MATCH",
+          "value": "张忠波",
+          "match_mode": null
+        }
+      ],
+      "matched_level": 2,
+      "matched_patterns": "疑似姓名候选、姓名-字段名无值",
+      "rewritten_query": "张忠波保单号",
+      "intent_summary": "客户姓名为张忠波的客户",
+      "confidence": 0.95,
+      "cost_times": 16.0
+    }
+  },
+  "judge_status": "fulfilled",
+  "judge_reasoning": "查询明确给出客户姓名张忠波，但保单号仅为无值字段短语。实际正确生成姓名MATCH条件且未虚构保单号条件，符合解析语义；下游结果集未验证不影响本边界内判定。",
+  "judge": {
+    "trace_id": "client_search:I007:1786796117059",
+    "project_id": "client_search",
+    "business_expectations": [
+      {
+        "expectation_id": "按张忠波姓名筛选客户",
+        "blocking": true,
+        "downstream_consumer": "find-target-customers客户搜索下游",
+        "user_intent": "查找客户姓名为张忠波的客户",
+        "expected_outcome": "生成客户本人姓名为张忠波的可执行搜索条件",
+        "required_capabilities": [
+          "searchClientName字段",
+          "MATCH操作符",
+          "AND逻辑"
+        ],
+        "acceptance_criteria": [
+          "条件字段语义为客户本人姓名",
+          "操作符为支持的姓名匹配操作符",
+          "匹配值原样为张忠波"
+        ],
+        "boundary": {
+          "judge_scope": "parser_condition_semantics_only",
+          "result_set_verified": false
+        },
+        "priority": "核心交付",
+        "evidence_refs": []
+      },
+      {
+        "expectation_id": "不为无具体值的保单号增加筛选",
+        "blocking": false,
+        "downstream_consumer": "find-target-customers客户搜索下游",
+        "user_intent": "查询中提到保单号但未提供具体保单号值",
+        "expected_outcome": "不虚构保单号条件，并保持已识别的姓名条件",
+        "required_capabilities": [
+          "识别无值字段短语",
+          "避免增加未表达约束"
+        ],
+        "acceptance_criteria": [
+          "不生成polNo的MATCH条件",
+          "不把保单号短语误当作具体保单号",
+          "保留张忠波姓名条件"
+        ],
+        "boundary": {
+          "judge_scope": "parser_condition_semantics_only",
+          "result_set_verified": false
+        },
+        "priority": "边界处理",
+        "evidence_refs": []
+      }
+    ],
+    "fulfillment_assessments": [
+      {
+        "expectation_id": "按张忠波姓名筛选客户",
+        "status": "fulfilled",
+        "score": 1.0,
+        "expected_evidence": [
+          "用户查询包含明确姓名张忠波",
+          "预期应形成客户本人姓名匹配条件"
+        ],
+        "actual_evidence": [
+          "实际条件为searchClientName MATCH 张忠波",
+          "robot_text和intent_summary均表述为客户姓名为张忠波的客户",
+          "query_logic为AND且条件数量为1"
+        ],
+        "downstream_impact": "下游搜索结果集未验证，但在限定的解析语义范围内已交付姓名筛选条件。",
+        "confidence": null,
+        "evidence_refs": [],
+        "authority_tool_call_ids": []
+      },
+      {
+        "expectation_id": "不为无具体值的保单号增加筛选",
+        "status": "fulfilled",
+        "score": 1.0,
+        "expected_evidence": [
+          "保单号字段只有词语出现，没有具体保单号值",
+          "已加载字段定义显示polNo需要extract值并支持MATCH"
+        ],
+        "actual_evidence": [
+          "实际仅生成张忠波姓名条件",
+          "未生成无值的polNo MATCH条件",
+          "匹配模式明确记录姓名-字段名无值"
+        ],
+        "downstream_impact": "避免将无具体值的保单号误转为额外筛选，未收窄目标客户集合。",
+        "confidence": null,
+        "evidence_refs": [],
+        "authority_tool_call_ids": []
+      }
+    ],
+    "overall_fulfillment": {
+      "status": "fulfilled",
+      "assessment_count": 2,
+      "blocking_expectations": [
+        "按张忠波姓名筛选客户"
+      ]
+    },
+    "expected": {
+      "code": 0,
+      "msg": "操作成功",
+      "query": "张忠波保单号",
+      "conditions": [
+        {
+          "field": "searchClientName",
+          "operator": "MATCH",
+          "value": "张忠波",
+          "match_mode": null
+        }
+      ],
+      "robot_text": "客户姓名为张忠波的客户",
+      "query_logic": "AND",
+      "rewritten_query": "张忠波保单号",
+      "end_flag": 1,
+      "trace_id": null,
+      "matched_level": 2,
+      "matched_patterns": "疑似姓名候选、姓名-字段名无值",
+      "intent_summary": "客户姓名为张忠波的客户",
+      "confidence": 0.95,
+      "cost_times": 16.0
+    },
+    "actual": {
+      "code": 0,
+      "msg": "操作成功",
+      "robot_text": "客户姓名为张忠波的客户",
+      "end_flag": 1,
+      "trace_id": null,
+      "query": "张忠波保单号",
+      "query_logic": "AND",
+      "conditions": [
+        {
+          "field": "searchClientName",
+          "operator": "MATCH",
+          "value": "张忠波",
+          "match_mode": null
+        }
+      ],
+      "matched_level": 2,
+      "matched_patterns": "疑似姓名候选、姓名-字段名无值",
+      "rewritten_query": "张忠波保单号",
+      "intent_summary": "客户姓名为张忠波的客户",
+      "confidence": 0.95,
+      "cost_times": 16.0
+    },
+    "missing": [],
+    "wrong": [],
+    "extra": [],
+    "evidence": [
+      "用户查询为张忠波保单号，实际解析出张忠波姓名条件",
+      "已加载目录证据：polNo为保单号字段，支持MATCH且需要具体提取值",
+      "application_boundary表明下游结果集未验证，当前仅评价解析条件语义",
+      {
+        "source": "client_search.condition_compare",
+        "wrong": [],
+        "missing": [],
+        "extra": []
+      }
+    ],
+    "reasoning_summary": "查询明确给出客户姓名张忠波，但保单号仅为无值字段短语。实际正确生成姓名MATCH条件且未虚构保单号条件，符合解析语义；下游结果集未验证不影响本边界内判定。",
+    "summary": {
+      "reason": "fulfilled · 1 blocking expectations all met · 查询明确给出客户姓名张忠波，但保单号仅为无值字段短语。实际正确生成姓名MATCH条件且未虚构保单号条件，符合解析语义；下游结果集未验证不影响本边界内判定。",
+      "primary_failure_dimensions": [],
+      "reason_source": "aggregated_fulfillment",
+      "fulfillment_status": "fulfilled",
+      "assessment_count": 2,
+      "blocking_count": 1,
+      "is_formal_attribution": true
+    }
+  }
+}

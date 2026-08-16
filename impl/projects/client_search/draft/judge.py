@@ -47,6 +47,10 @@ from impl.projects.client_search.draft.field_tools import (
     create_minimal_field_definition_tool,
     load_explicit_field_support,
 )
+from impl.projects.client_search.draft.field_sufficiency import (
+    apply_last_word,
+    result_if_speaks,
+)
 from impl.tools import ToolContext, ToolResult
 from impl.tools import build_agno_tools
 
@@ -1501,11 +1505,6 @@ def _build_core_context(
             "已明确该字段语义且与用户意图一致，不得仅因字段名不在清单中、或与清单键存在命名/别名差异而判 "
             "not_fulfilled；清单外字段按 actual 自身声明的语义核对，只有实际语义偏离意图或缺失核心约束才判 "
             "not_fulfilled。\n"
-            "### 裸词规则\n"
-            "If actual treats a token as a person name, Reference/path match alone is not intent proof. "
-            "Without independent name evidence, do not mark that dimension fulfilled. "
-            "独立姓名证据指资料明确该 token 是人名（或该形态就是姓名检索）；"
-            "live 把它写成姓名、路径碰巧叫 searchClientName，都不够支撑 fulfilled（§2.1）。\n"
             "inlive 空间列出的操作符或 match_mode 只证明可达，不证明本次输入必须用上每一种。"
             "只有 Load 到的、且明确覆盖当前输入形态的规则，才能要求某个具体 mode；"
             "不得因为字段同时声明 prefix 与 suffix，就把未 Load 的 mode 加成缺失条件。\n"
@@ -1761,6 +1760,10 @@ class ClientSearchJudge(ProjectJudge):
     def build_intent_frame(self, trace: RunTrace, context: Optional[dict] = None) -> dict:
         return build_intent_frame(self.spec, trace, context)
 
+    def pre_judge(self, trace: RunTrace, user_intent: Optional[str] = None) -> Optional[JudgeResult]:
+        del user_intent
+        return result_if_speaks(self.spec, trace)
+
     def normalize_result(self, trace: RunTrace, result: JudgeResult) -> JudgeResult:
         return normalize_judge_result(result) or result
 
@@ -1777,4 +1780,5 @@ class ClientSearchJudge(ProjectJudge):
         from impl.projects.client_search.draft.judge_execution import (
             fail_closed_authority_off_judge_result,
         )
-        return fail_closed_authority_off_judge_result(self.spec, result)
+        closed = fail_closed_authority_off_judge_result(self.spec, result)
+        return apply_last_word(self.spec, trace, closed)

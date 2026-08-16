@@ -1,0 +1,301 @@
+{
+  "id": "I480",
+  "query": "分红",
+  "role": "business_word_as_name",
+  "expected_status": "not_fulfilled",
+  "source": "set_a",
+  "live_error": null,
+  "judge_error": null,
+  "live": {
+    "trace_id": "client_search:I480:1786795264679",
+    "fields": [
+      "searchClientName"
+    ],
+    "values": [
+      "分红"
+    ],
+    "robot_text": "客户姓名为分红的客户",
+    "matched_patterns": "姓名-模糊匹配",
+    "intent_summary": "客户姓名为分红的客户",
+    "conditions": [
+      {
+        "field": "searchClientName",
+        "operator": "MATCH",
+        "value": "分红",
+        "match_mode": null
+      }
+    ],
+    "extracted": {
+      "code": 0,
+      "msg": "操作成功",
+      "robot_text": "客户姓名为分红的客户",
+      "end_flag": 1,
+      "trace_id": null,
+      "query": "分红",
+      "query_logic": "AND",
+      "conditions": [
+        {
+          "field": "searchClientName",
+          "operator": "MATCH",
+          "value": "分红",
+          "match_mode": null
+        }
+      ],
+      "matched_level": 2,
+      "matched_patterns": "姓名-模糊匹配",
+      "rewritten_query": "分红",
+      "intent_summary": "客户姓名为分红的客户",
+      "confidence": 0.95,
+      "cost_times": 9.0
+    }
+  },
+  "judge_status": "not_fulfilled",
+  "judge_reasoning": "“分红”是未确认语义的裸词，当前没有独立姓名证据；实际却生成客户姓名 MATCH 条件并直接断言为姓名，造成未表达的姓名约束，且未作歧义说明。",
+  "judge": {
+    "trace_id": "client_search:I480:1786795264679",
+    "project_id": "client_search",
+    "business_expectations": [
+      {
+        "expectation_id": "按真实业务语义形成分红客户筛选条件",
+        "blocking": true,
+        "downstream_consumer": "客户搜索下游",
+        "user_intent": "用户输入“分红”，要求搜索与该业务词语义一致的目标客户，不能擅自解释为客户本人姓名。",
+        "expected_outcome": "仅在能确认字段语义时生成与“分红”一致的可执行客户筛选条件；不得将其映射为客户姓名条件。",
+        "required_capabilities": [
+          "正确识别查询词的业务语义",
+          "交付与用户意图一致的字段、操作符和值"
+        ],
+        "acceptance_criteria": [
+          "“分红”不被无依据地作为客户本人姓名",
+          "生成的条件能够表达已确认的客户筛选意图",
+          "无法确认字段时不交付错误的姓名条件"
+        ],
+        "boundary": {
+          "judge_scope": "parser_condition_semantics_only",
+          "result_set_verified": false
+        },
+        "priority": "核心交付",
+        "evidence_refs": []
+      },
+      {
+        "expectation_id": "对无法确认字段语义的查询进行透明说明",
+        "blocking": false,
+        "downstream_consumer": "用户",
+        "user_intent": "当“分红”无法确认对应的客户搜索字段时，应明确说明限制或歧义。",
+        "expected_outcome": "不编造姓名含义，并向用户说明当前无法确认可执行筛选字段。",
+        "required_capabilities": [
+          "歧义识别",
+          "透明限制说明"
+        ],
+        "acceptance_criteria": [
+          "响应不声称“分红”是客户姓名",
+          "响应说明无法确认可执行筛选字段或请求补充条件"
+        ],
+        "boundary": {},
+        "priority": "透明性",
+        "evidence_refs": []
+      }
+    ],
+    "fulfillment_assessments": [
+      {
+        "expectation_id": "按真实业务语义形成分红客户筛选条件",
+        "status": "not_fulfilled",
+        "score": 0,
+        "expected_evidence": [
+          "查询词“分红”本身没有独立姓名证据，不能确认其表示客户本人姓名",
+          "预期不得将未确认的业务词映射为客户姓名条件"
+        ],
+        "actual_evidence": [
+          "实际条件为 searchClientName MATCH 分红",
+          "robot_text 为“客户姓名为分红的客户”",
+          "下游结果集未验证"
+        ],
+        "downstream_impact": "该条件会把客户集合错误收窄为姓名匹配“分红”的客户，无法证明符合用户的业务搜索意图。",
+        "confidence": null,
+        "evidence_refs": [],
+        "authority_tool_call_ids": []
+      },
+      {
+        "expectation_id": "对无法确认字段语义的查询进行透明说明",
+        "status": "not_fulfilled",
+        "score": 0,
+        "expected_evidence": [
+          "无法确认“分红”对应的客户搜索字段时，应说明歧义或限制"
+        ],
+        "actual_evidence": [
+          "响应直接断言“客户姓名为分红的客户”",
+          "未提供歧义、限制或补充条件说明"
+        ],
+        "downstream_impact": "用户会误以为系统已正确识别查询含义。",
+        "confidence": null,
+        "evidence_refs": [],
+        "authority_tool_call_ids": []
+      }
+    ],
+    "overall_fulfillment": {
+      "status": "not_fulfilled",
+      "assessment_count": 2,
+      "blocking_expectations": [
+        "按真实业务语义形成分红客户筛选条件"
+      ]
+    },
+    "expected": {
+      "code": 0,
+      "msg": "当前无法确认“分红”的可执行客户筛选字段",
+      "query": "分红",
+      "conditions": [],
+      "robot_text": null,
+      "query_logic": "AND",
+      "rewritten_query": "分红"
+    },
+    "actual": {
+      "code": 0,
+      "msg": "操作成功",
+      "robot_text": "客户姓名为分红的客户",
+      "end_flag": 1,
+      "trace_id": null,
+      "query": "分红",
+      "query_logic": "AND",
+      "conditions": [
+        {
+          "field": "searchClientName",
+          "operator": "MATCH",
+          "value": "分红",
+          "match_mode": null
+        }
+      ],
+      "matched_level": 2,
+      "matched_patterns": "姓名-模糊匹配",
+      "rewritten_query": "分红",
+      "intent_summary": "客户姓名为分红的客户",
+      "confidence": 0.95,
+      "cost_times": 9.0
+    },
+    "missing": [
+      {
+        "kind": "条件",
+        "error_type": "缺失正确业务语义",
+        "expected": "与“分红”已确认语义一致的客户筛选条件，或明确无法确认",
+        "actual": "未提供正确语义条件",
+        "evidence_ref": "condition_compare",
+        "raw": {
+          "kind": "条件",
+          "error_type": "缺失正确业务语义",
+          "expected": "与“分红”已确认语义一致的客户筛选条件，或明确无法确认",
+          "actual": "未提供正确语义条件",
+          "evidence_ref": "condition_compare"
+        },
+        "incomplete": false
+      },
+      {
+        "kind": "说明",
+        "error_type": "缺失透明限制说明",
+        "expected": "说明查询字段语义无法确认",
+        "actual": "直接解释为客户姓名",
+        "evidence_ref": "final_output",
+        "raw": {
+          "kind": "说明",
+          "error_type": "缺失透明限制说明",
+          "expected": "说明查询字段语义无法确认",
+          "actual": "直接解释为客户姓名",
+          "evidence_ref": "final_output"
+        },
+        "incomplete": false
+      }
+    ],
+    "wrong": [
+      {
+        "kind": "字段语义",
+        "error_type": "错误映射",
+        "expected": "不得将“分红”无依据地视为客户本人姓名",
+        "actual": {
+          "field": "searchClientName",
+          "operator": "MATCH",
+          "value": "分红"
+        },
+        "evidence_ref": "final_output",
+        "raw": {
+          "kind": "字段语义",
+          "error_type": "错误映射",
+          "expected": "不得将“分红”无依据地视为客户本人姓名",
+          "actual": {
+            "field": "searchClientName",
+            "operator": "MATCH",
+            "value": "分红"
+          },
+          "evidence_ref": "final_output"
+        },
+        "incomplete": false
+      }
+    ],
+    "extra": [
+      {
+        "kind": "筛选约束",
+        "error_type": "增加未表达限制",
+        "expected": "不增加客户姓名筛选",
+        "actual": "searchClientName MATCH 分红",
+        "evidence_ref": "final_output",
+        "raw": {
+          "kind": "筛选约束",
+          "error_type": "增加未表达限制",
+          "expected": "不增加客户姓名筛选",
+          "actual": "searchClientName MATCH 分红",
+          "evidence_ref": "final_output"
+        },
+        "incomplete": false
+      }
+    ],
+    "evidence": [
+      {
+        "query": "分红"
+      },
+      {
+        "actual": {
+          "query_logic": "AND",
+          "conditions": [
+            {
+              "field": "searchClientName",
+              "operator": "MATCH",
+              "value": "分红",
+              "match_mode": null
+            }
+          ]
+        }
+      },
+      {
+        "capability": "searchClientName 仅表示客户本人的人名；无法确认是自然人人名时不应输出"
+      },
+      {
+        "source": "client_search.condition_compare",
+        "wrong": [],
+        "missing": [],
+        "extra": []
+      }
+    ],
+    "reasoning_summary": "“分红”是未确认语义的裸词，当前没有独立姓名证据；实际却生成客户姓名 MATCH 条件并直接断言为姓名，造成未表达的姓名约束，且未作歧义说明。",
+    "summary": {
+      "reason": "not_fulfilled · blocking=[按真实业务语义形成分红客户筛选条件] · “分红”是未确认语义的裸词，当前没有独立姓名证据；实际却生成客户姓名 MATCH 条件并直接断言为姓名，造成未表达的姓名约束，且未作歧义说明。",
+      "primary_failure_dimensions": [
+        {
+          "expectation_id": "按真实业务语义形成分红客户筛选条件",
+          "status": "not_fulfilled",
+          "blocking": true,
+          "downstream_impact": "该条件会把客户集合错误收窄为姓名匹配“分红”的客户，无法证明符合用户的业务搜索意图。",
+          "evidence": "实际条件为 searchClientName MATCH 分红 | robot_text 为“客户姓名为分红的客户” | 下游结果集未验证 | 查询词“分红”本身没有独立姓名证据，不能确认其表示客户本人姓名 | 预期不得将未确认的业务词映射为客户姓名条件"
+        },
+        {
+          "expectation_id": "对无法确认字段语义的查询进行透明说明",
+          "status": "not_fulfilled",
+          "blocking": false,
+          "downstream_impact": "用户会误以为系统已正确识别查询含义。",
+          "evidence": "响应直接断言“客户姓名为分红的客户” | 未提供歧义、限制或补充条件说明 | 无法确认“分红”对应的客户搜索字段时，应说明歧义或限制"
+        }
+      ],
+      "reason_source": "aggregated_fulfillment",
+      "fulfillment_status": "not_fulfilled",
+      "assessment_count": 2,
+      "blocking_count": 1,
+      "is_formal_attribution": true
+    }
+  }
+}

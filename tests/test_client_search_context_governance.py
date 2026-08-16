@@ -112,7 +112,7 @@ def _field_trace(trace_id: str) -> RunTrace:
     )
 
 
-def test_draft_judge_system_has_intent_decomposition_evidence_grading_bare_word_rules():
+def test_draft_judge_system_has_intent_decomposition_and_evidence_grading():
     spec = load_project("client_search")
     trace = _field_trace("context-governance-judge-directives")
     context = build_draft_context(spec, trace)
@@ -129,14 +129,15 @@ def test_draft_judge_system_has_intent_decomposition_evidence_grading_bare_word_
     system = client.system
     assert "### 意图拆解" in system
     assert "### 证据分级" in system
-    assert "### 裸词规则" in system
-    assert "独立姓名证据" in system
+    assert "### 裸词规则" not in system
+    assert "独立姓名证据" not in system
     assert "再搜下一个约束" in system
     assert "不要继续 Search" not in system
     assert "只有实际引用到的二级证据才能支撑 fulfilled" in system
     assert "不得仅因字段名不在清单中" in system
     assert "规则优先于自然语言推断" not in system
     assert "该项目确定性规则优先" not in system
+    assert "inlive 空间列出的操作符或 match_mode 只证明可达" in system
 
 
 def test_draft_judge_intent_frame_uses_compact_manifest_not_full():
