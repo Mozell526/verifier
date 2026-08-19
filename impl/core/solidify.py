@@ -173,7 +173,10 @@ def require_solidify_receipt(
         "required_source_ids",
     ):
         if raw.get(key) != current[key]:
-            raise ValueError(f"Draft Solidify receipt is stale: {key} changed")
+            raise ValueError(
+                f"Draft Solidify receipt is stale: {key} changed. "
+                "候选已在 solidify 之外变更，先重跑 scripts/solidify.py 更新收据"
+            )
     observables = _validate_runtime_observables(
         raw.get("runtime_observables"),
         available_asset_ids=set(current["available_asset_ids"]),

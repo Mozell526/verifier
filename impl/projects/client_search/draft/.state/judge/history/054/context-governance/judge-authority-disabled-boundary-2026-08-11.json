@@ -1,0 +1,68 @@
+{
+  "review_id": "judge-authority-disabled-boundary-2026-08-11",
+  "status": "closed",
+  "objective": "Verify that client_search Draft Judge preserves unresolved responsibility-boundary context when verifier.authority.enabled=false.",
+  "scope": {
+    "project_id": "client_search",
+    "role": "judge",
+    "cases": ["source-badcase-048", "source-badcase-088", "source-badcase-093", "source-badcase-113", "source-badcase-133"],
+    "baseline_run": "001-run"
+  },
+  "deterministic_scanner_findings": [],
+  "semantic_harness_findings": [
+    {
+      "finding_id": "CG-JUDGE-AUTH-DISABLED-001",
+      "status": "closed",
+      "severity": "high",
+      "problem": "Disabling Authority removed the case's boundary-candidate signals, while a project gate independently treated is_supported=false as proof that the field was in product scope. The compiled context and deterministic post-processing therefore fabricated a responsibility conclusion and forced not_fulfilled.",
+      "evidence": [
+        {
+          "kind": "spec",
+          "path": {
+            "location_scope": "verifier_repo",
+            "location": "spec/alg/fulfilled.md"
+          },
+          "lines": "50-69",
+          "detail": "not_evaluable responsibility/insufficient-evidence cases require an Authority-backed distinction; absence of investigation is not proof of either responsibility outcome."
+        },
+        {
+          "kind": "investigation_coverage_gap",
+          "path": {
+            "location_scope": "verifier_repo",
+            "location": "impl/projects/client_search/draft/investigation/judge/docs/authority-investigation-report.json"
+          },
+          "lines": "49-84",
+          "detail": "The frozen report explicitly states that is_supported=false and entity-name absence do not decide out-of-scope versus in-scope missing capability."
+        },
+        {
+          "kind": "baseline_replay",
+          "path": {
+            "location_scope": "verifier_repo",
+            "location": "impl/projects/client_search/draft/.state/judge/iterations/001-run.json"
+          },
+          "detail": "Before remediation, 088/093/113/133 were all decisively not_fulfilled with no authority_tool_call_ids; 048 was a neighboring fulfilled case."
+        }
+      ],
+      "impact": "Draft overstates business failures whenever the live output is empty and the missing dimension's responsibility boundary is unresolved, producing false regressions against Production.",
+      "owner": {
+        "primary": "client_search_draft_judge",
+        "secondary": ["context_governance", "authority_runtime"]
+      },
+      "remediation": "Preserve authority_candidate_reasons when Authority is disabled, expose disabled_with_candidates in the compiled context, remove the false field-presence responsibility rule, and fail closed to not_evaluable plus needs_human_review for affected blocking assessments.",
+      "blocked_stage": null,
+      "verification_evidence": [
+        "Compiled contexts for 088/093/113/133 report authority_mode=disabled_with_candidates, retain candidate_reasons, expose no authority tool, and require no unavailable tool.",
+        "Replay of the original 001-run Draft results changes 088/093/113/133 from not_fulfilled to not_evaluable while 048 remains fulfilled.",
+        "39 targeted Judge investigation tests passed; 34 Authority/context-governance regression tests passed.",
+        "The only excluded test performs a real external LLM smoke call and failed from API connection errors, not an assertion related to this remediation."
+      ]
+    }
+  ],
+  "unresolved_questions": [
+    "The final responsibility classifications for 088/093/113/133 remain intentionally unresolved until Authority is enabled or formal business boundary material is added."
+  ],
+  "gate_impact": {
+    "draft_loop": "requires a new fingerprint and targeted rerun before review",
+    "promotion": "blocked until the next Draft iteration demonstrates no neighboring regression"
+  }
+}

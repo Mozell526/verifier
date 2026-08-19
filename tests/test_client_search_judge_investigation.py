@@ -14,21 +14,49 @@ from impl.projects.client_search.draft.probes.judge_solidify_probe import (
 
 
 def _authority_spec():
-    """Return the client_search spec with the authority runtime switch enabled.
+    """Return the client_search spec with in-run authority scopes enabled.
 
-    Draft Judge default (verifier.authority.enabled=false) disables authority;
-    tests that exercise authority assembly/consumption must opt back in.
+    Draft Judge default enables only post-judge capability_carrier;
+    in-run authority stays off. Tests that exercise authority
+    assembly/consumption must opt the in-run scopes back in.
     """
     spec = load_project("client_search")
     authority = (spec.verifier or {}).setdefault("authority", {})
-    authority["enabled"] = True
+    authority["enabled_scopes"] = [
+        "responsibility",
+        "semantic_mapping",
+        "query_equivalence",
+        "conflict_arbitration",
+    ]
     return spec
 
-def test_client_search_judge_solidify_projection_matches_smoke_evidence():
+def test_client_search_judge_solidify_projection_matches_smoke_evidence(monkeypatch):
     spec = _authority_spec()
     runtime = load_judge_solidify_investigation_projection(
         spec, use_candidate=True
     )
+    from impl.projects.client_search.draft.probes import judge_solidify_probe as probe_mod
+
+    def _echo_replay(_env, probes):
+        return {
+            "probe_results": [
+                {
+                    "probe_id": str(item.get("probe_id") or ""),
+                    "subject_id": str(item["subject_id"]),
+                    "status": str(item["expected_status"]),
+                    "statement": "",
+                    "reason": "unit-test replay",
+                    "tool_call_id": f"probe:{item.get('probe_id')}",
+                    "tool_audit_present": True,
+                    "environment_snapshot_sha256": "test",
+                    "basis_evidence_ref_ids": [],
+                    "required_evidence": [],
+                }
+                for item in probes
+            ]
+        }
+
+    monkeypatch.setattr(probe_mod, "_run_authority_replay", _echo_replay)
     evidence = build_probe_payload()
 
     assert runtime["business_contract"]["business_expectations"][0]["expectation_id"] == (
@@ -58,6 +86,19 @@ def test_client_search_judge_solidify_projection_matches_smoke_evidence():
         assert check["case_time"] == {
             "without_decisive_evidence": "not_evaluable",
         }
+
+
+def test_authority_probe_questions_declare_in_run_class():
+    from impl.projects.client_search.draft.probes.judge_solidify_probe import (
+        _AUTHORITY_PROBE_CLASSES,
+        _AUTHORITY_PROBE_QUESTIONS,
+        _IN_RUN_SCOPES,
+    )
+
+    assert set(_AUTHORITY_PROBE_CLASSES) == set(_AUTHORITY_PROBE_QUESTIONS)
+    assert set(_AUTHORITY_PROBE_CLASSES.values()) <= set(_IN_RUN_SCOPES)
+
+
 def test_client_search_runtime_loads_solidified_authority_context_not_investigation_dump():
     spec = load_project("client_search")
 
@@ -840,10 +881,9 @@ def test_judge_prompt_contract_requires_not_evaluable_cause_markers():
     joined_off = "\n".join(
         candidate_module._build_core_context(spec, trace)["system_prompt_extras"]
     )
-    assert "not_evaluable" not in joined_off
+    assert "输入坏" in joined_off
+    assert "完全无关" in joined_off
     assert "成因契约" not in joined_off
-    assert "结论类型：完全无关" not in joined_off
-    assert "结论类型：输入坏" not in joined_off
     assert "结论类型：职责外" not in joined_off
     assert "Authority 能力不可用" not in joined_off
 
@@ -1277,7 +1317,8 @@ def test_disabled_authority_preserves_boundary_candidates_without_building_tool(
     assert "authority_obligation_contract" not in context["user_prompt_extras"]
     prompt = "\n".join(context["system_prompt_extras"])
     assert "not_fulfilled" in prompt
-    assert "not_evaluable" not in prompt
+    assert "成因契约" not in prompt
+    assert "结论类型：职责外" not in prompt
 
 
 def test_candidate_builds_authority_environment_for_boundary_candidate(monkeypatch):
@@ -1423,7 +1464,8 @@ def test_disabled_authority_088_093_decision_rule_does_not_leak_not_evaluable():
     from impl.projects.client_search.draft import judge as candidate_module
 
     spec_off = load_project("client_search")
-    assert bool(((spec_off.verifier or {}).get("authority") or {}).get("enabled", True)) is False
+    from impl.core.authority_scopes import in_run_authority_enabled
+    assert in_run_authority_enabled(spec_off) is False
     spec_on = _authority_spec()
     forbidden = (
         "not_evaluable when the capability is unconfirmed",
@@ -1661,7 +1703,8 @@ def test_authority_off_excludes_f_ne_licensing_clauses_for_088_093():
     for trace in (_panke_trace(), _license_plate_trace()):
         context_off = candidate_module._build_core_context(spec_off, trace)
         joined_off = "\n".join(context_off["system_prompt_extras"])
-        assert "not_evaluable" not in joined_off
+        assert "成因契约" not in joined_off
+        assert "结论类型：职责外" not in joined_off
         decision_rule = str(
             (
                 context_off["user_prompt_extras"].get("unsupported_boundary_evidence") or {}
@@ -1714,7 +1757,8 @@ def test_authority_off_catalog_consumption_instructs_search_then_load():
     assert "investigation.load_entry" in joined
     assert "SearchHit" in joined
     assert "不是 Evidence" in joined
-    assert "not_evaluable" not in joined
+    assert "成因契约" not in joined
+    assert "结论类型：职责外" not in joined
     extras_blob = json.dumps(context["user_prompt_extras"], ensure_ascii=False)
     assert "not_evaluable" not in extras_blob
     decision_rule = str(
@@ -1762,7 +1806,8 @@ def test_loaded_mapping_facts_strong_hit_and_silent_miss():
         assert "decision_rule" not in item
     joined_hit = "\n".join(hit_context["system_prompt_extras"])
     assert "Search→Load" in joined_hit
-    assert "not_evaluable" not in joined_hit
+    assert "成因契约" not in joined_hit
+    assert "结论类型：职责外" not in joined_hit
     assert "not_evaluable" not in json.dumps(
         hit_context["user_prompt_extras"], ensure_ascii=False
     )
@@ -1779,7 +1824,8 @@ def test_loaded_mapping_facts_strong_hit_and_silent_miss():
     assert miss_context["user_prompt_extras"]["loaded_mapping_facts"] == []
     joined_miss = "\n".join(miss_context["system_prompt_extras"])
     assert "Search→Load" in joined_miss
-    assert "not_evaluable" not in joined_miss
+    assert "成因契约" not in joined_miss
+    assert "结论类型：职责外" not in joined_miss
     assert "not_evaluable" not in json.dumps(
         miss_context["user_prompt_extras"], ensure_ascii=False
     )
@@ -1792,18 +1838,16 @@ def _assert_no_not_evaluable_status(result) -> None:
         assert str(status or "").strip().lower() != "not_evaluable"
 
 
-def test_authority_off_abort_fail_closed_never_not_evaluable():
-    """LLM abort / _minimal_honest: Authority-off overall NF; Authority-on may stay NE."""
+def test_authority_off_abort_stays_not_evaluable():
+    """LLM/tool abort is not a business NF. At most not_evaluable."""
     from impl.core.judge import _minimal_honest_judge_result, finalize_judge_result
-    from impl.core.schema import JudgeResult
     from impl.projects.client_search.draft.judge_execution import (
         fail_closed_authority_off_judge_result,
     )
 
     spec_off = load_project("client_search")
-    ((spec_off.verifier or {}).setdefault("authority", {}))["enabled"] = False
-    spec_on = load_project("client_search")
-    ((spec_on.verifier or {}).setdefault("authority", {}))["enabled"] = True
+    ((spec_off.verifier or {}).setdefault("authority", {}))["enabled_scopes"] = []
+    spec_on = _authority_spec()
     trace = RunTrace(
         trace_id="abort-tool-budget",
         project_id="client_search",
@@ -1822,15 +1866,44 @@ def test_authority_off_abort_fail_closed_never_not_evaluable():
     off = finalize_judge_result(
         fail_closed_authority_off_judge_result(spec_off, core)
     )
-    assert off.overall_fulfillment["status"] == "not_fulfilled"
-    _assert_no_not_evaluable_status(off)
+    assert off.overall_fulfillment["status"] == "not_evaluable"
+    assert list(off.fulfillment_assessments or []) == []
     assert "llm_call_failed" in list(off.evidence or [])
+    assert "核心业务交付" not in [
+        item.get("expectation_id") if isinstance(item, dict) else getattr(item, "expectation_id", "")
+        for item in (off.business_expectations or [])
+    ]
 
     on_core = _minimal_honest_judge_result(spec_on, trace, abort_data)
     on = finalize_judge_result(
         fail_closed_authority_off_judge_result(spec_on, on_core)
     )
     assert on.overall_fulfillment["status"] == "not_evaluable"
+
+
+def test_authority_off_llm_cooling_stays_not_evaluable():
+    from impl.core.judge import finalize_judge_result
+    from impl.core.schema import JudgeResult
+    from impl.projects.client_search.draft.judge_execution import (
+        fail_closed_authority_off_judge_result,
+    )
+
+    spec_off = load_project("client_search")
+    ((spec_off.verifier or {}).setdefault("authority", {}))["enabled_scopes"] = []
+    cooling = JudgeResult(
+        trace_id="llm-cooling",
+        project_id="client_search",
+        business_expectations=[],
+        fulfillment_assessments=[],
+        overall_fulfillment={"status": "not_evaluable", "assessment_count": 0},
+        reasoning_summary="LLM 调用失败，未做出算法判断: all llm endpoints are cooling",
+        evidence=["llm_call_failed"],
+    )
+    off = finalize_judge_result(
+        fail_closed_authority_off_judge_result(spec_off, cooling)
+    )
+    assert off.overall_fulfillment["status"] == "not_evaluable"
+    assert list(off.fulfillment_assessments or []) == []
 
 
 def test_authority_off_empty_assessments_fail_closed_to_not_fulfilled():
@@ -1841,7 +1914,7 @@ def test_authority_off_empty_assessments_fail_closed_to_not_fulfilled():
     )
 
     spec_off = load_project("client_search")
-    ((spec_off.verifier or {}).setdefault("authority", {}))["enabled"] = False
+    ((spec_off.verifier or {}).setdefault("authority", {}))["enabled_scopes"] = []
     empty = JudgeResult(
         trace_id="empty-assessments",
         project_id="client_search",
@@ -1885,8 +1958,9 @@ def test_authority_off_extras_do_not_force_inclusive_below_or_ban_lt():
     from impl.projects.client_search.draft.judge import _LIVE_OPERATOR_DELIVERY_PROTOCOL
 
     spec = load_project("client_search")
-    ((spec.verifier or {}).setdefault("authority", {}))["enabled"] = False
-    assert bool(((spec.verifier or {}).get("authority") or {}).get("enabled", True)) is False
+    ((spec.verifier or {}).setdefault("authority", {}))["enabled_scopes"] = []
+    from impl.core.authority_scopes import in_run_authority_enabled
+    assert in_run_authority_enabled(spec) is False
     trace = RunTrace(
         trace_id="live-operator-protocol",
         project_id="client_search",

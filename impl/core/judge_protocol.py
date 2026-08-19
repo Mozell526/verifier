@@ -20,15 +20,24 @@ _TERMINAL_JUDGE_FAILURE_EVIDENCE = frozenset({
     "llm_call_failed",
     "llm_output_validation_failed",
 })
+EXECUTION_FAILURE_MARKERS = _TERMINAL_JUDGE_FAILURE_EVIDENCE | frozenset({
+    "batch_case_failed",
+})
 
 
-def _is_terminal_judge_failure(result: JudgeResult) -> bool:
+def execution_failure_markers(result: Optional[JudgeResult]) -> set[str]:
+    if result is None:
+        return set()
     evidence = {
         str(item)
         for item in (result.evidence or [])
         if isinstance(item, str)
     }
-    return bool(evidence & _TERMINAL_JUDGE_FAILURE_EVIDENCE)
+    return evidence & set(EXECUTION_FAILURE_MARKERS)
+
+
+def is_terminal_judge_failure(result: JudgeResult) -> bool:
+    return bool(execution_failure_markers(result) & _TERMINAL_JUDGE_FAILURE_EVIDENCE)
 
 
 class _JudgeProtocol(ABC):
@@ -73,10 +82,10 @@ class _JudgeProtocol(ABC):
         pre_judge_result = self.pre_judge(trace, user_intent=user_intent)
         if pre_judge_result is not None:
             from impl.core.judge import finalize_judge_result
-            if _is_terminal_judge_failure(pre_judge_result):
+            if is_terminal_judge_failure(pre_judge_result):
                 return finalize_judge_result(pre_judge_result)
             normalized_pre = self.normalize_result(trace, pre_judge_result)
-            if _is_terminal_judge_failure(normalized_pre):
+            if is_terminal_judge_failure(normalized_pre):
                 return finalize_judge_result(normalized_pre)
             reconciled_pre = self.reconcile_result(trace, normalized_pre)
             return finalize_judge_result(reconciled_pre)
@@ -100,10 +109,10 @@ class _JudgeProtocol(ABC):
         # 4. 归一化 + 协调结果（扩展点）。LLM 执行/输出失败是公共终态，
         # 在任何项目后处理前短路，项目不得为失败结果补造 assessments。
         from impl.core.judge import finalize_judge_result
-        if _is_terminal_judge_failure(raw_result):
+        if is_terminal_judge_failure(raw_result):
             return finalize_judge_result(raw_result)
         normalized = self.normalize_result(trace, raw_result)
-        if _is_terminal_judge_failure(normalized):
+        if is_terminal_judge_failure(normalized):
             return finalize_judge_result(normalized)
         final_result = self.reconcile_result(trace, normalized)
         return finalize_judge_result(final_result)

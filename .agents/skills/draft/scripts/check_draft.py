@@ -66,10 +66,24 @@ def main() -> int:
         return 0
 
     knowledge_path = Path(__file__).resolve().parents[1] / args.role / "knowledge.md"
-    if not knowledge_path.is_file():
-        print(f"knowledge update: missing {knowledge_path}")
+    waiver_path = knowledge_path.with_name("knowledge-waiver.json")
+    knowledge_failed = False
+    if not knowledge_path.is_file() and not waiver_path.is_file():
+        print(f"knowledge update: missing {knowledge_path}", file=sys.stderr)
+        knowledge_failed = True
+    elif waiver_path.is_file():
+        print(f"knowledge update: waiver {waiver_path}")
     else:
-        print(f"knowledge update: {knowledge_path} mtime={os.stat(knowledge_path).st_mtime}")
+        text = knowledge_path.read_text(encoding="utf-8")
+        if "<!-- verified-entry -->" not in text and "证据:" not in text:
+            print(
+                f"knowledge update: {knowledge_path} has no verified entry "
+                "(need <!-- verified-entry --> or 证据: or knowledge-waiver.json)",
+                file=sys.stderr,
+            )
+            knowledge_failed = True
+        else:
+            print(f"knowledge update: {knowledge_path} has verified entries")
 
     if not args.unseen_cases:
         print("unseen cases: not provided; cannot run generalization check", file=sys.stderr)
@@ -88,7 +102,7 @@ def main() -> int:
     if result.returncode != 0:
         print(result.stderr.strip() or "unseen run failed", file=sys.stderr)
         return result.returncode
-    return 0
+    return 2 if knowledge_failed else 0
 
 
 if __name__ == "__main__":

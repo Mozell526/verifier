@@ -16,6 +16,11 @@ from impl.core.authority_environment import (
     AuthorityToolProtocolViolation,
     resolve_authority,
 )
+from impl.core.authority_scopes import (
+    AuthorityScopeRejected,
+    IN_RUN_AUTHORITY_SCOPES,
+    require_in_run_scope,
+)
 from impl.core.schema import AuthorityClaim, AuthorityRequest, AuthorityResolution
 from impl.tools import VerifiableTool
 
@@ -60,19 +65,46 @@ def _verification_failure_resolution(
 class AuthorityTool:
     """把 resolve 包装为 Judge 可调用的 VerifiableTool，并收集 Tool audit。"""
 
-    def __init__(self, env: AuthorityEnvironment, *, llm: Any = None):
+    def __init__(
+        self,
+        env: AuthorityEnvironment,
+        *,
+        llm: Any = None,
+        enabled_scopes: Any = None,
+    ):
         self._env = env
         self._llm = llm
+        self._scope_source = (
+            enabled_scopes
+            if enabled_scopes is not None
+            else getattr(env, "spec", None) or env
+        )
         self.audit: dict[str, Mapping[str, Any]] = {}
         # authority.md §10：相同完整问题 + Environment snapshot + Evidence revisions
         # 在一次 Runtime 任务内不得重复调用。cache 归属单次 judge 会话（每次
         # _build_core_context 新建），重复问题直接复用同一 resolution 与 tool_call_id。
         self._cache: dict[tuple[str, str], dict[str, Any]] = {}
 
-    def _execute(self, decision_question: str, claim: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    def _execute(
+        self,
+        decision_question: str,
+        claim: Mapping[str, Any] | None = None,
+        question_class: str = "",
+    ) -> dict[str, Any]:
         question = str(decision_question or "").strip()
         if not question:
             raise ValueError("authority.resolve requires a non-empty decision_question")
+        try:
+            require_in_run_scope(self._scope_source, question_class)
+        except AuthorityScopeRejected as exc:
+            return {
+                "tool_call_id": "",
+                "status": "scope_rejected",
+                "statement": "",
+                "reason": str(exc),
+                "basis_evidence_ref_ids": [],
+                "required_evidence": [],
+            }
         normalized_claim = None
         if claim is not None:
             if not isinstance(claim, Mapping):
@@ -166,9 +198,13 @@ class AuthorityTool:
         return dict(result)
 
     def as_verifiable_tool(self) -> VerifiableTool:
-        def execute(decision_question: str, claim: Mapping[str, Any] | None = None) -> dict[str, Any]:
+        def execute(
+            decision_question: str,
+            claim: Mapping[str, Any] | None = None,
+            question_class: str = "",
+        ) -> dict[str, Any]:
             # 包装为普通函数：build_agno_tools 需要可设置 __name__ 的 callable。
-            return self._execute(decision_question, claim)
+            return self._execute(decision_question, claim, question_class)
 
         return VerifiableTool(
             tool_id=TOOL_ID,
@@ -196,6 +232,13 @@ class AuthorityTool:
                             "必须包含所有可能改变答案的业务条件（版本、渠道、场景等）。"
                         ),
                     },
+                    "question_class": {
+                        "type": "string",
+                        "description": (
+                            "in-run 问题类，必须是 enabled_scopes 中的一项："
+                            + ", ".join(sorted(IN_RUN_AUTHORITY_SCOPES))
+                        ),
+                    },
                     "claim": {
                         "type": "object",
                         "description": "可选：Judge 需要 Authority 担保的规范性断言；必须是结论陈述，不是引导性问题。",
@@ -209,7 +252,7 @@ class AuthorityTool:
                         "additionalProperties": False,
                     },
                 },
-                "required": ["decision_question"],
+                "required": ["decision_question", "question_class"],
                 "additionalProperties": False,
             },
             execute_fn=execute,
@@ -217,6 +260,6 @@ class AuthorityTool:
 
 
 def build_authority_resolve_tool(
-    env: AuthorityEnvironment, *, llm: Any = None
+    env: AuthorityEnvironment, *, llm: Any = None, enabled_scopes: Any = None
 ) -> AuthorityTool:
-    return AuthorityTool(env, llm=llm)
+    return AuthorityTool(env, llm=llm, enabled_scopes=enabled_scopes)

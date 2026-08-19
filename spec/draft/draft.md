@@ -141,7 +141,7 @@ AI 先自己模拟探索最优方案：
 
 十四、文件组织
 
-.claude/skills/draft/
+.agents/skills/draft/
 ├── SKILL.md       # 只讲目标、思考方式和四层结构
 ├── MAP.md         # 文件用途与调用关系映射
 ├── reference/     # config 模板、灰度开关模板、报告模板

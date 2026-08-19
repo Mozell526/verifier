@@ -37,6 +37,8 @@ def _require_key_index_selection_receipts(
         str(item.get("index_key") or "").strip()
         for item in manifest.get("key_indexes") or []
         if str(item.get("index_key") or "").strip()
+        and str(item.get("target_kind") or "").strip()
+        not in {"material_decision", "evidence_locator"}
     }
     if not registered:
         return

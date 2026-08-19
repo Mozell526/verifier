@@ -728,6 +728,22 @@ def _staleness_report_payload(
         raise TypeError("staleness report payload must be an object or array")
 
 
+def _validate_mapping_artifact(context: ActiveArtifactContext, path: Path) -> None:
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(raw, Mapping):
+        raise TypeError(f"{path.name} must be a JSON object")
+    context.writer.validate(raw)
+
+
+def _mapping_payload(
+    _context: ActiveArtifactContext,
+    _path: Path,
+    payload: Any,
+) -> None:
+    if not isinstance(payload, Mapping):
+        raise TypeError("artifact payload must be an object")
+
+
 def _trusted_blocked_role_loop(
     context: ActiveArtifactContext,
     project_id: str,
@@ -1183,6 +1199,22 @@ DEFAULT_ACTIVE_ARTIFACT_REGISTRY = ActiveArtifactRegistry(
             _validate_draft_role_review,
             consumer_boundaries=("Draft Loop review", "promotion"),
             payload_validator=_draft_role_review_payload,
+        ),
+        ActiveArtifactFamily(
+            "draft_iteration_score",
+            "derived_active",
+            "*/draft/.state/*/iterations/*-score.json",
+            _validate_mapping_artifact,
+            consumer_boundaries=("Draft Loop review",),
+            payload_validator=_mapping_payload,
+        ),
+        ActiveArtifactFamily(
+            "draft_pending",
+            "derived_active",
+            "*/draft/.state/*/pending.json",
+            _validate_mapping_artifact,
+            consumer_boundaries=("Draft Loop",),
+            payload_validator=_mapping_payload,
         ),
         ActiveArtifactFamily(
             "endpoint_discovery_manifest",

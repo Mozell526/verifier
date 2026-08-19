@@ -303,11 +303,26 @@ def _render_result(trace: RunTrace, decision: Decision) -> JudgeResult:
     return result
 
 
-def result_if_speaks(spec: ProjectSpec, trace: RunTrace) -> Optional[JudgeResult]:
+def sufficiency_hint(spec: ProjectSpec, trace: RunTrace) -> Optional[dict[str, Any]]:
+    """Business-semantic mouth becomes a prompt hint, not a status override."""
     decision = decide_from_trace(spec, trace)
     if not decision.speaks:
         return None
-    return _render_result(trace, decision)
+    return {
+        "source": "field_sufficiency.hint",
+        "reason": decision.reason,
+        "field": decision.field,
+        "value": decision.value,
+        "dimension": decision.dimension,
+        "suggested_status": decision.status,
+        "note": "待核对提示，不是判定。最终 status 由 Judge 给出。",
+    }
+
+
+def result_if_speaks(spec: ProjectSpec, trace: RunTrace) -> Optional[JudgeResult]:
+    # fulfilled.md §9 任务4：业务语义预判不得绕过 LLM 直接写 F/NF。
+    del spec, trace
+    return None
 
 
 def apply_last_word(
@@ -315,5 +330,6 @@ def apply_last_word(
     trace: RunTrace,
     result: JudgeResult,
 ) -> JudgeResult:
-    spoken = result_if_speaks(spec, trace)
-    return spoken if spoken is not None else result
+    # 保留函数位：协议级硬路径（输出不可解析等）不在本模块。
+    del spec, trace
+    return result

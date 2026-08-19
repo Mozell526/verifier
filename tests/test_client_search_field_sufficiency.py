@@ -12,6 +12,7 @@ from impl.projects.client_search.draft.field_sufficiency import (
     decide_from_trace,
     load_field_standards,
     result_if_speaks,
+    sufficiency_hint,
 )
 from impl.projects.client_search.draft.judge import ClientSearchJudge
 
@@ -80,27 +81,27 @@ def test_judge_speaks_only_when_sufficiency_hits() -> None:
     fake = _trace("needle-fake", "共展", [("searchClientName", "共展")])
     extra = _trace("needle-honglian", "红莲保单", [("searchClientName", "红莲")])
 
-    spoken = judge.pre_judge(yang)
-    assert spoken is not None
-    assert spoken.overall_fulfillment["status"] == "fulfilled"
+    assert judge.pre_judge(yang) is None
+    assert result_if_speaks(spec, yang) is None
     assert decide_from_trace(spec, yang).reason == "sufficient_name"
 
-    refused = judge.pre_judge(fake)
-    assert refused is not None
-    assert refused.overall_fulfillment["status"] == "not_fulfilled"
-
+    assert judge.pre_judge(fake) is None
     assert judge.pre_judge(extra) is None
     assert result_if_speaks(spec, extra) is None
+    hint = sufficiency_hint(spec, yang)
+    assert hint is not None
+    assert hint["suggested_status"] == "fulfilled"
+    assert hint["source"] == "field_sufficiency.hint"
 
 
 def test_last_word_replaces_leftover_llm_contract() -> None:
     spec = load_project("client_search")
     judge = ClientSearchJudge(spec)
     yang = _trace("needle-yang-reconcile", "杨杰", [("searchClientName", "杨杰")])
-    reconciled = judge.reconcile_result(yang, _llm_result(yang, "not_fulfilled"))
-    assert reconciled.overall_fulfillment["status"] == "fulfilled"
-    assert [item.expectation_id for item in reconciled.business_expectations] == ["这一维已按标准交齐"]
-    assert [item.status for item in reconciled.fulfillment_assessments] == ["fulfilled"]
+    incoming = _llm_result(yang, "not_fulfilled")
+    reconciled = judge.reconcile_result(yang, incoming)
+    assert reconciled.overall_fulfillment["status"] == "not_fulfilled"
+    assert [item.expectation_id for item in reconciled.business_expectations] == ["llm-core"]
 
 
 def test_inherit_keeps_existing_judge_result() -> None:

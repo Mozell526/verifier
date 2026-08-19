@@ -50,6 +50,7 @@ JUDGE_REVIEW_CRITERIA = (
     "no_runtime_authority_investigation",
     "no_internal_or_unseen_leakage",
     "relative_improvement_no_regression",
+    "capability_carrier_audit",
 )
 
 MOCK_REVIEW_CRITERIA = (
@@ -106,6 +107,9 @@ def write_draft_role_review(
     summary: str,
     criteria: Sequence[Mapping[str, Any]],
     contract_coverage: Sequence[Mapping[str, Any]],
+    exclusions: Sequence[Mapping[str, Any]] | None = None,
+    flip_labels: Sequence[Mapping[str, Any]] | None = None,
+    knowledge_delta: Mapping[str, Any] | None = None,
 ) -> Path:
     normalized_role = _role(role)
     _validate_decision_route(decision, route)
@@ -133,9 +137,79 @@ def write_draft_role_review(
         report_name=report_path.name,
         case_keys=case_keys,
     )
+    from .authority_scopes import capability_carrier_enabled
+    from .capability_carrier import inbox_entries, render_inbox
+    from .draft_pending import merge_review_into_pending
+    from .draft_score import load_replicate_reports, score_iteration
+
+    invalid_keys = sorted({
+        item.rsplit("/", 1)[0]
+        for item in run_report_invalid_sides(report)
+    })
+    replicas = load_replicate_reports(report_path, report)
+    score = score_iteration(
+        report,
+        exclusions,
+        invalid_case_keys=invalid_keys,
+        flip_labels=flip_labels,
+        replicates=replicas,
+    )
+    score_path = report_path.with_name(report_path.stem.replace("-run", "-score") + ".json")
+    if score_path.name == report_path.name:
+        score_path = report_path.with_name(report_path.stem + "-score.json")
+    if report_path.name.endswith("-run.json"):
+        score_path = report_path.with_name(report_path.name.replace("-run.json", "-score.json"))
+    write_active_artifact(
+        "draft_iteration_score",
+        score_path,
+        score,
+        repository_root=spec.verifier_root_path(),
+    )
+    normalized_criteria = _apply_machine_relative_score(normalized_criteria, score)
+    if normalized_role == "judge":
+        normalized_criteria = _apply_capability_carrier_audit(
+            normalized_criteria, report, spec=spec, enabled=capability_carrier_enabled(spec)
+        )
+    unwaived_fails = [
+        item["criterion_id"]
+        for item in normalized_criteria
+        if item.get("status") == "fail" and not item.get("waiver")
+        and item["criterion_id"] != "relative_improvement_no_regression"
+    ]
+    if unwaived_fails and (decision == "improved" or route == "promotion_checks"):
+        decision = "unchanged"
+        route = "solidify"
     if decision == "improved":
         require_improved_run_report(report)
+        if not score["allows_improved"]:
+            raise ValueError("improved review rejected: machine net score does not allow improved")
         _require_improved_relative_criterion(normalized_criteria)
+    delta = _validate_knowledge_delta(
+        knowledge_delta
+        if knowledge_delta is not None
+        else {"none": True, "reason": "omitted"}
+    )
+    waivers = [
+        {
+            "criterion_id": item["criterion_id"],
+            "reason": item["waiver"]["reason"],
+            "route": "solidify",
+        }
+        for item in normalized_criteria
+        if item.get("waiver")
+    ]
+    merge_review_into_pending(
+        report_path.parent.parent,
+        iteration=iteration,
+        exclusions=score.get("excluded") or [],
+        waivers=waivers,
+        repository_root=spec.verifier_root_path(),
+    )
+    if capability_carrier_enabled(spec):
+        inbox_path = report_path.with_name(
+            report_path.name.replace("-run.json", "-carrier-inbox.md")
+        )
+        inbox_path.write_text(render_inbox(inbox_entries(report.get("rows") or [])), encoding="utf-8")
     payload = {
         "schema_version": DRAFT_ROLE_REVIEW_VERSION,
         "project_id": spec.project_id,
@@ -157,6 +231,16 @@ def write_draft_role_review(
         "summary": _text(summary, "Draft role review summary"),
         "contract_coverage": normalized_coverage,
         "criteria": normalized_criteria,
+        "exclusions": list(score.get("excluded") or []),
+        "flip_labels": list(flip_labels or []),
+        "knowledge_delta": delta,
+        "score": {
+            "sha256": _file_sha256(score_path),
+            "net": score["net"],
+            "allows_improved": score["allows_improved"],
+            "stability_ready": score["stability_ready"],
+            "replicate_count": score["replicate_count"],
+        },
     }
     path = draft_role_review_path(
         spec, normalized_role, iteration, must_exist=False
@@ -198,6 +282,10 @@ def require_draft_role_review(
         "summary",
         "contract_coverage",
         "criteria",
+        "exclusions",
+        "flip_labels",
+        "knowledge_delta",
+        "score",
     }
     unknown = sorted(set(raw) - allowed)
     if unknown:
@@ -458,7 +546,7 @@ def _validate_criteria(
     for index, item in enumerate(value):
         if not isinstance(item, Mapping):
             raise TypeError(f"Draft role review criteria[{index}] must be an object")
-        allowed = {"criterion_id", "status", "evidence", "finding"}
+        allowed = {"criterion_id", "status", "evidence", "finding", "waiver"}
         unknown = sorted(set(item) - allowed)
         if unknown:
             raise ValueError(
@@ -480,14 +568,31 @@ def _validate_criteria(
             evidence, f"criteria[{index}]", report_name, case_keys
         )
         finding = _text(item.get("finding"), f"criteria[{index}].finding")
-        normalized.append(
-            {
-                "criterion_id": criterion_id,
-                "status": status,
-                "evidence": evidence,
-                "finding": finding,
+        entry = {
+            "criterion_id": criterion_id,
+            "status": status,
+            "evidence": evidence,
+            "finding": finding,
+        }
+        if item.get("waiver") is not None:
+            waiver = item.get("waiver")
+            if not isinstance(waiver, Mapping):
+                raise TypeError(f"criteria[{index}].waiver must be an object")
+            reason = _text(waiver.get("reason"), f"criteria[{index}].waiver.reason")
+            resolve_by = waiver.get("resolve_by_iteration")
+            if (
+                not isinstance(resolve_by, int)
+                or isinstance(resolve_by, bool)
+                or resolve_by < 1
+            ):
+                raise ValueError(
+                    f"criteria[{index}].waiver.resolve_by_iteration must be a positive integer"
+                )
+            entry["waiver"] = {
+                "reason": reason,
+                "resolve_by_iteration": resolve_by,
             }
-        )
+        normalized.append(entry)
     missing = sorted(expected - seen)
     if missing:
         raise ValueError(
@@ -600,6 +705,101 @@ def _text(value: Any, owner: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{owner} is required")
     return value.strip()
+
+
+def _apply_machine_relative_score(
+    criteria: list[dict[str, Any]],
+    score: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    updated = []
+    for item in criteria:
+        if item.get("criterion_id") != "relative_improvement_no_regression":
+            updated.append(item)
+            continue
+        copy = dict(item)
+        copy["status"] = score["relative_status"]
+        copy["finding"] = (
+            f"machine net={score['net']} wins={score['win_count']} "
+            f"losses={score['loss_count']} ties={score['tie_count']} "
+            f"unlabeled={score['unlabeled_count']} variance={score['variance_count']} "
+            f"excluded={score['excluded_count']} "
+            f"replicates={score['replicate_count']} "
+            f"stability_ready={score['stability_ready']}. "
+            f"{item.get('finding') or ''}"
+        ).strip()
+        updated.append(copy)
+    return updated
+
+
+def _apply_capability_carrier_audit(
+    criteria: list[dict[str, Any]],
+    report: Mapping[str, Any],
+    *,
+    spec: Any = None,
+    enabled: bool,
+) -> list[dict[str, Any]]:
+    from .capability_carrier import load_capability_snapshot, validate_placements
+
+    errors: list[str] = []
+    snapshot = None
+    if enabled:
+        try:
+            snapshot = load_capability_snapshot(spec)
+        except Exception:
+            snapshot = None
+        for row in report.get("rows") or []:
+            if isinstance(row, Mapping):
+                errors.extend(validate_placements(row, snapshot))
+        status = "fail" if errors else "pass"
+        finding = (
+            "归位审计失败: " + "; ".join(errors)
+            if errors
+            else "每条 NF blocking 期望均有可回溯归位，轴1 未被改写"
+        )
+    else:
+        status = "pass"
+        finding = "capability_carrier 未开启，本项不适用"
+    entry = {
+        "criterion_id": "capability_carrier_audit",
+        "status": status,
+        "evidence": ["001-run.json"] if not errors else ["001-run.json#capability_carrier"],
+        "finding": finding,
+    }
+    replaced = False
+    updated = []
+    for item in criteria:
+        if item.get("criterion_id") == "capability_carrier_audit":
+            updated.append(entry)
+            replaced = True
+        else:
+            updated.append(item)
+    if not replaced:
+        updated.append(entry)
+    return updated
+
+
+def _validate_knowledge_delta(value: Any) -> dict[str, Any]:
+    if value is None:
+        raise ValueError("knowledge_delta is required")
+    if not isinstance(value, Mapping):
+        raise TypeError("knowledge_delta must be an object")
+    if value.get("none") is True:
+        reason = _text(value.get("reason"), "knowledge_delta.reason")
+        return {"none": True, "reason": reason, "entries": []}
+    entries = value.get("entries")
+    if not isinstance(entries, list) or not entries:
+        raise ValueError("knowledge_delta.entries must be a non-empty list, or none=true")
+    normalized = []
+    for index, item in enumerate(entries):
+        if not isinstance(item, Mapping):
+            raise TypeError(f"knowledge_delta.entries[{index}] must be an object")
+        text = _text(item.get("text"), f"knowledge_delta.entries[{index}].text")
+        evidence = _text(
+            item.get("evidence_ref"),
+            f"knowledge_delta.entries[{index}].evidence_ref",
+        )
+        normalized.append({"text": text, "evidence_ref": evidence})
+    return {"none": False, "entries": normalized}
 
 
 def _string_list(value: Any, owner: str) -> list[str]:

@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, Mapping, Optional
 
+from .capability_carrier import collect_report_errors, format_carrier_errors, live_carrier_report
 from .analysis import analyze_project
 from .check import check_chain
 from .cluster import cluster_attributes
@@ -402,8 +403,9 @@ def _generate_reference_for_case(spec, case, project_id):
 
 
 def _run_payload(trace, judge_result, attribute_result, case_id="", execution_mode="", output_source="", error=""):
+    spec = load_project(trace.project_id)
     if not trace.config_fingerprint:
-        attach_config_provenance(trace, load_project(trace.project_id))
+        attach_config_provenance(trace, spec)
     run = {
         "trace": trace,
         "judge": judge_result,
@@ -412,6 +414,14 @@ def _run_payload(trace, judge_result, attribute_result, case_id="", execution_mo
         "execution_mode": execution_mode or trace.execution_mode,
         "output_source": output_source or trace.output_source,
     }
+    report = live_carrier_report(spec, judge_result)
+    if report is not None:
+        run["capability_carrier"] = report
+        carrier_errors = collect_report_errors(report)
+        if carrier_errors:
+            run["run_status"] = "error"
+            run["error"] = error or format_carrier_errors(carrier_errors)
+            return run
     if error:
         run["error"] = error
     return run
@@ -708,7 +718,14 @@ def batch_run(
     check_report = check(project_id, trace, judge_result, attribute_result, cluster_summary)
     failed_run_checks = [item for item in (_run_check(run) for run in runs if isinstance(run, dict) and run.get("check")) if item is not None and item.passed is False]
     table = build_case_pool_table_from_runs(project_id, runs)
-    return BatchRunResult(project_id=project_id, total=len(case_list), runs=runs, cluster=cluster_summary, check=check_report, table=table)
+    run_status = "error" if any(
+        isinstance(run, dict) and (
+            run.get("run_status") == "error"
+            or collect_report_errors(run.get("capability_carrier") if isinstance(run.get("capability_carrier"), dict) else None)
+        )
+        for run in runs
+    ) else "completed"
+    return BatchRunResult(project_id=project_id, total=len(case_list), runs=runs, cluster=cluster_summary, check=check_report, table=table, run_status=run_status)
 
 
 def _run_chain_replay(project_id: str, trace: RunTrace, context: TraceExecutionContext):

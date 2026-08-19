@@ -214,9 +214,28 @@ def run_iteration(
             "harness_prompt and re-run the owning gate until it passes: "
             + ", ".join(str(path) for path in pending_feedback)
         )
+    from impl.core.draft_pending import assert_run_allowed
+    from impl.core.draft_score import next_replicate_path
+    from impl.core.solidify import require_solidify_receipt
+
+    current_fingerprint = compute_current_fingerprint(spec)
+    draft_fingerprint = compute_draft_fingerprint(spec, role)
+    replicate = False
     if state.iterations and not state.iterations[-1].decision:
-        raise ValueError("previous Draft iteration still awaits Harness review")
-    if len(state.iterations) >= state.max_iterations:
+        if state.iterations[-1].draft_fingerprint != draft_fingerprint:
+            raise ValueError("previous Draft iteration still awaits Harness review")
+        replicate = True
+    pending_iteration = len(state.iterations) if replicate else len(state.iterations) + 1
+    assert_run_allowed(state_path.parent, pending_iteration)
+    try:
+        require_solidify_receipt(spec, role)
+    except ValueError as exc:
+        if "stale" in str(exc):
+            raise ValueError(
+                f"{exc}. 候选已在 solidify 之外变更，先重跑 scripts/solidify.py 更新收据"
+            ) from exc
+        raise
+    if not replicate and len(state.iterations) >= state.max_iterations:
         state.status = "blocked"
         _write_state(spec, state_path, state)
         raise RuntimeError("Draft Loop reached max_iterations without proven improvement")
@@ -225,22 +244,65 @@ def run_iteration(
     if _stable_hash(cases) != state.cases_sha256:
         raise RuntimeError("Draft Loop iteration cases changed after freezing")
 
-    iteration_number = len(state.iterations) + 1
-    report_path = state_path.parent / "iterations" / f"{iteration_number:03d}-run.json"
-    report_path.parent.mkdir(parents=True, exist_ok=True)
-    partial_path = report_path.with_suffix(".partial.json")
-    # A restarted loop begins iteration numbering from one. Remove artifacts with
-    # the same number before running so callers cannot mistake a previous loop's
-    # completed report for the active iteration. This run will recreate either a
-    # completed report or a failure report, preserving all facts from this run.
-    report_path.unlink(missing_ok=True)
+    iteration_number = len(state.iterations) if replicate else len(state.iterations) + 1
+    primary_path = state_path.parent / "iterations" / f"{iteration_number:03d}-run.json"
+    primary_path.parent.mkdir(parents=True, exist_ok=True)
+    if replicate:
+        report_path = next_replicate_path(primary_path)
+    else:
+        report_path = primary_path
+        # A restarted loop begins iteration numbering from one. Remove artifacts
+        # with the same number before running so callers cannot mistake a
+        # previous loop's completed report for the active iteration.
+        report_path.unlink(missing_ok=True)
+        for leftover in primary_path.parent.glob(f"{primary_path.stem}-r*.json"):
+            leftover.unlink()
+    partial_path = report_path.with_name(report_path.stem + ".partial.json")
     resume_from = _resume_candidate(spec, state, partial_path)
     if resume_from is None:
         partial_path.unlink(missing_ok=True)
 
-    current_fingerprint = compute_current_fingerprint(spec)
-    draft_fingerprint = compute_draft_fingerprint(spec, role)
+    report = _execute_frozen_run(
+        spec,
+        state,
+        project_id=project_id,
+        role=role,
+        cases=cases,
+        report_path=report_path,
+        partial_path=partial_path,
+        current_fingerprint=current_fingerprint,
+        draft_fingerprint=draft_fingerprint,
+        source_drift=source_drift,
+        workers=workers,
+        retries=retries,
+        resume_from=resume_from,
+    )
+    if not replicate:
+        state.iterations.append(DraftLoopIteration(
+            iteration=iteration_number,
+            run_report=_project_ref(spec, report_path, "draft_loop.run_report"),
+            draft_fingerprint=draft_fingerprint,
+        ))
+        _write_state(spec, state_path, state)
+    return report
 
+
+def _execute_frozen_run(
+    spec: Any,
+    state: DraftLoopState,
+    *,
+    project_id: str,
+    role: str,
+    cases: Any,
+    report_path: Path,
+    partial_path: Path,
+    current_fingerprint: str,
+    draft_fingerprint: str,
+    source_drift: Mapping[str, Any],
+    workers: int,
+    retries: int,
+    resume_from: Optional[Path],
+) -> dict[str, Any]:
     in_progress_rows: dict[str, dict[str, Any]] = {}
 
     def persist_progress(event: Mapping[str, Any]) -> None:
@@ -284,8 +346,13 @@ def run_iteration(
             retries=retries,
         )
         report["schema_version"] = DRAFT_RUN_REPORT_VERSION
-        report["run_status"] = "completed"
+        if report.get("run_status") != "error":
+            report["run_status"] = "completed"
         report["source_revision_drift"] = source_drift
+        report["frozen_cases_sha256"] = state.cases_sha256
+        report["current_fingerprint"] = current_fingerprint
+        report["draft_fingerprint"] = draft_fingerprint
+        report["runner_fingerprint"] = runner_fingerprint(spec)
         write_portable_export(report_path, report)
     except Exception as exc:
         partial = {}
@@ -303,22 +370,17 @@ def run_iteration(
             },
         }
         write_portable_export(report_path, failed_report)
-        state.iterations.append(DraftLoopIteration(
-            iteration=iteration_number,
-            run_report=_project_ref(spec, report_path, "draft_loop.run_report"),
-            draft_fingerprint=compute_draft_fingerprint(spec, role),
-        ))
-        _write_state(spec, state_path, state)
+        if not state.iterations or state.iterations[-1].decision:
+            state.iterations.append(DraftLoopIteration(
+                iteration=len(state.iterations) + 1,
+                run_report=_project_ref(spec, report_path, "draft_loop.run_report"),
+                draft_fingerprint=draft_fingerprint,
+            ))
+            _write_state(spec, _state_path(spec, role), state)
         partial_path.unlink(missing_ok=True)
         raise RuntimeError(f"Draft iteration failed; partial facts preserved at {report_path}: {exc}") from exc
 
     partial_path.unlink(missing_ok=True)
-    state.iterations.append(DraftLoopIteration(
-        iteration=iteration_number,
-        run_report=_project_ref(spec, report_path, "draft_loop.run_report"),
-        draft_fingerprint=compute_draft_fingerprint(spec, role),
-    ))
-    _write_state(spec, state_path, state)
     return report
 
 

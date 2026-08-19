@@ -16,6 +16,7 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
+from impl.core.capability_carrier import format_placement_cell
 from impl.core.project_loader import load_project
 from impl.core.schema import DraftLoopState
 
@@ -126,10 +127,14 @@ def _render(
         or (row.get("draft_runtime") or {}).get("authority_tool_call_ids")
         for row in rows
     )
+    has_carrier = any(isinstance(row.get("capability_carrier"), dict) for row in rows)
     columns = list(FACT_COLUMNS)
     if has_authority:
         columns.append("authority(production)")
         columns.append("authority(draft)")
+    if has_carrier:
+        columns.append("归位(production)")
+        columns.append("归位(draft)")
     for label in scenario_columns:
         columns.append(str(label))
     columns.append(HARNESS_COLUMN)
@@ -148,6 +153,10 @@ def _render(
         if has_authority:
             cells.append(_authority_cell(row, "current"))
             cells.append(_authority_cell(row, "draft"))
+        if has_carrier:
+            carrier = row.get("capability_carrier") or {}
+            cells.append(format_placement_cell(carrier.get("current")))
+            cells.append(format_placement_cell(carrier.get("draft")))
         for path in scenario_columns.values():
             cells.append(_cell_text(_dotted(row, path)))
         cells.append("-")

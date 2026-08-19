@@ -59,7 +59,11 @@ def _report(spec: ProjectSpec, role: str, *, rows: list[dict] | None = None) -> 
         "run_status": "completed",
         "project_id": "demo",
         "role": role,
-        "rows": rows if rows is not None else [{"case_key": "case-1"}],
+        "rows": rows if rows is not None else [{
+            "case_key": "case-1",
+            "current": {"overall_fulfillment": {"status": "not_fulfilled"}},
+            "draft": {"overall_fulfillment": {"status": "fulfilled"}},
+        }],
     }), encoding="utf-8")
     return path
 
@@ -100,6 +104,15 @@ def _coverage(source_ids: list[str]) -> list[dict]:
     } for source_id in source_ids]
 
 
+def _stable_labels(report: Path, *case_keys: str) -> list[dict]:
+    replica = report.with_name(report.name.replace("-run.json", "-run-r2.json"))
+    replica.write_text(report.read_text(encoding="utf-8"), encoding="utf-8")
+    return [
+        {"case_key": key, "direction": "win", "clause": "fulfilled.md 反面 1"}
+        for key in case_keys
+    ]
+
+
 @pytest.mark.parametrize("role", ["judge", "mock"])
 def test_role_review_round_trip_requires_complete_role_contract(
     tmp_path: Path, monkeypatch, role: str
@@ -108,6 +121,7 @@ def test_role_review_round_trip_requires_complete_role_contract(
     source_ids = [f"{role}:source-a", f"{role}:source-b"]
     _solidify(monkeypatch, tmp_path, role, source_ids)
     report = _report(spec, role)
+    labels = _stable_labels(report, "case-1")
 
     path = write_draft_role_review(
         spec,
@@ -119,6 +133,7 @@ def test_role_review_round_trip_requires_complete_role_contract(
         summary="Draft satisfies the role contract and does not regress.",
         criteria=_criteria(role),
         contract_coverage=_coverage(source_ids),
+        flip_labels=labels,
     )
 
     assert path.is_file()
@@ -178,8 +193,10 @@ def test_improved_role_review_allows_non_relative_criterion_fail(
     source_ids = [f"{role}:source"]
     _solidify(monkeypatch, tmp_path, role, source_ids)
     report = _report(spec, role)
+    labels = _stable_labels(report, "case-1")
     criteria = _criteria(role)
     criteria[0]["status"] = "fail"
+    criteria[0]["waiver"] = {"reason": "will fix next loop", "resolve_by_iteration": 3}
 
     path = write_draft_role_review(
         spec,
@@ -191,6 +208,7 @@ def test_improved_role_review_allows_non_relative_criterion_fail(
         summary="Net confident wins are positive; other criteria stay recorded.",
         criteria=criteria,
         contract_coverage=_coverage(source_ids),
+        flip_labels=labels,
     )
     payload = json.loads(path.read_text(encoding="utf-8"))
     assert payload["decision"] == "improved"
@@ -204,11 +222,18 @@ def test_improved_role_review_rejects_failed_relative_improvement(
     spec = _project(tmp_path, role)
     source_ids = [f"{role}:source"]
     _solidify(monkeypatch, tmp_path, role, source_ids)
-    report = _report(spec, role)
+    report = _report(
+        spec,
+        role,
+        rows=[{
+            "case_key": "case-1",
+            "current": {"overall_fulfillment": {"status": "fulfilled"}},
+            "draft": {"overall_fulfillment": {"status": "not_fulfilled"}},
+        }],
+    )
     criteria = _criteria(role)
-    criteria[-1]["status"] = "fail"
 
-    with pytest.raises(ValueError, match="relative_improvement_no_regression to pass"):
+    with pytest.raises(ValueError, match="machine net score does not allow improved"):
         write_draft_role_review(
             spec,
             role,
@@ -218,6 +243,36 @@ def test_improved_role_review_rejects_failed_relative_improvement(
             route="promotion_checks",
             summary="A scored regression must not be relabelled improved.",
             criteria=criteria,
+            contract_coverage=_coverage(source_ids),
+        )
+
+
+def test_unlabeled_stable_flip_blocks_improved(tmp_path: Path, monkeypatch):
+    role = "judge"
+    spec = _project(tmp_path, role)
+    source_ids = [f"{role}:source"]
+    _solidify(monkeypatch, tmp_path, role, source_ids)
+    report = _report(
+        spec,
+        role,
+        rows=[{
+            "case_key": "case-1",
+            "current": {"overall_fulfillment": {"status": "not_fulfilled"}},
+            "draft": {"overall_fulfillment": {"status": "fulfilled"}},
+        }],
+    )
+    _stable_labels(report)
+
+    with pytest.raises(ValueError, match="machine net score does not allow improved"):
+        write_draft_role_review(
+            spec,
+            role,
+            1,
+            run_report=report,
+            decision="improved",
+            route="promotion_checks",
+            summary="A stable flip without a harness direction label cannot be a win.",
+            criteria=_criteria(role),
             contract_coverage=_coverage(source_ids),
         )
 
@@ -417,11 +472,13 @@ def _healthy_judge_row(case_key: str) -> dict:
         "current": {
             "evidence": ["capability_manifest"],
             "summary": {"fulfillment_status": "fulfilled"},
+            "overall_fulfillment": {"status": "not_fulfilled"},
         },
         "current_runtime": {"environment": "missing", "authority_audit": {}},
         "draft": {
             "evidence": ["capability_manifest"],
             "summary": {"fulfillment_status": "fulfilled"},
+            "overall_fulfillment": {"status": "fulfilled"},
         },
         "draft_runtime": {
             "environment": "ok",
@@ -478,6 +535,7 @@ def test_improved_role_review_accepts_judge_current_without_authority_runtime(
     source_ids = [f"{role}:source"]
     _solidify(monkeypatch, tmp_path, role, source_ids)
     report = _report(spec, role, rows=[_healthy_judge_row("judge-001")])
+    labels = _stable_labels(report, "judge-001")
 
     path = write_draft_role_review(
         spec,
@@ -489,6 +547,7 @@ def test_improved_role_review_accepts_judge_current_without_authority_runtime(
         summary="Draft judge improves business outcomes without regressions.",
         criteria=_criteria(role),
         contract_coverage=_coverage(source_ids),
+        flip_labels=labels,
     )
     assert path.is_file()
 
@@ -507,6 +566,7 @@ def test_improved_role_review_allows_partial_draft_abort(
         role,
         rows=[_healthy_judge_row("judge-ok"), abort_row],
     )
+    labels = _stable_labels(report, "judge-ok")
 
     path = write_draft_role_review(
         spec,
@@ -518,5 +578,6 @@ def test_improved_role_review_allows_partial_draft_abort(
         summary="One aborted Draft row is unscored and does not veto net wins.",
         criteria=_criteria(role),
         contract_coverage=_coverage(source_ids),
+        flip_labels=labels,
     )
     assert path.is_file()

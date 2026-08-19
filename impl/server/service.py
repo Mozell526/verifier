@@ -96,6 +96,8 @@ def compact_run(run: Dict[str, Any]) -> Dict[str, Any]:
         "frontend_view": frontend_view,
         "error": run.get("error"),
     }
+    if run.get("capability_carrier") is not None:
+        compact["capability_carrier"] = run.get("capability_carrier")
     table_row = build_trace_table_row_from_run(compact)
     compact["table_row"] = to_dict(table_row)
     compact["status"] = table_row.status
@@ -316,6 +318,7 @@ def batch_run(data: Dict[str, Any]) -> BatchRunResult:
         check=normalize_check_report(result.check) if result.check else None,
         table=normalize_case_pool_table(result.table) if result.table else None,
         fallbacks=result.fallbacks,
+        run_status=result.run_status,
     )
 
 

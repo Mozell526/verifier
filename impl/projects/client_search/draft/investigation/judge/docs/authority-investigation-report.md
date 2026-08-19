@@ -127,7 +127,7 @@
    - scenario: client_search_parser_field_carrier_standard
    - conditions: `trust_model: M1 受控输出空间（见 project-judge-boundary-source 信任模型登记）`; `field_definitions 为当前启用配置`; `is_supported 按字段声明读取；任一同字段声明显式 false 时不得按普通支持字段处理`; `无灰度覆盖`
 2. **current_behavior** — 意图到查询条件的换算规则（字段值/操作符如何换算）
-   - statement: field_definitions_args.yaml 中的换算与归一规则是 parser 当前实现行为，只解释系统现在如何换算，不构成裁决选择正确性的依据。
+   - statement: field_definitions_args.yaml 中的换算与归一规则是 parser 当前实现行为，只解释系统现在如何换算，不构成裁决选择正确性的依据。当前行为包括：未指明地址类型（居住地址/住址/住在等）走 ANY_ADDRESS_FIELD；附近未给距离时默认 5 公里；综拓理赔有状态用 MATCH、仅“有过理赔”用 EXISTS；税优产品同时存在 CONTAINS 与 NOT_CONTAINS 两条 intent。
    - locator: `field_definitions_args.yaml 换算规则条目`
    - scenario: client_search_parser_field_carrier_standard
    - conditions: `field_definitions 为当前启用配置`; `无灰度覆盖`
@@ -140,7 +140,7 @@
 #### Limitations
 
 - 空间类陈述在信任模型 M1 下作为下游能力空间代理；换算规则类陈述仍是当前行为，不裁决对错。
-- familyInfo.familyclientbirthday 的字段定义声明 MATCH，但同资料示例使用 RANGE，操作符口径存在冲突且未裁决。
+- familyInfo.familyclientbirthday 的字段定义 intent 现声明 RANGE/GT/GTE/LT；enhanced_rules 仍使用 LTE、EXISTS。操作符口径未完全对齐，未裁决。
 - is_supported 只决定字段当前是否允许作为搜索条件；它不决定用户表达是否应映射到该字段，也不证明外部数据库存在具体记录。
 
 ### business-field-enums
@@ -195,7 +195,7 @@
 #### Decisions（该资料在下列范围内直接决定）
 
 1. **current_behavior** — 复杂口语模式的解析规则（年龄/时间/状态等模式如何落到字段与操作符）
-   - statement: enhanced_rules 定义年龄、时间、状态、地址等复杂口语模式的正则与 merge_to_llm 行为；其中包含共享给我的客户组合规则（onlyShareClientFlag=Y）及地址解析模式。它与 field_definitions 一起决定解析行为，是判断 actual 是否符合当前规则实现的行为基线。
+   - statement: enhanced_rules 定义年龄、时间、状态、地址等复杂口语模式的正则与 merge_to_llm 行为；其中包含共享给我的客户组合规则（onlyShareClientFlag=Y）、地址解析模式、理赔险种有/无拆分、农历生日与保单数量（polNum）规则。它与 field_definitions 一起决定解析行为，是判断 actual 是否符合当前规则实现的行为基线。
    - locator: `enhanced_rules_args.yaml rules[模式名]`
    - scenario: client_search_parser_rule_patterns
    - conditions: `规则为当前启用配置`; `merge_to_llm 行为按配置生效`
@@ -214,8 +214,8 @@
 
 #### Decisions（该资料在下列范围内直接决定）
 
-1. **current_behavior** — 相对时间口语（上周/下月/未来N天等）到日期区间的换算口径
-   - statement: time_knowledge 定义相对时间词的偏移与区间换算（week_offset、next_month、next_n_days 等），是时间窗口意图可执行性的当前基线；与 poleffdate 等日期字段定义共同决定时间条件是否可表达。
+1. **current_behavior** — 相对时间口语（本周/上周/下月/未来N天等）到日期区间的换算口径
+   - statement: time_knowledge 定义相对时间词的偏移与区间换算（current_week / week_offset、next_month、next_n_days 等），是时间窗口意图可执行性的当前基线；与 poleffdate 等日期字段定义共同决定时间条件是否可表达。
    - locator: `time_knowledge_args.yaml resolver`
    - scenario: client_search_parser_relative_time
    - conditions: `时间知识为当前启用配置`; `相对时间词命中 time_knowledge 条目`

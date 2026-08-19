@@ -1,6 +1,6 @@
 # 能力承载性归位协议（做不了 / 做错了 / 说不清）
 
-> 状态：草稿，待讨论。`spec/alg/fulfilled.md` 是轴1（办成了没有），本协议是轴2：
+> 状态：已落地（2026-08-16）。`spec/alg/fulfilled.md` 是轴1（办成了没有），本协议是轴2：
 > 只对轴1 判"没办成"的案子回答一件事——没办成是因为承载不了，还是承载得了却没做对。
 > 不改 fulfilled 三态，不进 JudgeResult，不进 Judge prompt，判后派生。
 > 第一章为长期协议，第二章为落地机制与配置。
@@ -65,16 +65,18 @@
 
 ### 2.3 说不清
 
-承载性本身判不了。成因穷尽为三类，必须写清差在哪儿、缺哪份料：
+承载性本身判不了。成因穷尽为两类，必须写清差在哪儿、缺哪份料：
 
 | 差在哪儿 | 什么时候出现 |
 |---|---|
-| 口径分歧 | 该期望有多个合理读法，且不同读法的承载性答案不一致（缺受治理口径） |
+| 口径分歧 | 该期望有多个合理读法，且不同读法的承载性答案不一致（缺受治理口径）；或双抽后 2/3 多数票仍无多数 |
 | 空间未受治理 | 该维度既无 M1 登记也无信任模型可依，封闭性无从谈起（缺登记） |
-| 工具失败 | 资料/工具取不到，不得编造（缺本次证据） |
 
 口径分歧的判据是确定性的：所有合理读法都承载得了 → 做错了；
 都承载不了 → 做不了；**只有读法之间答案不一致才落说不清**。
+
+mapper 重试耗尽、能力快照加载失败不是说不清。该期望归位失败，
+本次 run 标记 `run_status=error`，不得进 review/solidify。
 
 ## 3. 判断顺序
 
@@ -86,10 +88,11 @@
   └─ 多个合理读法 → 各读法分别过第三步：
         答案一致 → 用该答案；不一致 → 说不清（口径分歧）
 第三步：受治理能力空间查承载
+  ├─ 缺维度 / 缺值须先过口径表，再过全量目录反查（枚举+受治理别名）；仍无命中才成立
   ├─ 缺维度 / 缺值 / 缺操作符 / is_supported=false → 做不了
   ├─ 完整表达存在于空间内 → 做错了
   ├─ 该维度空间未受治理 → 说不清（空间未受治理）
-  └─ 资料/工具取不到 → 说不清（工具失败）
+  └─ 读法抽取重试耗尽 / 快照不可用 → 归位失败，run 标记 error
 ```
 
 几个把歧义焊死的判据：
@@ -139,15 +142,21 @@
 落成一个独立的裁决工具（函数/类），不动通用裁决通道：
 
 ```text
-resolve_carrier(期望, 能力空间快照) → 承载得了 / 承载不了 / 判不了 + 资料引用
+mapper(期望, 维度目录) → 读法组 / unmapped+nearest / process_only
+resolve_carrier(读法, 能力空间快照) → 承载得了 / 承载不了 / 判不了 + 资料引用
 
-消费    只读 Authority 调查层与 solidify 沉淀的资料：
-        M1 登记、capability_manifest、investigation 报告。不新增供给源
+消费    只读 Authority 调查层与项目运行时资产：
+        M1 登记、capability_manifest、capability_lexicon、investigation 报告。
+        口径表是轴2 调查产物，不进 Judge / 不进 Judge solidify
 调用    判后 pass：轴1 出完 → 收集 NF blocking 期望 → 逐条裁承载性
-去重    按（期望的目标维度 × 空间快照）去重；同一轮 30 个 case 里
-        5 个都问"投保日期承载性"只裁一次
+第二步  期望→维度由 LLM mapper 执行；输入只有期望文本 + 受治理目录（含口径表），
+        不看 live / 轴1 理由。LLM 只出读法，不出三态
+第三步  空间查承载是确定性代码。缺维度/缺值定案前，先口径表再全量枚举和描述内
+        唯一别名反查；命中则改写成读法再裁，不另调 mapper
+去重    按（读法字段集合 × 空间快照）去重；同一轮同一读法只裁一次
 映射    确定性代码，不是模型判定：
         承载不了 → 做不了；承载得了 → 做错了；判不了 → 说不清
+        做不了必须资料自认：is_supported=false / 缺值 / 缺操作符 / unmapped+nearest
 输出    独立 artifact（per-run 归位记录 + 资料引用），不写入 JudgeResult
 ```
 
@@ -188,7 +197,17 @@ verifier:
 实验注意：`responsibility` 一旦开启，轴1 才会出现 NE(职责外) 入口，
 **直接影响 loop 计分**——只准在 draft 分支跑对照，不得直接开在 production 配置。
 
-## 8. draft skill 落点
+## 8. 治理与 draft 落点
+
+轴2 资产走现有 `current_fingerprint`，不另开 draft 角色、不另开 Judge solidify 通道：
+
+- `capability_manifest` / `capability_lexicon.yaml` 在项目包（`draft/` 除外）里，
+  改动自动进入 `current_fingerprint`；
+- mapper 提示词在 `impl/core/capability_carrier.py`，同属 current 指纹；
+- 变更门禁是冻结 NF 金标（`tests/test_capability_carrier.py` 的
+  `test_client_search_axis2_frozen_nf`），不是 Judge 对照分。
+
+draft 侧只加展示与审计，不改计分：
 
 1. **loop 计分不变**：净胜继续只看轴1，现有赢案一个不掉；
 2. **渲染**：`capability_carrier` 开启时对比表加"归位"列，

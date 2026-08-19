@@ -27,8 +27,8 @@ const exporter = sandbox.CasePoolExporter;
 if (typeof exporter.formatTraceShow !== "function") {
   throw new Error("formatTraceShow is not a function");
 }
-if (exporter.COLUMNS[exporter.COLUMNS.length - 1].key !== "traceSummary") {
-  throw new Error("Trace 摘要 is not the last export column");
+if (exporter.COLUMNS[exporter.COLUMNS.length - 1].key !== "carrierPlacement") {
+  throw new Error("裁决 is not the last export column");
 }
 
 const show = {

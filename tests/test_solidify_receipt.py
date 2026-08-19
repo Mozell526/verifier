@@ -47,6 +47,11 @@ def _judge_contract() -> dict:
             "not_fulfilled_when": ["遗漏或错误改写明确条件"],
             "not_evaluable_when": ["无法取得查询或下游协议"],
         }],
+        "mandatory_reviews": {
+            "honest_refusal_is_not_fulfilled": "如实拒绝不是办成",
+            "three_states_exclusive": "三态互斥",
+            "no_escape": "不许逃逸",
+        },
     }
 
 

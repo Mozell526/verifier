@@ -9,6 +9,7 @@ from typing import Any, Dict, Optional, Set
 
 from impl.core.authority_environment import build_authority_environment
 from impl.core.authority_key_index import coverage_gap_trigger_hit
+from impl.core.authority_scopes import in_run_authority_enabled
 from impl.core.authority_tool import build_authority_resolve_tool
 from impl.core.judge import _derive_overall_status
 from impl.core.judge_protocol import ProjectJudge
@@ -50,6 +51,7 @@ from impl.projects.client_search.draft.field_tools import (
 from impl.projects.client_search.draft.field_sufficiency import (
     apply_last_word,
     result_if_speaks,
+    sufficiency_hint,
 )
 from impl.tools import ToolContext, ToolResult
 from impl.tools import build_agno_tools
@@ -998,9 +1000,7 @@ def _apply_operator_capability_check(
     violations = _actual_operator_violations(spec, trace)
     if not violations:
         return
-    authority_enabled = bool(
-        ((spec.verifier or {}).get("authority") or {}).get("enabled", True)
-    )
+    authority_enabled = in_run_authority_enabled(spec)
     if not authority_enabled:
         return
     conflict_fields = _operator_conflict_fields(spec) & {
@@ -1374,6 +1374,45 @@ def _authority_pre_obligations(
         unique.setdefault(key, item)
     return list(unique.values())
 
+
+def authority_mode_prompt_clauses(authority_enabled: bool) -> dict[str, str]:
+    """fulfilled.md §3.1 clauses. Tested as snapshots; compile uses these only."""
+    if authority_enabled:
+        return {
+            "decision_order": (
+                "先形成用户意图、实际交付和决定性标准问题，再消费 Authority "
+                "resolved statement 完成评价。职责外 not_evaluable 仅在 Authority "
+                "已 resolved 之后。不得把未查证的能力边界候选写成 not_evaluable。"
+            ),
+            "empty_conditions": (
+                "Authority 开启且最终判断依赖受治理标准时，先消费 Authority "
+                "resolution 再判 fulfilled/not_fulfilled/not_evaluable。"
+            ),
+            "partial_delivery": (
+                "安全拒绝和透明说明必须另建 blocking=false 的 expectation。"
+                "若 actual 只交付请求的一部分，必须按可独立判断的请求维度拆分 "
+                "expectation：已交付维度照常评价；Authority 开启且命中 coverage_gap "
+                "时只让依赖该边界的 assessment 消费 Authority，不得把已交付维度一起降级。"
+            ),
+        }
+    return {
+        "decision_order": (
+            "依据当前 trace、普通业务上下文和确定性工具结果，尽量判 "
+            "fulfilled / not_fulfilled。能力/职责边界候选、coverage gap、空 "
+            "conditions 或「不支持」提示本身不得触发 not_evaluable。"
+            "输入坏、完全无关、实际输出或必要 trace 无法取得，仍可判 "
+            "not_evaluable 并写明成因。"
+        ),
+        "empty_conditions": "按当前交付判 not_fulfilled。",
+        "partial_delivery": (
+            "安全拒绝和透明说明必须另建 blocking=false 的 expectation。"
+            "若 actual 只交付请求的一部分，必须按可独立判断的请求维度拆分 "
+            "expectation：已交付维度照常评价；被遗漏的 blocking 维度按实际未交付判 "
+            "not_fulfilled。"
+        ),
+    }
+
+
 def _build_core_context(
     spec: ProjectSpec,
     trace: RunTrace,
@@ -1410,9 +1449,8 @@ def _build_core_context(
         intent_frame.get("critical_intent_dimensions")
         or context.get("critical_intent_dimensions")
     )
-    authority_enabled = bool(
-        ((spec.verifier or {}).get("authority") or {}).get("enabled", True)
-    )
+    authority_enabled = in_run_authority_enabled(spec)
+    mode_clauses = authority_mode_prompt_clauses(authority_enabled)
     enum_completeness_evidence = _enum_completeness_evidence(
         trace, compact_manifest, authority_enabled=authority_enabled
     )
@@ -1456,11 +1494,7 @@ def _build_core_context(
             "先派生用户真正要办成的 blocking 核心业务交付，再逐项比较 actual。"
             "安全拒绝、透明说明、不编造条件只能作为独立 non-blocking 验收项，不能替代核心交付；"
             "overall 必须由 blocking assessments 聚合。"
-            + (
-                "证据充分时只判 fulfilled/not_fulfilled；Authority 关闭时不得因职责外候选、不支持提示或空条件打 not_evaluable；职责外 not_evaluable 仅在 Authority 已 resolved 之后；Authority 关闭时其余合法 not_evaluable 仅限输入坏、完全无关，或 actual/trace 确实不可用。"
-                if authority_enabled
-                else "只判 fulfilled/not_fulfilled；缺失 blocking 核心交付判 not_fulfilled。"
-            )
+            + mode_clauses["decision_order"]
             + "HTTP 状态、历史 verdict 和归因信息不得替代 expected-vs-actual 判断。"
         ),
         *(
@@ -1511,18 +1545,8 @@ def _build_core_context(
             "is_supported=false 或 actual 明确不支持某条件时，分别评价核心交付与透明边界说明，不能用说明替代核心结果。"
             "以下内容永远不能单独成为 blocking 核心交付：不错误映射、不编造条件、拒绝越界请求、告知当前限制、未识别到条件。"
             "若请求存在明确业务对象但 actual 没有可执行条件，仍要保留该对象的核心交付 expectation，"
-            + (
-                "Authority 关闭时按当前交付判 not_fulfilled；Authority 开启且最终判断依赖受治理标准时，"
-                "先消费 Authority resolution 再判 fulfilled/not_fulfilled/not_evaluable。"
-                if authority_enabled
-                else "按当前交付判 not_fulfilled。"
-            )
-            + (
-            "安全拒绝和透明说明必须另建 blocking=false 的 expectation。"
-            "若 actual 只交付请求的一部分，必须按可独立判断的请求维度拆分 expectation：已交付维度照常评价；"
-            "Authority 关闭时，被遗漏的 blocking 维度按实际未交付判 not_fulfilled；Authority 开启且命中"
-            " coverage_gap 时只让依赖该边界的 assessment 消费 Authority，不得把已交付维度一起降级。"
-            )
+            + mode_clauses["empty_conditions"]
+            + mode_clauses["partial_delivery"]
         ),
         (
             "## client_search 最终输出拓扑与 fulfillment_assessments 字段约束（严格，以本节为唯一准则）\n"
@@ -1552,6 +1576,13 @@ def _build_core_context(
             "loaded_mapping_facts 是已 Load 的 mapping 事实，不是 SearchHit。"
         )
     )
+    hint = sufficiency_hint(spec, trace)
+    if hint:
+        system_extras.append(
+            "## 字段充分性待核对提示\n"
+            "以下是确定性充分性测试命中后的待核对提示，不是判定，不得单独据此改写 status。\n"
+            + json.dumps(hint, ensure_ascii=False)
+        )
     system_extras.append(_LIVE_OPERATOR_DELIVERY_PROTOCOL)
     if authority_required:
         system_extras.append(
@@ -1582,10 +1613,11 @@ def _build_core_context(
         system_extras.append(
             "## Authority 状态\n"
             "本 case 存在可能影响语义、等价、能力或职责判断的 Authority 候选信号，但 "
-            "verifier.authority.enabled=false，因此不提供 authority.resolve。"
+            "verifier.authority.enabled_scopes 未包含 in-run 问题类，因此不提供 authority.resolve。"
             "不得声称职责内外、正式语义或资料优先级已获权威确认；"
             "依据用户意图与 Live 当前可见交付完成效果评价，"
             "缺失 blocking 核心交付判 not_fulfilled。"
+            "输入坏、完全无关、actual/trace 不可得仍可判 not_evaluable 并写明成因。"
         )
     else:
         system_extras.append(
@@ -1620,7 +1652,7 @@ def _build_core_context(
             # continues; Solidify/Promotion keep the strict default.
             business_source_staleness_policy="warn",
         )
-        authority_tool = build_authority_resolve_tool(authority_env)
+        authority_tool = build_authority_resolve_tool(authority_env, enabled_scopes=spec)
         tools += build_agno_tools([authority_tool.as_verifiable_tool()])
         environment_snapshot_sha256 = authority_env.environment_snapshot_sha256
 

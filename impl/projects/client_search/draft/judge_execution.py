@@ -27,11 +27,18 @@ if TYPE_CHECKING:
 
 
 _MISSING_CORE_DELIVERY_ID = "核心业务交付"
-_ABORT_EVIDENCE_MARKERS = ("llm_call_failed", "tool_budget_exceeded", "tool_budget abort")
+_ABORT_EVIDENCE_MARKERS = (
+    "llm_call_failed",
+    "LLM 调用失败",
+    "tool_budget_exceeded",
+    "tool_budget abort",
+)
 
 
 def _authority_enabled(spec: ProjectSpec) -> bool:
-    return bool(((spec.verifier or {}).get("authority") or {}).get("enabled", True))
+    from impl.core.authority_scopes import in_run_authority_enabled
+
+    return in_run_authority_enabled(spec)
 
 
 def _item_status(item: Any) -> str:
@@ -92,46 +99,79 @@ def _attach_missing_core_delivery_nf(result: JudgeResult, *, reason: str) -> Non
     result.fulfillment_assessments = assessments
 
 
+_LEGAL_AUTHORITY_OFF_NE = ("输入坏", "完全无关")
+_ILLEGAL_AUTHORITY_OFF_NE = ("职责外", "依据不充分")
+
+
+def _assessment_evidence_text(assessment: Any) -> str:
+    parts: list[str] = []
+    evidence = (
+        assessment.get("actual_evidence")
+        if isinstance(assessment, dict)
+        else getattr(assessment, "actual_evidence", None)
+    )
+    if isinstance(evidence, (list, tuple)):
+        parts.extend(str(item) for item in evidence)
+    elif evidence:
+        parts.append(str(evidence))
+    return "".join(parts)
+
+
+def _legal_authority_off_ne(assessment: Any) -> bool:
+    text = _assessment_evidence_text(assessment)
+    if any(marker in text for marker in _ILLEGAL_AUTHORITY_OFF_NE):
+        return False
+    return any(marker in text for marker in _LEGAL_AUTHORITY_OFF_NE)
+
+
 def fail_closed_authority_off_judge_result(
     spec: ProjectSpec, result: JudgeResult
 ) -> JudgeResult:
-    """Authority-off Draft return path: RoleResult cannot emit overall NE.
+    """Authority-off: remap illegal NE (职责外/依据不充分) to NF.
 
-    Core `_minimal_honest_judge_result` / `_derive_overall_status` stay
-    unchanged so frozen Current (Authority-on abort → NE) is untouched.
+    fulfilled.md §3.1 still allows 输入坏 / 完全无关 / actual-trace 不可得.
     """
     if _authority_enabled(spec):
         return result
 
-    for assessment in result.fulfillment_assessments or []:
-        if _item_status(assessment) == "not_evaluable":
-            _set_item_status(assessment, "not_fulfilled")
-
     abort = _evidence_marks_judge_abort(result)
+    if not abort:
+        for assessment in result.fulfillment_assessments or []:
+            if _item_status(assessment) == "not_evaluable" and not _legal_authority_off_ne(assessment):
+                _set_item_status(assessment, "not_fulfilled")
+
     empty = not list(result.fulfillment_assessments or [])
     overall = dict(result.overall_fulfillment or {})
     derived = _derive_overall_status(
         list(result.business_expectations or []),
         list(result.fulfillment_assessments or []),
     )
-    if empty or abort or derived == "not_evaluable" or str(overall.get("status") or "").strip().lower() == "not_evaluable":
-        if empty or abort:
-            reason = "missing blocking core delivery"
-            if abort:
-                reason = str(result.reasoning_summary or "").strip() or "llm_call_failed"
-            _attach_missing_core_delivery_nf(result, reason=reason)
+    has_legal_ne = any(
+        _item_status(item) == "not_evaluable" and _legal_authority_off_ne(item)
+        for item in (result.fulfillment_assessments or [])
+    )
+    # LLM/tool abort is not a business NF. Empty assessments stay not_evaluable.
+    if abort:
         derived = _derive_overall_status(
             list(result.business_expectations or []),
             list(result.fulfillment_assessments or []),
         )
-        if derived == "not_evaluable":
-            _attach_missing_core_delivery_nf(
-                result, reason="missing blocking core delivery"
-            )
-            derived = _derive_overall_status(
-                list(result.business_expectations or []),
-                list(result.fulfillment_assessments or []),
-            )
+        if derived == "not_fulfilled":
+            derived = "not_evaluable"
+    elif empty:
+        _attach_missing_core_delivery_nf(result, reason="missing blocking core delivery")
+        derived = _derive_overall_status(
+            list(result.business_expectations or []),
+            list(result.fulfillment_assessments or []),
+        )
+    elif derived == "not_evaluable" and not has_legal_ne:
+        _attach_missing_core_delivery_nf(
+            result, reason="missing blocking core delivery"
+        )
+        derived = _derive_overall_status(
+            list(result.business_expectations or []),
+            list(result.fulfillment_assessments or []),
+        )
         if derived == "not_evaluable":
             derived = "not_fulfilled"
 
@@ -320,14 +360,8 @@ def judge_trace(
     """
     from impl.core.context.project import load_role_mandatory_context
 
-    authority_enabled = bool(
-        ((spec.verifier or {}).get("authority") or {}).get("enabled", True)
-    )
-    status_vocab = (
-        {"fulfilled", "not_fulfilled"}
-        if not authority_enabled
-        else set(_FULFILLMENT_STATUS_VOCAB)
-    )
+    authority_enabled = _authority_enabled(spec)
+    status_vocab = set(_FULFILLMENT_STATUS_VOCAB)
 
     mandatory_context = load_role_mandatory_context(
         spec,
@@ -361,9 +395,6 @@ def judge_trace(
         governance_config.setdefault("trace_id", str(trace.trace_id or ""))
         governance_config.setdefault("case_id", str(getattr(trace, "case_id", "") or ""))
     excluded_markers = list(governance_config.get("excluded_clause_markers") or [])
-    if not authority_enabled and "not_evaluable" not in excluded_markers:
-        excluded_markers.append("not_evaluable")
-        governance_config["excluded_clause_markers"] = excluded_markers
     if excluded_markers:
         from impl.core.context_governance import slice_context_clauses
         excluded_segments = list(governance_config.get("excluded_segments") or [])

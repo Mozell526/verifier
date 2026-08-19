@@ -9,9 +9,9 @@ draft 实现者不需要预先知道扩展点清单，调用本脚本读取当�
 输出 JSON，供 draft skill 在生成 draft 实现时按图施工。
 
 用法（解释器取 `impl/config.yaml` 的 `python.executable`）：
-    <python.executable> .claude/skills/draft/scripts/introspect_protocol.py <protocol_file>
-    <python.executable> .claude/skills/draft/scripts/introspect_protocol.py impl/core/judge_protocol.py
-    <python.executable> .claude/skills/draft/scripts/introspect_protocol.py impl/core/judge_protocol.py impl/core/attribute_protocol.py
+    <python.executable> .agents/skills/draft/scripts/introspect_protocol.py <protocol_file>
+    <python.executable> .agents/skills/draft/scripts/introspect_protocol.py impl/core/judge_protocol.py
+    <python.executable> .agents/skills/draft/scripts/introspect_protocol.py impl/core/judge_protocol.py impl/core/attribute_protocol.py
 """
 from __future__ import annotations
 import argparse

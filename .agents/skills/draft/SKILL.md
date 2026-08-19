@@ -190,10 +190,12 @@ Review 将问题路由为：
 
 unseen cases 只在 promotion-only checks 使用，不逐轮暴露给 Harness AI。达到 max_iterations、预算、连续无新信息或环境阻塞时诚实停止。
 
-Judge/Mock 每轮先用 `scripts/review_iteration.py` 生成 `draft/.state/<role>/iterations/<NNN>-role-review.json`，覆盖合同 source IDs 和全部 Role 专属 criterion。`improved` 只要求 `relative_improvement_no_regression` 为 pass，以及 Draft 侧还有可比较的行（不能整侧执行失败）；其余 criterion 照记，fail 不否决 improved。Draft Loop review 必须同时引用该 receipt 与最新 Current/Draft run report。
+Judge/Mock 每轮先用 `scripts/review_iteration.py` 生成 `draft/.state/<role>/iterations/<NNN>-role-review.json`，覆盖合同 source IDs 和全部 Role 专属 criterion。净胜由 `score_iteration` 机算并落盘 `<NNN>-score.json`：机算只比较 `overall_fulfillment.status` 是否变化，不按 F/NE/NF 排序推断方向；稳定翻转的方向由 harness `flip_labels`（`win`/`loss` + fulfilled.md 锚点）标注，未标注的稳定翻转不得计 win。同一 revision 至少要有一次 replicate（未 review 且 fingerprint 未变时再次 `run` 写入 `<NNN>-run-r2.json`）；只有各 replicate 复现的同一组 status pair 才能进 win/loss，其余进 variance。`improved` 要求机算净胜 > 0、无 loss、无未标注稳定翻转、`stability_ready`、以及 Draft 侧还有可比较的行。其余 criterion fail 必须附 waiver，无 waiver 则强制 unchanged。Draft Loop review 必须同时引用该 receipt、score 与最新 Current/Draft run report。每轮 review 必须提交 `knowledge_delta`。
 
 `/draft loop` 使用 `scripts/draft_loop.py start/run/review/status` 保存冻结事实和每轮判断。
-`run` 在存在未解决的 `investigation-gate-feedback.json` / `solidify-gate-feedback.json` 时拒绝执行；
+`run` 启动前校验 Solidify receipt（候选模块 + role_assets sha）；不一致则拒绝启动并要求先重跑 `scripts/solidify.py`。
+上一轮尚未 review 且 Current/Draft fingerprint 未变时，再次 `run` 不会开新 iteration，而是给同一 revision 追加 replicate（`<NNN>-run-r2.json`）；fingerprint 已变则仍拒绝，必须先 review。
+`run` 在存在未解决的 `investigation-gate-feedback.json` / `solidify-gate-feedback.json`、`.stale-*` 改名文件、或 pending 清单超 3 轮未清时拒绝执行；
 对应门禁（`validate_investigation.py` / `solidify.py`）重跑通过会自动清除反馈文件。
 `review` 确定性校验对比表：文件必须存在、cases 对齐、harness 分析已填；各 Role 的填写规则只在该 Role 的 `ROLE.md`。evidence 必须引用该表；不满足则 review 不落盘。
 每轮 review 必须随 role-review receipt 产出 Current/Draft 逐 case 对比表：用 `scripts/render_loop_comparison_table.py` 从冻结 iteration-cases 与 run report 确定性渲染，表文件与 run report 同目录落盘（`<NNN>-comparison-table.md`）并在 review 中引用。基础列固定为 `case / query 输入 / live 输出 / production <role> 结果 / draft <role> 结果 / harness 分析`（`harness 分析` 为必出最后一列，排在场景列之后），逐 case 保留两侧原始判定，禁止只贴聚合指标；场景列按被测场景扩展——judge 权威场景自动追加 `authority(production) / authority(draft)`（调用数 + resolution 状态），其他场景用 `--scenario-columns` 注入对应列。渲染后 Harness AI 必须逐 case 填写 `harness 分析`；Python 渲染器对该列只填 `-`，不得撰写分析。Python 脚本只负责：预校验全部 case、冻结身份、环境依赖预检、执行两侧 Role、逐 case 原子落盘、保存异常和阻止非法状态；它不解释业务结果，也不决定 Draft 是否更好。协议 `run` 只产原始 Current/Draft 事实；Harness AI 必须按 ROLE.md/config.review 审查，并通过 `review` 明确记录 decision、route、reason 和真实报告指针后才能进入下一轮。修改 frozen Current 或 iteration cases 时必须重新 start，不得继续旧比较。业务源码 revision 变化只记录 drift，不自动触发 Draft 更新；是否更新 Investigation/Solidify/Candidate Role 由用户启动 Draft 后决定。

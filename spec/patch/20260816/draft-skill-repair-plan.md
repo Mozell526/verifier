@@ -1,6 +1,6 @@
 # Draft Skill 落实不到位：修复方案流程文档
 
-> 状态：方案，待确认后实施。基于 2026-08-16 的核查结论。
+> 状态：已实施（2026-08-16）。冻结 30 条 LLM 重跑与完整 draft loop 演练仍待单独排期。基于 2026-08-16 的核查结论。
 > 范围：draft skill 合同与执行链（含 client_search draft judge），以及轴2
 > `spec/alg/capability_carrier.md` 落地时的防重蹈条款。
 > 原则：不推翻现有四阶段结构（Investigate / Solidify / Draft Loop / Promote），

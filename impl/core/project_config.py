@@ -457,9 +457,13 @@ def _parse_verifier(value: Any, project_root: Path, path_warnings: list[str]) ->
     }
     if "authority" in data:
         authority = _mapping(data["authority"], "verifier.authority")
-        _unknown(authority, {"enabled", "description"}, "verifier.authority")
+        _unknown(authority, {"enabled_scopes", "description"}, "verifier.authority")
+        from .authority_scopes import parse_enabled_scopes
         result["authority"] = {
-            "enabled": _boolean(authority.get("enabled", True), "verifier.authority.enabled")
+            "enabled_scopes": parse_enabled_scopes(
+                authority.get("enabled_scopes", []),
+                "verifier.authority.enabled_scopes",
+            )
         }
     if "trace" in attribution:
         trace_path = "verifier.attribution.trace"

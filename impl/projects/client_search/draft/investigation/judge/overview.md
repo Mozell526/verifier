@@ -58,6 +58,20 @@ configuration (parse rules, normalization choices, time conversion) still prove
 current system behavior only; space statements act as boundary proxies under the
 registered trust model (material-positioning.md).
 
+## Incremental refresh 2026-08-17
+
+Business source moved `b4ffbb6` → `fa0ef7a`. This round only re-read the four
+changed parser materials. Unrelated gaps, Key-Index experiments, the Judge
+contract, and enum/planfullname space statements were left as-is.
+
+- `familyInfo.familyclientbirthday`: field-definition intents now declare
+  RANGE/GT/GTE/LT (the old MATCH-vs-RANGE conflict is gone). `enhanced_rules`
+  still uses LTE and EXISTS; that residual operator mismatch remains bound to
+  `query-form-equivalence-authority`.
+- Address / claim-coverage / tax-preferred / cross-sell-claim changes are
+  recorded as current conversion behavior, not new normative authority.
+- `value_mappings` added 平安家医→臻享家医; `time_knowledge` added 本周/这周.
+
 ## Case-time applicability boundary
 
 An unresolved project-level authority question does not make every case in its

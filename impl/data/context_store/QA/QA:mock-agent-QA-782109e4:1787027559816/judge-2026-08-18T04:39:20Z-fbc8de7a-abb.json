@@ -1,0 +1,328 @@
+{
+  "caller": "judge",
+  "created_at": "2026-08-18T04:39:20Z",
+  "elapsed_ms": 305500,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "production"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "32037d8a5ed8b72bcf58f5eafa9d2fedd087aa3753a5668d1601f6e986993330",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [],
+      "lineage": {
+        "call_id": "",
+        "case_id": "mock-agent-QA-782109e4",
+        "trace_id": "QA:mock-agent-QA-782109e4:1787027559816"
+      },
+      "messages": [
+        {
+          "char_count": 13394,
+          "content_sha256": "597e27920fdc0b08592c4d638a68fd78330572fee99bab564e1392d55a542866",
+          "role": "system"
+        },
+        {
+          "char_count": 5257,
+          "content_sha256": "1fb696ad1436a3156161bd5ba1043c5fd02f726e4c5e59276d909c452f5e953f",
+          "role": "user"
+        }
+      ],
+      "mode": "production",
+      "output_contract": {
+        "field_names": [
+          "acceptance_criteria",
+          "actual",
+          "actual_evidence",
+          "applicable_product_expectation_ids",
+          "authority_tool_call_ids",
+          "blocking",
+          "boundary",
+          "business_expectations",
+          "downstream_consumer",
+          "downstream_impact",
+          "error_type",
+          "evidence",
+          "evidence_ref",
+          "expectation_id",
+          "expected",
+          "expected_evidence",
+          "expected_outcome",
+          "extra",
+          "fulfillment_assessments",
+          "incomplete",
+          "kind",
+          "missing",
+          "priority",
+          "raw",
+          "reasoning_summary",
+          "required_capabilities",
+          "score",
+          "status",
+          "user_intent",
+          "wrong"
+        ],
+        "identity": "impl.core.schema.judge.JudgeLLMOutput",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "0ae0afb407db0b56761c1e5aec63fd8f5fa423085e6b9ba93a9ea9aa67bc4f84",
+        "sha256": "0ae0afb407db0b56761c1e5aec63fd8f5fa423085e6b9ba93a9ea9aa67bc4f84"
+      },
+      "project_id": "QA",
+      "prompt_char_count": 18651,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 5257,
+        "occurred": false
+      },
+      "role": "judge",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 7595,
+          "content_sha256": "9dd2d58fba1587e0a155856a344fc8ab4e7d6bb6fcfb664a750e585850c897ff",
+          "order": 0,
+          "role": "judge",
+          "segment_id": "mandatory-context-units",
+          "source": "contextunit://project.QA.asset.judge_boundary,project.QA.asset.judge_evaluation",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 9284,
+          "content_sha256": "955ce4a5505f371e083e282cf9819cc3b592efe1b98e2b4e59b6bc9b34bb0ba7",
+          "order": 1,
+          "role": "judge",
+          "segment_id": "compiled-system",
+          "source": "impl/core/judge.py#judge_trace",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 5257,
+          "content_sha256": "1fb696ad1436a3156161bd5ba1043c5fd02f726e4c5e59276d909c452f5e953f",
+          "order": 2,
+          "role": "judge",
+          "segment_id": "case-user-payload",
+          "source": "trace://judge-evidence-view",
+          "stage": "judge"
+        }
+      ],
+      "stage": "judge",
+      "tool_plan": []
+    }
+  },
+  "llm_model": "gpt-5.6-luna",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "你是通用评估系统的 judge agent。\n\n## 核心原则\n只基于当前 RunTrace、项目评判标准和动态检索的知识库内容判断，不继承历史 case。\n首要职责：理解用户/下游消费者的真实业务意图 → 派生 business_expectations → 基于完整执行链路（每轮 output、最终 output、交互过程和停止事实）判断 expectations 的 fulfillment。\n\n## expectation 拆分原则\nbusiness_expectations 的粒度直接决定判断精度。每个 expectation 必须是原子、独立可评价的判断单元：证据充分时判 fulfilled 或 not_fulfilled；确需评价但当前证据不足时按协议判 not_evaluable。\n- 一个 expectation 只描述一个可独立验证的结果维度\n- 多维度意图必须拆成多个 expectation\n- 每个 expectation 必须有明确的 acceptance_criteria\n- 每个 expectation 必须在比较 actual 前确定 blocking：只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true\n- fulfillment_assessments 只判断对应 expectation 的 status 和证据，不得重新定义 blocking\n- expectation_id 必须是描述性的中文短语，禁止使用 E1/E2/exp_01 等占位符 ID\n- reasoning_summary 必须是中文写成的判断依据\n\n## 输出词表\n`fulfillment_assessments[*].status` 必须从以下 3 个值中选择：\n  - fulfilled：该 expectation 完全满足\n  - not_fulfilled：该 expectation 未满足\n  - not_evaluable：当前无法评估\n禁用 failed/passed/incorrect/wrong/met/unmet/partially_fulfilled/partial/success/fail/ok/unknown 等同义词。\n`fulfillment_assessments[*].expected_evidence` 与 `actual_evidence` **必须是数组**（JSON array / list），即使只有一条证据也要用 `[...]` 包裹，不可直接用字符串或对象。\n\n不要输出 overall_fulfillment；公共层会在项目契约补充完成后根据 blocking expectations 确定性派生整体状态。\n\n## 评估规范\n\n\n## 评估边界\n\n\n## 判断标准\n\n\n## 项目 ContextUnit（按 Role policy 在运行前确定性装载）\n## ContextUnit: judge_boundary: judge_boundary.md (project.QA.asset.judge_boundary)\n# QA Project Boundary Notes\n\n## Boundary purpose\n\nQA's boundary is not whether the evaluated QA system was called live. The key boundary is what evidence the judge is allowed to use for each scenario.\n\n## Evidence boundaries\n\n- `qa_gold_answer`: judge compares actual answer against the golden/reference answer and user question. It should not require external knowledge unless the project standard explicitly allows it.\n- `qa_context_faithfulness`: judge evaluates whether actual answer is supported by provided contexts. Unsupported external claims should be penalized.\n- `qa_weak_quality`: judge estimates answer usefulness and risk from question and actual answer only. It must not claim accuracy.\n\n## Scenario boundary\n\nScenario is inferred per sample from available fields unless explicitly supplied. Mixed-scenario datasets are allowed, but aggregate metrics must remain separated by scenario.\n\n## Human review boundary\n\nThe system should expose uncertainty rather than pretending all QA evaluation is fully automatic. Low confidence, severe errors, boundary scores, and weak evidence should be routed into a human-review queue.\n\n\n## ContextUnit: judge_evaluation: evaluation.md (project.QA.asset.judge_evaluation)\n# QA Project Evaluation Scenario Notes\n\n## Project positioning\n\nQA is one evaluation project with optional sample-level scenarios. It should not be split into multiple projects such as `QA_gold`, `QA_rag`, or `QA_weak`.\n\nThe project evaluates already-produced QA outputs. A sample can provide the user input, the evaluated answer, and optional references/context. The system should normalize these fields, build a trace, then judge and attribute independently.\n\n## Canonical sample shape\n\nQA datasets should be normalized into:\n\n```json\n{\n  \"id\": \"qa-sample-id\",\n  \"input\": {\n    \"question\": \"...\",\n    \"contexts\": []\n  },\n  \"output\": {\n    \"actual_answer\": \"...\"\n  },\n  \"reference\": {\n    \"actual_answer\": \"...\"\n  },\n  \"metadata\": {\n    \"category\": \"...\",\n    \"model_name\": \"...\",\n    \"row_index\": 1\n  },\n  \"scenario\": \"qa_gold_answer\"\n}\n```\n\nFor flat uploaded JSON, accept standard field names and normalize them:\n\n- `question` -> `input.question`\n- `contexts` -> `input.contexts`\n- `actual_answer` / `answer` -> `output.actual_answer`\n- `golden_answer` / `gold_answer` -> `reference.actual_answer`（输入别名，归一化到与 output 同形状）\n- `category`, `model_name`, `latency_ms`, `token_usage`, `cost` -> `metadata`\n\nThe first version assumes JSON input. Other formats can be converted to JSON before upload.\n\n## Scenario design\n\nScenario is a QA project extension carried on each sample.\n\nRecommended scenarios:\n\n1. `qa_gold_answer`\n   - Required fields: `question`, `actual_answer`, reference answer (provided as `actual_answer` in reference, or uploaded via `golden_answer` / `gold_answer` alias).\n   - Contexts may exist but are auxiliary unless the judge standard says otherwise.\n   - Metrics: correctness, completeness, key point coverage, contradiction control, clarity.\n\n2. `qa_context_faithfulness`\n   - Required fields: `question`, `actual_answer`, `contexts`.\n   - Used when no golden answer exists but evidence/context exists.\n   - Metrics: faithfulness, relevance, evidence support, hallucination risk, context usage.\n\n3. `qa_weak_quality`\n   - Required fields: `question`, `actual_answer`.\n   - Used when neither golden answer nor contexts are available.\n   - Metrics: relevance, usefulness, coherence, risk control, clarity.\n\nDefault inference:\n\n```text\nhas golden_answer/gold_answer (alias) -> qa_gold_answer\nelse has non-empty contexts -> qa_context_faithfulness\nelse has question + actual_answer -> qa_weak_quality\nelse invalid_sample\n```\n\nA dataset may contain mixed scenarios, but reports must group metrics by scenario. Do not mix weak-quality samples into accuracy.\n\n## RunTrace semantics for QA\n\nQA does not need to call a tested QA service during evaluation if the dataset already contains the evaluated output.\n\nFor QA:\n\n- `normalized_request`: normalized `input`, `reference`, `metadata`, `data_quality_flags`, and inferred `scenario`.\n- `raw_response`: original `output.actual_answer` or the original uploaded sample output section.\n- `extracted_output`: normalized output, usually `{ \"actual_answer\": \"...\" }`.\n- `reference_contract`: canonical QA reference such as `actual_answer` and scenario-specific expected evidence.\n- `scenario`: canonical scenario selected from normalized sample fields.\n- `schema_protocol_extensions`: QA-private display/debug details only; shared facts must not be sourced from extensions.\n\n## Judge requirements\n\nQA judge should output fulfillment-first generic fields plus QA-private multidimensional evidence:\n\n- `business_expectations`\n- `fulfillment_assessments`\n- `overall_fulfillment`\n- QA-private quality dimensions when useful\n- scenario-specific evidence fields when useful\n\nAll QA-private quality scores are 0-1 and must be carried as fulfillment evidence or project display extensions, not as shared judge protocol fields.\n\nGold answer metrics should not be applied to context-only or weak samples. Weak samples should not be reported as accuracy.\n\n## Attribution requirements\n\nQA attribution should use structured error types. Initial taxonomy:\n\n- `answer_incorrect`\n- `answer_incomplete`\n- `question_misunderstood`\n- `irrelevant_answer`\n- `unsupported_claim`\n- `hallucination`\n- `context_not_used`\n- `insufficient_context`\n- `context_noise`\n- `over_refusal`\n- `format_error`\n- `too_vague`\n- `contradiction`\n- `needs_human_review`\n\nEach failed or risky sample should have:\n\n- findings grouped by verified real defect\n- ContextUnit-backed EvidenceRef entries for every finding\n- one `unresolved_reason` when proof is insufficient\n- actionable quality reason grounded in current QA evidence\n\n## Cluster and summary requirements\n\nQA cluster/report should group by:\n\n- scenario\n- root-cause evidence pattern\n- human-review recommendation\n- category/model metadata when available\n\nMetrics must be separated:\n\n- `qa_gold_answer`: accuracy, average correctness, average completeness.\n- `qa_context_faithfulness`: faithful rate, hallucination risk rate, insufficient evidence rate.\n- `qa_weak_quality`: usable rate, human-review rate, high-risk rate.\n\nA combined score may be shown only as `综合质量估计分`.\n\n## Frontend expectations\n\nThe generic frontend should support QA through protocol fields rather than hardcoded QA-only pages:\n\n- Project dropdown includes `QA` and `client_search` from the project list API.\n- Upload/import area accepts JSON and normalizes into case pool samples.\n- Case table displays `Input`, `Output`, `Reference`, and optional `Scenario`.\n- Scenario filters and scenario summary cards appear when the project exposes scenarios.\n- Batch evaluation remains one action; scenario-specific judge behavior is backend/project logic.\n\nDo not label QA output as generic `API 输出`; use `Output` or `被评估输出`.\n\n## QA check requirements\n\nQA-specific check should verify:\n\n- scenario inference is consistent with sample fields;\n- samples without golden answer are not included in accuracy;\n- QA-private quality dimension scores are 0-1 when present;\n- AttributeResult root cause and evidence strength come from the current QA taxonomy-related evidence or current sample semantic evidence;\n- RAG/context scenario has non-empty contexts;\n- weak-quality scenario conclusions are marked as estimates, not accuracy;\n- human-review queue can be derived from confidence, boundary scores, current evidence strength, and fulfillment assessments.\n\n\n\n\n## QA 评估关键维度\n请将 user prompt 中的 critical_intent_dimensions 作为拆分 business_expectations 的骨架，围绕当前问题、上下文/参考答案依赖、事实性、忠实性、矛盾风险和答案可用性判断 fulfillment。\n## 工具使用原则\n所有工具的用途、调用时机和参数含义以 Agno tool schema 为准；user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息。\n\n## 禁止事项\n- 不要把 reference answer 当作默认主目标（除非 case 明确指定）\n- 不要把 HTTP 状态、run_status、attribute/cluster 结论当作满足依据\n- 不要归因内部代码、配置或 prompt 原因（属于 attribute agent）\n- 分析文字必须使用中文，包括 reasoning_summary 等所有文本字段。\n\n\n## 输出约束：judge 判定输出（reference 已固化，仅产 fulfillment 判定）\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"business_expectations\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeBusinessExpectationOutput\"\n      },\n      \"minItems\": 1\n    },\n    \"applicable_product_expectation_ids\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"fulfillment_assessments\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeFulfillmentAssessmentOutput\"\n      }\n    },\n    \"expected\": {},\n    \"missing\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"wrong\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"extra\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"evidence\": {\n      \"type\": \"array\",\n      \"items\": {}\n    },\n    \"reasoning_summary\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    }\n  },\n  \"additionalProperties\": false,\n  \"$defs\": {\n    \"JudgeBusinessExpectationOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"blocking\": {\n          \"type\": \"boolean\"\n        },\n        \"downstream_consumer\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"user_intent\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected_outcome\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"required_capabilities\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"acceptance_criteria\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"boundary\": {\n          \"type\": \"object\"\n        },\n        \"priority\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"blocking\"\n      ]\n    },\n    \"JudgeFulfillmentAssessmentOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"score\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        },\n        \"expected_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"actual_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"downstream_impact\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"authority_tool_call_ids\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"status\"\n      ]\n    },\n    \"GapItem\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"kind\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"error_type\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected\": {},\n        \"actual\": {},\n        \"evidence_ref\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"raw\": {},\n        \"incomplete\": {\n          \"type\": \"boolean\"\n        }\n      },\n      \"additionalProperties\": false\n    }\n  },\n  \"required\": [\n    \"business_expectations\",\n    \"reasoning_summary\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['business_expectations', 'reasoning_summary']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n",
+      "created_at": 1787027892,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "f88e5d7d-384c-45b0-b31a-55cf013494f5",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"user_intent\": null, \"run_trace\": {\"trace_id\": \"QA:mock-agent-QA-782109e4:1787027559816\", \"project_id\": \"QA\", \"case_id\": \"mock-agent-QA-782109e4\", \"intent_input\": {\"contexts\": [], \"data_quality_flags\": null, \"metadata\": {}, \"output\": {\"actual_answer\": \"轻症赔付次数和金额取决于具体保险合同。一般情况下，轻症可以赔付多次，每次赔付金额通常为基本保险金额的20%至30%，且可能有次数上限（如3次或5次）和间隔期要求。建议查阅您的保险合同条款获取准确信息。\"}, \"question\": \"我买的重疾险轻症可以赔几次，每次大概赔多少钱？\", \"reference\": {}, \"scenario\": \"qa_gold_answer\"}, \"normalized_request\": {\"contexts\": [], \"data_quality_flags\": null, \"metadata\": {}, \"output\": {\"actual_answer\": \"轻症赔付次数和金额取决于具体保险合同。一般情况下，轻症可以赔付多次，每次赔付金额通常为基本保险金额的20%至30%，且可能有次数上限（如3次或5次）和间隔期要求。建议查阅您的保险合同条款获取准确信息。\"}, \"question\": \"我买的重疾险轻症可以赔几次，每次大概赔多少钱？\", \"reference\": {}, \"scenario\": \"qa_gold_answer\"}, \"final_output\": {\"actual_answer\": \"轻症赔付次数和金额取决于具体保险合同。一般情况下，轻症可以赔付多次，每次赔付金额通常为基本保险金额的20%至30%，且可能有次数上限（如3次或5次）和间隔期要求。建议查阅您的保险合同条款获取准确信息。\"}, \"final_output_turn\": 1, \"turns\": [{\"turn_index\": 1, \"request\": {\"contexts\": [], \"data_quality_flags\": null, \"metadata\": {}, \"output\": {\"actual_answer\": \"轻症赔付次数和金额取决于具体保险合同。一般情况下，轻症可以赔付多次，每次赔付金额通常为基本保险金额的20%至30%，且可能有次数上限（如3次或5次）和间隔期要求。建议查阅您的保险合同条款获取准确信息。\"}, \"question\": \"我买的重疾险轻症可以赔几次，每次大概赔多少钱？\", \"reference\": {}, \"scenario\": \"qa_gold_answer\"}, \"extracted_output\": {\"actual_answer\": \"轻症赔付次数和金额取决于具体保险合同。一般情况下，轻症可以赔付多次，每次赔付金额通常为基本保险金额的20%至30%，且可能有次数上限（如3次或5次）和间隔期要求。建议查阅您的保险合同条款获取准确信息。\"}, \"call_status\": \"succeeded\", \"validation\": [{\"error\": \"\", \"evidence\": {\"project_id\": \"QA\"}, \"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"timestamp\": \"\"}, {\"error\": \"\", \"evidence\": {\"project_id\": \"QA\"}, \"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"timestamp\": \"\"}], \"execution_trace\": [{\"error\": \"\", \"evidence\": {\"scenario\": \"qa_gold_answer\"}, \"stage\": \"qa.sample.normalize\", \"status\": \"succeeded\", \"timestamp\": \"\"}, {\"error\": \"\", \"evidence\": \"evaluated output read from uploaded sample\", \"stage\": \"qa.output.read\", \"status\": \"succeeded\", \"timestamp\": \"\"}, {\"error\": \"\", \"evidence\": {\"actual_answer_present\": true}, \"stage\": \"qa.output.extract\", \"status\": \"succeeded\", \"timestamp\": \"\"}], \"application_boundary\": {\"external_service_required\": false, \"scope\": \"qa_semantic_answer_evaluation\"}}], \"conversation_transcript\": [], \"conversation_summary\": {\"completion_status\": \"completed\", \"final_output_turn\": 1, \"interaction_controller_error\": \"\", \"interaction_controller_status\": \"not_run\", \"stop_reason\": \"single_turn_completed\", \"turn_count\": 1}, \"stop_reason\": \"single_turn_completed\", \"completion_status\": \"completed\", \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"QA\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"QA\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"qa.sample.normalize\", \"status\": \"succeeded\", \"evidence\": {\"scenario\": \"qa_gold_answer\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"qa.output.read\", \"status\": \"succeeded\", \"evidence\": \"evaluated output read from uploaded sample\", \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"qa.output.extract\", \"status\": \"succeeded\", \"evidence\": {\"actual_answer_present\": true}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"evidence_refs\": [], \"raw_response_evidence\": null, \"evidence_completeness\": {\"complete\": true, \"missing_evidence\": []}, \"application_boundary\": {\"external_service_required\": false, \"scope\": \"qa_semantic_answer_evaluation\"}, \"reference_contract\": {\"actual_answer\": \"通常情况下，您购买的重疾险合同中关于轻症责任的赔付规则如下：\\n1. 轻症可以多次赔付，具体次数以合同约定为准（常见为3-5次）。每次确诊的轻症需满足合同定义的疾病标准，且两次轻症确诊之间通常有间隔期（如90天或180天）。\\n2. 每次轻症赔付的金额一般为基本保额的一定比例，常见比例为20%-30%。例如保额50万，每次轻症可赔付10万-15万。部分产品轻症赔付后重疾保额不变，部分产品会相应减少。\\n3. 需要注意，轻症责任可能设有分组限制，即同一组别的轻症只能赔付一次；另外，轻症赔付后合同继续有效，但累计赔付上限可能有限制。\\n以上为一般规则，具体赔付条件、次数、金额比例请以您持有的保险合同条款为准。建议您查阅合同中的“保险责任”及“轻症疾病保险金”章节，或直接咨询保险公司客服获取准确信息。\"}, \"scenario\": \"qa_gold_answer\", \"status\": \"ok\", \"error\": null}, \"reference_contract\": {\"actual_answer\": \"通常情况下，您购买的重疾险合同中关于轻症责任的赔付规则如下：\\n1. 轻症可以多次赔付，具体次数以合同约定为准（常见为3-5次）。每次确诊的轻症需满足合同定义的疾病标准，且两次轻症确诊之间通常有间隔期（如90天或180天）。\\n2. 每次轻症赔付的金额一般为基本保额的一定比例，常见比例为20%-30%。例如保额50万，每次轻症可赔付10万-15万。部分产品轻症赔付后重疾保额不变，部分产品会相应减少。\\n3. 需要注意，轻症责任可能设有分组限制，即同一组别的轻症只能赔付一次；另外，轻症赔付后合同继续有效，但累计赔付上限可能有限制。\\n以上为一般规则，具体赔付条件、次数、金额比例请以您持有的保险合同条款为准。建议您查阅合同中的“保险责任”及“轻症疾病保险金”章节，或直接咨询保险公司客服获取准确信息。\"}, \"score_dimensions\": [\"correctness\", \"completeness\", \"key_point_coverage\", \"faithfulness\", \"relevance\", \"usefulness\", \"coherence\", \"risk_control\", \"clarity\"], \"error_taxonomy\": [\"answer_incorrect\", \"answer_incomplete\", \"question_misunderstood\", \"irrelevant_answer\", \"unsupported_claim\", \"hallucination\", \"context_not_used\", \"insufficient_context\", \"context_noise\", \"over_refusal\", \"format_error\", \"too_vague\", \"contradiction\", \"needs_human_review\", \"none\"], \"application_boundary\": {\"scope\": \"qa_semantic_answer_evaluation\", \"external_service_required\": false}, \"critical_intent_dimensions\": [\"question_target\", \"context_or_reference_dependency\", \"factual_or_interpretive_answer\", \"faithfulness\", \"contradiction_risk\", \"answer_usefulness\"]}",
+      "created_at": 1787027892,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "6a3913b1-727e-4e54-98c2-93f0e71cb251",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"business_expectations\":[{\"expectation_id\":\"直接回答轻症赔付次数和金额\",\"blocking\":true,\"downstream_consumer\":\"投保人\",\"user_intent\":\"了解重疾险轻症责任通常可以赔付几次，以及每次大概能赔多少钱\",\"expected_outcome\":\"同时给出轻症常见赔付次数和每次赔付金额比例，并明确具体规则以保险合同为准\",\"required_capabilities\":[\"识别问题同时包含赔付次数和赔付金额两个核心信息点\",\"提供与参考答案一致的常见范围\",\"避免将一般规则表述为确定的个案结论\"],\"acceptance_criteria\":[\"明确说明轻症通常可以多次赔付\",\"给出常见赔付次数范围或示例\",\"给出每次赔付通常占基本保险金额的比例\",\"说明最终以具体保险合同条款为准\"],\"boundary\":{\"scenario\":\"qa_gold_answer\",\"evidence_basis\":\"问题与reference_contract中的参考答案\"},\"priority\":\"核心\"},{\"expectation_id\":\"说明赔付规则依赖具体保险合同\",\"blocking\":true,\"downstream_consumer\":\"投保人\",\"user_intent\":\"避免依据通用范围误判自己的实际保险权益\",\"expected_outcome\":\"明确指出赔付次数、金额及适用条件取决于具体合同约定\",\"required_capabilities\":[\"识别保险产品条款差异\",\"对一般性信息进行适当限定\",\"提示用户查阅合同或咨询保险公司\"],\"acceptance_criteria\":[\"明确说明具体赔付规则取决于保险合同\",\"建议查阅合同条款以获取准确信息\",\"没有声称所有重疾险均适用同一规则\"],\"boundary\":{\"scenario\":\"qa_gold_answer\",\"safety_focus\":\"保险责任表述的限定性\"},\"priority\":\"核心\"},{\"expectation_id\":\"准确给出轻症赔付次数的常见范围\",\"blocking\":true,\"downstream_consumer\":\"投保人\",\"user_intent\":\"获得轻症赔付次数的大致预期\",\"expected_outcome\":\"说明轻症通常可多次赔付，常见上限约为3次至5次，并提示可能存在间隔期等条件\",\"required_capabilities\":[\"提取参考答案中的次数范围\",\"保留次数上限和间隔期等限制条件\",\"使用概率性或一般性表述\"],\"acceptance_criteria\":[\"包含多次赔付这一核心结论\",\"包含3次或5次等常见次数上限示例\",\"不将该范围表述为所有合同的确定规则\"],\"boundary\":{\"scenario\":\"qa_gold_answer\"},\"priority\":\"核心\"},{\"expectation_id\":\"准确给出每次轻症赔付金额比例\",\"blocking\":true,\"downstream_consumer\":\"投保人\",\"user_intent\":\"估算每次轻症赔付的大致金额\",\"expected_outcome\":\"说明每次赔付通常为基本保险金额的20%至30%左右\",\"required_capabilities\":[\"识别赔付金额以基本保险金额为计算基准\",\"提供参考答案中的常见比例\",\"避免脱离保额直接承诺固定金额\"],\"acceptance_criteria\":[\"明确给出基本保险金额这一计算基准\",\"给出20%至30%的常见比例\",\"没有将比例表述为确定适用于用户保单\"],\"boundary\":{\"scenario\":\"qa_gold_answer\"},\"priority\":\"核心\"},{\"expectation_id\":\"覆盖影响实际赔付的主要限制条件\",\"blocking\":false,\"downstream_consumer\":\"投保人\",\"user_intent\":\"理解仅知道次数和比例仍不足以确定最终赔付\",\"expected_outcome\":\"补充说明疾病定义、两次赔付间隔期、分组限制及合同对保额和累计次数的其他约定\",\"required_capabilities\":[\"提示轻症需符合合同疾病定义\",\"说明可能存在间隔期和分组限制\",\"提示轻症赔付后保额或合同状态可能因产品而异\"],\"acceptance_criteria\":[\"提及疾病定义或理赔条件\",\"提及间隔期或分组限制\",\"提及累计赔付上限或赔付后保额可能变化等至少一类重要限制\"],\"boundary\":{\"scenario\":\"qa_gold_answer\",\"completeness_basis\":\"参考答案中的补充限制条件\"},\"priority\":\"重要\"},{\"expectation_id\":\"提供谨慎且可执行的答复\",\"blocking\":false,\"downstream_consumer\":\"投保人\",\"user_intent\":\"在无法提供具体保单信息时仍获得可操作的判断路径\",\"expected_outcome\":\"以简洁方式给出一般范围，并引导用户查看保险责任或轻症疾病保险金条款、咨询保险公司\",\"required_capabilities\":[\"在信息不足时保持风险控制\",\"给出明确的后续核实方式\",\"保持回答与问题直接相关\"],\"acceptance_criteria\":[\"回答不回避次数和金额问题\",\"明确建议查阅合同条款或咨询保险公司\",\"语言清晰，未加入与问题无关的内容\"],\"boundary\":{\"scenario\":\"qa_gold_answer\"},\"priority\":\"重要\"}],\"applicable_product_expectation_ids\":[],\"fulfillment_assessments\":[{\"expectation_id\":\"直接回答轻症赔付次数和金额\",\"status\":\"fulfilled\",\"score\":0.95,\"expected_evidence\":[\"参考答案要求同时覆盖轻症常见赔付次数和每次赔付金额比例，并以合同约定为最终依据。\"],\"actual_evidence\":[\"回答明确说明轻症一般可以多次赔付。\",\"回答明确给出每次通常为基本保险金额20%至30%。\",\"回答同时提示次数上限可能为3次或5次，并存在间隔期要求。\"],\"downstream_impact\":\"投保人可以直接获得问题所询问的次数和金额的大致范围。\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"说明赔付规则依赖具体保险合同\",\"status\":\"fulfilled\",\"score\":1.0,\"expected_evidence\":[\"参考答案强调具体赔付条件、次数和金额比例以持有的保险合同条款为准。\"],\"actual_evidence\":[\"回答开头明确指出赔付次数和金额取决于具体保险合同。\",\"回答结尾建议查阅保险合同条款获取准确信息。\"],\"downstream_impact\":\"降低投保人将通用范围误认为个体保单确定权益的风险。\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"准确给出轻症赔付次数的常见范围\",\"status\":\"fulfilled\",\"score\":0.95,\"expected_evidence\":[\"参考答案指出轻症常见为3至5次，并可能存在两次确诊之间的间隔期。\"],\"actual_evidence\":[\"回答说明轻症可以赔付多次。\",\"回答给出次数上限如3次或5次。\",\"回答提及间隔期要求。\"],\"downstream_impact\":\"投保人能够形成对常见赔付次数的合理预期，同时知道仍需核对合同。\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"准确给出每次轻症赔付金额比例\",\"status\":\"fulfilled\",\"score\":1.0,\"expected_evidence\":[\"参考答案指出每次轻症赔付通常为基本保险金额的20%至30%。\"],\"actual_evidence\":[\"回答明确说明每次赔付金额通常为基本保险金额的20%至30%。\"],\"downstream_impact\":\"投保人可以依据自己的基本保额进行初步估算。\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"覆盖影响实际赔付的主要限制条件\",\"status\":\"not_fulfilled\",\"score\":0.55,\"expected_evidence\":[\"参考答案还包含疾病定义、90天或180天间隔期、分组限制、累计赔付上限，以及轻症赔付后重疾保额是否变化等内容。\"],\"actual_evidence\":[\"回答提及可能存在次数上限和间隔期要求。\",\"回答未提及轻症需符合合同疾病定义、分组限制、累计赔付上限，以及赔付后重疾保额可能变化等信息。\"],\"downstream_impact\":\"不影响用户获得次数和比例的初步答案，但可能使用户低估实际理赔条件和产品差异。\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"提供谨慎且可执行的答复\",\"status\":\"fulfilled\",\"score\":0.9,\"expected_evidence\":[\"参考答案要求在给出一般规则后建议查阅保险责任及轻症疾病保险金条款或咨询保险公司。\"],\"actual_evidence\":[\"回答直接回应了次数和金额问题，没有回避。\",\"回答建议查阅保险合同条款获取准确信息。\",\"回答整体使用一般情况下、通常、可能等限定性表述。\"],\"downstream_impact\":\"用户有明确的后续核实路径，且不易将概括性信息误当成确定理赔承诺。\",\"authority_tool_call_ids\":[]}],\"expected\":{\"scenario\":\"qa_gold_answer\",\"核心答案\":{\"赔付次数\":\"通常可多次赔付，常见上限为3至5次，具体以合同为准\",\"每次金额\":\"通常为基本保险金额的20%至30%\",\"重要条件\":\"可能存在疾病定义、间隔期、分组及累计次数等限制\"},\"参考依据\":\"run_trace.reference_contract.actual_answer\"},\"missing\":[{\"kind\":\"信息缺失\",\"error_type\":\"answer_incomplete\",\"expected\":\"说明轻症疾病需符合合同定义，并提示可能存在分组限制、累计赔付上限及赔付后保额变化\",\"actual\":\"仅提及次数上限和间隔期，未覆盖上述其他限制条件\",\"evidence_ref\":\"run_trace.reference_contract.actual_answer\",\"incomplete\":true}],\"wrong\":[],\"extra\":[],\"evidence\":[{\"source\":\"run_trace.intent_input.question\",\"content\":\"我买的重疾险轻症可以赔几次，每次大概赔多少钱？\"},{\"source\":\"run_trace.final_output.actual_answer\",\"content\":\"轻症赔付次数和金额取决于具体保险合同。一般情况下，轻症可以赔付多次，每次赔付金额通常为基本保险金额的20%至30%，且可能有次数上限（如3次或5次）和间隔期要求。建议查阅您的保险合同条款获取准确信息。\"},{\"source\":\"run_trace.reference_contract.actual_answer\",\"content\":\"参考答案同样给出多次赔付、常见3至5次、20%至30%比例及合同依赖，并额外说明疾病定义、分组限制、累计上限和保额变化等条件。\"}],\"reasoning_summary\":\"该样本属于有参考答案的qa_gold_answer场景。实际回答准确覆盖了用户最核心的两个问题：轻症通常可以多次赔付，常见次数上限约为3次或5次；每次赔付通常为基本保险金额的20%至30%。回答还正确强调具体规则取决于保险合同，并提示查阅条款，因此核心事实、风险限定和可执行性均得到满足。与参考答案相比，实际回答未覆盖疾病定义、分组限制、累计赔付上限以及赔付后保额变化等补充条件，因此完整覆盖限制条件的期望未满足，但这不阻断用户获得所询问的概略信息。\"}",
+      "created_at": 1787027892,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "4469c0d6-1a05-4621-8cdd-83ae15b2600a",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 13327,
+        "output_tokens": 3456,
+        "provider_metrics": null,
+        "reasoning_tokens": 1034,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 16783
+      },
+      "name": null,
+      "provider_data": {
+        "id": "resp_06c42a8a8f3bc2f5016a83e1b7337087d08cea2141507c73cf"
+      },
+      "reasoning_content": "**Planning detailed expectation assessments****Assessing expectation fulfillment and faithfulness****Constructing JSON expectations with fulfillment statuses****Assessing answer completeness gaps****Clarifying acceptance criteria structure****Planning detailed answer evaluation fields**",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "QA",
+  "prompt_size": 24032,
+  "record_id": "fbc8de7a-abbb-42b6-b654-6160623d414b",
+  "response": {
+    "content": "{\"business_expectations\":[{\"expectation_id\":\"直接回答轻症赔付次数和金额\",\"blocking\":true,\"downstream_consumer\":\"投保人\",\"user_intent\":\"了解重疾险轻症责任通常可以赔付几次，以及每次大概能赔多少钱\",\"expected_outcome\":\"同时给出轻症常见赔付次数和每次赔付金额比例，并明确具体规则以保险合同为准\",\"required_capabilities\":[\"识别问题同时包含赔付次数和赔付金额两个核心信息点\",\"提供与参考答案一致的常见范围\",\"避免将一般规则表述为确定的个案结论\"],\"acceptance_criteria\":[\"明确说明轻症通常可以多次赔付\",\"给出常见赔付次数范围或示例\",\"给出每次赔付通常占基本保险金额的比例\",\"说明最终以具体保险合同条款为准\"],\"boundary\":{\"scenario\":\"qa_gold_answer\",\"evidence_basis\":\"问题与reference_contract中的参考答案\"},\"priority\":\"核心\"},{\"expectation_id\":\"说明赔付规则依赖具体保险合同\",\"blocking\":true,\"downstream_consumer\":\"投保人\",\"user_intent\":\"避免依据通用范围误判自己的实际保险权益\",\"expected_outcome\":\"明确指出赔付次数、金额及适用条件取决于具体合同约定\",\"required_capabilities\":[\"识别保险产品条款差异\",\"对一般性信息进行适当限定\",\"提示用户查阅合同或咨询保险公司\"],\"acceptance_criteria\":[\"明确说明具体赔付规则取决于保险合同\",\"建议查阅合同条款以获取准确信息\",\"没有声称所有重疾险均适用同一规则\"],\"boundary\":{\"scenario\":\"qa_gold_answer\",\"safety_focus\":\"保险责任表述的限定性\"},\"priority\":\"核心\"},{\"expectation_id\":\"准确给出轻症赔付次数的常见范围\",\"blocking\":true,\"downstream_consumer\":\"投保人\",\"user_intent\":\"获得轻症赔付次数的大致预期\",\"expected_outcome\":\"说明轻症通常可多次赔付，常见上限约为3次至5次，并提示可能存在间隔期等条件\",\"required_capabilities\":[\"提取参考答案中的次数范围\",\"保留次数上限和间隔期等限制条件\",\"使用概率性或一般性表述\"],\"acceptance_criteria\":[\"包含多次赔付这一核心结论\",\"包含3次或5次等常见次数上限示例\",\"不将该范围表述为所有合同的确定规则\"],\"boundary\":{\"scenario\":\"qa_gold_answer\"},\"priority\":\"核心\"},{\"expectation_id\":\"准确给出每次轻症赔付金额比例\",\"blocking\":true,\"downstream_consumer\":\"投保人\",\"user_intent\":\"估算每次轻症赔付的大致金额\",\"expected_outcome\":\"说明每次赔付通常为基本保险金额的20%至30%左右\",\"required_capabilities\":[\"识别赔付金额以基本保险金额为计算基准\",\"提供参考答案中的常见比例\",\"避免脱离保额直接承诺固定金额\"],\"acceptance_criteria\":[\"明确给出基本保险金额这一计算基准\",\"给出20%至30%的常见比例\",\"没有将比例表述为确定适用于用户保单\"],\"boundary\":{\"scenario\":\"qa_gold_answer\"},\"priority\":\"核心\"},{\"expectation_id\":\"覆盖影响实际赔付的主要限制条件\",\"blocking\":false,\"downstream_consumer\":\"投保人\",\"user_intent\":\"理解仅知道次数和比例仍不足以确定最终赔付\",\"expected_outcome\":\"补充说明疾病定义、两次赔付间隔期、分组限制及合同对保额和累计次数的其他约定\",\"required_capabilities\":[\"提示轻症需符合合同疾病定义\",\"说明可能存在间隔期和分组限制\",\"提示轻症赔付后保额或合同状态可能因产品而异\"],\"acceptance_criteria\":[\"提及疾病定义或理赔条件\",\"提及间隔期或分组限制\",\"提及累计赔付上限或赔付后保额可能变化等至少一类重要限制\"],\"boundary\":{\"scenario\":\"qa_gold_answer\",\"completeness_basis\":\"参考答案中的补充限制条件\"},\"priority\":\"重要\"},{\"expectation_id\":\"提供谨慎且可执行的答复\",\"blocking\":false,\"downstream_consumer\":\"投保人\",\"user_intent\":\"在无法提供具体保单信息时仍获得可操作的判断路径\",\"expected_outcome\":\"以简洁方式给出一般范围，并引导用户查看保险责任或轻症疾病保险金条款、咨询保险公司\",\"required_capabilities\":[\"在信息不足时保持风险控制\",\"给出明确的后续核实方式\",\"保持回答与问题直接相关\"],\"acceptance_criteria\":[\"回答不回避次数和金额问题\",\"明确建议查阅合同条款或咨询保险公司\",\"语言清晰，未加入与问题无关的内容\"],\"boundary\":{\"scenario\":\"qa_gold_answer\"},\"priority\":\"重要\"}],\"applicable_product_expectation_ids\":[],\"fulfillment_assessments\":[{\"expectation_id\":\"直接回答轻症赔付次数和金额\",\"status\":\"fulfilled\",\"score\":0.95,\"expected_evidence\":[\"参考答案要求同时覆盖轻症常见赔付次数和每次赔付金额比例，并以合同约定为最终依据。\"],\"actual_evidence\":[\"回答明确说明轻症一般可以多次赔付。\",\"回答明确给出每次通常为基本保险金额20%至30%。\",\"回答同时提示次数上限可能为3次或5次，并存在间隔期要求。\"],\"downstream_impact\":\"投保人可以直接获得问题所询问的次数和金额的大致范围。\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"说明赔付规则依赖具体保险合同\",\"status\":\"fulfilled\",\"score\":1.0,\"expected_evidence\":[\"参考答案强调具体赔付条件、次数和金额比例以持有的保险合同条款为准。\"],\"actual_evidence\":[\"回答开头明确指出赔付次数和金额取决于具体保险合同。\",\"回答结尾建议查阅保险合同条款获取准确信息。\"],\"downstream_impact\":\"降低投保人将通用范围误认为个体保单确定权益的风险。\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"准确给出轻症赔付次数的常见范围\",\"status\":\"fulfilled\",\"score\":0.95,\"expected_evidence\":[\"参考答案指出轻症常见为3至5次，并可能存在两次确诊之间的间隔期。\"],\"actual_evidence\":[\"回答说明轻症可以赔付多次。\",\"回答给出次数上限如3次或5次。\",\"回答提及间隔期要求。\"],\"downstream_impact\":\"投保人能够形成对常见赔付次数的合理预期，同时知道仍需核对合同。\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"准确给出每次轻症赔付金额比例\",\"status\":\"fulfilled\",\"score\":1.0,\"expected_evidence\":[\"参考答案指出每次轻症赔付通常为基本保险金额的20%至30%。\"],\"actual_evidence\":[\"回答明确说明每次赔付金额通常为基本保险金额的20%至30%。\"],\"downstream_impact\":\"投保人可以依据自己的基本保额进行初步估算。\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"覆盖影响实际赔付的主要限制条件\",\"status\":\"not_fulfilled\",\"score\":0.55,\"expected_evidence\":[\"参考答案还包含疾病定义、90天或180天间隔期、分组限制、累计赔付上限，以及轻症赔付后重疾保额是否变化等内容。\"],\"actual_evidence\":[\"回答提及可能存在次数上限和间隔期要求。\",\"回答未提及轻症需符合合同疾病定义、分组限制、累计赔付上限，以及赔付后重疾保额可能变化等信息。\"],\"downstream_impact\":\"不影响用户获得次数和比例的初步答案，但可能使用户低估实际理赔条件和产品差异。\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"提供谨慎且可执行的答复\",\"status\":\"fulfilled\",\"score\":0.9,\"expected_evidence\":[\"参考答案要求在给出一般规则后建议查阅保险责任及轻症疾病保险金条款或咨询保险公司。\"],\"actual_evidence\":[\"回答直接回应了次数和金额问题，没有回避。\",\"回答建议查阅保险合同条款获取准确信息。\",\"回答整体使用一般情况下、通常、可能等限定性表述。\"],\"downstream_impact\":\"用户有明确的后续核实路径，且不易将概括性信息误当成确定理赔承诺。\",\"authority_tool_call_ids\":[]}],\"expected\":{\"scenario\":\"qa_gold_answer\",\"核心答案\":{\"赔付次数\":\"通常可多次赔付，常见上限为3至5次，具体以合同为准\",\"每次金额\":\"通常为基本保险金额的20%至30%\",\"重要条件\":\"可能存在疾病定义、间隔期、分组及累计次数等限制\"},\"参考依据\":\"run_trace.reference_contract.actual_answer\"},\"missing\":[{\"kind\":\"信息缺失\",\"error_type\":\"answer_incomplete\",\"expected\":\"说明轻症疾病需符合合同定义，并提示可能存在分组限制、累计赔付上限及赔付后保额变化\",\"actual\":\"仅提及次数上限和间隔期，未覆盖上述其他限制条件\",\"evidence_ref\":\"run_trace.reference_contract.actual_answer\",\"incomplete\":true}],\"wrong\":[],\"extra\":[],\"evidence\":[{\"source\":\"run_trace.intent_input.question\",\"content\":\"我买的重疾险轻症可以赔几次，每次大概赔多少钱？\"},{\"source\":\"run_trace.final_output.actual_answer\",\"content\":\"轻症赔付次数和金额取决于具体保险合同。一般情况下，轻症可以赔付多次，每次赔付金额通常为基本保险金额的20%至30%，且可能有次数上限（如3次或5次）和间隔期要求。建议查阅您的保险合同条款获取准确信息。\"},{\"source\":\"run_trace.reference_contract.actual_answer\",\"content\":\"参考答案同样给出多次赔付、常见3至5次、20%至30%比例及合同依赖，并额外说明疾病定义、分组限制、累计上限和保额变化等条件。\"}],\"reasoning_summary\":\"该样本属于有参考答案的qa_gold_answer场景。实际回答准确覆盖了用户最核心的两个问题：轻症通常可以多次赔付，常见次数上限约为3次或5次；每次赔付通常为基本保险金额的20%至30%。回答还正确强调具体规则取决于保险合同，并提示查阅条款，因此核心事实、风险限定和可执行性均得到满足。与参考答案相比，实际回答未覆盖疾病定义、分组限制、累计赔付上限以及赔付后保额变化等补充条件，因此完整覆盖限制条件的期望未满足，但这不阻断用户获得所询问的概略信息。\"}",
+    "metrics": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 13327,
+      "output_tokens": 3456,
+      "reasoning_tokens": 1034,
+      "total_tokens": 16783
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 112068,
+          "endpoint": "fallback1",
+          "error": "Agno run ended with status COMPLETED and no response content",
+          "error_type": "RuntimeError",
+          "model": "deepseek-v4-flash-0731",
+          "status": "failed"
+        },
+        {
+          "attempt": 2,
+          "elapsed_ms": 125566,
+          "endpoint": "fallback2",
+          "error": "Unknown model error",
+          "error_type": "RuntimeError",
+          "model": "gpt-5.6-luna",
+          "status": "failed"
+        },
+        {
+          "attempt": 3,
+          "elapsed_ms": 67864,
+          "endpoint": "primary",
+          "model": "gpt-5.6-luna",
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "selected_endpoint": "primary",
+      "selected_model": "gpt-5.6-luna",
+      "stage": ""
+    }
+  },
+  "trace_id": "QA:mock-agent-QA-782109e4:1787027559816"
+}

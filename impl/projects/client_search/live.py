@@ -82,6 +82,34 @@ def external_boundary_sources(spec: ProjectSpec) -> Dict[str, Any]:
     return {"config_paths": source_config_paths(spec)}
 
 
+def capability_snapshot(spec: ProjectSpec) -> dict:
+    """轴2用的完整受治理目录。失败抛错，由 core 收成 fields=None。"""
+    config_paths = source_config_paths(spec)
+    definitions = config_paths.get("source_field_definitions")
+    if not definitions:
+        raise FileNotFoundError("source_field_definitions missing")
+    enum_paths = [
+        config_paths.get(key)
+        for key in (
+            "source_field_enums",
+            "source_planfullname_enums",
+            "source_abbrname_enums",
+            "source_claimplancodename_enums",
+            "source_profname_enums",
+        )
+        if config_paths.get(key)
+    ]
+    return build_capability_manifest(definitions, enums_path=enum_paths)
+
+
+def capability_lexicon(spec: ProjectSpec) -> dict:
+    path = Path(__file__).with_name("capability_lexicon.yaml")
+    if not path.is_file():
+        return {"terms": []}
+    data = _yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    return data if isinstance(data, dict) else {"terms": []}
+
+
 def capability_manifest(spec: ProjectSpec, *, full: bool = False) -> dict:
     """共享层能力清单。
 
@@ -91,19 +119,7 @@ def capability_manifest(spec: ProjectSpec, *, full: bool = False) -> dict:
     - full=True：完整枚举清单，供 draft 命中检测等需要全量值的确定性逻辑使用。
     """
     try:
-        config_paths = source_config_paths(spec)
-        enum_paths = [
-            config_paths.get("source_field_enums"),
-            config_paths.get("source_planfullname_enums"),
-            config_paths.get("source_abbrname_enums"),
-            config_paths.get("source_claimplancodename_enums"),
-            config_paths.get("source_profname_enums"),
-        ]
-        enum_paths = [path for path in enum_paths if path]
-        manifest = build_capability_manifest(
-            config_paths.get("source_field_definitions"),
-            enums_path=enum_paths,
-        )
+        manifest = capability_snapshot(spec)
         if full:
             return manifest
         return lean_capability_manifest(manifest)

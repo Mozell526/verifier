@@ -27,6 +27,12 @@ _ROOT_FIELDS = {
     "business_expectations",
     "live_boundary",
     "evaluation_dimensions",
+    "mandatory_reviews",
+}
+_MANDATORY_REVIEW_FIELDS = {
+    "honest_refusal_is_not_fulfilled",
+    "three_states_exclusive",
+    "no_escape",
 }
 _EXPECTATION_FIELDS = {"expectation_id", "user_role", "use_scenario", "desired_outcome"}
 _BOUNDARY_FIELDS = {
@@ -82,11 +88,19 @@ class EvaluationDimension:
 
 
 @dataclass(frozen=True)
+class MandatoryReviews:
+    honest_refusal_is_not_fulfilled: str
+    three_states_exclusive: str
+    no_escape: str
+
+
+@dataclass(frozen=True)
 class JudgeInvestigationContract:
     business_expectations: tuple[BusinessExpectation, ...]
     live_boundary: LiveBoundary
     evaluation_dimensions: tuple[EvaluationDimension, ...]
     schema_version: int = JUDGE_CONTRACT_SCHEMA_VERSION
+    mandatory_reviews: MandatoryReviews | None = None
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> "JudgeInvestigationContract":
@@ -111,7 +125,26 @@ class JudgeInvestigationContract:
                 _required_list(root, "evaluation_dimensions", "JudgeInvestigationContract")
             )
         )
-        return cls(expectations, boundary, dimensions, schema_version)
+        reviews_raw = _object(
+            _required(root, "mandatory_reviews", "JudgeInvestigationContract"),
+            "JudgeInvestigationContract.mandatory_reviews",
+            _MANDATORY_REVIEW_FIELDS,
+        )
+        reviews = MandatoryReviews(
+            honest_refusal_is_not_fulfilled=_required_text_value(
+                reviews_raw.get("honest_refusal_is_not_fulfilled"),
+                "mandatory_reviews.honest_refusal_is_not_fulfilled",
+            ),
+            three_states_exclusive=_required_text_value(
+                reviews_raw.get("three_states_exclusive"),
+                "mandatory_reviews.three_states_exclusive",
+            ),
+            no_escape=_required_text_value(
+                reviews_raw.get("no_escape"),
+                "mandatory_reviews.no_escape",
+            ),
+        )
+        return cls(expectations, boundary, dimensions, schema_version, reviews)
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -145,6 +178,19 @@ class JudgeInvestigationContract:
                 }
                 for item in self.evaluation_dimensions
             ],
+            "mandatory_reviews": {
+                "honest_refusal_is_not_fulfilled": (
+                    self.mandatory_reviews.honest_refusal_is_not_fulfilled
+                    if self.mandatory_reviews
+                    else ""
+                ),
+                "three_states_exclusive": (
+                    self.mandatory_reviews.three_states_exclusive
+                    if self.mandatory_reviews
+                    else ""
+                ),
+                "no_escape": self.mandatory_reviews.no_escape if self.mandatory_reviews else "",
+            },
         }
 
 
@@ -189,6 +235,15 @@ def validate_judge_contract(
         )
     if not contract.business_expectations:
         raise ValueError("JudgeInvestigationContract.business_expectations must be non-empty")
+    if contract.mandatory_reviews is None:
+        raise ValueError("JudgeInvestigationContract.mandatory_reviews is required")
+    for field_name in (
+        "honest_refusal_is_not_fulfilled",
+        "three_states_exclusive",
+        "no_escape",
+    ):
+        if not str(getattr(contract.mandatory_reviews, field_name) or "").strip():
+            raise ValueError(f"JudgeInvestigationContract.mandatory_reviews.{field_name} is required")
 
     expectation_ids: set[str] = set()
     for expectation in contract.business_expectations:

@@ -19,6 +19,7 @@
     {header: '归因摘要', key: 'attributionSummary', width: 42},
     {header: 'Attribute JSON', key: 'attributeJson', width: 54},
     {header: 'Trace 摘要', key: 'traceSummary', width: 54},
+    {header: '裁决', key: 'carrierPlacement', width: 42},
   ];
 
   function lastColumnLetter(count) {

@@ -12,9 +12,16 @@ from impl.core import authority_tool as authority_tool_module
 from impl.core.authority_tool import AuthorityTool
 
 
+_IN_RUN = {"authority": {"enabled_scopes": ["semantic_mapping"]}}
+
+
 class _FakeEnv:
     project_id = "client_search"
     environment_snapshot_sha256 = "snap-1"
+
+
+def _tool(env=None):
+    return AuthorityTool(env or _FakeEnv(), enabled_scopes=_IN_RUN)
 
 
 def test_execute_failure_writes_audit_and_returns_tool_failure(monkeypatch):
@@ -22,8 +29,11 @@ def test_execute_failure_writes_audit_and_returns_tool_failure(monkeypatch):
         raise RuntimeError("rpm exhausted")
 
     monkeypatch.setattr(authority_tool_module, "resolve_authority", boom)
-    tool = AuthorityTool(_FakeEnv())
-    result = tool._execute("客户搜索产品是否支持按车牌查询？")
+    tool = _tool()
+    result = tool._execute(
+        "客户搜索产品是否支持按车牌查询？",
+        question_class="semantic_mapping",
+    )
 
     assert result["status"] == "tool_failure"
     assert result["statement"] == ""
@@ -46,9 +56,9 @@ def test_execute_failure_is_cached_like_success(monkeypatch):
         raise ValueError("boom")
 
     monkeypatch.setattr(authority_tool_module, "resolve_authority", boom)
-    tool = AuthorityTool(_FakeEnv())
-    first = tool._execute("同一问题？")
-    second = tool._execute("同一问题？")
+    tool = _tool()
+    first = tool._execute("同一问题？", question_class="semantic_mapping")
+    second = tool._execute("同一问题？", question_class="semantic_mapping")
 
     assert first["tool_call_id"] == second["tool_call_id"]
     assert len(tool.audit) == 1
@@ -56,9 +66,9 @@ def test_execute_failure_is_cached_like_success(monkeypatch):
 
 
 def test_execute_failure_empty_question_still_raises(monkeypatch):
-    tool = AuthorityTool(_FakeEnv())
+    tool = _tool()
     with pytest.raises(ValueError, match="non-empty"):
-        tool._execute("   ")
+        tool._execute("   ", question_class="semantic_mapping")
 
 
 def test_claim_participates_in_cache_and_audit(monkeypatch):
@@ -83,7 +93,7 @@ def test_claim_participates_in_cache_and_audit(monkeypatch):
         )
 
     monkeypatch.setattr(authority_tool_module, "resolve_authority", resolve)
-    tool = AuthorityTool(_FakeEnv())
+    tool = _tool()
     claim_a = {
         "claim_statement": "A",
         "subject": {"kind": "rule", "id": "x"},
@@ -92,9 +102,9 @@ def test_claim_participates_in_cache_and_audit(monkeypatch):
     }
     claim_b = {**claim_a, "claim_statement": "B"}
 
-    first = tool._execute("A 还是 B？", claim_a)
-    duplicate = tool._execute("A 还是 B？", claim_a)
-    different = tool._execute("A 还是 B？", claim_b)
+    first = tool._execute("A 还是 B？", claim_a, question_class="semantic_mapping")
+    duplicate = tool._execute("A 还是 B？", claim_a, question_class="semantic_mapping")
+    different = tool._execute("A 还是 B？", claim_b, question_class="semantic_mapping")
 
     assert duplicate["tool_call_id"] == first["tool_call_id"]
     assert different["tool_call_id"] != first["tool_call_id"]
@@ -104,8 +114,22 @@ def test_claim_participates_in_cache_and_audit(monkeypatch):
     assert audit["independent_resolution"].status == "resolved"
 
 
+def test_execute_rejects_missing_or_disabled_question_class():
+    tool = AuthorityTool(_FakeEnv(), enabled_scopes=_IN_RUN)
+    missing = tool._execute("客户搜索产品是否支持按车牌查询？")
+    assert missing["status"] == "scope_rejected"
+    assert "question_class" in missing["reason"]
+
+    disabled = tool._execute(
+        "客户搜索产品是否支持按车牌查询？",
+        question_class="responsibility",
+    )
+    assert disabled["status"] == "scope_rejected"
+    assert "enabled_scopes" in disabled["reason"]
+
+
 def test_tool_schema_rejects_extra_arguments_and_documents_strict_json():
-    tool = AuthorityTool(_FakeEnv()).as_verifiable_tool()
+    tool = _tool().as_verifiable_tool()
 
     assert tool.parameters["additionalProperties"] is False
     assert tool.parameters["properties"]["claim"]["additionalProperties"] is False

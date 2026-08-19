@@ -1,0 +1,347 @@
+{
+  "caller": "judge",
+  "created_at": "2026-08-18T03:59:09Z",
+  "elapsed_ms": 102878,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "production"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "883711780b535c978be2c7c5a3190f35a5a044c7175282e6ee9de00181f63570",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [],
+      "lineage": {
+        "call_id": "",
+        "case_id": "mock-agent-marketting-planning-780f4244",
+        "trace_id": "marketting-planning:mock-agent-marketting-planning-780f4244:1787025332124"
+      },
+      "messages": [
+        {
+          "char_count": 15759,
+          "content_sha256": "0c60299e956db460120d9f954180dce899db3cf16039622fc9e75778dbe3c673",
+          "role": "system"
+        },
+        {
+          "char_count": 4214,
+          "content_sha256": "540489a99b9add6c26617cc4e8278f589d8c6c8aa8557a933ac211e2e392251e",
+          "role": "user"
+        }
+      ],
+      "mode": "production",
+      "output_contract": {
+        "field_names": [
+          "acceptance_criteria",
+          "accumulated_fields",
+          "achievement_rate",
+          "actual",
+          "actual_evidence",
+          "allowed",
+          "applicable_product_expectation_ids",
+          "authority_tool_call_ids",
+          "blocking",
+          "boundary",
+          "business_completed",
+          "business_evidence",
+          "business_expectations",
+          "canonical_names",
+          "card_code",
+          "card_name",
+          "card_summary",
+          "code",
+          "completed",
+          "counts",
+          "downstream_consumer",
+          "downstream_impact",
+          "end_flag",
+          "error_type",
+          "errors",
+          "event_summary",
+          "evidence",
+          "evidence_declared",
+          "evidence_ref",
+          "evidence_status",
+          "expectation_id",
+          "expected",
+          "expected_evidence",
+          "expected_outcome",
+          "extra",
+          "fallback",
+          "final_event",
+          "forecast_value",
+          "fulfillment_assessments",
+          "incomplete",
+          "intent",
+          "intent_name",
+          "kind",
+          "missing",
+          "missing_fields",
+          "msg",
+          "names",
+          "path_type",
+          "priority",
+          "protocol_completed",
+          "raw",
+          "raw_counts",
+          "raw_final_event",
+          "raw_names",
+          "reason",
+          "reasoning_summary",
+          "required_capabilities",
+          "required_fields",
+          "robot_text",
+          "score",
+          "session_id",
+          "session_summary",
+          "stage",
+          "status",
+          "used",
+          "user_intent",
+          "wrong"
+        ],
+        "identity": "impl.core.schema.judge.JudgeLLMOutput",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "8c825a6c5e35a3fa08d01a01f7a4e8353f0cf326987e5299879ec17cf322b0e9",
+        "sha256": "8c825a6c5e35a3fa08d01a01f7a4e8353f0cf326987e5299879ec17cf322b0e9"
+      },
+      "project_id": "marketting-planning",
+      "prompt_char_count": 19973,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 4214,
+        "occurred": false
+      },
+      "role": "judge",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 1653,
+          "content_sha256": "d0c913d01b7ce171ff3b2f6a017ad907363055a8099527a1aeb200bf501ea74e",
+          "order": 0,
+          "role": "judge",
+          "segment_id": "mandatory-context-units",
+          "source": "contextunit://project.marketting-planning.asset.judge_boundary,project.marketting-planning.asset.judge_evaluation",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 3379,
+          "content_sha256": "4130bff79eef5ac24e20963a909a83edcb905b4abc1972891904ca36d08a94f5",
+          "order": 1,
+          "role": "judge",
+          "segment_id": "compiled-system",
+          "source": "impl/core/judge.py#judge_trace",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 4214,
+          "content_sha256": "540489a99b9add6c26617cc4e8278f589d8c6c8aa8557a933ac211e2e392251e",
+          "order": 2,
+          "role": "judge",
+          "segment_id": "case-user-payload",
+          "source": "trace://judge-evidence-view",
+          "stage": "judge"
+        }
+      ],
+      "stage": "judge",
+      "tool_plan": []
+    }
+  },
+  "llm_model": "gpt-5.6-luna",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "你是通用评估系统的 judge agent。\n\n## 核心原则\n只基于当前 RunTrace、项目评判标准和动态检索的知识库内容判断，不继承历史 case。\n首要职责：理解用户/下游消费者的真实业务意图 → 派生 business_expectations → 基于完整执行链路（每轮 output、最终 output、交互过程和停止事实）判断 expectations 的 fulfillment。\n\n## expectation 拆分原则\nbusiness_expectations 的粒度直接决定判断精度。每个 expectation 必须是原子、独立可评价的判断单元：证据充分时判 fulfilled 或 not_fulfilled；确需评价但当前证据不足时按协议判 not_evaluable。\n- 一个 expectation 只描述一个可独立验证的结果维度\n- 多维度意图必须拆成多个 expectation\n- 每个 expectation 必须有明确的 acceptance_criteria\n- 每个 expectation 必须在比较 actual 前确定 blocking：只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true\n- fulfillment_assessments 只判断对应 expectation 的 status 和证据，不得重新定义 blocking\n- expectation_id 必须是描述性的中文短语，禁止使用 E1/E2/exp_01 等占位符 ID\n- reasoning_summary 必须是中文写成的判断依据\n\n## 输出词表\n`fulfillment_assessments[*].status` 必须从以下 3 个值中选择：\n  - fulfilled：该 expectation 完全满足\n  - not_fulfilled：该 expectation 未满足\n  - not_evaluable：当前无法评估\n禁用 failed/passed/incorrect/wrong/met/unmet/partially_fulfilled/partial/success/fail/ok/unknown 等同义词。\n`fulfillment_assessments[*].expected_evidence` 与 `actual_evidence` **必须是数组**（JSON array / list），即使只有一条证据也要用 `[...]` 包裹，不可直接用字符串或对象。\n\n不要输出 overall_fulfillment；公共层会在项目契约补充完成后根据 blocking expectations 确定性派生整体状态。\n\n## 评估规范\n\n\n## 评估边界\n\n\n## 判断标准\n\n\n## 项目 ContextUnit（按 Role policy 在运行前确定性装载）\n## ContextUnit: judge_boundary: judge_boundary.md (project.marketting-planning.asset.judge_boundary)\n# marketting-planning judge boundary\n\n边界判断由 live 层作为每轮执行事实上报，由 trace 层写入 `RunTrace.application_boundary`；judge 只消费当前 case 的标准 trace 边界，不在 prompt 中重新猜测责任范围。\n\n## 当前责任范围\n\n- 请求归一化是否保留用户意图、多轮顺序和 expected stage。\n- 意图识别是否进入正确阶段。\n- 缺字段时是否澄清。\n- 字段补齐后是否进入规划。\n- path_types 是否按意图选择。\n- 卡片摘要是否覆盖 required cards/path types。\n- SSE 是否有可解释事件顺序、结束状态和错误信息。\n- fallback 是否符合当前 boundary 的 allow_fallback。\n\n## 外部依赖边界\n\n外部服务、数据源、session store、模型依赖不可用时，adapter 记录 `dependency_status`。如果当前 reference/boundary 明确允许该不可用状态，judge 不应把外部依赖本身作为本系统错误；如果 fallback 掩盖了本应完成的内部阶段，则仍可判错。\n\n\n## ContextUnit: judge_evaluation: evaluation.md (project.marketting-planning.asset.judge_evaluation)\n# marketting-planning evaluation\n\n## 评估对象\n\n评估当前营销规划 agent 在系统责任边界内是否完成用户意图。reference 不是唯一标准答案文本，而是与 output summary 对齐的条件契约。\n\n## 输出摘要形状\n\n`extracted_output` 应保持轻量：\n\n```json\n{\n  \"stage\": \"intent|clarification|planning|non_agent|fallback|unknown\",\n  \"event_summary\": {\"names\": [], \"counts\": {}, \"final_event\": \"\", \"completed\": false},\n  \"card_summary\": [{\"path_type\": \"\", \"card_code\": \"\", \"card_name\": \"\", \"fallback\": false}],\n  \"session_summary\": {\"session_id\": \"\", \"required_fields\": [], \"accumulated_fields\": {}, \"missing_fields\": []},\n  \"fallback\": {\"used\": false, \"allowed\": false, \"reason\": \"\"},\n  \"errors\": []\n}\n```\n\n## 参考契约\n\nreference 可包含：\n\n- `expected_stage`\n- `required_events`\n- `required_path_types`\n- `forbidden_path_types`\n- `required_cards`\n- `forbidden_cards`\n- `allow_fallback`\n- `session_requirements`\n- `semantic_requirements`\n\n输入无 reference 时，judge 可以生成同形状参考契约；前端必须标记为 judge-generated。\n\n\n\n\n## marketing-planning 评估关键维度\n请将 user prompt 中的 critical_intent_dimensions 作为拆分 business_expectations 的骨架，围绕业务指标、目标值与单位、时间范围、拆解维度、stage 路由、planning 可执行性和 SSE 完整性交付判断 fulfillment。\n## 工具使用原则\n所有工具的用途、调用时机和参数含义以 Agno tool schema 为准；user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息。\n\n## 禁止事项\n- 不要把 reference answer 当作默认主目标（除非 case 明确指定）\n- 不要把 HTTP 状态、run_status、attribute/cluster 结论当作满足依据\n- 不要归因内部代码、配置或 prompt 原因（属于 attribute agent）\n- 分析文字必须使用中文，包括 reasoning_summary 等所有文本字段。\n\n\n## 输出约束：judge 判定输出（自产 reference + fulfillment 判定）\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"business_expectations\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeBusinessExpectationOutput\"\n      },\n      \"minItems\": 1\n    },\n    \"applicable_product_expectation_ids\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"fulfillment_assessments\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeFulfillmentAssessmentOutput\"\n      }\n    },\n    \"expected\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"code\": {\n          \"type\": \"integer\"\n        },\n        \"msg\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"robot_text\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"end_flag\": {\n          \"type\": \"integer\"\n        },\n        \"intent\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"intent_name\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"stage\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"event_summary\": {\n          \"$ref\": \"#/$defs/MPEventSummary\"\n        },\n        \"card_summary\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"$ref\": \"#/$defs/MPCardSummary\"\n          }\n        },\n        \"session_summary\": {\n          \"$ref\": \"#/$defs/MPSessionSummary\"\n        },\n        \"fallback\": {\n          \"$ref\": \"#/$defs/MPFallbackSummary\"\n        },\n        \"errors\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"code\",\n        \"msg\"\n      ]\n    },\n    \"missing\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"wrong\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"extra\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"evidence\": {\n      \"type\": \"array\",\n      \"items\": {}\n    },\n    \"reasoning_summary\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    }\n  },\n  \"additionalProperties\": false,\n  \"$defs\": {\n    \"JudgeBusinessExpectationOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"blocking\": {\n          \"type\": \"boolean\"\n        },\n        \"downstream_consumer\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"user_intent\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected_outcome\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"required_capabilities\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"acceptance_criteria\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"boundary\": {\n          \"type\": \"object\"\n        },\n        \"priority\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"blocking\"\n      ]\n    },\n    \"JudgeFulfillmentAssessmentOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"score\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        },\n        \"expected_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"actual_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"downstream_impact\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"authority_tool_call_ids\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"status\"\n      ]\n    },\n    \"GapItem\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"kind\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"error_type\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected\": {},\n        \"actual\": {},\n        \"evidence_ref\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"raw\": {},\n        \"incomplete\": {\n          \"type\": \"boolean\"\n        }\n      },\n      \"additionalProperties\": false\n    },\n    \"MPEventSummary\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"names\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"raw_names\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"canonical_names\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"counts\": {\n          \"type\": \"object\"\n        },\n        \"raw_counts\": {\n          \"type\": \"object\"\n        },\n        \"final_event\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"raw_final_event\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"protocol_completed\": {\n          \"type\": \"boolean\"\n        },\n        \"business_completed\": {\n          \"type\": \"boolean\"\n        },\n        \"completed\": {\n          \"type\": \"boolean\"\n        }\n      },\n      \"additionalProperties\": false\n    },\n    \"MPCardSummary\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"path_type\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"card_code\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"card_name\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"fallback\": {\n          \"type\": \"boolean\"\n        },\n        \"forecast_value\": {},\n        \"achievement_rate\": {},\n        \"business_evidence\": {\n          \"type\": \"object\"\n        }\n      },\n      \"additionalProperties\": false\n    },\n    \"MPSessionSummary\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"session_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"required_fields\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"accumulated_fields\": {\n          \"type\": \"object\"\n        },\n        \"missing_fields\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"evidence_declared\": {\n          \"type\": \"boolean\"\n        },\n        \"evidence_status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false\n    },\n    \"MPFallbackSummary\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"used\": {\n          \"type\": \"boolean\"\n        },\n        \"allowed\": {\n          \"type\": \"boolean\"\n        },\n        \"reason\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false\n    }\n  },\n  \"required\": [\n    \"expected\",\n    \"business_expectations\",\n    \"reasoning_summary\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['business_expectations', 'expected', 'reasoning_summary']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n\n### 嵌套字段子结构约束\n以下字段内部的子结构也必须严格遵守，不可随意编造字段名或类型：\n- **`expected`** 字段 (项目 marketting-planning 的 expected/live output 结构) 必须符合以下结构：\n  ```json\n  {\n    \"type\": \"object\",\n    \"properties\": {\n      \"code\": {\n        \"type\": \"integer\"\n      },\n      \"msg\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"robot_text\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"end_flag\": {\n        \"type\": \"integer\"\n      },\n      \"intent\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"intent_name\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"stage\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"event_summary\": {\n        \"$ref\": \"#/$defs/MPEventSummary\"\n      },\n      \"card_summary\": {\n        \"type\": \"array\",\n        \"items\": {\n          \"$ref\": \"#/$defs/MPCardSummary\"\n        }\n      },\n      \"session_summary\": {\n        \"$ref\": \"#/$defs/MPSessionSummary\"\n      },\n      \"fallback\": {\n        \"$ref\": \"#/$defs/MPFallbackSummary\"\n      },\n      \"errors\": {\n        \"type\": \"array\",\n        \"items\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      }\n    },\n    \"additionalProperties\": false,\n    \"required\": [\n      \"code\",\n      \"msg\"\n    ],\n    \"$defs\": {\n      \"MPEventSummary\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"names\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"string\",\n              \"minLength\": 1\n            }\n          },\n          \"raw_names\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"string\",\n              \"minLength\": 1\n            }\n          },\n          \"canonical_names\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"string\",\n              \"minLength\": 1\n            }\n          },\n          \"counts\": {\n            \"type\": \"object\"\n          },\n          \"raw_counts\": {\n            \"type\": \"object\"\n          },\n          \"final_event\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          },\n          \"raw_final_event\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          },\n          \"protocol_completed\": {\n            \"type\": \"boolean\"\n          },\n          \"business_completed\": {\n            \"type\": \"boolean\"\n          },\n          \"completed\": {\n            \"type\": \"boolean\"\n          }\n        },\n        \"additionalProperties\": false\n      },\n      \"MPCardSummary\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"path_type\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          },\n          \"card_code\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          },\n          \"card_name\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          },\n          \"fallback\": {\n            \"type\": \"boolean\"\n          },\n          \"forecast_value\": {},\n          \"achievement_rate\": {},\n          \"business_evidence\": {\n            \"type\": \"object\"\n          }\n        },\n        \"additionalProperties\": false\n      },\n      \"MPSessionSummary\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"session_id\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          },\n          \"required_fields\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"string\",\n              \"minLength\": 1\n            }\n          },\n          \"accumulated_fields\": {\n            \"type\": \"object\"\n          },\n          \"missing_fields\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"string\",\n              \"minLength\": 1\n            }\n          },\n          \"evidence_declared\": {\n            \"type\": \"boolean\"\n          },\n          \"evidence_status\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"additionalProperties\": false\n      },\n      \"MPFallbackSummary\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"used\": {\n            \"type\": \"boolean\"\n          },\n          \"allowed\": {\n            \"type\": \"boolean\"\n          },\n          \"reason\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"additionalProperties\": false\n      }\n    }\n  }\n  ```\n",
+      "created_at": 1787025446,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "8324f0a7-cdd6-4a0c-82f8-f7c5add38b2f",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"user_intent\": null, \"run_trace\": {\"trace_id\": \"marketting-planning:mock-agent-marketting-planning-780f4244:1787025332124\", \"project_id\": \"marketting-planning\", \"case_id\": \"mock-agent-marketting-planning-780f4244\", \"intent_input\": {\"action_scenario\": \"intent_recognition\", \"app_scenario\": \"marketing_planning_agent\", \"application_setting\": null, \"docs_num\": 0, \"extra_input_params\": {\"agent_args\": {}, \"args\": {}}, \"history\": [], \"model_name\": \"gpt-4\", \"module_name\": \"intent_recognition\", \"org_id\": \"org_consumelec_001\", \"scenario\": \"intent_recognition\", \"session_id\": \"sess_abc123\", \"source\": \"web\", \"token\": \"token_example123\", \"trace_id\": \"trace_xyz789\", \"ts\": 1715500000, \"user_action\": \"send_message\", \"user_id\": \"user_mkt_director01\", \"user_text\": \"帮我规划一下新智能手表上市怎么在线上做推广，要有具体一点的策略\"}, \"normalized_request\": {\"action_scenario\": \"intent_recognition\", \"app_scenario\": \"marketing_planning_agent\", \"application_setting\": null, \"docs_num\": 0, \"extra_input_params\": {\"agent_args\": {}, \"args\": {}}, \"history\": [], \"model_name\": \"gpt-4\", \"module_name\": \"intent_recognition\", \"org_id\": \"org_consumelec_001\", \"scenario\": \"intent_recognition\", \"session_id\": \"sess_abc123\", \"source\": \"web\", \"token\": \"token_example123\", \"trace_id\": \"trace_xyz789\", \"ts\": 1715500000, \"user_action\": \"send_message\", \"user_id\": \"user_mkt_director01\", \"user_text\": \"帮我规划一下新智能手表上市怎么在线上做推广，要有具体一点的策略\"}, \"final_output\": {}, \"final_output_turn\": null, \"turns\": [{\"turn_index\": 1, \"request\": {\"action_scenario\": \"intent_recognition\", \"app_scenario\": \"marketing_planning_agent\", \"application_setting\": null, \"docs_num\": 0, \"extra_input_params\": {\"agent_args\": {}, \"args\": {}}, \"history\": [], \"model_name\": \"gpt-4\", \"module_name\": \"intent_recognition\", \"org_id\": \"org_consumelec_001\", \"scenario\": \"intent_recognition\", \"session_id\": \"sess_abc123\", \"source\": \"web\", \"token\": \"token_example123\", \"trace_id\": \"trace_xyz789\", \"ts\": 1715500000, \"user_action\": \"send_message\", \"user_id\": \"user_mkt_director01\", \"user_text\": \"帮我规划一下新智能手表上市怎么在线上做推广，要有具体一点的策略\"}, \"call_status\": \"failed\", \"runtime_ms\": 2, \"error\": \"marketing-planning service unavailable: <urlopen error <urlopen error [Errno 61] Connection refused>>\", \"fallbacks\": [{\"reason\": \"marketing-planning service unavailable: <urlopen error <urlopen error [Errno 61] Connection refused>>\", \"status\": \"error\"}], \"validation\": [{\"error\": \"\", \"evidence\": {\"project_id\": \"marketting-planning\"}, \"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"timestamp\": \"\"}]}], \"conversation_transcript\": [{\"content\": \"帮我规划一下新智能手表上市怎么在线上做推广，要有具体一点的策略\", \"query\": \"帮我规划一下新智能手表上市怎么在线上做推广，要有具体一点的策略\", \"role\": \"user\"}], \"conversation_summary\": {\"completion_status\": \"failed\", \"interaction_controller_error\": \"\", \"interaction_controller_status\": \"not_run\", \"stop_reason\": \"live_error\", \"turn_count\": 1}, \"stop_reason\": \"live_error\", \"completion_status\": \"failed\", \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"marketting-planning\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"turn_1\", \"status\": \"failed\", \"evidence\": \"marketing-planning service unavailable: <urlopen error <urlopen error [Errno 61] Connection refused>>\", \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"evidence_refs\": [], \"raw_response_evidence\": [[]], \"evidence_completeness\": {\"complete\": false, \"missing_evidence\": [\"final_output\", \"successful_execution\"]}, \"application_boundary\": {}, \"reference_contract\": {}, \"scenario\": \"intent_recognition\", \"status\": \"error\", \"error\": \"marketing-planning service unavailable: <urlopen error <urlopen error [Errno 61] Connection refused>>\"}, \"reference_contract\": {}, \"output_summary\": {}, \"application_boundary\": {}, \"expected_stage\": null, \"expected_path_types\": [], \"expected_cards\": [], \"stage_rules\": {\"clarification\": \"缺字段时澄清是正确方向，规划卡片通常是可疑证据。\", \"planning\": \"规划场景必须检查 path_types、card identity、fallback 和 SSE completion。\", \"fallback\": \"fallback 是否正确取决于当前 boundary 是否允许。\"}, \"critical_intent_dimensions\": [\"business_metric\", \"target_value_and_unit\", \"time_range\", \"decomposition_dimensions\", \"stage_routing\", \"planning_actionability\", \"sse_completion\"]}",
+      "created_at": 1787025446,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "0b06ed35-ceb4-4868-983d-e738c232c5cf",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"business_expectations\":[{\"expectation_id\":\"归一化保留线上推广规划意图\",\"blocking\":true,\"downstream_consumer\":\"营销规划阶段与后续规划卡片生成流程\",\"user_intent\":\"为新智能手表上市制定具体的线上推广策略\",\"expected_outcome\":\"请求归一化后仍完整保留用户的产品、上市场景、线上渠道和具体策略诉求。\",\"required_capabilities\":[\"请求归一化\",\"用户意图保留\",\"营销规划场景识别\"],\"acceptance_criteria\":[\"normalized_request.user_text 与原始用户诉求一致\",\"normalized_request.app_scenario 为营销规划场景\",\"未丢失新智能手表上市和线上推广等核心意图\"],\"boundary\":{\"responsibility\":\"请求归一化与意图识别\"},\"priority\":\"高\"},{\"expectation_id\":\"澄清业务指标\",\"blocking\":true,\"downstream_consumer\":\"营销规划策略与效果评估消费者\",\"user_intent\":\"让推广方案围绕明确的业务目标展开\",\"expected_outcome\":\"在进入规划前询问希望提升的业务指标，例如销量、销售额、注册量、曝光量或转化率。\",\"required_capabilities\":[\"缺字段检测\",\"澄清提问\",\"业务指标识别\"],\"acceptance_criteria\":[\"明确指出缺少业务指标\",\"向用户提出可回答的业务指标澄清问题\",\"未在缺少关键指标时直接输出规划卡片\"],\"boundary\":{\"responsibility\":\"缺字段时澄清\"},\"priority\":\"高\"},{\"expectation_id\":\"澄清目标值与单位\",\"blocking\":true,\"downstream_consumer\":\"目标拆解与规划效果计算流程\",\"user_intent\":\"获得可量化、可检验的推广计划\",\"expected_outcome\":\"询问业务目标的具体数值及单位，例如三个月销售一万台或转化率达到百分之五。\",\"required_capabilities\":[\"目标值识别\",\"单位识别\",\"澄清提问\"],\"acceptance_criteria\":[\"明确指出缺少目标值和单位\",\"向用户询问具体数值及对应单位\",\"不虚构用户未提供的目标值\"],\"boundary\":{\"responsibility\":\"缺字段时澄清\"},\"priority\":\"高\"},{\"expectation_id\":\"澄清推广时间范围\",\"blocking\":true,\"downstream_consumer\":\"上市节奏规划与阶段预算分配流程\",\"user_intent\":\"使线上推广策略具有明确执行周期\",\"expected_outcome\":\"询问推广计划的时间范围或上市阶段，例如预热期、首发期和持续推广期的起止时间。\",\"required_capabilities\":[\"时间范围识别\",\"阶段规划澄清\",\"澄清提问\"],\"acceptance_criteria\":[\"明确指出缺少时间范围\",\"向用户询问计划周期或上市阶段\",\"不擅自设定推广周期\"],\"boundary\":{\"responsibility\":\"缺字段时澄清\"},\"priority\":\"高\"},{\"expectation_id\":\"澄清策略拆解维度\",\"blocking\":true,\"downstream_consumer\":\"渠道、受众、内容和阶段策略规划流程\",\"user_intent\":\"获得具体而非泛化的线上推广策略\",\"expected_outcome\":\"询问需要按哪些维度拆解方案，例如目标人群、线上渠道、内容类型、上市阶段、预算或地域。\",\"required_capabilities\":[\"拆解维度识别\",\"澄清提问\",\"规划范围确认\"],\"acceptance_criteria\":[\"明确指出缺少策略拆解维度或范围\",\"向用户询问至少一个可执行的拆解维度\",\"不把泛泛的推广建议当作已完成的具体规划\"],\"boundary\":{\"responsibility\":\"缺字段时澄清\"},\"priority\":\"高\"},{\"expectation_id\":\"缺字段时路由到澄清阶段\",\"blocking\":true,\"downstream_consumer\":\"多轮交互控制器与营销规划流程\",\"user_intent\":\"先补齐规划所需信息，再获得营销方案\",\"expected_outcome\":\"当前信息不足时进入 clarification 阶段并等待用户补充字段，而不是直接进入 planning 阶段。\",\"required_capabilities\":[\"阶段路由\",\"会话字段管理\",\"多轮交互控制\"],\"acceptance_criteria\":[\"输出阶段为 clarification\",\"记录缺少的业务指标、目标值与单位、时间范围和拆解维度\",\"会话保持可继续补充信息的状态\"],\"boundary\":{\"responsibility\":\"意图识别、缺字段澄清和多轮顺序\"},\"priority\":\"高\"},{\"expectation_id\":\"字段补齐后提供可执行规划\",\"blocking\":true,\"downstream_consumer\":\"市场负责人及线上推广执行团队\",\"user_intent\":\"获得包含具体策略的智能手表上市线上推广方案\",\"expected_outcome\":\"在必要字段补齐后进入 planning 阶段，输出与目标、周期和拆解维度一致的可执行策略及对应规划卡片。\",\"required_capabilities\":[\"字段补齐后的规划路由\",\"path_types 选择\",\"规划卡片生成\",\"策略可执行性表达\"],\"acceptance_criteria\":[\"仅在必要字段补齐后进入 planning\",\"path_types 与线上推广规划意图一致\",\"规划内容包含明确渠道、受众、内容或行动、节奏及衡量方式\",\"卡片摘要覆盖 reference 要求的路径类型或卡片\"],\"boundary\":{\"responsibility\":\"字段补齐后的规划、path_types 和卡片摘要\"},\"priority\":\"高\"},{\"expectation_id\":\"SSE 交互完整结束\",\"blocking\":true,\"downstream_consumer\":\"前端交互层与调用方\",\"user_intent\":\"收到可解释且完整的处理结果\",\"expected_outcome\":\"SSE 事件按可解释顺序输出，包含阶段进展、最终结束状态以及必要的错误信息，并明确交互是否完成。\",\"required_capabilities\":[\"SSE 事件流\",\"结束状态\",\"错误信息传递\",\"交互完成标记\"],\"acceptance_criteria\":[\"存在可解释的事件序列\",\"最终事件和结束状态明确\",\"发生错误时提供可理解的错误信息\",\"协议和业务完成状态与实际处理结果一致\"],\"boundary\":{\"responsibility\":\"SSE 事件顺序、结束状态和错误信息\"},\"priority\":\"高\"},{\"expectation_id\":\"服务不可用时按边界处理 fallback\",\"blocking\":false,\"downstream_consumer\":\"营销规划调用方与错误恢复流程\",\"user_intent\":\"在依赖不可用时获得符合系统契约的降级或明确错误反馈\",\"expected_outcome\":\"当营销规划服务不可用时，按照当前 application_boundary 的 allow_fallback 约束执行降级或返回明确错误。\",\"required_capabilities\":[\"依赖状态记录\",\"fallback 策略\",\"边界约束判断\"],\"acceptance_criteria\":[\"fallback 行为与当前 boundary 的 allow_fallback 一致\",\"不以降级结果掩盖尚未完成的内部阶段\",\"错误或降级原因可解释\"],\"boundary\":{\"responsibility\":\"fallback 是否符合 trace 中的 allow_fallback\",\"allow_fallback\":\"当前 trace 未提供，无法预先确定\"},\"priority\":\"中\"}],\"applicable_product_expectation_ids\":[\"归一化保留线上推广规划意图\",\"澄清业务指标\",\"澄清目标值与单位\",\"澄清推广时间范围\",\"澄清策略拆解维度\",\"缺字段时路由到澄清阶段\",\"字段补齐后提供可执行规划\",\"SSE 交互完整结束\",\"服务不可用时按边界处理 fallback\"],\"fulfillment_assessments\":[{\"expectation_id\":\"归一化保留线上推广规划意图\",\"status\":\"fulfilled\",\"score\":1.0,\"expected_evidence\":[\"归一化请求应保留新智能手表上市、线上推广和具体策略诉求。\"],\"actual_evidence\":[\"run_trace.normalized_request.user_text 保留了“帮我规划一下新智能手表上市怎么在线上做推广，要有具体一点的策略”\",\"run_trace.normalized_request.app_scenario 为 marketing_planning_agent\",\"live_schema.validate_request 状态为 succeeded\"],\"downstream_impact\":\"核心用户意图未在归一化阶段丢失，可供后续流程使用。\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"澄清业务指标\",\"status\":\"not_fulfilled\",\"score\":0.0,\"expected_evidence\":[\"应在缺少业务指标时输出澄清问题。\"],\"actual_evidence\":[\"用户请求未提供销量、销售额、注册量、曝光量或转化率等业务指标\",\"turn_1.call_status 为 failed，未产生澄清输出\",\"final_output 为空\"],\"downstream_impact\":\"无法确认规划需要优化的业务结果，后续策略无法围绕明确指标展开。\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"澄清目标值与单位\",\"status\":\"not_fulfilled\",\"score\":0.0,\"expected_evidence\":[\"应询问目标数值及单位，且不应自行补造目标。\"],\"actual_evidence\":[\"用户请求未提供目标数值和单位\",\"trace 中没有澄清消息或成功执行输出\",\"conversation_summary.stop_reason 为 live_error\"],\"downstream_impact\":\"无法建立可量化的营销目标和后续达成率评价基础。\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"澄清推广时间范围\",\"status\":\"not_fulfilled\",\"score\":0.0,\"expected_evidence\":[\"应询问推广周期或上市阶段。\"],\"actual_evidence\":[\"用户请求未提供推广起止时间或上市阶段\",\"turn_1 因 marketing-planning service unavailable 终止\",\"未产生任何 assistant 输出\"],\"downstream_impact\":\"无法制定预热、首发和持续推广节奏。\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"澄清策略拆解维度\",\"status\":\"not_fulfilled\",\"score\":0.0,\"expected_evidence\":[\"应询问渠道、受众、内容、阶段、预算或地域等策略拆解范围。\"],\"actual_evidence\":[\"用户仅表达希望“具体一点的策略”，未指定拆解维度\",\"trace 中没有 clarification 阶段输出\",\"final_output 缺失\"],\"downstream_impact\":\"无法确定具体策略的组织范围和规划卡片覆盖范围。\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"缺字段时路由到澄清阶段\",\"status\":\"not_fulfilled\",\"score\":0.0,\"expected_evidence\":[\"expected_stage 应为 clarification，并记录关键缺失字段。\"],\"actual_evidence\":[\"当前 trace 的 expected_stage 为空且没有实际 stage 输出\",\"turn_1 在服务调用阶段失败\",\"conversation_summary.interaction_controller_status 为 not_run\"],\"downstream_impact\":\"流程未进入应有的澄清阶段，用户无法通过多轮补齐规划条件。\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"字段补齐后提供可执行规划\",\"status\":\"not_evaluable\",\"score\":null,\"expected_evidence\":[\"需要在字段补齐后观察 planning 阶段、path_types、卡片摘要和策略内容。\"],\"actual_evidence\":[\"当前只有一轮用户输入，必要字段未补齐\",\"未进入 planning 阶段，final_output 为空\"],\"downstream_impact\":\"当前执行链路没有到达可评估规划可执行性的阶段。\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"SSE 交互完整结束\",\"status\":\"not_fulfilled\",\"score\":0.0,\"expected_evidence\":[\"应有可解释事件顺序、最终事件、结束状态和错误信息。\"],\"actual_evidence\":[\"run_trace.turns[0].call_status 为 failed\",\"conversation_summary.completion_status 为 failed\",\"conversation_summary.stop_reason 为 live_error\",\"evidence_completeness.missing_evidence 包含 final_output 和 successful_execution\",\"event_summary 未产生\"],\"downstream_impact\":\"前端和调用方没有收到完整结果，也无法继续正常交互。\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"服务不可用时按边界处理 fallback\",\"status\":\"not_evaluable\",\"score\":null,\"expected_evidence\":[\"需要 trace.application_boundary.allow_fallback 或 reference_contract.allow_fallback 来判断降级是否被允许。\"],\"actual_evidence\":[\"application_boundary 为空\",\"reference_contract 为空\",\"turn_1.fallbacks 仅记录了 status 为 error 的服务不可用原因，未说明允许的降级契约\"],\"downstream_impact\":\"可以确认发生依赖不可用，但当前证据不足以判断该 fallback 行为是否符合项目边界。\",\"authority_tool_call_ids\":[]}],\"expected\":{\"code\":200,\"msg\":\"需要补充营销规划条件\",\"robot_text\":\"为了制定可执行的新智能手表线上上市推广方案，请补充业务指标、目标值及单位、推广时间范围，以及希望按哪些维度拆解策略，例如目标人群、渠道、内容或预算。\",\"end_flag\":0,\"intent\":\"marketing_planning\",\"intent_name\":\"营销规划\",\"stage\":\"clarification\",\"event_summary\":{\"names\":[\"intent_recognized\",\"clarification_required\"],\"canonical_names\":[\"intent_recognized\",\"clarification_required\"],\"counts\":{\"intent_recognized\":1,\"clarification_required\":1},\"final_event\":\"clarification_required\",\"protocol_completed\":true,\"business_completed\":false,\"completed\":true},\"card_summary\":[],\"session_summary\":{\"session_id\":\"sess_abc123\",\"required_fields\":[\"business_metric\",\"target_value_and_unit\",\"time_range\",\"decomposition_dimensions\"],\"accumulated_fields\":{},\"missing_fields\":[\"business_metric\",\"target_value_and_unit\",\"time_range\",\"decomposition_dimensions\"],\"evidence_declared\":false,\"evidence_status\":\"待用户补充\"},\"fallback\":{\"used\":false,\"allowed\":false,\"reason\":\"当前应进行澄清，不应以规划卡片或泛化方案替代澄清\"},\"errors\":[]},\"missing\":[{\"kind\":\"交互输出\",\"error_type\":\"缺少澄清响应\",\"expected\":\"在缺少业务指标、目标值与单位、时间范围和拆解维度时提出澄清问题\",\"actual\":\"final_output 为空，未产生 assistant 响应\",\"evidence_ref\":\"run_trace.final_output\"},{\"kind\":\"阶段路由\",\"error_type\":\"未进入澄清阶段\",\"expected\":\"stage 为 clarification\",\"actual\":\"没有实际阶段输出，服务调用失败\",\"evidence_ref\":\"run_trace.turns[0].call_status\"},{\"kind\":\"SSE 完成\",\"error_type\":\"缺少完整事件流和结束状态\",\"expected\":\"输出可解释事件顺序、最终事件和完成状态\",\"actual\":\"turn_1 失败，事件摘要为空且缺少 final_output\",\"evidence_ref\":\"run_trace.evidence_completeness\"}],\"wrong\":[],\"extra\":[],\"evidence\":[{\"evidence_ref\":\"run_trace.normalized_request\",\"finding\":\"用户原始线上推广规划意图被保留\"},{\"evidence_ref\":\"run_trace.turns[0]\",\"finding\":\"营销规划服务连接被拒绝，调用状态为 failed\"},{\"evidence_ref\":\"run_trace.conversation_summary\",\"finding\":\"交互状态为 failed，停止原因是 live_error，交互控制器未运行\"},{\"evidence_ref\":\"run_trace.evidence_completeness\",\"finding\":\"证据不完整，缺少 final_output 和 successful_execution\"}],\"reasoning_summary\":\"用户的核心诉求是为新智能手表上市制定具体的线上推广策略，但当前输入缺少业务指标、目标值与单位、时间范围和拆解维度。按照项目边界，正确路径应先进入澄清阶段，而不是直接规划。请求归一化完整保留了用户意图，因此该项已满足；但营销规划服务在首轮连接被拒绝，未产生任何澄清响应、阶段输出、SSE 事件或最终结果，导致缺字段澄清、阶段路由和交互完整性交付均未满足。由于没有进入字段补齐后的规划阶段，规划可执行性无法评估；由于 application_boundary 和 reference_contract 均为空，也无法判断错误 fallback 是否符合允许范围。\"}",
+      "created_at": 1787025446,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "a6b5f942-ff4a-4047-8dc6-e6c03188d9b5",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 14572,
+        "output_tokens": 5499,
+        "provider_metrics": null,
+        "reasoning_tokens": 2070,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 20071
+      },
+      "name": null,
+      "provider_data": {
+        "id": "resp_0bae83a7511a89a1016a83d828716c87d09d06da68ab82392d"
+      },
+      "reasoning_content": "**Planning clarification questions****Evaluating clarification fulfillment****Finalizing status terminology****Evaluating blocking criteria and clarification needs****Assessing fallback handling and boundary evaluation****Defining clarification response schema****Assessing fallback and evidence usage****Identifying missing business metric clarification****Ensuring JSON-only final output****Clarifying missing expected_stage requirement****Defining required session fields and missing info****Marking SSE completion as not fulfilled**",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "marketting-planning",
+  "prompt_size": 29123,
+  "record_id": "6e215dfe-fe32-4f8c-ad23-f511f170fb52",
+  "response": {
+    "content": "{\"business_expectations\":[{\"expectation_id\":\"归一化保留线上推广规划意图\",\"blocking\":true,\"downstream_consumer\":\"营销规划阶段与后续规划卡片生成流程\",\"user_intent\":\"为新智能手表上市制定具体的线上推广策略\",\"expected_outcome\":\"请求归一化后仍完整保留用户的产品、上市场景、线上渠道和具体策略诉求。\",\"required_capabilities\":[\"请求归一化\",\"用户意图保留\",\"营销规划场景识别\"],\"acceptance_criteria\":[\"normalized_request.user_text 与原始用户诉求一致\",\"normalized_request.app_scenario 为营销规划场景\",\"未丢失新智能手表上市和线上推广等核心意图\"],\"boundary\":{\"responsibility\":\"请求归一化与意图识别\"},\"priority\":\"高\"},{\"expectation_id\":\"澄清业务指标\",\"blocking\":true,\"downstream_consumer\":\"营销规划策略与效果评估消费者\",\"user_intent\":\"让推广方案围绕明确的业务目标展开\",\"expected_outcome\":\"在进入规划前询问希望提升的业务指标，例如销量、销售额、注册量、曝光量或转化率。\",\"required_capabilities\":[\"缺字段检测\",\"澄清提问\",\"业务指标识别\"],\"acceptance_criteria\":[\"明确指出缺少业务指标\",\"向用户提出可回答的业务指标澄清问题\",\"未在缺少关键指标时直接输出规划卡片\"],\"boundary\":{\"responsibility\":\"缺字段时澄清\"},\"priority\":\"高\"},{\"expectation_id\":\"澄清目标值与单位\",\"blocking\":true,\"downstream_consumer\":\"目标拆解与规划效果计算流程\",\"user_intent\":\"获得可量化、可检验的推广计划\",\"expected_outcome\":\"询问业务目标的具体数值及单位，例如三个月销售一万台或转化率达到百分之五。\",\"required_capabilities\":[\"目标值识别\",\"单位识别\",\"澄清提问\"],\"acceptance_criteria\":[\"明确指出缺少目标值和单位\",\"向用户询问具体数值及对应单位\",\"不虚构用户未提供的目标值\"],\"boundary\":{\"responsibility\":\"缺字段时澄清\"},\"priority\":\"高\"},{\"expectation_id\":\"澄清推广时间范围\",\"blocking\":true,\"downstream_consumer\":\"上市节奏规划与阶段预算分配流程\",\"user_intent\":\"使线上推广策略具有明确执行周期\",\"expected_outcome\":\"询问推广计划的时间范围或上市阶段，例如预热期、首发期和持续推广期的起止时间。\",\"required_capabilities\":[\"时间范围识别\",\"阶段规划澄清\",\"澄清提问\"],\"acceptance_criteria\":[\"明确指出缺少时间范围\",\"向用户询问计划周期或上市阶段\",\"不擅自设定推广周期\"],\"boundary\":{\"responsibility\":\"缺字段时澄清\"},\"priority\":\"高\"},{\"expectation_id\":\"澄清策略拆解维度\",\"blocking\":true,\"downstream_consumer\":\"渠道、受众、内容和阶段策略规划流程\",\"user_intent\":\"获得具体而非泛化的线上推广策略\",\"expected_outcome\":\"询问需要按哪些维度拆解方案，例如目标人群、线上渠道、内容类型、上市阶段、预算或地域。\",\"required_capabilities\":[\"拆解维度识别\",\"澄清提问\",\"规划范围确认\"],\"acceptance_criteria\":[\"明确指出缺少策略拆解维度或范围\",\"向用户询问至少一个可执行的拆解维度\",\"不把泛泛的推广建议当作已完成的具体规划\"],\"boundary\":{\"responsibility\":\"缺字段时澄清\"},\"priority\":\"高\"},{\"expectation_id\":\"缺字段时路由到澄清阶段\",\"blocking\":true,\"downstream_consumer\":\"多轮交互控制器与营销规划流程\",\"user_intent\":\"先补齐规划所需信息，再获得营销方案\",\"expected_outcome\":\"当前信息不足时进入 clarification 阶段并等待用户补充字段，而不是直接进入 planning 阶段。\",\"required_capabilities\":[\"阶段路由\",\"会话字段管理\",\"多轮交互控制\"],\"acceptance_criteria\":[\"输出阶段为 clarification\",\"记录缺少的业务指标、目标值与单位、时间范围和拆解维度\",\"会话保持可继续补充信息的状态\"],\"boundary\":{\"responsibility\":\"意图识别、缺字段澄清和多轮顺序\"},\"priority\":\"高\"},{\"expectation_id\":\"字段补齐后提供可执行规划\",\"blocking\":true,\"downstream_consumer\":\"市场负责人及线上推广执行团队\",\"user_intent\":\"获得包含具体策略的智能手表上市线上推广方案\",\"expected_outcome\":\"在必要字段补齐后进入 planning 阶段，输出与目标、周期和拆解维度一致的可执行策略及对应规划卡片。\",\"required_capabilities\":[\"字段补齐后的规划路由\",\"path_types 选择\",\"规划卡片生成\",\"策略可执行性表达\"],\"acceptance_criteria\":[\"仅在必要字段补齐后进入 planning\",\"path_types 与线上推广规划意图一致\",\"规划内容包含明确渠道、受众、内容或行动、节奏及衡量方式\",\"卡片摘要覆盖 reference 要求的路径类型或卡片\"],\"boundary\":{\"responsibility\":\"字段补齐后的规划、path_types 和卡片摘要\"},\"priority\":\"高\"},{\"expectation_id\":\"SSE 交互完整结束\",\"blocking\":true,\"downstream_consumer\":\"前端交互层与调用方\",\"user_intent\":\"收到可解释且完整的处理结果\",\"expected_outcome\":\"SSE 事件按可解释顺序输出，包含阶段进展、最终结束状态以及必要的错误信息，并明确交互是否完成。\",\"required_capabilities\":[\"SSE 事件流\",\"结束状态\",\"错误信息传递\",\"交互完成标记\"],\"acceptance_criteria\":[\"存在可解释的事件序列\",\"最终事件和结束状态明确\",\"发生错误时提供可理解的错误信息\",\"协议和业务完成状态与实际处理结果一致\"],\"boundary\":{\"responsibility\":\"SSE 事件顺序、结束状态和错误信息\"},\"priority\":\"高\"},{\"expectation_id\":\"服务不可用时按边界处理 fallback\",\"blocking\":false,\"downstream_consumer\":\"营销规划调用方与错误恢复流程\",\"user_intent\":\"在依赖不可用时获得符合系统契约的降级或明确错误反馈\",\"expected_outcome\":\"当营销规划服务不可用时，按照当前 application_boundary 的 allow_fallback 约束执行降级或返回明确错误。\",\"required_capabilities\":[\"依赖状态记录\",\"fallback 策略\",\"边界约束判断\"],\"acceptance_criteria\":[\"fallback 行为与当前 boundary 的 allow_fallback 一致\",\"不以降级结果掩盖尚未完成的内部阶段\",\"错误或降级原因可解释\"],\"boundary\":{\"responsibility\":\"fallback 是否符合 trace 中的 allow_fallback\",\"allow_fallback\":\"当前 trace 未提供，无法预先确定\"},\"priority\":\"中\"}],\"applicable_product_expectation_ids\":[\"归一化保留线上推广规划意图\",\"澄清业务指标\",\"澄清目标值与单位\",\"澄清推广时间范围\",\"澄清策略拆解维度\",\"缺字段时路由到澄清阶段\",\"字段补齐后提供可执行规划\",\"SSE 交互完整结束\",\"服务不可用时按边界处理 fallback\"],\"fulfillment_assessments\":[{\"expectation_id\":\"归一化保留线上推广规划意图\",\"status\":\"fulfilled\",\"score\":1.0,\"expected_evidence\":[\"归一化请求应保留新智能手表上市、线上推广和具体策略诉求。\"],\"actual_evidence\":[\"run_trace.normalized_request.user_text 保留了“帮我规划一下新智能手表上市怎么在线上做推广，要有具体一点的策略”\",\"run_trace.normalized_request.app_scenario 为 marketing_planning_agent\",\"live_schema.validate_request 状态为 succeeded\"],\"downstream_impact\":\"核心用户意图未在归一化阶段丢失，可供后续流程使用。\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"澄清业务指标\",\"status\":\"not_fulfilled\",\"score\":0.0,\"expected_evidence\":[\"应在缺少业务指标时输出澄清问题。\"],\"actual_evidence\":[\"用户请求未提供销量、销售额、注册量、曝光量或转化率等业务指标\",\"turn_1.call_status 为 failed，未产生澄清输出\",\"final_output 为空\"],\"downstream_impact\":\"无法确认规划需要优化的业务结果，后续策略无法围绕明确指标展开。\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"澄清目标值与单位\",\"status\":\"not_fulfilled\",\"score\":0.0,\"expected_evidence\":[\"应询问目标数值及单位，且不应自行补造目标。\"],\"actual_evidence\":[\"用户请求未提供目标数值和单位\",\"trace 中没有澄清消息或成功执行输出\",\"conversation_summary.stop_reason 为 live_error\"],\"downstream_impact\":\"无法建立可量化的营销目标和后续达成率评价基础。\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"澄清推广时间范围\",\"status\":\"not_fulfilled\",\"score\":0.0,\"expected_evidence\":[\"应询问推广周期或上市阶段。\"],\"actual_evidence\":[\"用户请求未提供推广起止时间或上市阶段\",\"turn_1 因 marketing-planning service unavailable 终止\",\"未产生任何 assistant 输出\"],\"downstream_impact\":\"无法制定预热、首发和持续推广节奏。\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"澄清策略拆解维度\",\"status\":\"not_fulfilled\",\"score\":0.0,\"expected_evidence\":[\"应询问渠道、受众、内容、阶段、预算或地域等策略拆解范围。\"],\"actual_evidence\":[\"用户仅表达希望“具体一点的策略”，未指定拆解维度\",\"trace 中没有 clarification 阶段输出\",\"final_output 缺失\"],\"downstream_impact\":\"无法确定具体策略的组织范围和规划卡片覆盖范围。\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"缺字段时路由到澄清阶段\",\"status\":\"not_fulfilled\",\"score\":0.0,\"expected_evidence\":[\"expected_stage 应为 clarification，并记录关键缺失字段。\"],\"actual_evidence\":[\"当前 trace 的 expected_stage 为空且没有实际 stage 输出\",\"turn_1 在服务调用阶段失败\",\"conversation_summary.interaction_controller_status 为 not_run\"],\"downstream_impact\":\"流程未进入应有的澄清阶段，用户无法通过多轮补齐规划条件。\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"字段补齐后提供可执行规划\",\"status\":\"not_evaluable\",\"score\":null,\"expected_evidence\":[\"需要在字段补齐后观察 planning 阶段、path_types、卡片摘要和策略内容。\"],\"actual_evidence\":[\"当前只有一轮用户输入，必要字段未补齐\",\"未进入 planning 阶段，final_output 为空\"],\"downstream_impact\":\"当前执行链路没有到达可评估规划可执行性的阶段。\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"SSE 交互完整结束\",\"status\":\"not_fulfilled\",\"score\":0.0,\"expected_evidence\":[\"应有可解释事件顺序、最终事件、结束状态和错误信息。\"],\"actual_evidence\":[\"run_trace.turns[0].call_status 为 failed\",\"conversation_summary.completion_status 为 failed\",\"conversation_summary.stop_reason 为 live_error\",\"evidence_completeness.missing_evidence 包含 final_output 和 successful_execution\",\"event_summary 未产生\"],\"downstream_impact\":\"前端和调用方没有收到完整结果，也无法继续正常交互。\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"服务不可用时按边界处理 fallback\",\"status\":\"not_evaluable\",\"score\":null,\"expected_evidence\":[\"需要 trace.application_boundary.allow_fallback 或 reference_contract.allow_fallback 来判断降级是否被允许。\"],\"actual_evidence\":[\"application_boundary 为空\",\"reference_contract 为空\",\"turn_1.fallbacks 仅记录了 status 为 error 的服务不可用原因，未说明允许的降级契约\"],\"downstream_impact\":\"可以确认发生依赖不可用，但当前证据不足以判断该 fallback 行为是否符合项目边界。\",\"authority_tool_call_ids\":[]}],\"expected\":{\"code\":200,\"msg\":\"需要补充营销规划条件\",\"robot_text\":\"为了制定可执行的新智能手表线上上市推广方案，请补充业务指标、目标值及单位、推广时间范围，以及希望按哪些维度拆解策略，例如目标人群、渠道、内容或预算。\",\"end_flag\":0,\"intent\":\"marketing_planning\",\"intent_name\":\"营销规划\",\"stage\":\"clarification\",\"event_summary\":{\"names\":[\"intent_recognized\",\"clarification_required\"],\"canonical_names\":[\"intent_recognized\",\"clarification_required\"],\"counts\":{\"intent_recognized\":1,\"clarification_required\":1},\"final_event\":\"clarification_required\",\"protocol_completed\":true,\"business_completed\":false,\"completed\":true},\"card_summary\":[],\"session_summary\":{\"session_id\":\"sess_abc123\",\"required_fields\":[\"business_metric\",\"target_value_and_unit\",\"time_range\",\"decomposition_dimensions\"],\"accumulated_fields\":{},\"missing_fields\":[\"business_metric\",\"target_value_and_unit\",\"time_range\",\"decomposition_dimensions\"],\"evidence_declared\":false,\"evidence_status\":\"待用户补充\"},\"fallback\":{\"used\":false,\"allowed\":false,\"reason\":\"当前应进行澄清，不应以规划卡片或泛化方案替代澄清\"},\"errors\":[]},\"missing\":[{\"kind\":\"交互输出\",\"error_type\":\"缺少澄清响应\",\"expected\":\"在缺少业务指标、目标值与单位、时间范围和拆解维度时提出澄清问题\",\"actual\":\"final_output 为空，未产生 assistant 响应\",\"evidence_ref\":\"run_trace.final_output\"},{\"kind\":\"阶段路由\",\"error_type\":\"未进入澄清阶段\",\"expected\":\"stage 为 clarification\",\"actual\":\"没有实际阶段输出，服务调用失败\",\"evidence_ref\":\"run_trace.turns[0].call_status\"},{\"kind\":\"SSE 完成\",\"error_type\":\"缺少完整事件流和结束状态\",\"expected\":\"输出可解释事件顺序、最终事件和完成状态\",\"actual\":\"turn_1 失败，事件摘要为空且缺少 final_output\",\"evidence_ref\":\"run_trace.evidence_completeness\"}],\"wrong\":[],\"extra\":[],\"evidence\":[{\"evidence_ref\":\"run_trace.normalized_request\",\"finding\":\"用户原始线上推广规划意图被保留\"},{\"evidence_ref\":\"run_trace.turns[0]\",\"finding\":\"营销规划服务连接被拒绝，调用状态为 failed\"},{\"evidence_ref\":\"run_trace.conversation_summary\",\"finding\":\"交互状态为 failed，停止原因是 live_error，交互控制器未运行\"},{\"evidence_ref\":\"run_trace.evidence_completeness\",\"finding\":\"证据不完整，缺少 final_output 和 successful_execution\"}],\"reasoning_summary\":\"用户的核心诉求是为新智能手表上市制定具体的线上推广策略，但当前输入缺少业务指标、目标值与单位、时间范围和拆解维度。按照项目边界，正确路径应先进入澄清阶段，而不是直接规划。请求归一化完整保留了用户意图，因此该项已满足；但营销规划服务在首轮连接被拒绝，未产生任何澄清响应、阶段输出、SSE 事件或最终结果，导致缺字段澄清、阶段路由和交互完整性交付均未满足。由于没有进入字段补齐后的规划阶段，规划可执行性无法评估；由于 application_boundary 和 reference_contract 均为空，也无法判断错误 fallback 是否符合允许范围。\"}",
+    "metrics": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 14572,
+      "output_tokens": 5499,
+      "reasoning_tokens": 2070,
+      "total_tokens": 20071
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 102866,
+          "endpoint": "primary",
+          "model": "gpt-5.6-luna",
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "selected_endpoint": "primary",
+      "selected_model": "gpt-5.6-luna",
+      "stage": ""
+    }
+  },
+  "trace_id": "marketting-planning:mock-agent-marketting-planning-780f4244:1787025332124"
+}

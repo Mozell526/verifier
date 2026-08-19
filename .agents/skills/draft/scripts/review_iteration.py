@@ -18,7 +18,16 @@ def _load_review(value: str) -> Mapping[str, Any]:
     )
     if not isinstance(raw, Mapping):
         raise TypeError("--review must resolve to a JSON object")
-    allowed = {"decision", "route", "summary", "criteria", "contract_coverage"}
+    allowed = {
+        "decision",
+        "route",
+        "summary",
+        "criteria",
+        "contract_coverage",
+        "exclusions",
+        "flip_labels",
+        "knowledge_delta",
+    }
     unknown = sorted(set(raw) - allowed)
     if unknown:
         raise ValueError(f"role review input contains unknown field: {unknown[0]}")
@@ -55,6 +64,8 @@ def main() -> int:
         expected_type="file",
     ).physical
     review = _load_review(args.review)
+    if "knowledge_delta" not in review:
+        raise ValueError("knowledge_delta is required")
     path = write_draft_role_review(
         spec,
         args.role,
@@ -65,6 +76,9 @@ def main() -> int:
         summary=str(review.get("summary") or ""),
         criteria=review.get("criteria") or [],
         contract_coverage=review.get("contract_coverage") or [],
+        exclusions=review.get("exclusions") or [],
+        flip_labels=review.get("flip_labels") or [],
+        knowledge_delta=review.get("knowledge_delta"),
     )
     print(
         json.dumps(

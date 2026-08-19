@@ -132,7 +132,10 @@ def run_frozen_iteration(
     if _stable_hash(frozen_cases) != cases_hash:
         raise RuntimeError("Draft iteration mutated frozen cases")
     ordered = [rows[key] for key in sorted(rows, key=str)]
-    return {
+    from impl.core.capability_carrier import collect_report_errors, format_carrier_errors
+
+    carrier_errors = collect_report_errors({"rows": ordered})
+    report = {
         "schema_version": DRAFT_RUN_REPORT_VERSION,
         "project_id": project_id,
         "role": role,
@@ -168,6 +171,16 @@ def run_frozen_iteration(
             "objective, config.review and real experiments; equality or missing evidence is not success."
         ),
     }
+    if carrier_errors:
+        report["run_status"] = "error"
+        report["error"] = {
+            "type": "CapabilityCarrierFailure",
+            "message": format_carrier_errors(carrier_errors),
+            "items": carrier_errors,
+        }
+    else:
+        report["run_status"] = "completed"
+    return report
 
 
 def _case_key(raw_case: Mapping[str, Any], index: int) -> Any:
@@ -353,7 +366,17 @@ def _run_one_case(
     }
     if draft["error"] is not None:
         row["draft_error"] = draft["error"]
+    _attach_capability_carrier(runner.draft_spec, row, carrier=runner.carrier)
     return partial_row, row
+
+
+def _attach_capability_carrier(spec: Any, row: Dict[str, Any], *, carrier: Any = None) -> None:
+    from impl.core.capability_carrier import attach_row_placements, bind_capability_carrier
+
+    bound = carrier if carrier is not None else bind_capability_carrier(spec)
+    if bound is None:
+        return
+    attach_row_placements(spec, row, carrier=bound)
 
 
 def _run_side_with_retry(
@@ -518,6 +541,9 @@ class _CaseRunner:
         self.current_spec = current_spec
         self.draft_spec = draft_spec
         self._local = threading.local()
+        from impl.core.capability_carrier import bind_capability_carrier
+
+        self.carrier = bind_capability_carrier(draft_spec)
 
     def instance(self, side: str) -> Any:
         local = self._local

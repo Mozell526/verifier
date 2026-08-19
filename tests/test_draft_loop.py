@@ -164,8 +164,20 @@ def test_draft_loop_freezes_current_and_requires_review_between_iterations(tmp_p
     )
     assert state.status == "active"
     draft_loop.run_iteration("demo", "mock")
+    draft_loop.run_iteration("demo", "mock")
+    iterations_dir = spec.project_package_path() / "draft" / ".state" / "mock" / "iterations"
+    assert (iterations_dir / "001-run.json").is_file()
+    assert (iterations_dir / "001-run-r2.json").is_file()
+    assert len(draft_loop._read_state(draft_loop._state_path(spec, "mock")).iterations) == 1
+
+    (spec.project_package_path() / "draft" / "attribute.py").write_text(
+        "candidate-changed-before-review", encoding="utf-8"
+    )
     with pytest.raises(ValueError, match="awaits Harness review"):
         draft_loop.run_iteration("demo", "mock")
+    (spec.project_package_path() / "draft" / "attribute.py").write_text(
+        "candidate-1", encoding="utf-8"
+    )
 
     reviewed = draft_loop.record_review(
         "demo",
@@ -717,13 +729,22 @@ def test_draft_loop_requires_matching_cited_role_review_when_investigation_exist
         json.dumps({"role": "mock", "required_source_ids": source_ids}),
         encoding="utf-8",
     )
+    fake_receipt = {
+        "role": "mock",
+        "required_source_ids": source_ids,
+    }
+    monkeypatch.setattr(
+        "impl.core.solidify.require_solidify_receipt",
+        lambda requested_spec, requested_role, **kwargs: fake_receipt,
+    )
+    monkeypatch.setattr(
+        "impl.core.draft_pending.assert_run_allowed",
+        lambda *args, **kwargs: None,
+    )
     monkeypatch.setattr(
         draft_role_review,
         "require_solidify_receipt",
-        lambda requested_spec, requested_role, **kwargs: {
-            "role": requested_role,
-            "required_source_ids": source_ids,
-        },
+        lambda requested_spec, requested_role, **kwargs: fake_receipt,
     )
     monkeypatch.setattr(
         draft_role_review,

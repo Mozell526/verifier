@@ -62,13 +62,13 @@ Runtime 暴露的新缺料只作为用户人工发起下一轮 Investigate 的�
 - 只使用真实 load 后资料作为 basis，不能把 Key-Index hit、搜索分数或未加载摘要当 Evidence。
 
 ## Draft Loop review
-业务判定正确性的唯一基准是 `spec/alg/fulfilled.md`（判断顺序、§4 场景类型、反面清单）；资料定位与证据效力按 `spec/alg/material-positioning.md`。live 输出是被测对象的行为事实（current_behavior），不得自我背书为「正确交付」；与 live/production 输出的一致率不是评判标准。Authority 关着不要 NE；核心未交付是 NF。fulfilled.md §4 的举例只说明场景类型，不能当该条 case 的金牌读法。
+业务判定正确性的唯一基准是 `spec/alg/fulfilled.md`（判断顺序、§4 场景类型、反面清单）；资料定位与证据效力按 `spec/alg/material-positioning.md`。live 输出是被测对象的行为事实（current_behavior），不得自我背书为「正确交付」；与 live/production 输出的一致率不是评判标准。Authority 关闭时 NE 仅限输入坏、完全无关、actual/trace 不可得；能力边界候选、不支持提示、空条件不得打 NE，核心未交付是 NF。fulfilled.md §4 的举例只说明场景类型，不能当该条 case 的金牌读法。
 
-每轮必须生成标准 Role review receipt，逐项检查：业务期望支撑、pre-actual 原子 expectation、blocking、dimension 覆盖、fulfilled 外部证据、not_fulfilled 的 Live 边界、not_evaluable 证据缺口、缺输出不逃逸、外部约束不误归责、无内部/unseen 泄漏、相对 Current 的有把握净胜。还必须审计 Runtime authority 调用是否满足上一节。最易漂移的三项判据固定为：
+每轮必须生成标准 Role review receipt，逐项检查：业务期望支撑、pre-actual 原子 expectation、blocking、dimension 覆盖、fulfilled 外部证据、not_fulfilled 的 Live 边界、not_evaluable 证据缺口、缺输出不逃逸、外部约束不误归责、无内部/unseen 泄漏、相对 Current 的有把握净胜、capability_carrier 归位审计。还必须审计 Runtime authority 调用是否满足上一节。最易漂移的三项判据固定为：
 
 - `expectation_support`：先核支撑资料的 `conclusion_kind`。normative_rule / external_fact 可裁决应该如何；`inlive_boundary` 只证明可达空间（有什么字段/枚举/映射目标值），不证明这次选得对（positioning §4 不变量 2）。Load 到资料不等于定位正确；current_behavior 与解析配方不能当尺子。F 仍须同时满足 fulfilled §2.1：职责内、材料够、证据能证明用户要的结果拿到了。不得由 live 自身输出背书，也不得是无资料支撑的模型意见。
 - `not_fulfilled_live_boundary`：只检查归责边界——外部原因（fulfilled.md §4.4）不得归责系统；这不是「与 live 交付一致性」检查，Judge 判 live 交付不足本身不构成失败。
-- `relative_improvement_no_regression`：只对「这轮有把握」的翻转计净胜。有把握更好 +1，有把握更差 −1；人判不完、无尺子、检索缺口、工具中断不计分，且禁止拿这些案改候选。有把握的理由用本轮 objective/review；Judge 若刚好能引用 fulfilled.md 反面清单或空间命中就写上，不是入场券。单案不否决。净胜 > 0 才允许 `improved`（另见 SKILL：Draft 侧还要有可比较的行）；还要继续改候选就记 unchanged。其余 criterion 照记，fail 不否决 improved。
+- `relative_improvement_no_regression`：净胜由 `score_iteration` 机算，Harness 只填解释和 `flip_labels`。机算不按 F>NE>NF 推断方向：status 相同是 tie，status 变化是 flip。有把握更好标 `win`，有把握更差标 `loss`，每条必须带 fulfilled.md 锚点；人判不完、无尺子、检索缺口、工具中断必须登记 `exclusions`（`human_unresolved` / `ambiguity_gap` / `retrieval_gap` / `tool_interrupt` / `other`+说明），且禁止拿这些案改候选。未标注的稳定翻转不得计 win。同一 revision 至少两次 run（第二次自动写 `<NNN>-run-r2.json`），只有复现的 flip 进 win/loss，两侧或单侧抖动进 variance。loss>0 或存在未标注稳定翻转 → 本项 fail；净胜≤0 或 `stability_ready=false` → 不得 `improved`。其余 criterion fail 必须附 `waiver`（理由 + 计划处理轮次），无 waiver 的 fail 强制 `unchanged` 且不得进 `promotion_checks`。
 
 review 必须对 Current 与 Draft 两侧判定扫 fulfilled.md 反面清单，任一侧踩线都如实记录；不得只审 Draft 不审基准侧。Loop evidence 必须同时引用 Role review receipt 和最新 run report。每轮必须产出并引用 `scripts/render_loop_comparison_table.py` 渲染的逐 case 对比表（基础列：case / query 输入 / live 输出 / production 结果 / draft 结果 / harness 分析）；对比表必须含 harness 分析列，由 Harness AI 填写。模板见 `reference/loop-comparison-table.md`。不得只贴聚合指标。
 

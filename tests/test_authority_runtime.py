@@ -22,7 +22,15 @@ from impl.core.schema import AuthorityRequest
 
 @pytest.fixture(scope="module")
 def client_search_spec():
-    return load_project("client_search")
+    spec = load_project("client_search")
+    authority = (spec.verifier or {}).setdefault("authority", {})
+    authority["enabled_scopes"] = [
+        "responsibility",
+        "semantic_mapping",
+        "query_equivalence",
+        "conflict_arbitration",
+    ]
+    return spec
 
 
 @pytest.fixture()
@@ -604,8 +612,14 @@ def test_authority_tool_dedupes_same_question_within_task(authority_env):
             "required_evidence": ["当前生效版本、审批记录或替代关系"],
         }),
     )
-    first = tool._execute("高净值客户应采用哪一种正式定义？")
-    second = tool._execute("高净值客户应采用哪一种正式定义？")
+    first = tool._execute(
+        "高净值客户应采用哪一种正式定义？",
+        question_class="semantic_mapping",
+    )
+    second = tool._execute(
+        "高净值客户应采用哪一种正式定义？",
+        question_class="semantic_mapping",
+    )
     assert second["tool_call_id"] == first["tool_call_id"]
     assert len(tool.audit) == 1
 
@@ -650,8 +664,8 @@ def test_authority_tool_call_isolates_evidence_run_between_resolves(authority_en
             },
         ]),
     )
-    tool._execute("第一次问题")
-    second = tool._execute("第二次问题")
+    tool._execute("第一次问题", question_class="semantic_mapping")
+    second = tool._execute("第二次问题", question_class="semantic_mapping")
     assert second["status"] == "unresolved"
     assert second["basis_evidence_ref_ids"] == []
 
@@ -690,7 +704,10 @@ def test_resolve_tool_audit_then_gate(authority_env):
             "required_evidence": ["当前生效版本、审批记录或替代关系"],
         }),
     )
-    result = tool._execute("高净值客户应采用哪一种正式定义？")
+    result = tool._execute(
+        "高净值客户应采用哪一种正式定义？",
+        question_class="semantic_mapping",
+    )
     assert result["status"] == "unresolved"
     assert result["tool_call_id"] in tool.audit
     assert tool.audit[result["tool_call_id"]]["environment_snapshot_sha256"] == (
@@ -1457,7 +1474,10 @@ def test_authority_tool_protocol_violation_maps_to_unresolved_with_missing_evide
             }
 
     tool = build_authority_resolve_tool(authority_env, llm=ViolationLlm())
-    result = tool._execute("客户搜索是否支持按公司名称查询？")
+    result = tool._execute(
+        "客户搜索是否支持按公司名称查询？",
+        question_class="responsibility",
+    )
     assert result["status"] == "unresolved"
     assert result["required_evidence"]
     call_id = result["tool_call_id"]
@@ -1480,6 +1500,7 @@ def test_authority_tool_budget_exceeded_claim_maps_to_gap_only(authority_env):
     tool = build_authority_resolve_tool(authority_env, llm=BudgetLlm())
     result = tool._execute(
         "客户搜索是否支持按业务员维度筛选？",
+        question_class="responsibility",
         claim={
             "claim_statement": "支持按业务员维度筛选客户。",
             "subject": "salesperson",
@@ -1504,7 +1525,7 @@ def test_authority_tool_transient_failure_stays_tool_failure(authority_env):
             raise RuntimeError("502 Bad Gateway: upstream outage")
 
     tool = build_authority_resolve_tool(authority_env, llm=TransientLlm())
-    result = tool._execute("某定义是否可确定？")
+    result = tool._execute("某定义是否可确定？", question_class="semantic_mapping")
     assert result["status"] == "tool_failure"
     entry = tool.audit[result["tool_call_id"]]
     assert entry["tool_failure"] is True

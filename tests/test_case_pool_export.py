@@ -91,12 +91,14 @@ const CasePoolExporter = context.globalThis.CasePoolExporter;
     )
 
 
-def test_exporter_adds_trace_summary_as_last_column():
+def test_exporter_adds_verdict_as_last_column():
     result = _eval_exporter("process.stdout.write(JSON.stringify(CasePoolExporter.COLUMNS));")
     assert result.returncode == 0, result.stderr
     columns = json.loads(result.stdout)
-    assert columns[-1]["header"] == "Trace 摘要"
-    assert columns[-1]["key"] == "traceSummary"
+    assert columns[-1]["header"] == "裁决"
+    assert columns[-1]["key"] == "carrierPlacement"
+    keys = [column["key"] for column in columns]
+    assert keys[-2] == "traceSummary"
 
 
 def test_format_trace_show_returns_no_trace_when_projection_missing():
@@ -131,7 +133,8 @@ def test_summary_export_rows_pull_trace_show_into_trace_summary():
     assert "CasePoolExporter.formatTraceShow" in formatter
     assert "typeof formatter!=='function'" in formatter
     assert "item.trace" not in formatter
-    assert "case_pool_export.js?v=20260813-trace-summary-1" in source
+    assert "case_pool_export.js?v=20260817-verdict" in source
+    assert "carrierPlacement:carrierPlacementText(view)" in builder.replace(" ", "")
 
 
 def test_exporter_writes_xlsx_with_trace_summary_column(tmp_path):
@@ -148,9 +151,10 @@ def test_exporter_writes_xlsx_with_trace_summary_column(tmp_path):
     workbook = load_workbook(out, read_only=True, data_only=True)
     sheet = workbook.active
     headers = [cell.value for cell in next(sheet.iter_rows(min_row=1, max_row=1))]
-    assert headers[-1] == "Trace 摘要"
+    assert headers[-1] == "裁决"
+    assert headers[-2] == "Trace 摘要"
     values = [cell.value for cell in next(sheet.iter_rows(min_row=2, max_row=2))]
-    summary = values[-1]
+    summary = values[-2]
     assert "T1  succeeded  2475ms" in summary
     assert "T2  succeeded  26ms" in summary
     assert "输入: 50万以上" in summary

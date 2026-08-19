@@ -106,6 +106,17 @@ def _enforcement_check(gap, snapshot_sha256: str) -> dict[str, Any]:
     }
 
 
+_IN_RUN_SCOPES = [
+    "responsibility",
+    "semantic_mapping",
+    "query_equivalence",
+    "conflict_arbitration",
+]
+_AUTHORITY_PROBE_CLASSES = {
+    "enum_space:orphanType": "semantic_mapping",
+    "operator_support:familyInfo.familyclientbirthday": "conflict_arbitration",
+    "value_mapping:orphanType:孤儿单": "semantic_mapping",
+}
 _AUTHORITY_PROBE_QUESTIONS = {
     "enum_space:orphanType": (
         "在 client_search 当前启用的客户搜索字段定义中，orphanType 字段的正式合法枚举值空间是什么？"
@@ -124,14 +135,18 @@ _AUTHORITY_PROBE_QUESTIONS = {
 
 def _run_authority_replay(authority_env, probes) -> dict[str, Any]:
     """通过正式 authority.resolve 重放冻结 Subject，不向请求注入预期状态。"""
-    authority_tool = build_authority_resolve_tool(authority_env)
+    authority_tool = build_authority_resolve_tool(
+        authority_env,
+        enabled_scopes={"authority": {"enabled_scopes": list(_IN_RUN_SCOPES)}},
+    )
     results = []
     for probe in probes:
         subject_id = str(probe["subject_id"])
         question = _AUTHORITY_PROBE_QUESTIONS.get(subject_id)
-        if not question:
+        question_class = _AUTHORITY_PROBE_CLASSES.get(subject_id)
+        if not question or not question_class:
             raise ValueError(f"Authority probe lacks a decision question: {subject_id}")
-        result = authority_tool._execute(question)
+        result = authority_tool._execute(question, question_class=question_class)
         call_id = str(result.get("tool_call_id") or "")
         audit = authority_tool.audit.get(call_id)
         results.append({
