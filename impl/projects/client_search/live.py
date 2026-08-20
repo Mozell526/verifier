@@ -83,7 +83,7 @@ def external_boundary_sources(spec: ProjectSpec) -> Dict[str, Any]:
 
 
 def capability_snapshot(spec: ProjectSpec) -> dict:
-    """轴2用的完整受治理目录。失败抛错，由 core 收成 fields=None。"""
+    """client_search 受治理字段目录。由 capability_provider 喂给结构化形态。"""
     config_paths = source_config_paths(spec)
     definitions = config_paths.get("source_field_definitions")
     if not definitions:
@@ -108,6 +108,37 @@ def capability_lexicon(spec: ProjectSpec) -> dict:
         return {"terms": []}
     data = _yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     return data if isinstance(data, dict) else {"terms": []}
+
+
+_STRUCTURED_FIELD_ALIASES = {
+    "licensePlateNo": ["车牌号", "车牌", "车辆号牌", "号牌号码"],
+    "searchClientName": ["姓名", "客户姓名", "人名"],
+    "familyInfo.familyclientname": ["子女"],
+}
+
+
+def _with_structured_aliases(manifest: dict) -> dict:
+    out = dict(manifest)
+    for field, aliases in _STRUCTURED_FIELD_ALIASES.items():
+        entry = out.get(field)
+        if not isinstance(entry, dict):
+            continue
+        merged = dict(entry)
+        existing = [str(item).strip() for item in (merged.get("aliases") or []) if str(item).strip()]
+        merged["aliases"] = list(dict.fromkeys([*existing, *aliases]))
+        out[field] = merged
+    return out
+
+
+def capability_provider(spec: ProjectSpec):
+    from impl.core.capability_structured import StructuredCarrier
+
+    return StructuredCarrier.from_materials(
+        _with_structured_aliases(capability_snapshot(spec)),
+        lexicon=capability_lexicon(spec),
+        spoken=value_mappings(spec),
+        spec=spec,
+    )
 
 
 def capability_manifest(spec: ProjectSpec, *, full: bool = False) -> dict:

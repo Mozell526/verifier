@@ -131,6 +131,10 @@ class LiveSchemaCheck:
         self._output_validator = SchemaValidator(_to_spec(output_schema))
         self._ready = set(ready or [])
 
+    def bind_ready(self, ready: Optional[list] = None) -> None:
+        """由统一 loader 从 ProjectSpec 注入 ready，保留项目自定义 check。"""
+        self._ready = set(ready or [])
+
     def request(self, data: Any) -> bool:
         """校验 live 请求体是否符合 REQUEST_SCHEMA。"""
         return self._request_validator.is_valid(data, strict=True, allow_extra=False)

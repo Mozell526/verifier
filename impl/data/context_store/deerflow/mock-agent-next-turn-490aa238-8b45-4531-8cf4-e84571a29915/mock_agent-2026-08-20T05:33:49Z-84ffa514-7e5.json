@@ -1,0 +1,270 @@
+{
+  "caller": "mock_agent",
+  "created_at": "2026-08-20T05:33:49Z",
+  "elapsed_ms": 7923,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "draft"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "f965c6ef08d59c822c9cad281a9b6d470499ee15d7a60b0eefcdfa13b9a336fd",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [],
+      "lineage": {
+        "call_id": "",
+        "case_id": "",
+        "trace_id": "mock-agent-next-turn-490aa238-8b45-4531-8cf4-e84571a29915"
+      },
+      "messages": [
+        {
+          "char_count": 987,
+          "content_sha256": "09c6e73d9f64cb1d57c7c1706b4a8190c2cc28d7496b98667b34075826149dde",
+          "role": "system"
+        },
+        {
+          "char_count": 2334,
+          "content_sha256": "88a529da9b79620171ecdf9271f3aa387f8e2e20bd762bd968ea1d91fa625f92",
+          "role": "user"
+        }
+      ],
+      "mode": "draft",
+      "output_contract": {
+        "field_names": [
+          "query",
+          "turn_index"
+        ],
+        "identity": "impl.core.schema.mock.MockNextTurnOutput",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "84733bd57590216fd8397cd31d76b3e32ad8a9b2e9e7a1680b52bfb1261ea3ab",
+        "sha256": "84733bd57590216fd8397cd31d76b3e32ad8a9b2e9e7a1680b52bfb1261ea3ab"
+      },
+      "project_id": "deerflow",
+      "prompt_char_count": 3321,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 2334,
+        "occurred": false
+      },
+      "role": "mock",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "mock"
+          ],
+          "allowed_stages": [
+            "next_turn"
+          ],
+          "char_count": 297,
+          "content_sha256": "21321923ea5b6862082d0b4cfe46ee90a95013654486f32df570cfef38153188",
+          "order": 0,
+          "role": "mock",
+          "segment_id": "compiled-system",
+          "source": "impl/core/mock_agent.py#next_turn",
+          "stage": "next_turn"
+        },
+        {
+          "allowed_roles": [
+            "mock"
+          ],
+          "allowed_stages": [
+            "next_turn"
+          ],
+          "char_count": 2334,
+          "content_sha256": "88a529da9b79620171ecdf9271f3aa387f8e2e20bd762bd968ea1d91fa625f92",
+          "order": 1,
+          "role": "mock",
+          "segment_id": "case-user-payload",
+          "source": "trace://mock/next_turn",
+          "stage": "next_turn"
+        }
+      ],
+      "stage": "next_turn",
+      "tool_plan": []
+    }
+  },
+  "llm_model": "deepseek-v4-flash-0731",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "你扮演真实用户，根据上一轮系统的回复，生成下一轮要说的话。场景：open_world_user。要求：1. 基于 user_context 的用户画像/背景，保持用户角色一致（语气、诉求、知识水平）。2. 基于 user_intent 的核心目标，在每轮 query 里体现目标推进（不要偏题）。3. 基于上轮 live 反馈里缺失的字段或系统的澄清提示，自然地补充；不要重复已说内容。只围绕用户目标、已有对话和上一轮可见业务结果自然推进。保持普通业务用户的表达方式，保留尚未确定的信息，不替用户补造新的事实。上一轮只完成部分目标时，继续追问或补充合适的业务视角；用户未选择的视角不要强行加入。\n\n## 输出约束：mock_agent 下一轮生成\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"query\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    },\n    \"turn_index\": {\n      \"type\": \"integer\"\n    }\n  },\n  \"additionalProperties\": false,\n  \"required\": [\n    \"query\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['query']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n",
+      "created_at": 1787204021,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "766d0308-593f-4a1f-8d1a-41b3a43d8a78",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"case\": {\"scenario\": \"open_world_user\"}, \"user_intent\": \"查看队伍上个月的NBEV达成情况\", \"user_context\": {}, \"previous_turns\": [{\"turn_index\": 1, \"live_request\": {\"input\": {\"messages\": [{\"role\": \"user\", \"content\": \"看下上个月队伍达成\"}]}, \"config\": {\"configurable\": {}}}, \"extract_output\": {\"reply_text\": \"我来帮您查看上个月的队伍达成情况。让我先加载相关技能。\\n\\n<invoke name=\\\"read_file\\\">\\n<parameter name=\\\"location\\\">/mnt/skills/custom/nbev_profile_v2/SKILL.md</parameter>\\n</invoke>\\n</minimax:tool_call>\", \"tool_calls\": [], \"stage\": \"intent\", \"nbev_tool_count\": 0, \"scripts_called\": [], \"session_summary\": {\"thread_id\": \"1d37c7c5-0af3-41c4-b601-b0ead682d01c\", \"expected_dimensions\": [], \"accumulated_dimensions\": [], \"missing_dimensions\": [], \"evidence_declared\": true, \"evidence_status\": \"declared\"}, \"fallback\": {\"used\": false, \"allowed\": false, \"reason\": \"\"}, \"errors\": []}, \"status\": \"succeeded\", \"error\": null}, {\"turn_index\": 2, \"live_request\": {\"input\": {\"messages\": [{\"role\": \"user\", \"content\": \"好的，那我等着。麻烦帮我看下上个月队伍的NBEV总体达成情况，最好按成员或品类拆一下，哪些达成得好、哪些差，还有整体的达成率是多少。\"}]}, \"config\": {\"configurable\": {\"thread_id\": \"1d37c7c5-0af3-41c4-b601-b0ead682d01c\"}}}, \"extract_output\": {\"reply_text\": \"\\n<invoke name=\\\"read_file\\\">\\n<parameter name=\\\"location\\\">/mnt/skills/custom/nbev_profile_v2/SKILL.md</parameter>\\n</invoke>\\n</minimax:tool_call>\", \"tool_calls\": [], \"stage\": \"intent\", \"nbev_tool_count\": 0, \"scripts_called\": [], \"session_summary\": {\"thread_id\": \"1d37c7c5-0af3-41c4-b601-b0ead682d01c\", \"expected_dimensions\": [], \"accumulated_dimensions\": [], \"missing_dimensions\": [], \"evidence_declared\": true, \"evidence_status\": \"declared\"}, \"fallback\": {\"used\": false, \"allowed\": false, \"reason\": \"\"}, \"errors\": []}, \"status\": \"succeeded\", \"error\": null}], \"live_feedback\": {\"stage\": \"intent\", \"missing_fields\": [], \"extracted_output\": {\"reply_text\": \"\\n<invoke name=\\\"read_file\\\">\\n<parameter name=\\\"location\\\">/mnt/skills/custom/nbev_profile_v2/SKILL.md</parameter>\\n</invoke>\\n</minimax:tool_call>\", \"tool_calls\": [], \"stage\": \"intent\", \"nbev_tool_count\": 0, \"scripts_called\": [], \"session_summary\": {\"thread_id\": \"1d37c7c5-0af3-41c4-b601-b0ead682d01c\", \"expected_dimensions\": [], \"accumulated_dimensions\": [], \"missing_dimensions\": [], \"evidence_declared\": true, \"evidence_status\": \"declared\"}, \"fallback\": {\"used\": false, \"allowed\": false, \"reason\": \"\"}, \"errors\": []}}}",
+      "created_at": 1787204021,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "c6c89262-05b4-4d6b-85fb-ffead9ec8600",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\n  \"query\": \"怎么样了？查询结果出来了吗？我想看看上个月队伍整体的NBEV达成率，还有每个成员或品类的具体数字。\",\n  \"turn_index\": 3\n}",
+      "created_at": 1787204021,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "7597016b-3a64-4372-a57e-3740a41ce60a",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 256,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 1284,
+        "output_tokens": 229,
+        "provider_metrics": null,
+        "reasoning_tokens": 183,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 1513
+      },
+      "name": null,
+      "provider_data": {
+        "id": "892ea8af-2444-4a11-a104-2a35db20d5e3",
+        "model_extra": {
+          "request_id": "892ea8af-2444-4a11-a104-2a35db20d5e3"
+        }
+      },
+      "reasoning_content": "我们分析当前对话状态：用户意图是查看队伍上个月的NBEV达成情况。前面两轮：第一轮用户说“看下上个月队伍达成”，系统回复说加载技能，然后调用了read_file。第二轮用户进一步明确要求：按成员或品类拆，看达成好坏，整体达成率。系统又调用了read_file，但似乎还没有返回结果。当前live_feedback的stage是\"intent\"，说明系统还在处理意图，没有给出具体数据。用户需要继续等待，或者追问系统是否在查询。作为用户，我应该自然地推进目标，询问查询进展或提供更多细节。根据历史，用户已经表达了明确需求，现在系统没有给出具体数据，所以用户应该追问查询结果或催促。注意：不要重复已说内容，不要替用户造新事实。所以可以问：查询结果出来了吗？或者具体一些。",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "deerflow",
+  "prompt_size": 3406,
+  "record_id": "84ffa514-7e54-4531-a7ce-87bb397777b9",
+  "response": {
+    "content": "{\n  \"query\": \"怎么样了？查询结果出来了吗？我想看看上个月队伍整体的NBEV达成率，还有每个成员或品类的具体数字。\",\n  \"turn_index\": 3\n}",
+    "metrics": {
+      "cache_read_tokens": 256,
+      "cache_write_tokens": 0,
+      "input_tokens": 1284,
+      "output_tokens": 229,
+      "reasoning_tokens": 183,
+      "total_tokens": 1513
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 7921,
+          "endpoint": "fallback1",
+          "model": "deepseek-v4-flash-0731",
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "selected_endpoint": "fallback1",
+      "selected_model": "deepseek-v4-flash-0731",
+      "stage": ""
+    }
+  },
+  "trace_id": "mock-agent-next-turn-490aa238-8b45-4531-8cf4-e84571a29915"
+}

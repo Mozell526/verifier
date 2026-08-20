@@ -15,7 +15,7 @@ from .schema.draft_state import DRAFT_RUN_REPORT_VERSION
 
 
 _HISTORICAL_ITERATION = re.compile(
-    r"^\d{3}-(?:run(?:[.-].+)?\.json|harness-review\.md)$"
+    r"^\d{3}-(?:run(?:[.-].+)?\.(?:json|md)|harness-review\.md|carrier-inbox\.md|review-input\.json)$"
 )
 
 

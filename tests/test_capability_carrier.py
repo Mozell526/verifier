@@ -4,22 +4,23 @@ from impl.core.capability_carrier import (
     CARRY_NO,
     CARRY_UNDECIDABLE,
     CARRY_YES,
-    CarrierReading,
     PLACEMENT_CANNOT,
     PLACEMENT_UNCLEAR,
     PLACEMENT_WRONG,
     RECOG_UNMAPPED,
     RECOG_UNSUPPORTED,
-    CapabilityCarrier,
     attach_row_placements,
     collect_report_errors,
-    evaluate_reading,
     map_placement,
+    validate_placements,
+)
+from impl.core.capability_structured import (
+    CarrierReading,
+    StructuredCarrier,
+    evaluate_reading,
     parse_mapper_payload,
-    place_not_fulfilled_payload,
     resolve_carrier,
     unmapped_verdict,
-    validate_placements,
 )
 
 
@@ -107,11 +108,10 @@ def _fixed_mapper(payload: dict):
 
 
 def _place(expectation_id: str, mapper_payload: dict, **expectation) -> dict:
-    return place_not_fulfilled_payload(
-        _nf(expectation_id, **expectation),
+    return StructuredCarrier(
         SNAPSHOT,
         mapper=_fixed_mapper(mapper_payload),
-    )
+    ).place(_nf(expectation_id, **expectation))
 
 
 def test_unknown_reading_field_cannot_become_unclear() -> None:
@@ -189,7 +189,7 @@ def test_place_skips_non_nf_and_does_not_rewrite_axis1() -> None:
             ],
         },
     }
-    carrier = CapabilityCarrier(
+    carrier = StructuredCarrier(
         SNAPSHOT,
         mapper=_fixed_mapper({
             "process_only": False,
@@ -197,15 +197,16 @@ def test_place_skips_non_nf_and_does_not_rewrite_axis1() -> None:
             "unmapped": [],
         }),
     )
-    attach_row_placements(spec, row, SNAPSHOT, carrier=carrier)
+    attach_row_placements(spec, row, carrier=carrier)
     assert row["draft"]["overall_fulfillment"]["status"] == "not_fulfilled"
     assert row["capability_carrier"]["current"]["applicable"] is False
     assert row["capability_carrier"]["draft"]["placements"][0]["placement"] == PLACEMENT_WRONG
-    assert validate_placements(row, SNAPSHOT) == []
+    assert validate_placements(row, carrier.citation_space()) == []
 
 
 def test_snapshot_from_manifest_is_order_stable() -> None:
-    from impl.core.capability_carrier import snapshot_from_capability_manifest, snapshot_id
+    from impl.core.capability_carrier import snapshot_id
+    from impl.core.capability_structured import snapshot_from_capability_manifest
 
     first = snapshot_from_capability_manifest({
         "clientAge": {"operators": ["LT", "GT"], "enums": ["B", "A"]},
@@ -249,17 +250,16 @@ def test_extract_failure_is_placement_error() -> None:
 
 
 def test_snapshot_unavailable_is_placement_error() -> None:
-    report = place_not_fulfilled_payload(
-        _nf("x", expected_outcome="按车牌号筛选"),
+    report = StructuredCarrier(
         {"fields": None},
         mapper=_fixed_mapper({"process_only": True, "alternatives": [], "unmapped": []}),
-    )
+    ).place(_nf("x", expected_outcome="按车牌号筛选"))
     assert report["placements"] == []
     assert report["errors"][0]["stage"] == "snapshot"
 
 
 def test_structured_value_and_match_mode_are_accepted() -> None:
-    from impl.core.capability_carrier import _mapper_output_spec
+    from impl.core.capability_structured import _mapper_output_spec
     from impl.core.structured_output import validate_output
 
     snapshot = {
@@ -343,11 +343,10 @@ def test_structured_value_and_match_mode_are_accepted() -> None:
     suffix = parse_mapper_payload(payloads[4], snapshot)[0][0][0]
     assert suffix.match_mode == "suffix"
 
-    report = place_not_fulfilled_payload(
-        _nf("mobile", expected_outcome="手机号前缀158"),
+    report = StructuredCarrier(
         snapshot,
         mapper=_fixed_mapper(payloads[3]),
-    )
+    ).place(_nf("mobile", expected_outcome="手机号前缀158"))
     assert report["placements"][0]["placement"] == PLACEMENT_WRONG
     assert not report.get("errors")
 
@@ -459,7 +458,7 @@ def test_process_constraint_is_wrong_when_nf() -> None:
 
 
 def test_round_cache_reuses_same_dimension() -> None:
-    carrier = CapabilityCarrier(
+    carrier = StructuredCarrier(
         SNAPSHOT,
         mapper=_fixed_mapper({
             "process_only": False,
@@ -495,7 +494,7 @@ def test_replicate_majority_keeps_stable_answer() -> None:
     def mapper(_expectation, _snapshot):
         return payloads.pop(0)
 
-    carrier = CapabilityCarrier(SNAPSHOT, mapper=mapper, replicate=True)
+    carrier = StructuredCarrier(SNAPSHOT, mapper=mapper, replicate=True)
     verdict = carrier.verdict_for({"expectation_id": "x", "expected_outcome": "目标客户"})
     assert verdict.carry == CARRY_YES
 
@@ -525,7 +524,7 @@ def test_replicate_no_majority_is_ambiguity() -> None:
     def mapper(_expectation, _snapshot):
         return payloads.pop(0)
 
-    carrier = CapabilityCarrier(SNAPSHOT, mapper=mapper, replicate=True)
+    carrier = StructuredCarrier(SNAPSHOT, mapper=mapper, replicate=True)
     verdict = carrier.verdict_for({"expectation_id": "x", "expected_outcome": "目标客户"})
     assert verdict.carry == CARRY_UNDECIDABLE
     assert verdict.gap_kind == "口径分歧"
@@ -548,7 +547,7 @@ def test_yes_signature_ignores_equivalent_fields() -> None:
     def mapper(_expectation, _snapshot):
         return payloads.pop(0)
 
-    carrier = CapabilityCarrier(SNAPSHOT, mapper=mapper, replicate=True)
+    carrier = StructuredCarrier(SNAPSHOT, mapper=mapper, replicate=True)
     verdict = carrier.verdict_for({"expectation_id": "x", "expected_outcome": "按姓名筛选"})
     assert verdict.carry == CARRY_YES
 
@@ -578,7 +577,7 @@ def test_mapper_retries_then_places() -> None:
             raise RuntimeError("insufficient_quota")
         return {"process_only": True, "alternatives": [], "unmapped": []}
 
-    carrier = CapabilityCarrier(
+    carrier = StructuredCarrier(
         SNAPSHOT,
         mapper=mapper,
         replicate=False,
@@ -597,7 +596,7 @@ def test_mapper_exhausted_is_placement_error_and_not_cached() -> None:
         calls["n"] += 1
         raise RuntimeError("all endpoints cooling")
 
-    carrier = CapabilityCarrier(
+    carrier = StructuredCarrier(
         SNAPSHOT,
         mapper=mapper,
         replicate=False,
@@ -614,10 +613,10 @@ def test_mapper_exhausted_is_placement_error_and_not_cached() -> None:
 
 
 def test_client_search_snapshot_has_locked_fields() -> None:
-    from impl.core.capability_carrier import load_capability_snapshot
+    from impl.core.capability_carrier import bind_capability_carrier
     from impl.core.project_loader import load_project
 
-    snapshot = load_capability_snapshot(load_project("client_search"))
+    snapshot = bind_capability_carrier(load_project("client_search")).snapshot
     fields = snapshot.get("fields") or {}
     for name in (
         "licensePlateNo",
@@ -627,36 +626,6 @@ def test_client_search_snapshot_has_locked_fields() -> None:
         "customerReview",
     ):
         assert name in fields
-
-
-def test_snapshot_uses_spec_capability_manifest() -> None:
-    from types import SimpleNamespace
-
-    from impl.core.capability_carrier import load_capability_snapshot
-
-    spec = SimpleNamespace(
-        project_id="other",
-        capability_manifest=lambda: {
-            "foo": {"operators": ["EQ"], "enums": [], "is_supported": True},
-        },
-        value_mappings=lambda: {},
-    )
-    snapshot = load_capability_snapshot(spec)
-    assert "foo" in (snapshot.get("fields") or {})
-
-
-def test_snapshot_without_project_loader_stays_empty() -> None:
-    from types import SimpleNamespace
-
-    from impl.core.capability_carrier import load_capability_snapshot
-
-    missing_fn = load_capability_snapshot(SimpleNamespace(project_id="QA"))
-    assert missing_fn.get("fields") is None
-    assert missing_fn.get("load_error") == "capability_snapshot missing"
-
-    missing_project = load_capability_snapshot(SimpleNamespace(project_id="no_such_project"))
-    assert missing_project.get("fields") is None
-    assert missing_project.get("load_error") == "capability_snapshot missing"
 
 
 def test_gold_points_cannot_when_space_refuses() -> None:
@@ -705,7 +674,7 @@ def test_gold_maturity_amount_is_unmapped_cannot() -> None:
 
 
 def test_gold_same_role_dimension_is_stable() -> None:
-    carrier = CapabilityCarrier(
+    carrier = StructuredCarrier(
         SNAPSHOT,
         mapper=_fixed_mapper({
             "process_only": False,
@@ -760,7 +729,7 @@ def test_validate_accepts_error_in_place_of_placement() -> None:
             },
         },
     }
-    assert validate_placements(row, SNAPSHOT) == []
+    assert validate_placements(row, set(SNAPSHOT["fields"])) == []
 
 
 def test_validate_rejects_tool_failure_unclear() -> None:
@@ -781,7 +750,7 @@ def test_validate_rejects_tool_failure_unclear() -> None:
             },
         },
     }
-    errors = validate_placements(row, SNAPSHOT)
+    errors = validate_placements(row, set(SNAPSHOT["fields"]))
     assert any("工具失败" in item for item in errors)
 
 
@@ -816,7 +785,7 @@ def test_validate_rejects_cannot_without_recognition() -> None:
             },
         },
     }
-    errors = validate_placements(row, SNAPSHOT)
+    errors = validate_placements(row, set(SNAPSHOT["fields"]))
     assert any("做不了 missing self-recognition" in item for item in errors)
 
 
@@ -853,7 +822,7 @@ def test_validate_rejects_same_dimension_drift() -> None:
             },
         },
     }
-    errors = validate_placements(row, SNAPSHOT)
+    errors = validate_placements(row, set(SNAPSHOT["fields"]))
     assert any("same-dimension placement drifted" in item for item in errors)
 
 
@@ -997,11 +966,10 @@ RESCUE_SNAPSHOT = {
 
 
 def _rescue_place(expectation_id: str, mapper_payload: dict, **expectation) -> dict:
-    return place_not_fulfilled_payload(
-        _nf(expectation_id, **expectation),
+    return StructuredCarrier(
         RESCUE_SNAPSHOT,
         mapper=_fixed_mapper(mapper_payload),
-    )
+    ).place(_nf(expectation_id, **expectation))
 
 
 def test_unmapped_enum_value_is_carried_not_missing_dimension() -> None:
@@ -1204,11 +1172,10 @@ def test_polluted_or_ambiguous_alias_does_not_invent_a_reading() -> None:
 
 
 def _place_on(snapshot: dict, mapper_payload: dict, expectation_id: str = "x") -> dict:
-    return place_not_fulfilled_payload(
-        _nf(expectation_id, expected_outcome=expectation_id),
+    return StructuredCarrier(
         snapshot,
         mapper=_fixed_mapper(mapper_payload),
-    )
+    ).place(_nf(expectation_id, expected_outcome=expectation_id))
 
 
 def test_lexicon_unsupported_term_beats_unmapped() -> None:
@@ -1284,10 +1251,11 @@ def test_lexicon_carried_term_is_wrong() -> None:
 
 
 def test_client_search_snapshot_includes_lexicon() -> None:
-    from impl.core.capability_carrier import catalog_prompt, load_capability_snapshot
+    from impl.core.capability_carrier import bind_capability_carrier
+    from impl.core.capability_structured import catalog_prompt
     from impl.core.project_loader import load_project
 
-    snapshot = load_capability_snapshot(load_project("client_search"))
+    snapshot = bind_capability_carrier(load_project("client_search")).snapshot
     terms = {item["term"] for item in snapshot.get("lexicon") or []}
     assert {"盘客", "圈客", "属相", "满期金"} <= terms
     prompt = catalog_prompt(snapshot)
@@ -1302,9 +1270,11 @@ def test_axis2_assets_are_in_current_fingerprint() -> None:
 
     spec = load_project("client_search")
     lexicon = spec.project_package_path() / "capability_lexicon.yaml"
-    mapper = spec.verifier_root_path() / "impl" / "core" / "capability_carrier.py"
+    protocol = spec.verifier_root_path() / "impl" / "core" / "capability_carrier.py"
+    structured = spec.verifier_root_path() / "impl" / "core" / "capability_structured.py"
     assert lexicon.is_file()
-    assert mapper.is_file()
+    assert protocol.is_file()
+    assert structured.is_file()
     scripts = spec.verifier_root_path() / ".agents" / "skills" / "draft" / "scripts"
     if str(scripts) not in sys.path:
         sys.path.insert(0, str(scripts))
@@ -1321,10 +1291,10 @@ def test_axis2_assets_are_in_current_fingerprint() -> None:
 
 
 def test_client_search_axis2_frozen_nf() -> None:
-    from impl.core.capability_carrier import load_capability_snapshot
+    from impl.core.capability_carrier import bind_capability_carrier
     from impl.core.project_loader import load_project
 
-    snapshot = load_capability_snapshot(load_project("client_search"))
+    snapshot = bind_capability_carrier(load_project("client_search")).snapshot
     cases = [
         ("I088", {"process_only": False, "alternatives": [{"readings": [{"field": "customerReview"}]}], "unmapped": []}, PLACEMENT_CANNOT, RECOG_UNSUPPORTED, "customerReview"),
         ("I318", {"process_only": False, "alternatives": [], "unmapped": [{"surface": "盘客", "nearest": [{"field": "searchClientName", "why": "x"}]}]}, PLACEMENT_CANNOT, RECOG_UNSUPPORTED, "customerReview"),
@@ -1356,3 +1326,105 @@ def test_client_search_axis2_frozen_nf() -> None:
             assert item.get("recognition") == recognition, (case_id, item)
         if ref:
             assert any(cite.get("ref") == ref for cite in item.get("citations") or []), (case_id, item)
+
+
+def test_structured_form_does_not_inject_project_domain_aliases() -> None:
+    from impl.core.capability_structured import snapshot_from_capability_manifest
+
+    snapshot = snapshot_from_capability_manifest({
+        "licensePlateNo": {
+            "operators": ["MATCH"],
+            "description": "表示车辆号牌号码",
+            "is_supported": False,
+        },
+        "searchClientName": {
+            "operators": ["MATCH"],
+            "description": "表示客户本人的人名",
+            "is_supported": True,
+        },
+        "familyInfo.familyclientname": {
+            "operators": ["MATCH"],
+            "description": "仅当女儿、儿子等角色词引出姓名时使用",
+            "aliases": ["儿子", "女儿"],
+            "is_supported": True,
+        },
+    })
+    plate = set(snapshot["fields"]["licensePlateNo"]["aliases"])
+    name = set(snapshot["fields"]["searchClientName"]["aliases"])
+    child = set(snapshot["fields"]["familyInfo.familyclientname"]["aliases"])
+    assert "车牌号" not in plate
+    assert "车牌" not in plate
+    assert "姓名" not in name
+    assert "客户姓名" not in name
+    assert "子女" not in child
+
+
+def test_bind_skips_when_scope_off() -> None:
+    from impl.core.capability_carrier import bind_capability_carrier
+    from impl.core.project_loader import load_project
+
+    assert bind_capability_carrier(load_project("QA")) is None
+
+
+def test_bind_raises_when_scope_on_without_provider() -> None:
+    from impl.core.capability_carrier import CapabilityCarrierNotBound, bind_capability_carrier
+    from impl.core.project_loader import load_project
+
+    spec = load_project("QA")
+    spec.verifier = {**spec.verifier, "authority": {"enabled_scopes": ["capability_carrier"]}}
+    try:
+        bind_capability_carrier(spec)
+    except CapabilityCarrierNotBound as exc:
+        assert "capability_provider" in str(exc)
+        assert "QA" in str(exc)
+    else:
+        raise AssertionError("open scope without provider must fail at bind")
+
+
+def test_protocol_does_not_discover_project_material_function_names() -> None:
+    from pathlib import Path
+
+    from impl.core.project_loader import load_project
+
+    protocol = (
+        load_project("client_search").verifier_root_path() / "impl" / "core" / "capability_carrier.py"
+    ).read_text(encoding="utf-8")
+    for name in ("capability_snapshot", "capability_lexicon", "value_mappings"):
+        assert name not in protocol, name
+
+
+def test_client_search_provider_keeps_sunk_domain_aliases() -> None:
+    from impl.core.capability_carrier import bind_capability_carrier
+    from impl.core.project_loader import load_project
+
+    carrier = bind_capability_carrier(load_project("client_search"))
+    fields = carrier.snapshot["fields"]
+    assert {"车牌号", "车牌", "车辆号牌", "号牌号码"} <= set(fields["licensePlateNo"]["aliases"])
+    assert {"姓名", "客户姓名", "人名"} <= set(fields["searchClientName"]["aliases"])
+    assert "子女" in fields["familyInfo.familyclientname"]["aliases"]
+
+
+def test_config_check_requires_provider_when_scope_on() -> None:
+    from pathlib import Path
+    from types import SimpleNamespace
+
+    from impl.core.config_check import ConfigCheckReport, _check_capability_carrier_binding
+
+    report = ConfigCheckReport()
+    spec = SimpleNamespace(
+        project_id="demo",
+        verifier={"authority": {"enabled_scopes": ["capability_carrier"]}},
+    )
+    _check_capability_carrier_binding(report, spec, Path("impl/projects/demo/project.yaml"))
+    assert any(issue.code == "capability_carrier_unbound" for issue in report.issues)
+    assert any("capability_provider" in issue.message for issue in report.issues)
+
+
+def test_config_check_accepts_bound_client_search() -> None:
+    from impl.core.config_check import ConfigCheckReport, _check_capability_carrier_binding
+    from impl.core.project_loader import load_project
+
+    spec = load_project("client_search")
+    report = ConfigCheckReport()
+    _check_capability_carrier_binding(report, spec, spec.project_package_path() / "project.yaml")
+    assert report.issues == []

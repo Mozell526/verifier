@@ -1,0 +1,319 @@
+{
+  "caller": "judge",
+  "created_at": "2026-08-20T05:33:31Z",
+  "elapsed_ms": 129784,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "production"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "363fb3b765037163404fd2cfb0a88d756f89b6505b5346a8a0da44a3b9a34c25",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [],
+      "lineage": {
+        "call_id": "",
+        "case_id": "mock-agent-QA-4fbc996f",
+        "trace_id": "QA:mock-agent-QA-4fbc996f:1787203873188"
+      },
+      "messages": [
+        {
+          "char_count": 13394,
+          "content_sha256": "597e27920fdc0b08592c4d638a68fd78330572fee99bab564e1392d55a542866",
+          "role": "system"
+        },
+        {
+          "char_count": 6158,
+          "content_sha256": "07fb66040f2db60e4cab34abcd80164e0d785c314ad552e3418c5b16ec2a0e2d",
+          "role": "user"
+        }
+      ],
+      "mode": "production",
+      "output_contract": {
+        "field_names": [
+          "acceptance_criteria",
+          "actual",
+          "actual_evidence",
+          "applicable_product_expectation_ids",
+          "authority_tool_call_ids",
+          "blocking",
+          "boundary",
+          "business_expectations",
+          "downstream_consumer",
+          "downstream_impact",
+          "error_type",
+          "evidence",
+          "evidence_ref",
+          "expectation_id",
+          "expected",
+          "expected_evidence",
+          "expected_outcome",
+          "extra",
+          "fulfillment_assessments",
+          "incomplete",
+          "kind",
+          "missing",
+          "priority",
+          "raw",
+          "reasoning_summary",
+          "required_capabilities",
+          "score",
+          "status",
+          "user_intent",
+          "wrong"
+        ],
+        "identity": "impl.core.schema.judge.JudgeLLMOutput",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "0ae0afb407db0b56761c1e5aec63fd8f5fa423085e6b9ba93a9ea9aa67bc4f84",
+        "sha256": "0ae0afb407db0b56761c1e5aec63fd8f5fa423085e6b9ba93a9ea9aa67bc4f84"
+      },
+      "project_id": "QA",
+      "prompt_char_count": 19552,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 6158,
+        "occurred": false
+      },
+      "role": "judge",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 7595,
+          "content_sha256": "9dd2d58fba1587e0a155856a344fc8ab4e7d6bb6fcfb664a750e585850c897ff",
+          "order": 0,
+          "role": "judge",
+          "segment_id": "mandatory-context-units",
+          "source": "contextunit://project.QA.asset.judge_boundary,project.QA.asset.judge_evaluation",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 9284,
+          "content_sha256": "955ce4a5505f371e083e282cf9819cc3b592efe1b98e2b4e59b6bc9b34bb0ba7",
+          "order": 1,
+          "role": "judge",
+          "segment_id": "compiled-system",
+          "source": "impl/core/judge.py#judge_trace",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 6158,
+          "content_sha256": "07fb66040f2db60e4cab34abcd80164e0d785c314ad552e3418c5b16ec2a0e2d",
+          "order": 2,
+          "role": "judge",
+          "segment_id": "case-user-payload",
+          "source": "trace://judge-evidence-view",
+          "stage": "judge"
+        }
+      ],
+      "stage": "judge",
+      "tool_plan": []
+    }
+  },
+  "llm_model": "gpt-5.6-luna",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "你是通用评估系统的 judge agent。\n\n## 核心原则\n只基于当前 RunTrace、项目评判标准和动态检索的知识库内容判断，不继承历史 case。\n首要职责：理解用户/下游消费者的真实业务意图 → 派生 business_expectations → 基于完整执行链路（每轮 output、最终 output、交互过程和停止事实）判断 expectations 的 fulfillment。\n\n## expectation 拆分原则\nbusiness_expectations 的粒度直接决定判断精度。每个 expectation 必须是原子、独立可评价的判断单元：证据充分时判 fulfilled 或 not_fulfilled；确需评价但当前证据不足时按协议判 not_evaluable。\n- 一个 expectation 只描述一个可独立验证的结果维度\n- 多维度意图必须拆成多个 expectation\n- 每个 expectation 必须有明确的 acceptance_criteria\n- 每个 expectation 必须在比较 actual 前确定 blocking：只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true\n- fulfillment_assessments 只判断对应 expectation 的 status 和证据，不得重新定义 blocking\n- expectation_id 必须是描述性的中文短语，禁止使用 E1/E2/exp_01 等占位符 ID\n- reasoning_summary 必须是中文写成的判断依据\n\n## 输出词表\n`fulfillment_assessments[*].status` 必须从以下 3 个值中选择：\n  - fulfilled：该 expectation 完全满足\n  - not_fulfilled：该 expectation 未满足\n  - not_evaluable：当前无法评估\n禁用 failed/passed/incorrect/wrong/met/unmet/partially_fulfilled/partial/success/fail/ok/unknown 等同义词。\n`fulfillment_assessments[*].expected_evidence` 与 `actual_evidence` **必须是数组**（JSON array / list），即使只有一条证据也要用 `[...]` 包裹，不可直接用字符串或对象。\n\n不要输出 overall_fulfillment；公共层会在项目契约补充完成后根据 blocking expectations 确定性派生整体状态。\n\n## 评估规范\n\n\n## 评估边界\n\n\n## 判断标准\n\n\n## 项目 ContextUnit（按 Role policy 在运行前确定性装载）\n## ContextUnit: judge_boundary: judge_boundary.md (project.QA.asset.judge_boundary)\n# QA Project Boundary Notes\n\n## Boundary purpose\n\nQA's boundary is not whether the evaluated QA system was called live. The key boundary is what evidence the judge is allowed to use for each scenario.\n\n## Evidence boundaries\n\n- `qa_gold_answer`: judge compares actual answer against the golden/reference answer and user question. It should not require external knowledge unless the project standard explicitly allows it.\n- `qa_context_faithfulness`: judge evaluates whether actual answer is supported by provided contexts. Unsupported external claims should be penalized.\n- `qa_weak_quality`: judge estimates answer usefulness and risk from question and actual answer only. It must not claim accuracy.\n\n## Scenario boundary\n\nScenario is inferred per sample from available fields unless explicitly supplied. Mixed-scenario datasets are allowed, but aggregate metrics must remain separated by scenario.\n\n## Human review boundary\n\nThe system should expose uncertainty rather than pretending all QA evaluation is fully automatic. Low confidence, severe errors, boundary scores, and weak evidence should be routed into a human-review queue.\n\n\n## ContextUnit: judge_evaluation: evaluation.md (project.QA.asset.judge_evaluation)\n# QA Project Evaluation Scenario Notes\n\n## Project positioning\n\nQA is one evaluation project with optional sample-level scenarios. It should not be split into multiple projects such as `QA_gold`, `QA_rag`, or `QA_weak`.\n\nThe project evaluates already-produced QA outputs. A sample can provide the user input, the evaluated answer, and optional references/context. The system should normalize these fields, build a trace, then judge and attribute independently.\n\n## Canonical sample shape\n\nQA datasets should be normalized into:\n\n```json\n{\n  \"id\": \"qa-sample-id\",\n  \"input\": {\n    \"question\": \"...\",\n    \"contexts\": []\n  },\n  \"output\": {\n    \"actual_answer\": \"...\"\n  },\n  \"reference\": {\n    \"actual_answer\": \"...\"\n  },\n  \"metadata\": {\n    \"category\": \"...\",\n    \"model_name\": \"...\",\n    \"row_index\": 1\n  },\n  \"scenario\": \"qa_gold_answer\"\n}\n```\n\nFor flat uploaded JSON, accept standard field names and normalize them:\n\n- `question` -> `input.question`\n- `contexts` -> `input.contexts`\n- `actual_answer` / `answer` -> `output.actual_answer`\n- `golden_answer` / `gold_answer` -> `reference.actual_answer`（输入别名，归一化到与 output 同形状）\n- `category`, `model_name`, `latency_ms`, `token_usage`, `cost` -> `metadata`\n\nThe first version assumes JSON input. Other formats can be converted to JSON before upload.\n\n## Scenario design\n\nScenario is a QA project extension carried on each sample.\n\nRecommended scenarios:\n\n1. `qa_gold_answer`\n   - Required fields: `question`, `actual_answer`, reference answer (provided as `actual_answer` in reference, or uploaded via `golden_answer` / `gold_answer` alias).\n   - Contexts may exist but are auxiliary unless the judge standard says otherwise.\n   - Metrics: correctness, completeness, key point coverage, contradiction control, clarity.\n\n2. `qa_context_faithfulness`\n   - Required fields: `question`, `actual_answer`, `contexts`.\n   - Used when no golden answer exists but evidence/context exists.\n   - Metrics: faithfulness, relevance, evidence support, hallucination risk, context usage.\n\n3. `qa_weak_quality`\n   - Required fields: `question`, `actual_answer`.\n   - Used when neither golden answer nor contexts are available.\n   - Metrics: relevance, usefulness, coherence, risk control, clarity.\n\nDefault inference:\n\n```text\nhas golden_answer/gold_answer (alias) -> qa_gold_answer\nelse has non-empty contexts -> qa_context_faithfulness\nelse has question + actual_answer -> qa_weak_quality\nelse invalid_sample\n```\n\nA dataset may contain mixed scenarios, but reports must group metrics by scenario. Do not mix weak-quality samples into accuracy.\n\n## RunTrace semantics for QA\n\nQA does not need to call a tested QA service during evaluation if the dataset already contains the evaluated output.\n\nFor QA:\n\n- `normalized_request`: normalized `input`, `reference`, `metadata`, `data_quality_flags`, and inferred `scenario`.\n- `raw_response`: original `output.actual_answer` or the original uploaded sample output section.\n- `extracted_output`: normalized output, usually `{ \"actual_answer\": \"...\" }`.\n- `reference_contract`: canonical QA reference such as `actual_answer` and scenario-specific expected evidence.\n- `scenario`: canonical scenario selected from normalized sample fields.\n- `schema_protocol_extensions`: QA-private display/debug details only; shared facts must not be sourced from extensions.\n\n## Judge requirements\n\nQA judge should output fulfillment-first generic fields plus QA-private multidimensional evidence:\n\n- `business_expectations`\n- `fulfillment_assessments`\n- `overall_fulfillment`\n- QA-private quality dimensions when useful\n- scenario-specific evidence fields when useful\n\nAll QA-private quality scores are 0-1 and must be carried as fulfillment evidence or project display extensions, not as shared judge protocol fields.\n\nGold answer metrics should not be applied to context-only or weak samples. Weak samples should not be reported as accuracy.\n\n## Attribution requirements\n\nQA attribution should use structured error types. Initial taxonomy:\n\n- `answer_incorrect`\n- `answer_incomplete`\n- `question_misunderstood`\n- `irrelevant_answer`\n- `unsupported_claim`\n- `hallucination`\n- `context_not_used`\n- `insufficient_context`\n- `context_noise`\n- `over_refusal`\n- `format_error`\n- `too_vague`\n- `contradiction`\n- `needs_human_review`\n\nEach failed or risky sample should have:\n\n- findings grouped by verified real defect\n- ContextUnit-backed EvidenceRef entries for every finding\n- one `unresolved_reason` when proof is insufficient\n- actionable quality reason grounded in current QA evidence\n\n## Cluster and summary requirements\n\nQA cluster/report should group by:\n\n- scenario\n- root-cause evidence pattern\n- human-review recommendation\n- category/model metadata when available\n\nMetrics must be separated:\n\n- `qa_gold_answer`: accuracy, average correctness, average completeness.\n- `qa_context_faithfulness`: faithful rate, hallucination risk rate, insufficient evidence rate.\n- `qa_weak_quality`: usable rate, human-review rate, high-risk rate.\n\nA combined score may be shown only as `综合质量估计分`.\n\n## Frontend expectations\n\nThe generic frontend should support QA through protocol fields rather than hardcoded QA-only pages:\n\n- Project dropdown includes `QA` and `client_search` from the project list API.\n- Upload/import area accepts JSON and normalizes into case pool samples.\n- Case table displays `Input`, `Output`, `Reference`, and optional `Scenario`.\n- Scenario filters and scenario summary cards appear when the project exposes scenarios.\n- Batch evaluation remains one action; scenario-specific judge behavior is backend/project logic.\n\nDo not label QA output as generic `API 输出`; use `Output` or `被评估输出`.\n\n## QA check requirements\n\nQA-specific check should verify:\n\n- scenario inference is consistent with sample fields;\n- samples without golden answer are not included in accuracy;\n- QA-private quality dimension scores are 0-1 when present;\n- AttributeResult root cause and evidence strength come from the current QA taxonomy-related evidence or current sample semantic evidence;\n- RAG/context scenario has non-empty contexts;\n- weak-quality scenario conclusions are marked as estimates, not accuracy;\n- human-review queue can be derived from confidence, boundary scores, current evidence strength, and fulfillment assessments.\n\n\n\n\n## QA 评估关键维度\n请将 user prompt 中的 critical_intent_dimensions 作为拆分 business_expectations 的骨架，围绕当前问题、上下文/参考答案依赖、事实性、忠实性、矛盾风险和答案可用性判断 fulfillment。\n## 工具使用原则\n所有工具的用途、调用时机和参数含义以 Agno tool schema 为准；user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息。\n\n## 禁止事项\n- 不要把 reference answer 当作默认主目标（除非 case 明确指定）\n- 不要把 HTTP 状态、run_status、attribute/cluster 结论当作满足依据\n- 不要归因内部代码、配置或 prompt 原因（属于 attribute agent）\n- 分析文字必须使用中文，包括 reasoning_summary 等所有文本字段。\n\n\n## 输出约束：judge 判定输出（reference 已固化，仅产 fulfillment 判定）\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"business_expectations\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeBusinessExpectationOutput\"\n      },\n      \"minItems\": 1\n    },\n    \"applicable_product_expectation_ids\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"fulfillment_assessments\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeFulfillmentAssessmentOutput\"\n      }\n    },\n    \"expected\": {},\n    \"missing\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"wrong\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"extra\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"evidence\": {\n      \"type\": \"array\",\n      \"items\": {}\n    },\n    \"reasoning_summary\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    }\n  },\n  \"additionalProperties\": false,\n  \"$defs\": {\n    \"JudgeBusinessExpectationOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"blocking\": {\n          \"type\": \"boolean\"\n        },\n        \"downstream_consumer\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"user_intent\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected_outcome\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"required_capabilities\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"acceptance_criteria\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"boundary\": {\n          \"type\": \"object\"\n        },\n        \"priority\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"blocking\"\n      ]\n    },\n    \"JudgeFulfillmentAssessmentOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"score\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        },\n        \"expected_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"actual_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"downstream_impact\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"authority_tool_call_ids\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"status\"\n      ]\n    },\n    \"GapItem\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"kind\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"error_type\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected\": {},\n        \"actual\": {},\n        \"evidence_ref\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"raw\": {},\n        \"incomplete\": {\n          \"type\": \"boolean\"\n        }\n      },\n      \"additionalProperties\": false\n    }\n  },\n  \"required\": [\n    \"business_expectations\",\n    \"reasoning_summary\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['business_expectations', 'reasoning_summary']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n",
+      "created_at": 1787203889,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "49525661-1bcb-47ec-9c74-448caf2f0850",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"user_intent\": \"根据医疗险条款确认住院免赔额和报销比例\", \"run_trace\": {\"trace_id\": \"QA:mock-agent-QA-4fbc996f:1787203873188\", \"project_id\": \"QA\", \"case_id\": \"mock-agent-QA-4fbc996f\", \"intent_input\": {\"question\": \"根据这些材料，这份医疗险住院免赔额和报销比例是怎样的？\", \"contexts\": [\"医疗险保障条款摘要：每次住院先扣除1000元免赔额，超过免赔额的合理且必要医疗费用按90%报销。\", \"同一次住院只计算一次免赔额；两次独立住院分别适用免赔额。\", \"实际赔付还需结合等待期、责任免除、医院范围和发票审核结果确认。\"], \"scenario\": \"qa_context_faithfulness\", \"metadata\": {\"source\": \"mock\"}, \"data_quality_flags\": null, \"output\": {\"actual_answer\": \"您购买的医疗险每次住院有1000元免赔额，超过部分按90%报销。\"}, \"reference\": {\"actual_answer\": \"根据提供的医疗险保障条款摘要，您这份医疗险每次住院会先扣除1000元免赔额，超过免赔额的合理且必要医疗费用按90%比例报销。同一次住院只计算一次免赔额；如果是两次独立住院，则分别适用免赔额。实际赔付还需要结合保单条款、等待期、责任免除以及医院发票审核结果确认。\"}}, \"normalized_request\": {\"question\": \"根据这些材料，这份医疗险住院免赔额和报销比例是怎样的？\", \"contexts\": [\"医疗险保障条款摘要：每次住院先扣除1000元免赔额，超过免赔额的合理且必要医疗费用按90%报销。\", \"同一次住院只计算一次免赔额；两次独立住院分别适用免赔额。\", \"实际赔付还需结合等待期、责任免除、医院范围和发票审核结果确认。\"], \"scenario\": \"qa_context_faithfulness\", \"metadata\": {\"source\": \"mock\"}, \"data_quality_flags\": null, \"output\": {\"actual_answer\": \"您购买的医疗险每次住院有1000元免赔额，超过部分按90%报销。\"}, \"reference\": {\"actual_answer\": \"根据提供的医疗险保障条款摘要，您这份医疗险每次住院会先扣除1000元免赔额，超过免赔额的合理且必要医疗费用按90%比例报销。同一次住院只计算一次免赔额；如果是两次独立住院，则分别适用免赔额。实际赔付还需要结合保单条款、等待期、责任免除以及医院发票审核结果确认。\"}}, \"final_output\": {\"actual_answer\": \"您购买的医疗险每次住院有1000元免赔额，超过部分按90%报销。\"}, \"final_output_turn\": 1, \"turns\": [{\"turn_index\": 1, \"request\": {\"question\": \"根据这些材料，这份医疗险住院免赔额和报销比例是怎样的？\", \"contexts\": [\"医疗险保障条款摘要：每次住院先扣除1000元免赔额，超过免赔额的合理且必要医疗费用按90%报销。\", \"同一次住院只计算一次免赔额；两次独立住院分别适用免赔额。\", \"实际赔付还需结合等待期、责任免除、医院范围和发票审核结果确认。\"], \"scenario\": \"qa_context_faithfulness\", \"metadata\": {\"source\": \"mock\"}, \"data_quality_flags\": null, \"output\": {\"actual_answer\": \"您购买的医疗险每次住院有1000元免赔额，超过部分按90%报销。\"}, \"reference\": {\"actual_answer\": \"根据提供的医疗险保障条款摘要，您这份医疗险每次住院会先扣除1000元免赔额，超过免赔额的合理且必要医疗费用按90%比例报销。同一次住院只计算一次免赔额；如果是两次独立住院，则分别适用免赔额。实际赔付还需要结合保单条款、等待期、责任免除以及医院发票审核结果确认。\"}}, \"extracted_output\": {\"actual_answer\": \"您购买的医疗险每次住院有1000元免赔额，超过部分按90%报销。\"}, \"call_status\": \"succeeded\", \"runtime_ms\": null, \"error\": null, \"fallbacks\": [], \"validation\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"QA\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"QA\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"execution_trace\": [{\"stage\": \"qa.sample.normalize\", \"status\": \"succeeded\", \"evidence\": {\"scenario\": \"qa_context_faithfulness\", \"flags\": null}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"qa.output.read\", \"status\": \"succeeded\", \"evidence\": \"evaluated output read from uploaded sample\", \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"qa.output.extract\", \"status\": \"succeeded\", \"evidence\": {\"actual_answer_present\": true}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"application_boundary\": {\"scope\": \"qa_semantic_answer_evaluation\", \"external_service_required\": false}, \"project_fields\": {\"scenario\": \"qa_context_faithfulness\", \"data_quality_flags\": [], \"contexts\": [\"医疗险保障条款摘要：每次住院先扣除1000元免赔额，超过免赔额的合理且必要医疗费用按90%报销。\", \"同一次住院只计算一次免赔额；两次独立住院分别适用免赔额。\", \"实际赔付还需结合等待期、责任免除、医院范围和发票审核结果确认。\"], \"reference\": {\"actual_answer\": \"根据提供的医疗险保障条款摘要，您这份医疗险每次住院会先扣除1000元免赔额，超过免赔额的合理且必要医疗费用按90%比例报销。同一次住院只计算一次免赔额；如果是两次独立住院，则分别适用免赔额。实际赔付还需要结合保单条款、等待期、责任免除以及医院发票审核结果确认。\"}, \"metadata\": {\"source\": \"mock\"}, \"estimated_quality_only\": false}}], \"conversation_transcript\": [], \"conversation_summary\": {\"turn_count\": 1, \"final_output_turn\": 1, \"completion_status\": \"completed\", \"stop_reason\": \"single_turn_completed\", \"interaction_controller_status\": \"not_run\", \"interaction_controller_error\": \"\"}, \"stop_reason\": \"single_turn_completed\", \"completion_status\": \"completed\", \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"QA\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"QA\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"qa.sample.normalize\", \"status\": \"succeeded\", \"evidence\": {\"scenario\": \"qa_context_faithfulness\", \"flags\": null}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"qa.output.read\", \"status\": \"succeeded\", \"evidence\": \"evaluated output read from uploaded sample\", \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"qa.output.extract\", \"status\": \"succeeded\", \"evidence\": {\"actual_answer_present\": true}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"evidence_refs\": [], \"raw_response_evidence\": null, \"evidence_completeness\": {\"complete\": true, \"missing_evidence\": []}, \"application_boundary\": {\"scope\": \"qa_semantic_answer_evaluation\", \"external_service_required\": false}, \"reference_contract\": {\"actual_answer\": \"根据提供的医疗险保障条款摘要，您这份医疗险每次住院会先扣除1000元免赔额，超过免赔额的合理且必要医疗费用按90%比例报销。同一次住院只计算一次免赔额；如果是两次独立住院，则分别适用免赔额。实际赔付还需要结合保单条款、等待期、责任免除以及医院发票审核结果确认。\"}, \"scenario\": \"qa_context_faithfulness\", \"status\": \"ok\", \"error\": null}, \"reference_contract\": {\"actual_answer\": \"根据提供的医疗险保障条款摘要，您这份医疗险每次住院会先扣除1000元免赔额，超过免赔额的合理且必要医疗费用按90%比例报销。同一次住院只计算一次免赔额；如果是两次独立住院，则分别适用免赔额。实际赔付还需要结合保单条款、等待期、责任免除以及医院发票审核结果确认。\"}, \"score_dimensions\": [\"correctness\", \"completeness\", \"key_point_coverage\", \"faithfulness\", \"relevance\", \"usefulness\", \"coherence\", \"risk_control\", \"clarity\"], \"error_taxonomy\": [\"answer_incorrect\", \"answer_incomplete\", \"question_misunderstood\", \"irrelevant_answer\", \"unsupported_claim\", \"hallucination\", \"context_not_used\", \"insufficient_context\", \"context_noise\", \"over_refusal\", \"format_error\", \"too_vague\", \"contradiction\", \"needs_human_review\", \"none\"], \"application_boundary\": {\"scope\": \"qa_semantic_answer_evaluation\", \"external_service_required\": false}, \"critical_intent_dimensions\": [\"question_target\", \"context_or_reference_dependency\", \"factual_or_interpretive_answer\", \"faithfulness\", \"contradiction_risk\", \"answer_usefulness\"]}",
+      "created_at": 1787203889,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "73b8821d-bd85-47e7-b231-91497e7449c6",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"明确每次住院的免赔额为1000元\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"需要确认保险住院待遇的用户\",\n      \"user_intent\": \"确认住院免赔额金额\",\n      \"expected_outcome\": \"准确说明每次住院先扣除1000元免赔额\",\n      \"required_capabilities\": [\n        \"识别材料中的免赔额金额\",\n        \"准确表达免赔额适用对象\"\n      ],\n      \"acceptance_criteria\": [\n        \"答案明确写出每次住院免赔额为1000元\",\n        \"不得将免赔额金额表述为其他数值\"\n      ],\n      \"boundary\": {\n        \"evidence_source\": \"提供的医疗险保障条款摘要\",\n        \"scenario\": \"qa_context_faithfulness\"\n      },\n      \"priority\": \"核心\"\n    },\n    {\n      \"expectation_id\": \"准确说明扣除免赔额后合理且必要费用按90%报销\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"需要估算保险报销范围和比例的用户\",\n      \"user_intent\": \"确认住院费用报销比例及其适用范围\",\n      \"expected_outcome\": \"说明超过免赔额的合理且必要医疗费用按90%比例报销\",\n      \"required_capabilities\": [\n        \"识别报销比例\",\n        \"保留合理且必要医疗费用这一适用条件\",\n        \"避免将报销比例表述为无条件适用于全部住院费用\"\n      ],\n      \"acceptance_criteria\": [\n        \"答案明确写出报销比例为90%\",\n        \"答案说明该比例适用于扣除免赔额后且属于合理、必要的医疗费用\"\n      ],\n      \"boundary\": {\n        \"evidence_source\": \"提供的医疗险保障条款摘要\",\n        \"excluded_claims\": \"不得据此推断所有住院费用均无条件按90%报销\"\n      },\n      \"priority\": \"核心\"\n    },\n    {\n      \"expectation_id\": \"结论应有提供材料的直接依据且不依赖无关外部信息\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"需要依据所给条款摘要获得可靠结论的用户\",\n      \"user_intent\": \"根据给定材料确认保险待遇\",\n      \"expected_outcome\": \"答案中的免赔额和报销比例均能被上下文直接支持\",\n      \"required_capabilities\": [\n        \"使用给定上下文作为事实依据\",\n        \"不添加材料未支持的保险承诺\"\n      ],\n      \"acceptance_criteria\": [\n        \"答案中的核心数字和规则可在上下文中找到依据\",\n        \"不出现上下文未提供的额外保障结论\"\n      ],\n      \"boundary\": {\n        \"evidence_source\": \"当前样本contexts\",\n        \"external_knowledge_allowed\": false\n      },\n      \"priority\": \"核心\"\n    },\n    {\n      \"expectation_id\": \"答案不得与条款摘要产生矛盾\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"依赖答案避免错误理解保险责任的用户\",\n      \"user_intent\": \"获得不冲突的条款解释\",\n      \"expected_outcome\": \"答案不改变免赔额和报销比例的含义，也不作过度承诺\",\n      \"required_capabilities\": [\n        \"检查数值和适用条件的一致性\",\n        \"控制赔付承诺和表述范围\"\n      ],\n      \"acceptance_criteria\": [\n        \"不得否定1000元免赔额或90%报销比例\",\n        \"不得声称费用可以全额报销或无条件报销\"\n      ],\n      \"boundary\": {\n        \"evidence_source\": \"上下文与最终答案的语义对照\",\n        \"risk_focus\": \"数值矛盾和无条件赔付承诺\"\n      },\n      \"priority\": \"核心\"\n    },\n    {\n      \"expectation_id\": \"说明同一次住院与独立住院的免赔额计算规则\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"需要理解多次住院时免赔额如何计算的用户\",\n      \"user_intent\": \"完整理解住院免赔额的适用方式\",\n      \"expected_outcome\": \"补充说明同一次住院只计算一次免赔额，两次独立住院分别适用免赔额\",\n      \"required_capabilities\": [\n        \"识别住院次数与免赔额计算之间的关系\",\n        \"区分同一次住院和独立住院\"\n      ],\n      \"acceptance_criteria\": [\n        \"明确同一次住院只计算一次免赔额\",\n        \"明确两次独立住院分别适用免赔额\"\n      ],\n      \"boundary\": {\n        \"evidence_source\": \"提供的医疗险保障条款摘要\",\n        \"importance\": \"属于补充适用规则，不改变核心数字\"\n      },\n      \"priority\": \"重要但非阻断\"\n    },\n    {\n      \"expectation_id\": \"提示实际赔付仍受等待期责任免除医院范围和发票审核影响\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"准备据此判断实际可赔金额的用户\",\n      \"user_intent\": \"避免将条款摘要中的比例误解为最终确定赔付\",\n      \"expected_outcome\": \"说明实际赔付还需结合相关保单条件和审核结果确认\",\n      \"required_capabilities\": [\n        \"识别材料中的赔付限制条件\",\n        \"对最终赔付结论保持适当限定\"\n      ],\n      \"acceptance_criteria\": [\n        \"提及等待期、责任免除、医院范围或发票审核等限制因素\",\n        \"不把90%表述为已经确定的最终赔付金额\"\n      ],\n      \"boundary\": {\n        \"evidence_source\": \"提供的医疗险保障条款摘要\",\n        \"importance\": \"属于风险控制和完整性要求\"\n      },\n      \"priority\": \"重要但非阻断\"\n    },\n    {\n      \"expectation_id\": \"直接回答用户所问且具备基本可用性\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"希望快速获得住院待遇关键信息的用户\",\n      \"user_intent\": \"以简洁方式了解免赔额和报销比例\",\n      \"expected_outcome\": \"答案直接给出免赔额金额和报销比例，表述清晰易懂\",\n      \"required_capabilities\": [\n        \"提取问题中的两个核心询问点\",\n        \"用简洁语言组织答案\"\n      ],\n      \"acceptance_criteria\": [\n        \"同时回答免赔额和报销比例\",\n        \"答案无需用户从冗长内容中自行推断核心数字\"\n      ],\n      \"boundary\": {\n        \"evidence_source\": \"用户问题与最终答案\",\n        \"quality_focus\": \"相关性、清晰度和直接性\"\n      },\n      \"priority\": \"核心\"\n    }\n  ],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"明确每次住院的免赔额为1000元\",\n      \"status\": \"fulfilled\",\n      \"score\": 1,\n      \"expected_evidence\": [\n        \"上下文明确写明“每次住院先扣除1000元免赔额”\"\n      ],\n      \"actual_evidence\": [\n        \"最终答案写明“每次住院有1000元免赔额”\"\n      ],\n      \"downstream_impact\": \"用户能够准确获得所询问的免赔额金额。\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"准确说明扣除免赔额后合理且必要费用按90%报销\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0.75,\n      \"expected_evidence\": [\n        \"上下文明确限定为“超过免赔额的合理且必要医疗费用按90%报销”\"\n      ],\n      \"actual_evidence\": [\n        \"最终答案仅写明“超过部分按90%报销”\",\n        \"答案未明确保留“合理且必要医疗费用”的适用条件\"\n      ],\n      \"downstream_impact\": \"核心比例已给出，但缺少费用性质限定，可能使用户将90%理解为所有超过免赔额的费用均可报销。\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"结论应有提供材料的直接依据且不依赖无关外部信息\",\n      \"status\": \"fulfilled\",\n      \"score\": 1,\n      \"expected_evidence\": [\n        \"上下文直接提供1000元免赔额和90%报销比例\"\n      ],\n      \"actual_evidence\": [\n        \"最终答案只复述了上下文中的免赔额和报销比例，没有引入外部事实或额外保障承诺\"\n      ],\n      \"downstream_impact\": \"答案的核心结论具有当前材料支持，符合上下文忠实性要求。\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"答案不得与条款摘要产生矛盾\",\n      \"status\": \"fulfilled\",\n      \"score\": 1,\n      \"expected_evidence\": [\n        \"上下文规定免赔额为1000元、超过免赔额的相关费用按90%报销\"\n      ],\n      \"actual_evidence\": [\n        \"最终答案中的1000元和90%与上下文一致\",\n        \"答案未声称全额报销或无条件赔付\"\n      ],\n      \"downstream_impact\": \"未发现会直接导致错误赔付判断的数值或结论冲突。\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"说明同一次住院与独立住院的免赔额计算规则\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        \"上下文写明“同一次住院只计算一次免赔额；两次独立住院分别适用免赔额”\"\n      ],\n      \"actual_evidence\": [\n        \"最终答案仅说明每次住院有1000元免赔额\",\n        \"未提及同一次住院只计算一次及独立住院分别计算的规则\"\n      ],\n      \"downstream_impact\": \"不影响用户获得核心金额，但无法帮助用户判断多次或连续住院时的免赔额计算方式。\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"提示实际赔付仍受等待期责任免除医院范围和发票审核影响\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        \"上下文提示实际赔付还需结合等待期、责任免除、医院范围和发票审核结果确认\"\n      ],\n      \"actual_evidence\": [\n        \"最终答案未提及等待期、责任免除、医院范围或发票审核条件\"\n      ],\n      \"downstream_impact\": \"答案较为简略，用户可能忽略实际赔付仍需经过其他条款和审核条件确认。\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"直接回答用户所问且具备基本可用性\",\n      \"status\": \"fulfilled\",\n      \"score\": 1,\n      \"expected_evidence\": [\n        \"用户问题明确询问住院免赔额和报销比例\"\n      ],\n      \"actual_evidence\": [\n        \"最终答案在一句话中直接给出1000元免赔额和90%报销比例\"\n      ],\n      \"downstream_impact\": \"用户可以快速获得问题所需的两个核心数字，答案简洁且易于理解。\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"reasoning_summary\": \"最终答案准确回答了每次住院1000元免赔额和90%报销比例这两个核心问题，且核心表述有上下文依据、没有明显矛盾或外部臆测。但答案将报销范围简化为“超过部分”，未明确限定为合理且必要医疗费用，也遗漏了同一次住院只计算一次、独立住院分别计算以及等待期、责任免除、医院范围和发票审核等重要条件。因此核心数值信息基本可用，但在条款适用范围和完整风险提示方面存在缺口。\"\n}",
+      "created_at": 1787203889,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "b3378fd4-e39d-4a57-8e2e-9b3c9b052d97",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 5855,
+        "output_tokens": 6072,
+        "provider_metrics": null,
+        "reasoning_tokens": 3298,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 11927
+      },
+      "name": null,
+      "provider_data": {
+        "id": "resp_0b8fe6282ac59a02016a86913680208198a9fe5cf33c5a255e"
+      },
+      "reasoning_content": "**Defining core output expectations****Splitting expectations into atomic claims****Enumerating comprehensive expectation dimensions****Finalizing schema output requirements****Formulating blocking and acceptance criteria****Assessing statement qualification accuracy****Refining assessment criteria and scoring approach****Confirming binary fulfillment status****Clarifying evidence presentation requirements****Defining output schema flexibility and requirements****Refining schema and reasoning summary****Clarifying and splitting business expectations****Including medical insurance caveat****Scoring business expectations with nuance****Drafting structured fulfillment judgment JSON****Refining judgment phrasing****Assessing answer completeness and context usage****Verifying JSON validity and impact nuances**",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "QA",
+  "prompt_size": 26335,
+  "record_id": "075dffa5-21e2-4f4c-8c81-4f590c9d2ab6",
+  "response": {
+    "content": "{\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"明确每次住院的免赔额为1000元\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"需要确认保险住院待遇的用户\",\n      \"user_intent\": \"确认住院免赔额金额\",\n      \"expected_outcome\": \"准确说明每次住院先扣除1000元免赔额\",\n      \"required_capabilities\": [\n        \"识别材料中的免赔额金额\",\n        \"准确表达免赔额适用对象\"\n      ],\n      \"acceptance_criteria\": [\n        \"答案明确写出每次住院免赔额为1000元\",\n        \"不得将免赔额金额表述为其他数值\"\n      ],\n      \"boundary\": {\n        \"evidence_source\": \"提供的医疗险保障条款摘要\",\n        \"scenario\": \"qa_context_faithfulness\"\n      },\n      \"priority\": \"核心\"\n    },\n    {\n      \"expectation_id\": \"准确说明扣除免赔额后合理且必要费用按90%报销\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"需要估算保险报销范围和比例的用户\",\n      \"user_intent\": \"确认住院费用报销比例及其适用范围\",\n      \"expected_outcome\": \"说明超过免赔额的合理且必要医疗费用按90%比例报销\",\n      \"required_capabilities\": [\n        \"识别报销比例\",\n        \"保留合理且必要医疗费用这一适用条件\",\n        \"避免将报销比例表述为无条件适用于全部住院费用\"\n      ],\n      \"acceptance_criteria\": [\n        \"答案明确写出报销比例为90%\",\n        \"答案说明该比例适用于扣除免赔额后且属于合理、必要的医疗费用\"\n      ],\n      \"boundary\": {\n        \"evidence_source\": \"提供的医疗险保障条款摘要\",\n        \"excluded_claims\": \"不得据此推断所有住院费用均无条件按90%报销\"\n      },\n      \"priority\": \"核心\"\n    },\n    {\n      \"expectation_id\": \"结论应有提供材料的直接依据且不依赖无关外部信息\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"需要依据所给条款摘要获得可靠结论的用户\",\n      \"user_intent\": \"根据给定材料确认保险待遇\",\n      \"expected_outcome\": \"答案中的免赔额和报销比例均能被上下文直接支持\",\n      \"required_capabilities\": [\n        \"使用给定上下文作为事实依据\",\n        \"不添加材料未支持的保险承诺\"\n      ],\n      \"acceptance_criteria\": [\n        \"答案中的核心数字和规则可在上下文中找到依据\",\n        \"不出现上下文未提供的额外保障结论\"\n      ],\n      \"boundary\": {\n        \"evidence_source\": \"当前样本contexts\",\n        \"external_knowledge_allowed\": false\n      },\n      \"priority\": \"核心\"\n    },\n    {\n      \"expectation_id\": \"答案不得与条款摘要产生矛盾\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"依赖答案避免错误理解保险责任的用户\",\n      \"user_intent\": \"获得不冲突的条款解释\",\n      \"expected_outcome\": \"答案不改变免赔额和报销比例的含义，也不作过度承诺\",\n      \"required_capabilities\": [\n        \"检查数值和适用条件的一致性\",\n        \"控制赔付承诺和表述范围\"\n      ],\n      \"acceptance_criteria\": [\n        \"不得否定1000元免赔额或90%报销比例\",\n        \"不得声称费用可以全额报销或无条件报销\"\n      ],\n      \"boundary\": {\n        \"evidence_source\": \"上下文与最终答案的语义对照\",\n        \"risk_focus\": \"数值矛盾和无条件赔付承诺\"\n      },\n      \"priority\": \"核心\"\n    },\n    {\n      \"expectation_id\": \"说明同一次住院与独立住院的免赔额计算规则\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"需要理解多次住院时免赔额如何计算的用户\",\n      \"user_intent\": \"完整理解住院免赔额的适用方式\",\n      \"expected_outcome\": \"补充说明同一次住院只计算一次免赔额，两次独立住院分别适用免赔额\",\n      \"required_capabilities\": [\n        \"识别住院次数与免赔额计算之间的关系\",\n        \"区分同一次住院和独立住院\"\n      ],\n      \"acceptance_criteria\": [\n        \"明确同一次住院只计算一次免赔额\",\n        \"明确两次独立住院分别适用免赔额\"\n      ],\n      \"boundary\": {\n        \"evidence_source\": \"提供的医疗险保障条款摘要\",\n        \"importance\": \"属于补充适用规则，不改变核心数字\"\n      },\n      \"priority\": \"重要但非阻断\"\n    },\n    {\n      \"expectation_id\": \"提示实际赔付仍受等待期责任免除医院范围和发票审核影响\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"准备据此判断实际可赔金额的用户\",\n      \"user_intent\": \"避免将条款摘要中的比例误解为最终确定赔付\",\n      \"expected_outcome\": \"说明实际赔付还需结合相关保单条件和审核结果确认\",\n      \"required_capabilities\": [\n        \"识别材料中的赔付限制条件\",\n        \"对最终赔付结论保持适当限定\"\n      ],\n      \"acceptance_criteria\": [\n        \"提及等待期、责任免除、医院范围或发票审核等限制因素\",\n        \"不把90%表述为已经确定的最终赔付金额\"\n      ],\n      \"boundary\": {\n        \"evidence_source\": \"提供的医疗险保障条款摘要\",\n        \"importance\": \"属于风险控制和完整性要求\"\n      },\n      \"priority\": \"重要但非阻断\"\n    },\n    {\n      \"expectation_id\": \"直接回答用户所问且具备基本可用性\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"希望快速获得住院待遇关键信息的用户\",\n      \"user_intent\": \"以简洁方式了解免赔额和报销比例\",\n      \"expected_outcome\": \"答案直接给出免赔额金额和报销比例，表述清晰易懂\",\n      \"required_capabilities\": [\n        \"提取问题中的两个核心询问点\",\n        \"用简洁语言组织答案\"\n      ],\n      \"acceptance_criteria\": [\n        \"同时回答免赔额和报销比例\",\n        \"答案无需用户从冗长内容中自行推断核心数字\"\n      ],\n      \"boundary\": {\n        \"evidence_source\": \"用户问题与最终答案\",\n        \"quality_focus\": \"相关性、清晰度和直接性\"\n      },\n      \"priority\": \"核心\"\n    }\n  ],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"明确每次住院的免赔额为1000元\",\n      \"status\": \"fulfilled\",\n      \"score\": 1,\n      \"expected_evidence\": [\n        \"上下文明确写明“每次住院先扣除1000元免赔额”\"\n      ],\n      \"actual_evidence\": [\n        \"最终答案写明“每次住院有1000元免赔额”\"\n      ],\n      \"downstream_impact\": \"用户能够准确获得所询问的免赔额金额。\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"准确说明扣除免赔额后合理且必要费用按90%报销\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0.75,\n      \"expected_evidence\": [\n        \"上下文明确限定为“超过免赔额的合理且必要医疗费用按90%报销”\"\n      ],\n      \"actual_evidence\": [\n        \"最终答案仅写明“超过部分按90%报销”\",\n        \"答案未明确保留“合理且必要医疗费用”的适用条件\"\n      ],\n      \"downstream_impact\": \"核心比例已给出，但缺少费用性质限定，可能使用户将90%理解为所有超过免赔额的费用均可报销。\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"结论应有提供材料的直接依据且不依赖无关外部信息\",\n      \"status\": \"fulfilled\",\n      \"score\": 1,\n      \"expected_evidence\": [\n        \"上下文直接提供1000元免赔额和90%报销比例\"\n      ],\n      \"actual_evidence\": [\n        \"最终答案只复述了上下文中的免赔额和报销比例，没有引入外部事实或额外保障承诺\"\n      ],\n      \"downstream_impact\": \"答案的核心结论具有当前材料支持，符合上下文忠实性要求。\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"答案不得与条款摘要产生矛盾\",\n      \"status\": \"fulfilled\",\n      \"score\": 1,\n      \"expected_evidence\": [\n        \"上下文规定免赔额为1000元、超过免赔额的相关费用按90%报销\"\n      ],\n      \"actual_evidence\": [\n        \"最终答案中的1000元和90%与上下文一致\",\n        \"答案未声称全额报销或无条件赔付\"\n      ],\n      \"downstream_impact\": \"未发现会直接导致错误赔付判断的数值或结论冲突。\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"说明同一次住院与独立住院的免赔额计算规则\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        \"上下文写明“同一次住院只计算一次免赔额；两次独立住院分别适用免赔额”\"\n      ],\n      \"actual_evidence\": [\n        \"最终答案仅说明每次住院有1000元免赔额\",\n        \"未提及同一次住院只计算一次及独立住院分别计算的规则\"\n      ],\n      \"downstream_impact\": \"不影响用户获得核心金额，但无法帮助用户判断多次或连续住院时的免赔额计算方式。\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"提示实际赔付仍受等待期责任免除医院范围和发票审核影响\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        \"上下文提示实际赔付还需结合等待期、责任免除、医院范围和发票审核结果确认\"\n      ],\n      \"actual_evidence\": [\n        \"最终答案未提及等待期、责任免除、医院范围或发票审核条件\"\n      ],\n      \"downstream_impact\": \"答案较为简略，用户可能忽略实际赔付仍需经过其他条款和审核条件确认。\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"直接回答用户所问且具备基本可用性\",\n      \"status\": \"fulfilled\",\n      \"score\": 1,\n      \"expected_evidence\": [\n        \"用户问题明确询问住院免赔额和报销比例\"\n      ],\n      \"actual_evidence\": [\n        \"最终答案在一句话中直接给出1000元免赔额和90%报销比例\"\n      ],\n      \"downstream_impact\": \"用户可以快速获得问题所需的两个核心数字，答案简洁且易于理解。\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"reasoning_summary\": \"最终答案准确回答了每次住院1000元免赔额和90%报销比例这两个核心问题，且核心表述有上下文依据、没有明显矛盾或外部臆测。但答案将报销范围简化为“超过部分”，未明确限定为合理且必要医疗费用，也遗漏了同一次住院只计算一次、独立住院分别计算以及等待期、责任免除、医院范围和发票审核等重要条件。因此核心数值信息基本可用，但在条款适用范围和完整风险提示方面存在缺口。\"\n}",
+    "metrics": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 5855,
+      "output_tokens": 6072,
+      "reasoning_tokens": 3298,
+      "total_tokens": 11927
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 630,
+          "endpoint": "fallback1",
+          "error": "inference tpm exhausted",
+          "error_type": "RuntimeError",
+          "model": "deepseek-v4-flash-0731",
+          "status": "failed"
+        },
+        {
+          "attempt": 2,
+          "elapsed_ms": 121761,
+          "endpoint": "fallback2",
+          "model": "gpt-5.6-luna",
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "selected_endpoint": "fallback2",
+      "selected_model": "gpt-5.6-luna",
+      "stage": ""
+    }
+  },
+  "trace_id": "QA:mock-agent-QA-4fbc996f:1787203873188"
+}

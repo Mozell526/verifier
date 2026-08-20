@@ -1,10 +1,11 @@
-# 轴2 读法抽取改造方案（正则占位 → LLM mapper）
+# 结构化形态：读法抽取（正则占位 → LLM mapper）
 
-> 状态：已落地（2026-08-17）。实施见 `impl/core/capability_carrier.py`。
-> 母协议：`spec/alg/capability_carrier.md`。本方案只动协议判断顺序里的**第二步**
->（期望 → 最小完整表达）的落地方式；第三步仍是确定性代码，但缺维度/缺值定案前
-> 先过受治理口径表，再全量目录反查。placement 映射不动。口径表是轴2 调查产物，
-> 进 `current_fingerprint`，不进 Judge / 不进 Judge solidify。
+> 状态：已落地。这是轴2 **结构化形态**的读法规范，不是协议本身。
+> 实施见 `impl/core/capability_structured.py`。母协议：`spec/alg/capability_carrier.md`。
+> 本方案只动结构化形态判断顺序里的**第二步**（期望 → 字段×值×操作符）；
+> 第三步仍是确定性代码，但缺维度/缺值定案前先过受治理口径表，再全量目录反查。
+> placement 映射在协议层，不动。口径表是该形态的调查产物，进 `current_fingerprint`，
+> 不进 Judge / 不进 Judge solidify。
 
 ## 0. 背景：这是欠账，不是新需求
 
@@ -18,7 +19,7 @@
 风险表当时登记过「期望→维度语义映射是 LLM，有错误率」。但落地走了两轮占位：
 
 1. 第一版（057）：正则读期望，读不出中文维度就说不清——明确标注"确定性占位，不是真 LLM mapper"；
-2. 第二版（现行 `impl/core/capability_carrier.py`）：重写为独立模块，把字段别名词典做富，仍未接 LLM。
+2. 第二版（现行结构化形态 `impl/core/capability_structured.py`）：重写为独立模块，把字段别名词典做富，仍未接 LLM。
 
 341 条实测（jmz0815 runB）证明：第三步没出过错，错全部出在第二步的占位上。
 
@@ -198,7 +199,8 @@ mapper 调用本身按期望文本 sha 去重缓存，落 context store（同 ju
 
 | 位置 | 动作 |
 |---|---|
-| `impl/core/capability_carrier.py` | 删 `infer_readings` 正则/别名评分、`_extract_dimensions`、`_PROCESS_CUE` 直判；新增 LLM mapper + 读法缓存；`evaluate_reading` 收窄 `entry is None` 出口（字段必在目录内，缺维度只走 unmapped 路径）；缺维度/缺值定案前 `rescue_catalog_misses` 先口径表再全量反查；`resolve_carrier` / `map_placement` 不动 |
+| `impl/core/capability_structured.py` | 结构化形态：LLM mapper + 读法缓存；`evaluate_reading` 收窄 `entry is None` 出口（字段必在目录内，缺维度只走 unmapped 路径）；缺维度/缺值定案前 `rescue_catalog_misses` 先口径表再全量反查 |
+| `impl/core/capability_carrier.py` | 协议层：`map_placement` / `place` / 绑定 / 审计。项目合同只有 `capability_provider` |
 | `impl/projects/<id>/capability_lexicon.yaml` | 受治理业务词口径（unsupported / carried / missing）；入快照与 mapper 目录，不进 Judge |
 | `impl/core/pipeline.py` | 判后 pass 调用点不变，传入 spec 供 mapper 建 client |
 | `spec/alg/capability_carrier.md` §6 / §8 | 「期望→维度映射由 LLM 执行、承载查询确定性」写回落地章；轴2 资产走 current_fingerprint，冻结 NF 金标做变更门禁 |

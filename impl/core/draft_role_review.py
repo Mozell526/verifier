@@ -738,18 +738,20 @@ def _apply_capability_carrier_audit(
     spec: Any = None,
     enabled: bool,
 ) -> list[dict[str, Any]]:
-    from .capability_carrier import load_capability_snapshot, validate_placements
+    from .capability_carrier import CapabilityCarrierNotBound, bind_capability_carrier, validate_placements
 
     errors: list[str] = []
-    snapshot = None
+    citation_space = None
     if enabled:
         try:
-            snapshot = load_capability_snapshot(spec)
-        except Exception:
-            snapshot = None
-        for row in report.get("rows") or []:
-            if isinstance(row, Mapping):
-                errors.extend(validate_placements(row, snapshot))
+            bound = bind_capability_carrier(spec)
+            citation_space = bound.citation_space() if bound is not None else None
+        except CapabilityCarrierNotBound as exc:
+            errors.append(str(exc))
+        if not errors:
+            for row in report.get("rows") or []:
+                if isinstance(row, Mapping):
+                    errors.extend(validate_placements(row, citation_space))
         status = "fail" if errors else "pass"
         finding = (
             "归位审计失败: " + "; ".join(errors)

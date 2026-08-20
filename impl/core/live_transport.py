@@ -186,13 +186,31 @@ class LiveTransport:
         return view
 
 
+def declared_wire_body(request: Any) -> Any:
+    """HTTP JSON body that RealLive must put on the wire.
+
+    Flat REQUEST_SCHEMA projects send the whole payload. Envelope requests
+    (url / headers / capability plus nested body) send only `body`.
+    """
+    if not isinstance(request, dict):
+        return request
+    nested = request.get("body")
+    if not isinstance(nested, dict):
+        return request
+    markers = ("url", "method", "headers", "capability_ref", "capability", "show_schema")
+    if any(key in request for key in markers):
+        return nested
+    return request
+
+
 def validate_real_transport(transport: LiveTransport, request: Any) -> None:
     """校验成功 RealLive 的最小真实性不变量。"""
     exchanges = transport.exchanges
     request_exchanges = [item for item in exchanges if item.carries_live_request]
     if not request_exchanges:
         raise RuntimeError("RealLive missing carries_live_request exchange")
-    if not any(item.request == request for item in request_exchanges):
+    declared = declared_wire_body(request)
+    if not any(item.request == request or item.request == declared for item in request_exchanges):
         raise RuntimeError("RealLive wire request does not match REQUEST_SCHEMA payload")
     response_exchanges = [
         item for item in exchanges

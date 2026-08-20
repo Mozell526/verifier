@@ -960,6 +960,7 @@ def load_judge_solidify_investigation_projection(
         expected_project_id=spec.project_id,
         expected_role="judge",
         source_root=source_root,
+        business_source_staleness_policy=("warn" if selected_candidate else "strict"),
     )
     contract = load_judge_contract(Path(validated["role_contract"]["path"]))
     return {

@@ -406,7 +406,8 @@ def _track_context(self: "LlmClient", system: str, user: str, result: Any,
         if not runtime_model:
             attempts = list((runtime or {}).get("attempts") or [])
             if attempts:
-                runtime_model = str(attempts[-1].get("model") or "")
+                last_attempt_model = attempts[-1].get("model")
+                runtime_model = str(last_attempt_model) if last_attempt_model else ""
         record = ContextRecord(
             record_id=str(uuid.uuid4()),
             trace_id=str(trace_id or ""),

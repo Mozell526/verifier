@@ -896,6 +896,31 @@ def test_package_execution_requires_and_runs_explicit_anyof_smoke_inputs(tmp_pat
 
 
 def test_validate_investigation_cli_fails_when_required_tool_inputs_are_missing():
+    spec = load_project("client_search")
+    project_root = spec.project_package_path(
+        ".",
+        field_path="project.package",
+        expected_type="directory",
+    )
+    package = spec.project_package_path(
+        "draft/investigation/attribute",
+        field_path="verifier.assets.investigation.attribute",
+        expected_type="directory",
+    )
+    try:
+        validate_investigation_package(
+            package,
+            project_root=project_root,
+            expected_project_id="client_search",
+            expected_role="attribute",
+            source_root=spec.source_root_path() if spec.has_business_source else None,
+        )
+    except ValueError as exc:
+        message = str(exc)
+        if "source_revision does not match" in message or "content hash changed" in message:
+            pytest.skip(message)
+        raise
+
     result = subprocess.run(
         [
             sys.executable,

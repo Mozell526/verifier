@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 from dataclasses import FrozenInstanceError, replace
 from pathlib import Path
 
@@ -774,3 +775,36 @@ def test_navigation_refs_do_not_pollute_search_candidates(tmp_path, monkeypatch)
     assert {item["id"] for item in hits} == {"target-a"}
     debug = run.debug_snapshot()["context_debug"]
     assert debug["candidate_ids"] == ["target-a"]
+
+
+def test_second_registration_proceeds_while_first_embeds(tmp_path):
+    started = threading.Event()
+    release = threading.Event()
+    inner = DeterministicHashEmbeddingProvider()
+
+    class BlockingFirstEmbed:
+        model_id = inner.model_id
+        calls = 0
+
+        def embed(self, texts):
+            self.calls += 1
+            if self.calls == 1:
+                started.set()
+                assert release.wait(timeout=2)
+            return inner.embed(texts)
+
+    runtime = build_runtime(tmp_path, provider=BlockingFirstEmbed())
+    first = threading.Thread(target=runtime.register_context_unit, args=(make_record("unit-a"),))
+    first.start()
+    assert started.wait(timeout=2)
+
+    second = threading.Thread(target=runtime.register_context_unit, args=(make_record("unit-b"),))
+    second.start()
+    second.join(timeout=2)
+    assert not second.is_alive()
+
+    release.set()
+    first.join(timeout=2)
+    assert not first.is_alive()
+    assert runtime.registry.get("unit-a") is not None
+    assert runtime.registry.get("unit-b") is not None

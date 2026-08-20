@@ -39,19 +39,16 @@
 
 ### 2.1 做不了
 
-没办成的那条期望，当前受治理能力空间承载不了。必须是**资料层自认**：
-
-1. 空间缺该维度（M1 登记的封闭空间里查无此字段）；
-2. 空间缺该值（封闭枚举里查无此值）；
-3. 空间缺操作符（字段在、但表达不了该期望需要的操作，如仅有 EXISTS）；
-4. 字段显式标注 `is_supported=false`。
+没办成的那条期望，当前受治理能力空间承载不了。必须是**资料层自认**。
+结构化形态下的自认种类是：缺维度、缺值、缺操作符、`is_supported=false`
+（见 §6.1）。其他形态用自己的资料空间给出等价的自认证据。
 
 做不了 ≠ 职责外（归属是另一类裁决的问题，本协议沉默）；
 做不了 ≠ `product-function.md` 的"没这项功能"（那是产品认账层，本协议是实现空间层）。
 
 ### 2.2 做错了
 
-空间承载得了——存在能完整表达该期望语义的字段×值×操作符组合——但这次没做对。
+空间承载得了——资料证实存在能完整表达该期望语义的能力——但这次没做对。
 漏条件、加错条件、改错值、条件关系理解错，全部归这里，不再细分。
 
 **做错了没有人直接判**：它是合取推导——
@@ -83,28 +80,28 @@ mapper 重试耗尽、能力快照加载失败不是说不清。该期望归位�
 ```text
 第零步：轴1 已出。fulfilled / not_evaluable → 不适用，结束
 第一步：取该案子里每条未达成的 blocking 期望，逐条独立判
-第二步：这条期望的最小完整表达需要什么？（字段 × 值 × 操作符）
-  ├─ 只有一个合理读法 → 第三步
-  └─ 多个合理读法 → 各读法分别过第三步：
-        答案一致 → 用该答案；不一致 → 说不清（口径分歧）
-第三步：受治理能力空间查承载
-  ├─ 缺维度 / 缺值须先过口径表，再过全量目录反查（枚举+受治理别名）；仍无命中才成立
-  ├─ 缺维度 / 缺值 / 缺操作符 / is_supported=false → 做不了
-  ├─ 完整表达存在于空间内 → 做错了
-  ├─ 该维度空间未受治理 → 说不清（空间未受治理）
-  └─ 读法抽取重试耗尽 / 快照不可用 → 归位失败，run 标记 error
+第二步：项目选定的形态，把该期望收成该形态的读法（可一条或多条）
+  ├─ 读法之间承载性一致 → 用该答案
+  └─ 读法之间承载性不一致 → 说不清（口径分歧）
+第三步：形态按自己的资料空间做确定性承载裁决
+  ├─ 资料自认承载不了 → 做不了
+  ├─ 资料证实能完整表达 → 做错了
+  ├─ 资料不够、空间未受治理 → 说不清（须写清差在哪儿 + 缺料）
+  └─ 形态运行失败（读法抽取耗尽 / 资料装载失败）→ 归位失败，run 标记 error
 ```
 
 几个把歧义焊死的判据：
 
-- **"承载"以期望的最小完整表达为准**：字段在、操作符不够 = 承载不了。
-  不许拿"沾边字段存在"凑数；
+- **"承载"以期望的最小完整表达为准**：不许拿"沾边能力存在"凑数；
 - **"自认"只认资料**：live 的"暂不支持"话术不算——那是话术，
   `material-positioning.md` 的防循环格挡不许它自我背书；
 - **单位是期望，不折叠**：一个案子多条 NF blocking 期望各判各的，
   case 级只做罗列展示，本协议不定义 case 级单值；
 - **覆盖性**：轴1 三态穷尽 → 只有没办成进轴2 → 轴2 三出口穷尽（§2.3 成因也穷尽）。
   没有漏格。
+- **形态不进协议**：字段×操作符×值、口径表 rescue、中文描述解析，
+  都是结构化形态的内部规范，见 `capability_carrier-reading.md`。
+  协议只认三态、资料自认、可回溯引用、不改写轴1。
 
 ## 4. 和邻题的边界
 
@@ -139,31 +136,59 @@ mapper 重试耗尽、能力快照加载失败不是说不清。该期望归位�
 ## 6. 机制：独立承载性裁决工具
 
 轴2 是 Authority 体系的**一个消费者**，不是 Authority 的改造理由。
-落成一个独立的裁决工具（函数/类），不动通用裁决通道：
+落成一个独立的裁决工具，不动通用裁决通道。
+
+协议层（`impl/core/capability_carrier.py`）拥有主流程，项目与形态不可改：
 
 ```text
-mapper(期望, 维度目录) → 读法组 / unmapped+nearest / process_only
-resolve_carrier(读法, 能力空间快照) → 承载得了 / 承载不了 / 判不了 + 资料引用
-
-消费    只读 Authority 调查层与项目运行时资产：
-        M1 登记、capability_manifest、capability_lexicon、investigation 报告。
-        口径表是轴2 调查产物，不进 Judge / 不进 Judge solidify
-调用    判后 pass：轴1 出完 → 收集 NF blocking 期望 → 逐条裁承载性
-第二步  期望→维度由 LLM mapper 执行；输入只有期望文本 + 受治理目录（含口径表），
-        不看 live / 轴1 理由。LLM 只出读法，不出三态
-第三步  空间查承载是确定性代码。缺维度/缺值定案前，先口径表再全量枚举和描述内
-        唯一别名反查；命中则改写成读法再裁，不另调 mapper
-去重    按（读法字段集合 × 空间快照）去重；同一轮同一读法只裁一次
-映射    确定性代码，不是模型判定：
-        承载不了 → 做不了；承载得了 → 做错了；判不了 → 说不清
-        做不了必须资料自认：is_supported=false / 缺值 / 缺操作符 / unmapped+nearest
+place(NF payload)
+  → 逐条 blocking NF 期望
+  → form.verdict_for(expectation) → CarrierVerdict | CarrierError
+  → map_placement：承载不了→做不了；承载得了→做错了；判不了→说不清
 输出    独立 artifact（per-run 归位记录 + 资料引用），不写入 JudgeResult
+```
+
+形态接口 `CapabilityCarrierBase`：`verdict_for` / `snapshot_revision` / `citation_space` 抽象，
+`place` 为 `@final`。三态怎么来的形态自己管，三态往 placement 怎么映射协议管。
+
+项目层合同**只有一个符号**：`impl/projects/<id>/live.py` 的 `capability_provider(spec)`
+返回一个 `CapabilityCarrierBase`。core 不按项目函数名 getattr 物料。
+
+```text
+开 scope 且有 provider → 判后 pass 生效
+未开 scope             → 工具不存在，行为与未接入一致
+开 scope 但缺 provider → 装载期失败（config check + bind raise），不产生半错 run
 ```
 
 与通用 Authority 的关系：**共用资料层，不共用裁决通道**。
 `authority.md`、judge 运行中的 authority 工具、`judge_authority_*` context 资产、
 draft skill ROLE.md 现有规则，全部保持现状。
 其余裁决类（职责、口径、等价）的定义与流程本协议一律不碰。
+
+## 6.1 形态
+
+形态是协议之下的实现族。现有唯一形态是结构化形态
+（`impl/core/capability_structured.py`，`StructuredCarrier`）：
+
+```text
+mapper(期望, 维度目录) → 读法组 / unmapped+nearest / process_only
+resolve_carrier(读法, 能力空间快照) → 承载得了 / 承载不了 / 判不了 + 资料引用
+
+物料形状   manifest（字段目录）必填；lexicon / spoken 可选。这是数据 schema，不是函数名。
+第二步     期望→字段×值×操作符由 LLM mapper 执行；输入只有期望文本 + 受治理目录，
+           不看 live / 轴1 理由。LLM 只出读法，不出三态
+第三步     空间查承载是确定性代码。缺维度/缺值定案前，先口径表再全量枚举和描述内
+           唯一别名反查；命中则改写成读法再裁，不另调 mapper
+做不了自认 is_supported=false / 缺值 / 缺操作符 / unmapped+nearest
+去重       按（读法字段集合 × 空间快照）去重
+```
+
+非结构化项目不强制套这套物料。新形态只要满足协议输出合同
+（三态、资料自认、可回溯引用、不改写轴1）即可。第二个形态等真实项目驱动再落。
+
+client_search 通过 `capability_provider` 把自家 `capability_snapshot` /
+`capability_lexicon` / `value_mappings` 喂给 `StructuredCarrier.from_materials`。
+这三个函数名是项目内部取数入口，不是 core 合同。
 
 ## 7. 配置：enabled_scopes 枚举列表
 
@@ -186,8 +211,9 @@ verifier:
 
 语义分两族，互不牵连：
 
-- **`capability_carrier`**：开 → 判后 pass 生效、报表出归位列；
-  不开 → 该工具不存在，行为与今天完全一致。不影响 judge 运行；
+- **`capability_carrier`**：开 → 判后 pass 生效、报表出归位列，且项目必须提供
+  `capability_provider`（装载期检查，缺则 config check / bind 失败）；
+  不开 → 该工具不存在，行为与未接入一致。不影响 judge 运行；
 - **后四个（实验开关）**：列表里出现任何一个 → judge 运行中的通用 authority 工具
   按现状恢复暴露，但只准接列表内问题类。为此需要一个最小机制：
   裁决请求带问题类声明，Core 按列表做成员检查放行或拒绝——
@@ -201,9 +227,11 @@ verifier:
 
 轴2 资产走现有 `current_fingerprint`，不另开 draft 角色、不另开 Judge solidify 通道：
 
-- `capability_manifest` / `capability_lexicon.yaml` 在项目包（`draft/` 除外）里，
-  改动自动进入 `current_fingerprint`；
-- mapper 提示词在 `impl/core/capability_carrier.py`，同属 current 指纹；
+- 项目 `capability_provider` 及其喂给形态的物料（client_search 目前是
+  `capability_snapshot` / `capability_lexicon.yaml` / `value_mappings`）
+  在项目包（`draft/` 除外）里，改动自动进入 `current_fingerprint`；
+- 协议层 `impl/core/capability_carrier.py` 与结构化形态
+  `impl/core/capability_structured.py` 同属 current 指纹；
 - 变更门禁是冻结 NF 金标（`tests/test_capability_carrier.py` 的
   `test_client_search_axis2_frozen_nf`），不是 Judge 对照分。
 
@@ -222,12 +250,14 @@ draft 侧只加展示与审计，不改计分：
 
 现在做：
 
-- 留下本协议；
+- 留下本协议（形态无关合同）；
 - `enabled_scopes` 替换布尔开关（空列表默认，行为不变）；
-- 实现 `resolve_carrier` 工具与判后 pass，仅在 `capability_carrier` 开启时存在。
+- 结构化形态作为第一个形态落地；仅在 `capability_carrier` 开启且
+  `capability_provider` 存在时跑判后 pass。
 
 现在不做：
 
+- 不发明第二个形态（等真实非结构化项目驱动）；
 - 不改 Judge prompt、不改 JudgeResult、不改归因；
 - 不改 `authority.md` 与通用裁决通道的任何定义；
 - 不启用 `responsibility` / `semantic_mapping` / `query_equivalence` /
@@ -236,9 +266,10 @@ draft 侧只加展示与审计，不改计分：
 ## 10. 验收
 
 - 每条 NF blocking 期望都能落进三态之一；说不清必带差在哪儿 + 缺料；
-- 每个归位结论带资料引用，可回溯到 M1 登记 / capability_manifest / investigation 报告；
+- 每个归位结论带资料引用，可回溯到该形态声明的引用空间；
 - `enabled_scopes: []` 时确定性面（system prompt 快照、工具暴露列表、配置解析结果）
-  与现状一致；不拿 LLM 输出做逐字节比较（重跑天然波动）；
+  与未接入一致；不拿 LLM 输出做逐字节比较（重跑天然波动）；
 - 开启 `capability_carrier` 前后，轴1 逐 case 结果不变（结构保证 + 冻结集回归验证）；
+- 开 scope 但缺 `capability_provider`：config check 失败，bind raise，不产生半错 run；
 - 换一批非长尾数据，协议仍成立；没有一条规则是"这类 query 就判做不了"；
 - 未开启 scope 的问题类请求被拒绝，且拒绝不产生任何伪装成"已裁决"的输出。

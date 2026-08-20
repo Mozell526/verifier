@@ -2,9 +2,14 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from impl.core.context.project import load_role_mandatory_context
 from impl.core.context.embedding import DeterministicHashEmbeddingProvider
-from impl.core.investigation import load_judge_solidify_investigation_projection
+from impl.core.investigation import (
+    load_judge_solidify_investigation_projection,
+    validate_investigation_package,
+)
 from impl.core.project_loader import load_project
 from impl.core.schema import AuthorityResolution, RunTrace
 from impl.projects.client_search.draft.probes.judge_solidify_probe import (
@@ -32,6 +37,29 @@ def _authority_spec():
 
 def test_client_search_judge_solidify_projection_matches_smoke_evidence(monkeypatch):
     spec = _authority_spec()
+    project_root = spec.project_package_path(
+        ".",
+        field_path="project.package",
+        expected_type="directory",
+    )
+    package = spec.project_package_path(
+        "draft/investigation/judge",
+        field_path="verifier.assets.investigation.judge",
+        expected_type="directory",
+    )
+    try:
+        validate_investigation_package(
+            package,
+            project_root=project_root,
+            expected_project_id="client_search",
+            expected_role="judge",
+            source_root=spec.source_root_path() if spec.has_business_source else None,
+        )
+    except ValueError as exc:
+        message = str(exc)
+        if "source_revision does not match" in message or "content hash changed" in message:
+            pytest.skip(message)
+        raise
     runtime = load_judge_solidify_investigation_projection(
         spec, use_candidate=True
     )

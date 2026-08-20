@@ -136,24 +136,30 @@ class ContextRuntime:
                 raise ContextRegistrationConflictError(
                     f"stable context id {record.id!r} already belongs to project {existing['record'].project_id!r}"
                 )
-
             needs_embedding = (
                 existing is None
                 or existing["description_hash"] != description_hash
                 or existing["embedding_model"] != model_id
                 or not self.vector_index.has_vector(record.id, model_id)
             )
-            vector = None
-            if needs_embedding:
-                embedded = self.embedding_provider.embed([_record_search_text(record)])
-                if len(embedded) != 1 or not embedded[0]:
-                    raise ContextValidationError("embedding provider returned an invalid vector batch")
-                vector = tuple(validate_embedding_vector(embedded[0]))
 
+        vector = None
+        if needs_embedding:
+            embedded = self.embedding_provider.embed([_record_search_text(record)])
+            if len(embedded) != 1 or not embedded[0]:
+                raise ContextValidationError("embedding provider returned an invalid vector batch")
+            vector = tuple(validate_embedding_vector(embedded[0]))
+
+        with self._registration_lock:
+            existing = self.registry.get(record.id)
+            if existing is not None and existing["record"].project_id != record.project_id:
+                raise ContextRegistrationConflictError(
+                    f"stable context id {record.id!r} already belongs to project {existing['record'].project_id!r}"
+                )
             if existing is None:
                 action = "created"
             elif _record_payload(existing["record"]) == _record_payload(record):
-                if needs_embedding:
+                if vector is not None:
                     action = "reindexed"
                 elif existing["source_hash"] == source_hash:
                     return {

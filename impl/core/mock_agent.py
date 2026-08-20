@@ -686,7 +686,12 @@ def load_live_schema(project_id: str) -> Optional[Any]:
         from .live_schema_check import LiveSchemaCheck
         from .project_loader import load_project
 
-        module.check = LiveSchemaCheck(request_schema, output_schema, load_project(project_id).ready)
+        ready = load_project(project_id).ready
+        existing = getattr(module, "check", None)
+        if isinstance(existing, LiveSchemaCheck):
+            existing.bind_ready(ready)
+        else:
+            module.check = LiveSchemaCheck(request_schema, output_schema, ready)
     return module
 
 

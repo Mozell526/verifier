@@ -1,0 +1,170 @@
+[
+  {
+    "id": "llm-probe-client_search-name",
+    "project_id": "llm_probe",
+    "scenario": "http_probe",
+    "live_request": {
+      "capability_ref": "client_search",
+      "method": "POST",
+      "body": {
+        "user_text": "客户姓名是张伟的人",
+        "user_id": "mock_user_001",
+        "trace_id": "mock_trace_001",
+        "session_id": "mock_session_001",
+        "source": "mock",
+        "extra_input_params": {}
+      },
+      "show_schema": {
+        "type": "object",
+        "description": "关注解析出的搜索条件（字段、操作符、值），忽略路由和追踪字段"
+      }
+    },
+    "output": null,
+    "reference": null
+  },
+  {
+    "id": "llm-probe-client_search-age",
+    "project_id": "llm_probe",
+    "scenario": "http_probe",
+    "live_request": {
+      "capability_ref": "client_search",
+      "method": "POST",
+      "body": {
+        "user_text": "五十岁以上的客户都有谁",
+        "user_id": "mock_user_001",
+        "trace_id": "mock_trace_001",
+        "session_id": "mock_session_001",
+        "source": "mock_app",
+        "extra_input_params": {}
+      }
+    },
+    "output": null,
+    "reference": null
+  },
+  {
+    "id": "llm-probe-policy_search-policy-no",
+    "project_id": "llm_probe",
+    "scenario": "http_probe",
+    "live_request": {
+      "capability_ref": "policy_search",
+      "method": "POST",
+      "body": {
+        "session_id": "policy-search-rich-0001",
+        "trace_id": "policy-search-rich-0001",
+        "user_id": "verifier-user",
+        "org_id": "verifier-org",
+        "org_name": "verifier",
+        "ts": 1785983400000,
+        "token": "",
+        "app_scenario": "policy_search_parse",
+        "source": "verifier",
+        "user_text": "",
+        "history": [],
+        "user_action": "write",
+        "action_scenario": "policySearch",
+        "extra_input_params": {
+          "policySearchParseArgs": {
+            "query": "合同号码里带4826的",
+            "currentTime": "2026-08-06 10:30:00",
+            "agentCode": "A12345678"
+          },
+          "agent_args": null,
+          "args": {
+            "contexts": []
+          }
+        },
+        "application_setting": null,
+        "scenario": null
+      }
+    },
+    "output": null,
+    "reference": null
+  },
+  {
+    "id": "llm-probe-policy_search-sum-assured",
+    "project_id": "llm_probe",
+    "scenario": "http_probe",
+    "live_request": {
+      "capability_ref": "policy_search",
+      "method": "POST",
+      "body": {
+        "session_id": "policy-search-rich-0003",
+        "trace_id": "policy-search-rich-0003",
+        "user_id": "verifier-user",
+        "org_id": "verifier-org",
+        "org_name": "verifier",
+        "ts": 1785983400000,
+        "token": "",
+        "app_scenario": "policy_search_parse",
+        "source": "verifier",
+        "user_text": "",
+        "history": [],
+        "user_action": "write",
+        "action_scenario": "policySearch",
+        "extra_input_params": {
+          "policySearchParseArgs": {
+            "query": "保额的保单",
+            "currentTime": "2026-08-06 10:30:00",
+            "agentCode": "A12345678"
+          },
+          "agent_args": null,
+          "args": {
+            "contexts": []
+          }
+        },
+        "application_setting": null,
+        "scenario": null
+      }
+    },
+    "output": null,
+    "reference": null
+  },
+  {
+    "id": "llm-probe-mpi-customer-portrait",
+    "project_id": "llm_probe",
+    "scenario": "http_probe",
+    "live_request": {
+      "capability_ref": "marketting-planning-intent",
+      "method": "POST",
+      "body": {
+        "session_id": "default_session",
+        "trace_id": "default_trace",
+        "org_id": "default_org",
+        "user_text": "帮我看看上季度买了重疾险的客户都是啥样的？",
+        "extra_input_params": {
+          "agent_args": {
+            "conversation_id": "default_session",
+            "message": {"content": "帮我看看上季度买了重疾险的客户都是啥样的？", "content_type": "text"}
+          },
+          "args": {"extensions": {}, "contexts": []}
+        }
+      }
+    },
+    "output": null,
+    "reference": null
+  },
+  {
+    "id": "llm-probe-mpi-non-agent",
+    "project_id": "llm_probe",
+    "scenario": "http_probe",
+    "live_request": {
+      "capability_ref": "marketting-planning-intent",
+      "method": "POST",
+      "body": {
+        "session_id": "default_session_123",
+        "trace_id": "trace_abc_456",
+        "org_id": "org_001",
+        "user_text": "能不能帮我分析一下，上个月成交的客户主要都是些什么类型的人",
+        "extra_input_params": {
+          "agent_args": {
+            "conversation_id": "default_session_123",
+            "message": {"content": "能不能帮我分析一下，上个月成交的客户主要都是些什么类型的人", "content_type": "text"}
+          },
+          "args": {"extensions": {}, "contexts": []}
+        }
+      }
+    },
+    "output": null,
+    "reference": null
+  }
+]

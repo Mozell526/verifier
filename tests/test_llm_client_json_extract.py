@@ -5,6 +5,7 @@ from dataclasses import dataclass, replace
 from impl.core.config import get_llm_config
 from impl.core.llm_client import (
     LlmClient,
+    _ROUTER_REGISTRY,
     _select_schema_matching_object,
     _supported_agent_kwargs,
     _tool_budget_error,
@@ -101,6 +102,11 @@ class _InvestigationOutput:
     investigation_summary: str
 
 
+def _isolate_llm_router(monkeypatch) -> None:
+    _ROUTER_REGISTRY.clear()
+    monkeypatch.setattr(LlmClient, "_endpoint_probe", staticmethod(lambda _endpoint: True))
+
+
 def test_complete_json_classifies_agno_error_before_json_parsing(monkeypatch):
     class Result:
         content = ""
@@ -117,6 +123,7 @@ def test_complete_json_classifies_agno_error_before_json_parsing(monkeypatch):
         def run(self, _user):
             return Result()
 
+    _isolate_llm_router(monkeypatch)
     monkeypatch.setattr("impl.core.llm_client.Agent", FakeAgent)
     monkeypatch.setattr("impl.core.llm_client.OpenAILike", lambda **_kwargs: object())
     monkeypatch.setattr("impl.core.llm_client._track_context", lambda *_args, **_kwargs: None)
@@ -156,6 +163,7 @@ def test_complete_json_records_stage_and_each_application_attempt(monkeypatch):
                 raise TimeoutError("provider timeout")
             return Result()
 
+    _isolate_llm_router(monkeypatch)
     monkeypatch.setattr("impl.core.llm_client.Agent", FakeAgent)
     monkeypatch.setattr("impl.core.llm_client.OpenAILike", lambda **_kwargs: object())
     monkeypatch.setattr(

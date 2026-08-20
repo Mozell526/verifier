@@ -1,6 +1,7 @@
 # 轴2 稳定性治理方案（说不清 43% → 目标 ≤15%）
 
-> 状态：已落地（2026-08-18）。实施见 `impl/core/capability_carrier.py`。
+> 状态：已落地（2026-08-18）。实施见 `impl/core/capability_structured.py`（读法抽取）
+> 与 `impl/core/capability_carrier.py`（协议层）。
 > 母协议：`spec/alg/capability_carrier.md`；读法抽取改造：`spec/alg/capability_carrier-reading.md`。
 > 依据：runB 341 条实测（verifier-client_search-cases-1d729f5-rmname-runB.xlsx）
 > + runB context store 101 条 mapper 调用日志复盘。
@@ -10,7 +11,7 @@
 runB 128 条 NF、185 条 blocking 期望的轴2 归位：做错了 61、做不了 45、**说不清 79（43%）**。
 79 条说不清没有一条是业务语义模糊，全部是工程问题，两类各有代码级根因：
 
-| 类别 | 条数 | 根因（`impl/core/capability_carrier.py`） |
+| 类别 | 条数 | 根因（`impl/core/capability_structured.py`） |
 |---|---|---|
 | 读法抽取失败或读法不稳 | 39 | LLM 调用失败零重试；两次抽取包在同一 try，一次异常连坐两次；`_mapper_cache` 把 None 永久缓存，一次瞬时 429 毒化整轮 |
 | 两次读法裁决不一致 | 40 | 双抽等值判定过苛：unmapped 无条件压过 alternatives（多报一条 unmapped 整案翻转）；`_verdict_signature` 比引用字段集，同 carry 不同等价读法也算不稳；二抽无仲裁，`reasoning_effort="low"` 放大方差 |
