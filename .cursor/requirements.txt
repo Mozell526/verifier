@@ -1,0 +1,19 @@
+# Full runtime dependency set for the verifier Cloud Agent environment.
+# Core contract dependencies are pinned to match requirements-config-check.txt.
+PyYAML>=6,<7
+pytest>=8,<9
+agno==2.3.21
+dashscope==1.25.22
+json-repair>=0.44,<0.45
+requests>=2.32,<3
+
+# Required by agno's OpenAI-compatible model client (impl.core.llm_client).
+openai>=1.50
+
+# FastAPI server (impl.server) started via `bash run.sh server`.
+fastapi>=0.115,<0.116
+uvicorn>=0.30,<0.35
+
+# Selenium checklist tooling and xlsx case-pool export.
+selenium>=4.20,<5
+openpyxl>=3.1,<4
