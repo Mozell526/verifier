@@ -1,7 +1,7 @@
 # Authority Investigation Report: client_search-judge-authority-report
 
 - report_id: `client_search-judge-authority-report`
-- investigation_snapshot_id: `974c121667b2e34e7de47efd28b7c0c0d7983c7c`
+- investigation_snapshot_id: `803ed4579670792771870aa13b2523177f96f146`
 - business_scope: Judge 在外部业务验收时对外部契约、完整值空间、责任边界、口语映射与查询形式等价性的权威裁决依赖。本报告只登记资料直接决定的事项与未决方向，不包含单个 case 的 actual、score、confidence 或 verdict。
 
 ## Materials
@@ -247,6 +247,93 @@
 #### Limitations
 
 - 信任模型 M1 下产品全称枚举作为下游值空间代理；出现空间外漂移是发现信号（material-positioning.md §5.3）。
+
+### business-behavior-intents
+
+- source_location: `business_source:src/main/python/data/client_search_query_parse/behavior_intent_definitions_args.yaml`
+
+#### Decisions（该资料在下列范围内直接决定）
+
+1. **inlive_boundary** — 下游可承载的客户行为字段空间：customer_activity 字段是否存在、是否允许作为客户搜索条件、支持 MATCH 操作符，以及 activity 枚举值空间（哪些行为值下游可表达、可执行）。
+   - statement: behavior_intent_definitions_args.yaml 声明 customer_activity 字段、activity 枚举值空间与 is_supported。该空间由下游决定，parser 不能扩充；配置文件是该空间的代理（信任模型 M1 登记）。
+   - locator: `behavior_intent_definitions_args.yaml field/intents[].activity/is_supported`
+   - scenario: client_search_parser_behavior_field_carrier_standard
+   - conditions: `trust_model: M1 受控输出空间（见 project-judge-boundary-source 信任模型登记）`; `behavior_intent_definitions 为当前启用配置`; `无灰度覆盖`
+2. **current_behavior** — 自然语言到 customer_activity 枚举值的候选选择规则（aliases/activity_template/selection_notes/positive_examples/negative_examples/confusing_intents）。
+   - statement: behavior_intent_definitions_args.yaml 中的 aliases、activity_template、selection_notes、示例与混淆意图是 parser 当前实现行为，只解释系统现在如何选择行为枚举，不构成裁决选择正确性的依据。
+   - locator: `behavior_intent_definitions_args.yaml intents[].aliases/activity_template/selection_notes/examples/confusing_intents`
+   - scenario: client_search_parser_behavior_selection
+   - conditions: `behavior_intent_definitions 为当前启用配置`; `无灰度覆盖`
+
+#### Related（仅相关，不由该资料决定）
+
+- 下游数据库实际合法行为值全集（不由 behavior_intent_definitions 决定）
+- 业务认可的行为语义口径（不由该文件决定）
+
+#### Limitations
+
+- 空间类陈述在信任模型 M1 下作为下游能力空间代理；选择规则类陈述仍是当前行为，不裁决对错。
+- 出现空间外 activity 漂移是发现信号（material-positioning.md §5.3），不是否认空间的理由。
+
+### business-behavior-rules
+
+- source_location: `business_source:src/main/python/data/client_search_query_parse/behavior_enhanced_rules_args.yaml`
+
+#### Decisions（该资料在下列范围内直接决定）
+
+1. **current_behavior** — 客户行为意图的规则解析与候选选择（patterns/priority/negative_patterns/suppressors/retrieval_synonyms 等）。
+   - statement: behavior_enhanced_rules_args.yaml 中的规则、优先级和归一化是 parser 当前行为解析逻辑，只解释系统现在如何解析行为查询，不构成裁决选择正确性的依据。
+   - locator: `behavior_enhanced_rules_args.yaml rules/text_processing/policies`
+   - scenario: client_search_parser_behavior_rule_selection
+   - conditions: `behavior_enhanced_rules 为当前启用配置`; `无灰度覆盖`
+
+#### Related（仅相关，不由该资料决定）
+
+- 客户行为意图的自然语言表达
+
+#### Limitations
+
+- 当前行为，不能证明应然选择；只能解释 parser 现在如何解析。
+
+### business-abbrname-enums
+
+- source_location: `business_source:src/main/python/data/client_search_query_parse/polNoInfo.plancodeinfo.abbrname_enums_args.yaml`
+
+#### Decisions（该资料在下列范围内直接决定）
+
+1. **inlive_boundary** — polNoInfo.plancodeinfo.abbrname 的可枚举值空间（哪些产品简称在下游可表达、可执行）。
+   - statement: abbrname_enums_args.yaml 声明 polNoInfo.plancodeinfo.abbrname 的产品简称枚举值空间。该空间由下游数据库决定，parser 不能扩充；配置文件是该空间的代理（信任模型 M1 登记）。
+   - locator: `abbrname_enums_args.yaml polNoInfo.plancodeinfo.abbrname.values`
+   - scenario: client_search_parser_abbrname_enum_space
+   - conditions: `trust_model: M1 受控输出空间（见 project-judge-boundary-source 信任模型登记）`; `abbrname_enums 为当前启用配置`; `无灰度覆盖`
+
+#### Related（仅相关，不由该资料决定）
+
+- 下游数据库实际产品简称全集（不由 abbrname_enums 决定）
+
+#### Limitations
+
+- 信任模型 M1 下枚举文件作为下游值空间代理；出现空间外漂移是发现信号（material-positioning.md §5.3），不是否认空间的理由。
+
+### business-claimplancodename-enums
+
+- source_location: `business_source:src/main/python/data/client_search_query_parse/polNoInfo.claimdatainfo.claimplancodename_enums_args.yaml`
+
+#### Decisions（该资料在下列范围内直接决定）
+
+1. **inlive_boundary** — polNoInfo.claimdatainfo.claimplancodename 的可枚举值空间（哪些理赔险种名称在下游可表达、可执行）。
+   - statement: claimplancodename_enums_args.yaml 声明 polNoInfo.claimdatainfo.claimplancodename 的理赔险种名称枚举值空间。该空间由下游数据库决定，parser 不能扩充；配置文件是该空间的代理（信任模型 M1 登记）。
+   - locator: `claimplancodename_enums_args.yaml polNoInfo.claimdatainfo.claimplancodename.values`
+   - scenario: client_search_parser_claimplancodename_enum_space
+   - conditions: `trust_model: M1 受控输出空间（见 project-judge-boundary-source 信任模型登记）`; `claimplancodename_enums 为当前启用配置`; `无灰度覆盖`
+
+#### Related（仅相关，不由该资料决定）
+
+- 下游数据库实际理赔险种名称全集（不由 claimplancodename_enums 决定）
+
+#### Limitations
+
+- 信任模型 M1 下枚举文件作为下游值空间代理；出现空间外漂移是发现信号（material-positioning.md §5.3），不是否认空间的理由。
 
 ## Coverage Gaps（业务事项 × 条件缺少唯一决定资料）
 

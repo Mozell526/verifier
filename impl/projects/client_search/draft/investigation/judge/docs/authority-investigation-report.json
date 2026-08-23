@@ -132,7 +132,7 @@
       ]
     }
   ],
-  "investigation_snapshot_id": "974c121667b2e34e7de47efd28b7c0c0d7983c7c",
+  "investigation_snapshot_id": "803ed4579670792771870aa13b2523177f96f146",
   "materials": [
     {
       "connections": [],
@@ -487,6 +487,130 @@
         "location_scope": "business_source"
       },
       "source_ref_id": "business-planfullname-enums"
+    },
+    {
+      "connections": [],
+      "decisions": [
+        {
+          "conclusion_kind": "inlive_boundary",
+          "conditions": [
+            "trust_model: M1 受控输出空间（见 project-judge-boundary-source 信任模型登记）",
+            "behavior_intent_definitions 为当前启用配置",
+            "无灰度覆盖"
+          ],
+          "governs": "下游可承载的客户行为字段空间：customer_activity 字段是否存在、是否允许作为客户搜索条件、支持 MATCH 操作符，以及 activity 枚举值空间（哪些行为值下游可表达、可执行）。",
+          "locator": "behavior_intent_definitions_args.yaml field/intents[].activity/is_supported",
+          "scenario": "client_search_parser_behavior_field_carrier_standard",
+          "statement": "behavior_intent_definitions_args.yaml 声明 customer_activity 字段、activity 枚举值空间与 is_supported。该空间由下游决定，parser 不能扩充；配置文件是该空间的代理（信任模型 M1 登记）。"
+        },
+        {
+          "conclusion_kind": "current_behavior",
+          "conditions": [
+            "behavior_intent_definitions 为当前启用配置",
+            "无灰度覆盖"
+          ],
+          "governs": "自然语言到 customer_activity 枚举值的候选选择规则（aliases/activity_template/selection_notes/positive_examples/negative_examples/confusing_intents）。",
+          "locator": "behavior_intent_definitions_args.yaml intents[].aliases/activity_template/selection_notes/examples/confusing_intents",
+          "scenario": "client_search_parser_behavior_selection",
+          "statement": "behavior_intent_definitions_args.yaml 中的 aliases、activity_template、selection_notes、示例与混淆意图是 parser 当前实现行为，只解释系统现在如何选择行为枚举，不构成裁决选择正确性的依据。"
+        }
+      ],
+      "limitations": [
+        "空间类陈述在信任模型 M1 下作为下游能力空间代理；选择规则类陈述仍是当前行为，不裁决对错。",
+        "出现空间外 activity 漂移是发现信号（material-positioning.md §5.3），不是否认空间的理由。"
+      ],
+      "related_to": [
+        "下游数据库实际合法行为值全集（不由 behavior_intent_definitions 决定）",
+        "业务认可的行为语义口径（不由该文件决定）"
+      ],
+      "source_location": {
+        "location": "src/main/python/data/client_search_query_parse/behavior_intent_definitions_args.yaml",
+        "location_scope": "business_source"
+      },
+      "source_ref_id": "business-behavior-intents"
+    },
+    {
+      "connections": [],
+      "decisions": [
+        {
+          "conclusion_kind": "current_behavior",
+          "conditions": [
+            "behavior_enhanced_rules 为当前启用配置",
+            "无灰度覆盖"
+          ],
+          "governs": "客户行为意图的规则解析与候选选择（patterns/priority/negative_patterns/suppressors/retrieval_synonyms 等）。",
+          "locator": "behavior_enhanced_rules_args.yaml rules/text_processing/policies",
+          "scenario": "client_search_parser_behavior_rule_selection",
+          "statement": "behavior_enhanced_rules_args.yaml 中的规则、优先级和归一化是 parser 当前行为解析逻辑，只解释系统现在如何解析行为查询，不构成裁决选择正确性的依据。"
+        }
+      ],
+      "limitations": [
+        "当前行为，不能证明应然选择；只能解释 parser 现在如何解析。"
+      ],
+      "related_to": [
+        "客户行为意图的自然语言表达"
+      ],
+      "source_location": {
+        "location": "src/main/python/data/client_search_query_parse/behavior_enhanced_rules_args.yaml",
+        "location_scope": "business_source"
+      },
+      "source_ref_id": "business-behavior-rules"
+    },
+    {
+      "connections": [],
+      "decisions": [
+        {
+          "conclusion_kind": "inlive_boundary",
+          "conditions": [
+            "trust_model: M1 受控输出空间（见 project-judge-boundary-source 信任模型登记）",
+            "abbrname_enums 为当前启用配置",
+            "无灰度覆盖"
+          ],
+          "governs": "polNoInfo.plancodeinfo.abbrname 的可枚举值空间（哪些产品简称在下游可表达、可执行）。",
+          "locator": "abbrname_enums_args.yaml polNoInfo.plancodeinfo.abbrname.values",
+          "scenario": "client_search_parser_abbrname_enum_space",
+          "statement": "abbrname_enums_args.yaml 声明 polNoInfo.plancodeinfo.abbrname 的产品简称枚举值空间。该空间由下游数据库决定，parser 不能扩充；配置文件是该空间的代理（信任模型 M1 登记）。"
+        }
+      ],
+      "limitations": [
+        "信任模型 M1 下枚举文件作为下游值空间代理；出现空间外漂移是发现信号（material-positioning.md §5.3），不是否认空间的理由。"
+      ],
+      "related_to": [
+        "下游数据库实际产品简称全集（不由 abbrname_enums 决定）"
+      ],
+      "source_location": {
+        "location": "src/main/python/data/client_search_query_parse/polNoInfo.plancodeinfo.abbrname_enums_args.yaml",
+        "location_scope": "business_source"
+      },
+      "source_ref_id": "business-abbrname-enums"
+    },
+    {
+      "connections": [],
+      "decisions": [
+        {
+          "conclusion_kind": "inlive_boundary",
+          "conditions": [
+            "trust_model: M1 受控输出空间（见 project-judge-boundary-source 信任模型登记）",
+            "claimplancodename_enums 为当前启用配置",
+            "无灰度覆盖"
+          ],
+          "governs": "polNoInfo.claimdatainfo.claimplancodename 的可枚举值空间（哪些理赔险种名称在下游可表达、可执行）。",
+          "locator": "claimplancodename_enums_args.yaml polNoInfo.claimdatainfo.claimplancodename.values",
+          "scenario": "client_search_parser_claimplancodename_enum_space",
+          "statement": "claimplancodename_enums_args.yaml 声明 polNoInfo.claimdatainfo.claimplancodename 的理赔险种名称枚举值空间。该空间由下游数据库决定，parser 不能扩充；配置文件是该空间的代理（信任模型 M1 登记）。"
+        }
+      ],
+      "limitations": [
+        "信任模型 M1 下枚举文件作为下游值空间代理；出现空间外漂移是发现信号（material-positioning.md §5.3），不是否认空间的理由。"
+      ],
+      "related_to": [
+        "下游数据库实际理赔险种名称全集（不由 claimplancodename_enums 决定）"
+      ],
+      "source_location": {
+        "location": "src/main/python/data/client_search_query_parse/polNoInfo.claimdatainfo.claimplancodename_enums_args.yaml",
+        "location_scope": "business_source"
+      },
+      "source_ref_id": "business-claimplancodename-enums"
     }
   ],
   "report_id": "client_search-judge-authority-report",

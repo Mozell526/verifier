@@ -82,9 +82,33 @@ def load_explicit_field_support(spec: ProjectSpec, field: str) -> tuple[bool, bo
         and str(item.get("field") or "").strip() == field
         and "is_supported" in item
     ]
-    if not flags:
+    if flags:
+        return all(flag is not False for flag in flags), True
+
+    # field_definitions 未声明该字段时，再看 behavior_intent_definitions 的空间声明。
+    behavior_path = spec.source_path("behavior_intents")
+    if not behavior_path:
         return True, False
-    return all(flag is not False for flag in flags), True
+    behavior_source = Path(behavior_path)
+    if not behavior_source.is_file():
+        return True, False
+    behavior_payload = yaml.safe_load(behavior_source.read_text(encoding="utf-8")) or {}
+    if not isinstance(behavior_payload, dict):
+        return True, False
+    if str(behavior_payload.get("field") or "").strip() != field:
+        return True, False
+    intents = behavior_payload.get("intents")
+    if not isinstance(intents, list):
+        return True, False
+    behavior_flags = [
+        item.get("is_supported")
+        for item in intents
+        if isinstance(item, dict)
+        and "is_supported" in item
+    ]
+    if not behavior_flags:
+        return True, False
+    return all(flag is not False for flag in behavior_flags), True
 
 
 def _load_field_key_index(spec: ProjectSpec) -> InvestigationKeyIndex:
@@ -97,11 +121,40 @@ def _load_field_key_index(spec: ProjectSpec) -> InvestigationKeyIndex:
     if not source.is_file():
         raise FileNotFoundError(f"Field definitions file not found: {path}")
     stat = source.stat()
-    return _load_versioned_field_key_index(
+    index = _load_versioned_field_key_index(
         str(source.resolve()),
         stat.st_mtime_ns,
         stat.st_size,
     )
+    # 合并 behavior_intent_definitions 的字段级入口，使 catalog Search→Load 能命中 customer_activity。
+    behavior_path = spec.source_path("behavior_intents")
+    if behavior_path:
+        behavior_source = Path(behavior_path)
+        if behavior_source.is_file():
+            behavior_payload = yaml.safe_load(behavior_source.read_text(encoding="utf-8")) or {}
+            if isinstance(behavior_payload, dict):
+                behavior_field = str(behavior_payload.get("field") or "").strip()
+                if behavior_field:
+                    entries = list(index.entries or [])
+                    if behavior_field not in {entry.key for entry in entries}:
+                        entries.append(InvestigationKeyEntry(
+                            key=behavior_field,
+                            name="客户行为",
+                            search_text=" ".join([
+                                behavior_field,
+                                "客户行为",
+                                str(behavior_payload.get("description") or ""),
+                            ]),
+                            target_ref=f"client-search-field://{behavior_field}",
+                        ))
+                    index = InvestigationKeyIndex(
+                        index_key=index.index_key,
+                        collection_ref=index.collection_ref,
+                        target_kind=index.target_kind,
+                        entry_granularity=index.entry_granularity,
+                        entries=tuple(entries),
+                    )
+    return index
 
 
 def field_index_components(
@@ -129,12 +182,23 @@ def field_index_components(
         if explicit:
             raw["is_supported"] = supported
             raw["is_supported_explicit"] = True
+        source_path = spec.source_path("field_definitions")
+        locator = f"field_definitions_args.yaml#field={field}"
+        behavior_path = spec.source_path("behavior_intents")
+        if behavior_path and field == (raw.get("field") or ""):
+            try:
+                behavior_payload = yaml.safe_load(Path(behavior_path).read_text(encoding="utf-8")) or {}
+            except Exception:
+                behavior_payload = {}
+            if isinstance(behavior_payload, dict) and behavior_payload.get("field") == field:
+                source_path = behavior_path
+                locator = f"behavior_intent_definitions_args.yaml#field={field}"
         return {
             "content": raw,
-            "locator": f"field_definitions_args.yaml#field={field}",
+            "locator": locator,
             "provenance": {
                 "project_id": spec.project_id,
-                "source_path": spec.source_path("field_definitions"),
+                "source_path": source_path,
             },
         }
 

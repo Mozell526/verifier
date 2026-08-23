@@ -20,7 +20,11 @@ from impl.core.schema import (
     SingleTurnCase,
     TraceExecutionContext,
 )
-from impl.projects.client_search.capability_manifest import build_capability_manifest, lean_capability_manifest
+from impl.projects.client_search.capability_manifest import (
+    build_behavior_manifest,
+    build_capability_manifest,
+    lean_capability_manifest,
+)
 
 _SERVICE_LOCK = threading.Lock()
 
@@ -75,6 +79,8 @@ def source_config_paths(spec: ProjectSpec) -> Dict[str, str]:
         "source_profname_enums": spec.source_path("profname_enums"),
         "source_value_mappings": spec.source_path("value_mappings"),
         "source_enhanced_rules": spec.source_path("enhanced_rules"),
+        "source_behavior_intents": spec.source_path("behavior_intents"),
+        "source_behavior_rules": spec.source_path("behavior_rules"),
     }
 
 
@@ -82,8 +88,43 @@ def external_boundary_sources(spec: ProjectSpec) -> Dict[str, Any]:
     return {"config_paths": source_config_paths(spec)}
 
 
+def _merge_manifest(base: dict, extra: dict) -> dict:
+    """合并额外 manifest；同字段时合并 operators/enums 并让 false is_supported 生效。"""
+    if not isinstance(base, dict):
+        return dict(extra or {})
+    merged = {k: dict(v) for k, v in base.items()}
+    for field, entry in (extra or {}).items():
+        if not isinstance(entry, dict):
+            continue
+        if field not in merged:
+            merged[field] = dict(entry)
+            continue
+        target = merged[field]
+        target["operators"] = sorted(set(target.get("operators") or []) | set(entry.get("operators") or []))
+        target["value_types"] = sorted(set(target.get("value_types") or []) | set(entry.get("value_types") or []))
+        known = {str(v) for v in target.get("enums") or []}
+        for value in entry.get("enums") or []:
+            if str(value) not in known:
+                target.setdefault("enums", []).append(value)
+                known.add(str(value))
+        if entry.get("is_supported") is False:
+            target["is_supported"] = False
+            target["is_supported_explicit"] = True
+        elif entry.get("is_supported_explicit") and "is_supported_explicit" not in target:
+            target["is_supported_explicit"] = True
+        for extra_key in ("equivalent_activity_groups", "enum_total_count"):
+            if extra_key in entry and extra_key not in target:
+                target[extra_key] = entry[extra_key]
+    return merged
+
+
 def capability_snapshot(spec: ProjectSpec) -> dict:
-    """client_search 受治理字段目录。由 capability_provider 喂给结构化形态。"""
+    """client_search 受治理字段目录。由 capability_provider 喂给结构化形态。
+
+    field_definitions 仍按原契约加载；behavior_intents 只吸收其空间部分
+    （field/operator/is_supported/activity 枚举值空间），不吸收 aliases/template/
+    selection_notes/examples 等 current_behavior 选择规则。
+    """
     config_paths = source_config_paths(spec)
     definitions = config_paths.get("source_field_definitions")
     if not definitions:
@@ -99,7 +140,9 @@ def capability_snapshot(spec: ProjectSpec) -> dict:
         )
         if config_paths.get(key)
     ]
-    return build_capability_manifest(definitions, enums_path=enum_paths)
+    manifest = build_capability_manifest(definitions, enums_path=enum_paths)
+    behavior_manifest = build_behavior_manifest(config_paths.get("source_behavior_intents"))
+    return _merge_manifest(manifest, behavior_manifest)
 
 
 def capability_lexicon(spec: ProjectSpec) -> dict:

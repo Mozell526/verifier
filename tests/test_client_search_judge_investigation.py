@@ -97,7 +97,7 @@ def test_client_search_judge_solidify_projection_matches_smoke_evidence(monkeypa
 
     assert evidence["status"] == "succeeded"
     assert evidence["checks"]["authority_snapshot_sha256"]
-    assert evidence["checks"]["report"]["materials"] == 11
+    assert evidence["checks"]["report"]["materials"] == 15
     assert evidence["checks"]["report"]["coverage_gaps"] == 6
     authorities = evidence["checks"]["authorities"]
     assert {item["analysis_id"] for item in authorities.values()} == {
@@ -617,7 +617,7 @@ def test_judge_context_injects_evidence_space_not_curated_conclusions():
 
     spec = _authority_spec()
     report = _load_authority_report(spec)
-    assert len(report.materials) == 11
+    assert len(report.materials) == 15
     gap_ids = {gap.gap_id for gap in report.coverage_gaps}
     assert gap_ids == {
         "semantic-mapping-authority",

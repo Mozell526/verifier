@@ -4,7 +4,10 @@ from pathlib import Path
 
 import pytest
 
-from impl.projects.client_search.capability_manifest import build_capability_manifest
+from impl.projects.client_search.capability_manifest import (
+    build_behavior_manifest,
+    build_capability_manifest,
+)
 
 
 def test_repeated_field_merges_every_inline_and_referenced_enum(tmp_path: Path):
@@ -106,6 +109,58 @@ def test_missing_extra_enum_file_fails_closed(tmp_path: Path):
             definitions,
             enums_path=[tmp_path / "missing_extra.yaml"],
         )
+
+
+def test_build_behavior_manifest_extracts_space_and_ignores_selection_rules(tmp_path: Path):
+    behavior = tmp_path / "behavior_intent_definitions_args.yaml"
+    behavior.write_text(
+        """field: customer_activity
+source: docs/客户动态模板全量数据.xlsx
+equivalent_activity_groups:
+- [A1, A2]
+intents:
+  - candidate_id: c1
+    activity: A1
+    intent_category: 行为一
+    activity_template: 做了$slot$行为一
+    description: 表示客户发生了行为一。
+    selection_notes: 必须存在行为一语义。
+    aliases: [行为一, 做过行为一]
+    positive_examples: [找做过行为一的客户]
+    negative_examples: [找没做过行为一的客户]
+    confusing_intents: []
+    is_supported: true
+  - candidate_id: c2
+    activity: A2
+    intent_category: 行为二
+    activity_template: 做了$slot$行为二
+    description: 表示客户发生了行为二。
+    selection_notes: 必须存在行为二语义。
+    aliases: [行为二]
+    positive_examples: [找做过行为二的客户]
+    negative_examples: []
+    confusing_intents: []
+    is_supported: false
+""",
+        encoding="utf-8",
+    )
+
+    manifest = build_behavior_manifest(behavior)
+
+    entry = manifest["customer_activity"]
+    assert entry["field"] == "customer_activity"
+    assert entry["operators"] == ["MATCH"]
+    assert entry["value_types"] == ["enum"]
+    assert entry["is_supported"] is True
+    assert entry["is_supported_explicit"] is True
+    assert entry["enums"] == ["A1"]
+    assert entry["unsupported_enums"] == ["A2"]
+    assert entry["enum_total_count"] == 1
+    assert entry["equivalent_activity_groups"] == [["A1", "A2"]]
+    # selection rules must not leak into manifest
+    assert "selection_notes" not in entry
+    assert "aliases" not in entry
+    assert "activity_template" not in entry
 
 
 def test_is_supported_is_preserved_and_false_wins_across_field_entries(tmp_path: Path):

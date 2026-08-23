@@ -169,6 +169,87 @@ def build_capability_manifest(
     return fields
 
 
+def build_behavior_manifest(
+    behavior_intents_path: str | Path | None,
+) -> dict[str, dict[str, Any]]:
+    """从 behavior_intent_definitions_args.yaml 只吸收空间部分。
+
+    只把 field / operator / is_supported / activity 枚举值空间作为 capability
+    manifest 条目；aliases / activity_template / selection_notes / examples /
+    confusing_intents 属 current_behavior（parser 选择规则），不进入治理字段目录。
+    """
+    if not behavior_intents_path:
+        return {}
+    path = Path(behavior_intents_path)
+    if not path.is_file():
+        return {}
+    data = _yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    if not isinstance(data, dict):
+        return {}
+    field = str(data.get("field") or "customer_activity").strip()
+    if not field:
+        return {}
+    intents = data.get("intents") if isinstance(data, dict) else None
+    if not isinstance(intents, list):
+        return {}
+
+    supported_enums: list[str] = []
+    unsupported_enums: list[str] = []
+    for item in intents:
+        if not isinstance(item, dict):
+            continue
+        activity = str(item.get("activity") or "").strip()
+        if not activity:
+            continue
+        if item.get("is_supported") is False:
+            unsupported_enums.append(activity)
+        else:
+            supported_enums.append(activity)
+    supported_enums = list(dict.fromkeys(supported_enums))
+    unsupported_enums = list(dict.fromkeys(unsupported_enums))
+
+    equivalent_groups: list[list[str]] = []
+    raw_groups = data.get("equivalent_activity_groups")
+    if isinstance(raw_groups, list):
+        for group in raw_groups:
+            if isinstance(group, list):
+                cleaned = [str(item) for item in group if str(item).strip()]
+                if cleaned:
+                    equivalent_groups.append(cleaned)
+
+    is_supported = bool(supported_enums)
+    entry: dict[str, Any] = {
+        "field": field,
+        "operators": ["MATCH"],
+        "value_types": ["enum"],
+        "description": (
+            "客户行为字段。空间部分来自 behavior_intent_definitions_args.yaml；"
+            "aliases/activity_template/selection_notes/examples 属 current_behavior，不作为裁决依据。"
+        ),
+        "definition": (
+            "客户行为字段。空间部分来自 behavior_intent_definitions_args.yaml；"
+            "aliases/activity_template/selection_notes/examples 属 current_behavior，不作为裁决依据。"
+        ),
+        "enums": supported_enums,
+        "enum_ref": "",
+        "enum_refs": [],
+        "unresolved_enum_refs": [],
+        "show_enum_in_prompt": True,
+        "enum_candidate_limit_in_prompt": None,
+        "unit": "",
+        "notes": (
+            "只吸收 behavior_intent_definitions_args.yaml 的空间陈述；"
+            "具体行为选择规则仍以 current_behavior 处理。"
+        ),
+        "is_supported": is_supported,
+        "is_supported_explicit": True,
+        "enum_total_count": len(supported_enums),
+        "equivalent_activity_groups": equivalent_groups,
+        "unsupported_enums": unsupported_enums,
+    }
+    return {field: entry}
+
+
 def lean_capability_manifest(
     manifest: dict[str, dict[str, Any]],
     *,
