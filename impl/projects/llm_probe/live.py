@@ -3,9 +3,10 @@ from __future__ import annotations
 import json
 import urllib.error
 from typing import Any, Dict
+from urllib.parse import urlsplit
 
 from impl.core.live_protocol import LiveServiceUnavailableError, RealServiceLive, SingleTurnLive
-from impl.core.live_transport import LiveHTTPStatusError, LiveTransport
+from impl.core.live_transport import LiveForbiddenContentTypeError, LiveHTTPStatusError, LiveTransport
 from impl.core.project_loader import load_project
 from impl.core.schema import ExecutionTraceEvent, LiveRequest, ProjectSpec
 from impl.projects.llm_probe.capability import resolve_capability
@@ -42,16 +43,21 @@ def resolve_http(request: Dict[str, Any], spec: ProjectSpec) -> tuple[str, str, 
     primary = spec.require_service("primary")
     timeout = float(primary["timeout_seconds"])
     ref = str(request.get("capability_ref") or "").strip()
-    if not url:
-        if not ref:
-            raise ValueError("llm_probe request 需要 url 或 capability_ref")
+    if ref:
+        # 有 capability_ref 时始终合并目标项目 primary 配置，url 显式与否不改变 timeout/method 来源。
         service = load_project(ref).require_service("primary")
-        url = str(service["base_url"]).rstrip("/") + "/" + str(service["endpoint"]).lstrip("/")
+        if not url:
+            url = str(service["base_url"]).rstrip("/") + "/" + str(service["endpoint"]).lstrip("/")
         if not method:
             method = str(service["method"]).upper()
         timeout = float(service["timeout_seconds"])
+    if not url:
+        raise ValueError("llm_probe request 需要 url 或 capability_ref")
     if not method:
         method = str(primary["method"]).upper()
+    scheme = urlsplit(url).scheme.lower()
+    if scheme not in {"http", "https"}:
+        raise ValueError(f"llm_probe 只允许 http/https URL，收到 scheme {scheme or '(空)'}")
     if method not in {"POST", "PUT", "PATCH"}:
         raise ValueError(f"llm_probe 只发非流式 JSON 写方法，收到 {method}")
     resolve_capability(request)
@@ -75,6 +81,10 @@ class LlmProbeLive(RealServiceLive, SingleTurnLive):
     def deliver_real(self, request: Any, transport: LiveTransport) -> LiveTransport:
         payload = request if isinstance(request, dict) else {}
         url, method, headers, body, timeout = resolve_http(payload, self.spec)
+        if isinstance(request, dict):
+            # 回写解析结果，让 execution trace 和 judge 拿到真实 URL/method。
+            request["url"] = url
+            request["method"] = method
         try:
             transport.request(
                 method,
@@ -84,9 +94,12 @@ class LlmProbeLive(RealServiceLive, SingleTurnLive):
                 timeout=timeout,
                 carries_live_request=True,
                 contributes_raw_response=True,
+                forbid_content_types=("text/event-stream",),
             )
         except LiveHTTPStatusError:
             raise
+        except LiveForbiddenContentTypeError as exc:
+            raise RuntimeError(f"llm_probe 拒绝流式响应 {exc.content_type}") from exc
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
             raise LiveServiceUnavailableError(f"llm_probe target unavailable: {exc}") from exc
         _reject_streaming(transport)
