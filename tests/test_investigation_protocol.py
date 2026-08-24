@@ -280,6 +280,7 @@ def test_business_source_evidence_is_bound_to_configured_repo_and_revision(tmp_p
     (package / "overview.md").write_text("# overview", encoding="utf-8")
     business_file = source_root / "business.py"
     business_file.write_text("def run():\n    return 1\n", encoding="utf-8")
+    original_business_hash = hashlib.sha256(business_file.read_bytes()).hexdigest()
     unrelated_file = outside / "business.py"
     unrelated_file.write_text("def run():\n    return 2\n", encoding="utf-8")
     evidence = EvidenceRef(
@@ -328,7 +329,7 @@ def test_business_source_evidence_is_bound_to_configured_repo_and_revision(tmp_p
         )
 
     manifest.evidence_refs[0].location = f"{business_file}:run"
-    manifest.evidence_refs[0].metadata["sha256"] = hashlib.sha256(business_file.read_bytes()).hexdigest()
+    manifest.evidence_refs[0].metadata["sha256"] = original_business_hash
     dump_investigation_manifest(manifest, package / "manifest.json")
     with pytest.raises(ValueError, match="source_revision does not match"):
         validate_investigation_package(
@@ -376,6 +377,27 @@ def test_business_source_evidence_is_bound_to_configured_repo_and_revision(tmp_p
     assert warning["kind"] == "evidence_content_drift"
     assert warning["ref_id"] == "business-source"
     assert warning["expected"] != warning["actual"]
+
+    business_file.write_text("def run():\n    return 2\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="content hash changed"):
+        validate_investigation_package(
+            package,
+            project_root=project,
+            source_root=source_root,
+            expected_source_revision="revision-1",
+        )
+
+    result = validate_investigation_package(
+        package,
+        project_root=project,
+        source_root=source_root,
+        expected_source_revision="revision-2",
+        business_source_staleness_policy="warn",
+    )
+    assert result["source_revision_verified"] is False
+    assert result["current_source_revision"] == "revision-2"
+    assert any("source_revision" in warning for warning in result["warnings"])
+    assert any("content hash changed" in warning for warning in result["warnings"])
 
 
 def test_tool_requirement_requires_implementation_or_explicit_gap():
@@ -747,6 +769,107 @@ def test_candidate_tool_receipt_is_required_and_invalidated_by_code_change(tmp_p
             "attribute",
             business_source_staleness_policy="warn",
         )
+
+
+def test_candidate_runtime_warns_for_stale_business_source_but_strict_validation_fails(
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+):
+    verifier_root = tmp_path / "verifier"
+    project_root = verifier_root / "impl" / "projects" / "demo"
+    package = project_root / "draft" / "investigation" / "attribute"
+    source_root = tmp_path / "business"
+    package.mkdir(parents=True)
+    source_root.mkdir()
+    (package / "overview.md").write_text("# overview", encoding="utf-8")
+    (source_root / "business.py").write_text("VALUE = 1\n", encoding="utf-8")
+    subprocess.run(["git", "init", "-q", str(source_root)], check=True)
+    subprocess.run(["git", "-C", str(source_root), "add", "business.py"], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(source_root),
+            "-c",
+            "user.name=Verifier Test",
+            "-c",
+            "user.email=verifier@example.com",
+            "commit",
+            "-q",
+            "-m",
+            "initial",
+        ],
+        check=True,
+    )
+    initial_revision = subprocess.check_output(
+        ["git", "-C", str(source_root), "rev-parse", "HEAD"],
+        text=True,
+    ).strip()
+    dump_investigation_manifest(
+        InvestigationManifest(
+            schema_version=2,
+            project_id="demo",
+            role="attribute",
+            source_revision=initial_revision,
+        ),
+        package / "manifest.json",
+    )
+    spec = _project_spec(
+        project_root,
+        verifier_root=verifier_root,
+        business_root=source_root,
+        attribute_draft={"enabled": True, "module": "draft/attribute.py"},
+        role_assets=[
+            RoleAssetMapping(
+                asset_id="investigation",
+                kind="investigation",
+                enabled=True,
+                roles=["attribute"],
+                production_path="investigation/attribute",
+                candidate_path="draft/investigation/attribute",
+            )
+        ],
+    )
+    result = validate_investigation_package(
+        package,
+        project_root=project_root,
+        expected_project_id="demo",
+        expected_role="attribute",
+        execute_tools=True,
+        source_root=source_root,
+    )
+    write_investigation_validation_receipt(spec, "attribute", result, {})
+
+    (source_root / "business.py").write_text("VALUE = 2\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(source_root), "add", "business.py"], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(source_root),
+            "-c",
+            "user.name=Verifier Test",
+            "-c",
+            "user.email=verifier@example.com",
+            "commit",
+            "-q",
+            "-m",
+            "source update",
+        ],
+        check=True,
+    )
+
+    with pytest.raises(ValueError, match="source_revision does not match"):
+        require_investigation_validation_receipt(spec, "attribute")
+
+    with caplog.at_level("WARNING", logger="impl.core.investigation_validation"):
+        receipt = require_investigation_validation_receipt(
+            spec,
+            "attribute",
+            business_source_staleness_policy="warn",
+        )
+    assert receipt["role"] == "attribute"
+    assert "runtime will continue" in caplog.text
 
 
 def test_investigation_package_rejects_missing_mermaid_companion_node(tmp_path: Path):

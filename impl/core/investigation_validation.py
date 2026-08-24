@@ -137,12 +137,8 @@ def require_investigation_validation_receipt(
         source_root=source_root,
         business_source_staleness_policy=business_source_staleness_policy,
     )
-    staleness_warnings = tuple(
-        dict(item)
-        for item in current.get("staleness_warnings") or []
-        if isinstance(item, Mapping)
-    )
-    if staleness_warnings and business_source_staleness_policy == "warn":
+    warnings = tuple(str(item) for item in current.get("warnings") or [] if str(item).strip())
+    if warnings and business_source_staleness_policy == "warn":
         key = (
             str(spec.project_id),
             str(role),
@@ -155,7 +151,7 @@ def require_investigation_validation_receipt(
                 "[%s/%s] Draft investigation package is stale but runtime will continue: %s",
                 spec.project_id,
                 role,
-                "; ".join(str(item.get("message") or "") for item in staleness_warnings),
+                "; ".join(warnings),
             )
     if raw.get("manifest_sha256") != current.get("manifest_sha256"):
         raise ValueError("Investigation validation receipt is stale: manifest changed")

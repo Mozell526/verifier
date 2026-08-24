@@ -46,6 +46,7 @@ _ATTRIBUTE_TRACE_SECTIONS = (
     "## Operational index",
     "## Investigation procedure",
 )
+_BUSINESS_SOURCE_STALENESS_POLICIES = {"strict", "warn"}
 
 
 def validate_investigation_package(
@@ -86,21 +87,15 @@ def validate_investigation_package(
     detected_revision = str(expected_source_revision or "").strip()
     if source is not None and not detected_revision:
         detected_revision = detect_source_revision(source)
-    source_revision_drifted = bool(detected_revision and manifest.source_revision != detected_revision)
-    staleness_warnings: list[dict[str, str]] = []
-    if source_revision_drifted:
+    validation_warnings: list[str] = []
+    if detected_revision and manifest.source_revision != detected_revision:
         message = (
             "investigation source_revision does not match the configured business source repository: "
             f"manifest={manifest.source_revision}, current={detected_revision}"
         )
         if business_source_staleness_policy == "strict":
             raise ValueError(message)
-        staleness_warnings.append({
-            "kind": "source_revision_drift",
-            "message": message,
-            "expected": manifest.source_revision,
-            "actual": detected_revision,
-        })
+        validation_warnings.append(message)
     if expected_project_id and manifest.project_id != expected_project_id:
         raise ValueError(
             f"manifest project_id {manifest.project_id!r} does not match expected {expected_project_id!r}"
@@ -269,7 +264,7 @@ def validate_investigation_package(
                     and source is not None
                     and located.is_relative_to(source)
                 ),
-                staleness_warnings=staleness_warnings,
+                warnings=validation_warnings,
             )
             evidence_files.append(str(located))
 
@@ -380,7 +375,10 @@ def validate_investigation_package(
         "manifest": str(manifest_path),
         "manifest_sha256": hashlib.sha256(manifest_path.read_bytes()).hexdigest(),
         "source_root": str(source) if source is not None else "",
-        "source_revision_verified": bool(detected_revision) and not source_revision_drifted,
+        "current_source_revision": detected_revision,
+        "source_revision_verified": bool(detected_revision)
+        and manifest.source_revision == detected_revision,
+        "warnings": validation_warnings,
         "overview": str(overview_path),
         "artifacts": artifact_paths,
         "evidence_files": evidence_files,
@@ -682,7 +680,7 @@ def _validate_evidence_integrity(
     path: Path,
     *,
     allow_hash_mismatch: bool = False,
-    staleness_warnings: Optional[list[dict[str, str]]] = None,
+    warnings: Optional[list[str]] = None,
 ) -> None:
     expected_hash = str(
         evidence.metadata.get("sha256")
@@ -696,16 +694,11 @@ def _validate_evidence_integrity(
                 f"EvidenceRef content hash changed: {evidence.ref_id}; "
                 f"expected={expected_hash}, actual={actual_hash}"
             )
-            if not allow_hash_mismatch:
+            if allow_hash_mismatch:
+                if warnings is not None:
+                    warnings.append(message)
+            else:
                 raise ValueError(message)
-            if staleness_warnings is not None:
-                staleness_warnings.append({
-                    "kind": "evidence_content_drift",
-                    "message": message,
-                    "ref_id": str(evidence.ref_id),
-                    "expected": expected_hash,
-                    "actual": actual_hash,
-                })
     symbol = (
         evidence.location_ref.symbol
         if evidence.location_ref is not None

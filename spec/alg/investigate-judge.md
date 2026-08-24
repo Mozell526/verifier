@@ -38,34 +38,23 @@ LiveBoundary
 
 业务期望可以覆盖完整产品，因而可以大于 Live 的责任范围。Judge 不能因为最终产品结果未实现，就自动判定 Live 失败；也不能把 Live 的中间输出要求伪装成用户的业务期望。
 
-证据来源、ToolRequirement、artifact、可选 `key_indexes` 和 unresolved 继续由公共 `InvestigationManifest` 管理，不在 Judge-specific contract 中重复建立第二套来源或能力登记。Solidify 负责把调查合同固化为 Judge Context、Comparator/外部检查 Tool 和候选 Judge 逻辑，但不修改现有 `FulfillmentAssessment`、`JudgeResult` 和三态聚合协议。
+证据来源、ToolRequirement、artifact 和 unresolved 继续由公共 `InvestigationManifest` 管理，不在 Judge-specific contract 中重复建立第二套索引。Solidify 负责把调查合同固化为 Judge Context、Comparator/外部检查 Tool 和候选 Judge 逻辑，但不修改现有 `FulfillmentAssessment`、`JudgeResult` 和三态聚合协议。
 
-## 2. 调查产物（可选结构化契约 + 权威调查报告）
+## 2. 强制调查产物
 
-`judge-investigation-contract.json` 是 Judge 调查的**可选结构化契约（需求侧方向）**：
-当 Judge 需要以 BusinessExpectation / LiveBoundary / EvaluationDimension 结构化表达
-产品级判断合同，或需要为权威调查（`spec/alg/investigate-authority-judge.md`）提供
-覆盖方向时使用；没有需求侧输入时，调查可以退化为纯资料侧调查
-（`spec/alg/investigate-authority-judge.md` §4）。存在时：
+每个 `role=judge` 的调查包必须额外生成：
 
 ```text
 impl/projects/<project>/draft/investigation/judge/
   manifest.json
   overview.md
   docs/
-    judge-investigation-contract.json      # 可选（需求侧方向）
-    authority-investigation-report.json    # 权威调查结构化真相源（需要时）
-    authority-investigation-report.md      # 由 JSON 确定性渲染，供人工审核
+    judge-investigation-contract.json
 ```
 
-`judge-investigation-contract.json` 若存在，必须登记到既有 `InvestigationManifest.artifacts`；
-缺失、无法解析、ID 引用无效或语义审查失败时，不得进入 Judge Solidify。权威调查产物
-（`authority-investigation-report.json` / `.md`）按 `spec/alg/investigate-authority-judge.md`
-§15 登记与渲染。
+`judge-investigation-contract.json` 必须登记到既有 `InvestigationManifest.artifacts`。缺失、无法解析、ID 引用无效或语义审查失败时，不得进入 Judge Solidify。
 
-该文件是项目级、产品级的业务判断合同，不是当前 Case 的目标答案、`JudgeResult`、Judge
-Prompt 或候选实现指令。完整 JSON 不得无条件注入运行时 Prompt；Solidify 只装载当前
-判断所需的最小稳定内容。
+该文件是项目级、产品级的业务判断合同，不是当前 Case 的目标答案、`JudgeResult`、Judge Prompt 或候选实现指令。完整 JSON 不得无条件注入运行时 Prompt；Solidify 只装载当前判断所需的最小稳定内容。
 
 ## 3. Dataclass Schema
 
@@ -80,10 +69,6 @@ class JudgeInvestigationContract:
     business_expectations: tuple[BusinessExpectation, ...]
     live_boundary: LiveBoundary
     evaluation_dimensions: tuple[EvaluationDimension, ...]
-
-    # 权威调查不在本契约内复制：判断点依赖权威资料时，按
-    # spec/alg/investigate-authority-judge.md 单独产出权威调查报告；
-    # 本契约只通过 EvaluationDimension 提供可选的需求侧方向。
 
 
 @dataclass(frozen=True)
@@ -141,19 +126,6 @@ Judge-specific contract 不重复以下公共信息：
 - unresolved_reason。
 
 这些信息继续通过 `InvestigationManifest` 和调查文档管理。调查合同只固化业务语义及判断边界。
-
-### 3.1 权威调查对接（独立协议）
-
-当多个官方项目材料对同一判断点给出不同说法，或外部验收标准能否唯一决定结论时，
-Judge 的权威调查按 `spec/alg/investigate-authority-judge.md` 单独进行，不在本契约内
-复制权威结论：
-
-- 调查以**资料**为轴心：每份资料声明它在什么 `conclusion_kind + scenario + conditions`
-  组合内直接决定什么（MaterialDecision），资料关系记录为 MaterialConnection；
-- 需求侧方向（可选）用于识别"哪些业务事项 × 条件当前没有唯一决定资料"，以覆盖缺口
-  （CoverageGap）记录缺什么料、为什么缺、未来什么证据可解除；
-- 调查侧不产出任何"问题→结论"配对；最终 resolved/unresolved 由 Runtime 在证据空间
-  内现场综合（`spec/alg/authority.md` §5、§14.2）。
 
 ## 4. Schema 语义
 
@@ -303,78 +275,6 @@ FulfillmentAssessment[] → 现有 overall 聚合协议
 为避免概念混淆，本文将后者称为“当前 Case 验收项”。本轮规范不要求修改 runtime class 名称，但 Solidify 必须保留从产品级 `expectation_id` 到当前 Case 验收项的可审查映射，不能把两者视为同一个对象直接复制。
 
 当前 Case 验收项必须在观察 actual 前生成。是否 `blocking` 应根据该验收项失败是否会阻断关联 `desired_outcome` 确定，不得根据 actual 的偏差程度事后改变标准。
-
-### 5.1 Planning：在观察 actual 前形成评价计划
-
-Planning 是从项目级调查合同到当前 Case 验收项的选择步骤，不是另一次调查。
-它只使用当前请求和已经固化的项目级知识：
-
-```text
-当前 Case
-  ↓ 按 use_scenario 选择适用 BusinessExpectation
-适用的产品级业务期望
-  ↓ 展开其关联的全部 EvaluationDimension，并应用 LiveBoundary
-当前 Case 原子验收项
-  ↓ 若该评价点依赖权威事实（能力/职责边界、资料冲突、外部标准）
-运行时按 decision_question 调用 authority.resolve 现场裁决
-```
-
-Planning 必须在读取 Live actual 前完成，且不得：
-
-- 比较原始 Authority 资料；
-- 触发新一轮调查或回写任何结论；
-- 把 `unresolved` 改成 `resolved`；
-- 因为预见 actual 的表现而增删维度、验收项或改变 `blocking`。
-
-评价点是否依赖权威事实、依赖哪些资料，由运行时按 `spec/alg/authority.md` §5、§7
-处理：Judge 遇到需要裁决的能力/职责边界、资料冲突或外部标准时，构造
-`decision_question` 调用 `authority.resolve`；同一任务内相同 `decision_question`
-只裁决一次。Planning 不复制资料正文、调查推理或调查报告，也不直接读取完整
-Authority Report（`spec/alg/authority.md` §13.3）。权威调查产物与运行时综合见
-`spec/alg/investigate-authority-judge.md` 与 `spec/alg/authority.md`。
-
-### 5.2 Authority Gate：根据当前信息决定能否评价
-
-评价点是否依赖权威事实、当前依据是否足以支持判断，由 `authority.resolve` 现场裁决
-（`spec/alg/authority.md` §5、§7）；确定性 Gate 把裁决结果映射为三态：
-
-```text
-评价点不依赖权威事实
-  → 按现有三态规则评价
-
-评价点只命中 current_behavior 类资料
-  → 可解释当前实现，但不能据此证明正式业务正确
-
-评价点依赖 normative_rule / external_fact / inlive_boundary
-  ├─ 依据充分   → Judge 结合依据评价
-  └─ 证据不足   → unresolved → 该评价点必须 not_evaluable
-```
-
-Gate 必须校验：
-
-- `inlive_boundary` 类资料只用于回答能力/可表达性问题，且项目已登记信任模型
-  （`spec/alg/material-positioning.md` §4、§5）；
-- 裁决基于绑定空间内实际 Load 的原始资料，`basis_evidence_ref_ids` 可回溯
-  （`spec/alg/authority.md` §6、§13.3）；
-- `current_behavior` 不得替代缺失的 `normative_rule`、`external_fact` 或
-  `inlive_boundary`（`spec/alg/material-positioning.md` §4）；
-- 同一任务内相同 `decision_question` 只裁决一次（`spec/alg/authority.md` §7）。
-
-Authority 导致的 `not_evaluable` 不是静默跳过。Judge Summary 最少保留：
-
-```text
-status = not_evaluable
-reason = authority_unresolved
-unresolved_reason
-required_evidence
-basis_source_ref_ids
-```
-
-Judge 把 `AuthorityResolution.unresolved.required_evidence` 作为本 case 的缺料记录
-（reason / required_evidence，`spec/alg/authority.md` §8.4）。调查层触发只能由用户
-手动发起：人看到评测报告汇总的同类缺料后，才触发新一轮调查
-（`spec/alg/investigate-authority-judge.md` §17）。Planning 和 Judge 本身不能用临时
-提示绕过 unresolved。
 
 ## 6. 示例
 
@@ -705,11 +605,7 @@ Current/Draft 比较仍遵守现有冻结协议。Judge Review 必须检查：
 6. 各评估维度的三态端点及其与业务期望的关联没有统一结构；
 7. validator 只验证公共 Manifest、EvidenceRef、ToolRequirement 和 artifact 路径，不验证本 spec 的三个核心对象及其引用关系；
 8. Solidify 没有强制证明候选实际消费产品期望、LiveBoundary 和 EvaluationDimension；
-9. Draft Loop 没有逐项检查完整产品失败与 Live 可归责失败是否得到正确区分；
-10. Planning 对 BusinessExpectation、EvaluationDimension、LiveBoundary 的选择
-    边界尚未形成稳定合同；
-11. Authority unresolved 仍可能只影响提示语，不能确定性阻断无依据的肯定结论
-    （需按 `spec/alg/authority.md` §8 接入 not_evaluable）。
+9. Draft Loop 没有逐项检查完整产品失败与 Live 可归责失败是否得到正确区分。
 
 ## 11. 一次性改造任务
 
@@ -722,7 +618,7 @@ Current/Draft 比较仍遵守现有冻结协议。Judge Review 必须检查：
 
 ### Task 2：更新 Judge ROLE 与模板
 
-- 提供 `docs/judge-investigation-contract.json` 的可选结构化契约模板与门禁（按 §2 口径，非强制）；
+- 将 `docs/judge-investigation-contract.json` 加入 Judge 调查强制产物；
 - 在 Judge ROLE 中写入“产品级业务期望 → Live 责任边界 → 评估维度”的调查顺序；
 - 增加业务期望正例、实现视角反例和最小完整模板；
 - 更新 `MAP.md` 指向模板与门禁。
@@ -764,23 +660,9 @@ Current/Draft 比较仍遵守现有冻结协议。Judge Review 必须检查：
 - 增加自然语言 QA 多轮上下文完整、事实错误和权威知识缺失的代表测试；
 - 同步 `spec/alg/investigate.md`、Draft Skill、Judge ROLE、MAP 和参考模板。
 
-### Task 8：固化 Planning 与 Authority Gate
-
-- 在 Draft 内实现 actual-free Planning：按 use_scenario 选择业务期望，展开关联
-  维度，并应用 LiveBoundary 形成当前 Case 原子验收项；
-- 评价点依赖权威事实时，按 `spec/alg/authority.md` §5、§7 接入 `authority.resolve`
-  （`decision_question` + 绑定空间），同一任务内按 `decision_question` 去重；
-- unresolved 的 normative_rule、external_fact 或 inlive_boundary 必须把对应评价点约束为
-  `not_evaluable`，并把 `required_evidence` 写入 reason / required_evidence；
-- Judge Summary 必须输出 unresolved 原因、待补资料和依据来源；
-- 增加“无权威依赖”“current_behavior 仅解释现状”“依据充分可评价”
-  和“unresolved 强制 not_evaluable”四类测试；
-- 保持上述结构为 Draft 内部执行合同，不修改 Production 执行策略或公共
-  runtime schema。
-
 ## 12. 一次性改造验收
 
-- Judge 调查包使用 `judge-investigation-contract.json` 时，正确登记到 Manifest artifacts 并通过结构门禁；
+- 每个 Judge 调查包都生成并登记 `judge-investigation-contract.json`；
 - 每份合同都明确真实业务用户、使用场景和完整产品层面的期望结果；
 - 业务期望中不包含 Live 内部输出、协议字段、Comparator 或 Judge verdict；
 - `LiveBoundary` 能把完整产品结果正确投影到 Live 可归责范围；
@@ -790,7 +672,4 @@ Current/Draft 比较仍遵守现有冻结协议。Judge Review 必须检查：
 - Solidify 能证明产品级业务期望已自然引出当前 Case 原子验收项，而不是机械复制；
 - Judge 能区分完整产品未达成、Live 职责内失败、外部约束和证据不足；
 - 当前 Judge runtime public schema 未被复制或污染；
-- Planning 在观察 actual 前完成，且不重新调查资料、不回写任何结论；
-- unresolved Authority 能确定性约束对应评价点，并在 Judge Summary 中显示
-  具体原因、待补资料和依据来源；
 - Current/Draft 比较证明判断准确性改善且无可见退化后，才提出 Promotion 建议。

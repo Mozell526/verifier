@@ -16,17 +16,9 @@ import importlib.metadata
 import json
 import sys
 
-import inspect
 from agno.agent import Agent
 
-kwargs = {
-    "compress_tool_results": False,
-    "max_tool_calls_from_history": None,
-}
-params = inspect.signature(Agent.__init__).parameters
-if not any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()):
-    kwargs = {key: value for key, value in kwargs.items() if key in params}
-Agent(**kwargs)
+Agent(compress_tool_results=False, max_tool_calls_from_history=None)
 if sys.argv[1] == "1":
     import dashscope  # noqa: F401
 print(json.dumps({

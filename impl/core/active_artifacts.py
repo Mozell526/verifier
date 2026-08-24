@@ -15,7 +15,7 @@ from .schema.draft_state import DRAFT_RUN_REPORT_VERSION
 
 
 _HISTORICAL_ITERATION = re.compile(
-    r"^\d{3}-(?:run(?:[.-].+)?\.(?:json|md)|harness-review\.md|carrier-inbox\.md|review-input\.json)$"
+    r"^\d{3}-(?:run(?:[.-].+)?\.json|harness-review\.md)$"
 )
 
 
@@ -47,14 +47,6 @@ class ActiveArtifactContext:
             require_values=False,
             verifier_root=self.root,
         )
-
-
-@dataclass(frozen=True)
-class _BlockedRoleLoopAudit:
-    iteration: int
-    report_path: Path
-    review_path: Path
-    review: Mapping[str, object]
 
 
 ArtifactValidator = Callable[[ActiveArtifactContext, Path], None]
@@ -284,58 +276,6 @@ def _receipt_payload(
         raise ValueError(f"Investigation validation receipt identity mismatch: {path}")
 
 
-def _solidify_payload(
-    _context: ActiveArtifactContext,
-    path: Path,
-    payload: Any,
-) -> None:
-    if not isinstance(payload, Mapping):
-        raise TypeError("Draft Solidify receipt must be an object")
-    from .solidify import SOLIDIFY_RECEIPT_VERSION
-
-    schema_version = payload.get("schema_version")
-    if (
-        not isinstance(schema_version, int)
-        or isinstance(schema_version, bool)
-        or schema_version != SOLIDIFY_RECEIPT_VERSION
-    ):
-        raise ValueError("active Draft Solidify receipt has unsupported schema_version")
-    project_id = path.parents[3].name
-    role = path.parent.name
-    if payload.get("project_id") != project_id or payload.get("role") != role:
-        raise ValueError(f"Draft Solidify receipt identity mismatch: {path}")
-
-
-def _draft_role_review_payload(
-    _context: ActiveArtifactContext,
-    path: Path,
-    payload: Any,
-) -> None:
-    if not isinstance(payload, Mapping):
-        raise TypeError("Draft role review must be an object")
-    from .draft_role_review import DRAFT_ROLE_REVIEW_VERSION
-
-    schema_version = payload.get("schema_version")
-    if (
-        not isinstance(schema_version, int)
-        or isinstance(schema_version, bool)
-        or schema_version != DRAFT_ROLE_REVIEW_VERSION
-    ):
-        raise ValueError("active Draft role review has unsupported schema_version")
-    project_id = path.parents[4].name
-    role = path.parents[1].name
-    match = re.fullmatch(r"(\d{3})-role-review\.json", path.name)
-    if match is None:
-        raise ValueError(f"invalid Draft role review filename: {path.name}")
-    iteration = int(match.group(1))
-    if (
-        payload.get("project_id") != project_id
-        or payload.get("role") != role
-        or payload.get("iteration") != iteration
-    ):
-        raise ValueError(f"Draft role review identity mismatch: {path}")
-
-
 def _endpoint_payload(
     _context: ActiveArtifactContext,
     path: Path,
@@ -408,179 +348,6 @@ def _mock_cases_payload(
             parse_mock_case(case, project_id=project_id)
         except (TypeError, ValueError) as exc:
             raise ValueError(f"mock_cases[{index}] is invalid: {exc}") from exc
-
-
-def _judge_investigation_contract_payload(
-    _context: ActiveArtifactContext,
-    path: Path,
-    payload: Any,
-) -> None:
-    from .schema.investigation_judge import (
-        JudgeInvestigationContract,
-        validate_judge_contract,
-    )
-
-    if path.name != "judge-investigation-contract.json" or path.parents[1].name != "judge":
-        raise ValueError(f"Judge investigation contract path identity mismatch: {path}")
-    if not isinstance(payload, Mapping):
-        raise TypeError("Judge investigation contract must be an object")
-    validate_judge_contract(JudgeInvestigationContract.from_dict(payload))
-
-
-def _mock_investigation_contract_payload(
-    _context: ActiveArtifactContext,
-    path: Path,
-    payload: Any,
-) -> None:
-    from .schema.investigation_mock import (
-        MockInvestigationContract,
-        validate_mock_contract,
-    )
-
-    if path.name != "mock-investigation-contract.json" or path.parents[1].name != "mock":
-        raise ValueError(f"Mock investigation contract path identity mismatch: {path}")
-    if not isinstance(payload, Mapping):
-        raise TypeError("Mock investigation contract must be an object")
-    validate_mock_contract(MockInvestigationContract.from_dict(payload))
-
-
-def _draft_solidify_probe_payload(
-    _context: ActiveArtifactContext,
-    path: Path,
-    payload: Any,
-) -> None:
-    if not isinstance(payload, Mapping):
-        raise TypeError("Draft solidify probe must be an object")
-    project_id = path.parents[2].name
-    match = re.fullmatch(r"([a-z][a-z0-9_-]*)-solidify-smoke\.json", path.name)
-    if match is None:
-        raise ValueError(f"invalid Draft solidify probe filename: {path.name}")
-    role = match.group(1)
-    if payload.get("project_id") != project_id or payload.get("role") != role:
-        raise ValueError(
-            f"Draft solidify probe identity mismatch: expected {project_id}/{role}"
-        )
-    if payload.get("status") not in {"succeeded", "failed", "blocked"}:
-        raise ValueError("Draft solidify probe status must be succeeded, failed, or blocked")
-    if not isinstance(payload.get("observed_asset_ids"), list):
-        raise TypeError("Draft solidify probe observed_asset_ids must be a list")
-    if not isinstance(payload.get("checks"), Mapping):
-        raise TypeError("Draft solidify probe checks must be an object")
-
-
-def _validate_judge_investigation_contract(
-    context: ActiveArtifactContext, path: Path
-) -> None:
-    _judge_investigation_contract_payload(context, path, _read_payload(context, path))
-
-
-def _authority_investigation_report_payload(
-    _context: ActiveArtifactContext,
-    path: Path,
-    payload: Any,
-) -> None:
-    from .schema.investigation_judge import AuthorityInvestigationReport
-
-    if path.name != "authority-investigation-report.json" or path.parents[1].name != "judge":
-        raise ValueError(f"Authority investigation report path identity mismatch: {path}")
-    if not isinstance(payload, Mapping):
-        raise TypeError("Authority investigation report must be an object")
-    report = AuthorityInvestigationReport.from_dict(payload)
-    if not report.materials or not report.coverage_gaps:
-        raise ValueError(
-            "Authority investigation report must contain materials and coverage_gaps"
-        )
-
-
-def _validate_authority_investigation_report(
-    context: ActiveArtifactContext, path: Path
-) -> None:
-    _authority_investigation_report_payload(context, path, _read_payload(context, path))
-
-
-def _authority_claim_index_payload(
-    _context: ActiveArtifactContext,
-    path: Path,
-    payload: Any,
-) -> None:
-    if path.name != "authority-claims.json" or path.parents[1].name != "judge":
-        raise ValueError(f"Authority claim index path identity mismatch: {path}")
-    if not isinstance(payload, Mapping):
-        raise TypeError("Authority claim index must be an object")
-    if int(payload.get("schema_version") or 0) != 1:
-        raise ValueError("Authority claim index schema_version must be 1")
-    claims = payload.get("claims")
-    if not isinstance(claims, list) or not claims:
-        raise ValueError("Authority claim index claims must be a non-empty array")
-
-
-def _validate_authority_claim_index(
-    context: ActiveArtifactContext, path: Path
-) -> None:
-    _authority_claim_index_payload(context, path, _read_payload(context, path))
-
-
-def _key_index_experiment_payload(
-    _context: ActiveArtifactContext,
-    path: Path,
-    payload: Any,
-) -> None:
-    if path.parent.name != "experiments":
-        raise ValueError(f"Key-index experiment path identity mismatch: {path}")
-    if not isinstance(payload, Mapping):
-        raise TypeError("key-index experiment must be an object")
-
-
-def _validate_key_index_experiment(
-    context: ActiveArtifactContext, path: Path
-) -> None:
-    _key_index_experiment_payload(context, path, _read_payload(context, path))
-
-
-def _gate_feedback_payload(
-    _context: ActiveArtifactContext,
-    path: Path,
-    payload: Any,
-) -> None:
-    if not path.name.endswith("-gate-feedback.json"):
-        raise ValueError(f"Gate feedback path identity mismatch: {path}")
-    if not isinstance(payload, Mapping):
-        raise TypeError("gate feedback must be an object")
-
-
-def _validate_gate_feedback(context: ActiveArtifactContext, path: Path) -> None:
-    _gate_feedback_payload(context, path, _read_payload(context, path))
-
-
-def _context_governance_review_payload(
-    _context: ActiveArtifactContext,
-    path: Path,
-    payload: Any,
-) -> None:
-    if path.parent.name != "context-governance":
-        raise ValueError(f"Context governance review path identity mismatch: {path}")
-    if not isinstance(payload, Mapping):
-        raise TypeError("context governance review must be an object")
-
-
-def _validate_context_governance_review(
-    context: ActiveArtifactContext, path: Path
-) -> None:
-    _context_governance_review_payload(
-        context, path, _read_payload(context, path)
-    )
-
-
-def _validate_mock_investigation_contract(
-    context: ActiveArtifactContext, path: Path
-) -> None:
-    _mock_investigation_contract_payload(context, path, _read_payload(context, path))
-
-
-def _validate_draft_solidify_probe(
-    context: ActiveArtifactContext, path: Path
-) -> None:
-    _draft_solidify_probe_payload(context, path, _read_payload(context, path))
 
 
 def _context_record_payload(
@@ -712,202 +479,6 @@ def _validate_endpoint_manifest(context: ActiveArtifactContext, path: Path) -> N
                 )
 
 
-def _validate_staleness_report(context: ActiveArtifactContext, path: Path) -> None:
-    raw = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(raw, (Mapping, list)):
-        raise TypeError("staleness report must be a JSON object or array")
-    context.writer.validate(raw)
-
-
-def _staleness_report_payload(
-    _context: ActiveArtifactContext,
-    _path: Path,
-    payload: Any,
-) -> None:
-    if not isinstance(payload, (Mapping, list)):
-        raise TypeError("staleness report payload must be an object or array")
-
-
-def _validate_mapping_artifact(context: ActiveArtifactContext, path: Path) -> None:
-    raw = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(raw, Mapping):
-        raise TypeError(f"{path.name} must be a JSON object")
-    context.writer.validate(raw)
-
-
-def _mapping_payload(
-    _context: ActiveArtifactContext,
-    _path: Path,
-    payload: Any,
-) -> None:
-    if not isinstance(payload, Mapping):
-        raise TypeError("artifact payload must be an object")
-
-
-def _trusted_blocked_role_loop(
-    context: ActiveArtifactContext,
-    project_id: str,
-    role: str,
-) -> _BlockedRoleLoopAudit | None:
-    """Return the latest blocked review only when its audit hash chain is intact.
-
-    A blocked loop may retain the Solidify/review snapshot that actually observed
-    the infrastructure failure even after a candidate is edited.  That snapshot is
-    historical audit evidence, not a fresh execution or promotion receipt.
-    """
-    role_root = (
-        context.projects_dir / project_id / "draft" / ".state" / role
-    )
-    loop_path = role_root / "loop.json"
-    if not loop_path.is_file():
-        return None
-    try:
-        state = DraftLoopState.from_mapping(_read_object(context, loop_path))
-        if (
-            state.project_id != project_id
-            or state.role != role
-            or state.status != "blocked"
-            or not state.iterations
-        ):
-            return None
-        latest = state.iterations[-1]
-        if latest.decision != "blocked" or latest.route != "blocked":
-            return None
-
-        expected_report_location = (
-            f"draft/.state/{role}/iterations/{latest.iteration:03d}-run.json"
-        )
-        if latest.run_report.location != expected_report_location:
-            return None
-        spec = context.project_spec(project_id)
-        report_path = latest.run_report.resolve(
-            spec.path_resolver,
-            field_path="draft_loop.latest.run_report",
-            expected_type="file",
-        ).physical
-        actual_report_hash = hashlib.sha256(report_path.read_bytes()).hexdigest()
-        if actual_report_hash != latest.run_report.sha256:
-            return None
-
-        review_path = (
-            role_root
-            / "iterations"
-            / f"{latest.iteration:03d}-role-review.json"
-        )
-        expected_review_location = review_path.relative_to(
-            context.projects_dir / project_id
-        ).as_posix()
-        review_hash = hashlib.sha256(review_path.read_bytes()).hexdigest()
-        review_evidence = [
-            item.artifact
-            for item in latest.evidence
-            if item.artifact.location_scope is PathScope.PROJECT_PACKAGE
-            and item.artifact.location == expected_review_location
-        ]
-        if len(review_evidence) != 1 or review_evidence[0].sha256 != review_hash:
-            return None
-
-        review = _read_object(context, review_path)
-        _draft_role_review_payload(context, review_path, review)
-        if (
-            review.get("iteration") != latest.iteration
-            or review.get("decision") != "blocked"
-            or review.get("route") != "blocked"
-        ):
-            return None
-        return _BlockedRoleLoopAudit(
-            iteration=latest.iteration,
-            report_path=report_path,
-            review_path=review_path,
-            review=review,
-        )
-    except (OSError, TypeError, ValueError):
-        return None
-
-
-def _validate_draft_solidify(context: ActiveArtifactContext, path: Path) -> None:
-    payload = _read_object(context, path)
-    _solidify_payload(context, path, payload)
-    from .draft_role_review import require_draft_role_review
-    from .solidify import require_solidify_receipt
-
-    project_id = path.parents[3].name
-    role = path.parent.name
-    spec = context.project_spec(project_id)
-    try:
-        require_solidify_receipt(spec, role)
-        return
-    except ValueError as exc:
-        if not str(exc).startswith("Draft Solidify receipt is stale:"):
-            raise
-        stale_error = exc
-
-    blocked = _trusted_blocked_role_loop(context, project_id, role)
-    if blocked is None:
-        raise stale_error
-    review = require_draft_role_review(
-        spec,
-        role,
-        blocked.iteration,
-        run_report=blocked.report_path,
-        decision="blocked",
-        route="blocked",
-        check_current_solidify=False,
-    )
-    actual_receipt_hash = hashlib.sha256(path.read_bytes()).hexdigest()
-    if (
-        not isinstance(review, Mapping)
-        or review.get("solidify_receipt_sha256") != actual_receipt_hash
-    ):
-        raise ValueError(
-            "Draft Solidify receipt is stale and is not the receipt referenced "
-            "by the trusted blocked role review"
-        ) from stale_error
-
-
-def _validate_draft_role_review(context: ActiveArtifactContext, path: Path) -> None:
-    payload = _read_object(context, path)
-    _draft_role_review_payload(context, path, payload)
-    from .draft_role_review import require_draft_role_review
-
-    project_id = path.parents[4].name
-    role = path.parents[1].name
-    iteration = int(payload["iteration"] or 0)
-    spec = context.project_spec(project_id)
-    review_dir = path.parent
-    iterations = [
-        int(match.group(1))
-        for candidate in review_dir.glob("*-role-review.json")
-        if (match := re.fullmatch(r"(\d{3})-role-review\.json", candidate.name))
-    ]
-    latest_iteration = max(iterations, default=iteration)
-    blocked = _trusted_blocked_role_loop(context, project_id, role)
-    latest_is_trusted_blocked = (
-        blocked is not None and blocked.iteration == latest_iteration
-    )
-    raw_report = payload.get("run_report")
-    if not isinstance(raw_report, Mapping):
-        raise TypeError("Draft role review run_report must be a LogicalPathRef")
-    run_report = LogicalPathRef.from_mapping(
-        raw_report, field_path="draft_role_review.run_report"
-    ).resolve(
-        spec.path_resolver,
-        field_path="draft_role_review.run_report",
-        expected_type="file",
-    ).physical
-    require_draft_role_review(
-        spec,
-        role,
-        iteration,
-        run_report=run_report,
-        decision=str(payload.get("decision") or ""),
-        route=str(payload.get("route") or ""),
-        check_current_solidify=(
-            iteration == latest_iteration and not latest_is_trusted_blocked
-        ),
-    )
-
-
 def _validate_draft_loop(context: ActiveArtifactContext, state_path: Path) -> None:
     raw = _read_object(context, state_path)
     state = DraftLoopState.from_mapping(raw)
@@ -1026,14 +597,6 @@ def _find_unclassified_active_artifacts(
 
 
 def _recognized_historical_artifact(path: Path) -> bool:
-    parts = path.parts
-    for index in range(len(parts) - 3):
-        if (
-            parts[index] == ".state"
-            and parts[index + 2] == "history"
-            and index + 3 < len(parts)
-        ):
-            return True
     return path.parent.name == "iterations" and bool(
         _HISTORICAL_ITERATION.fullmatch(path.name)
     )
@@ -1113,108 +676,12 @@ DEFAULT_ACTIVE_ARTIFACT_REGISTRY = ActiveArtifactRegistry(
             payload_validator=_trace_graph_payload,
         ),
         ActiveArtifactFamily(
-            "judge_investigation_contract",
-            "derived_active",
-            "*/draft/investigation/judge/docs/judge-investigation-contract.json",
-            _validate_judge_investigation_contract,
-            consumer_boundaries=("Judge Investigation", "Judge Draft role loading", "promotion"),
-            payload_validator=_judge_investigation_contract_payload,
-        ),
-        ActiveArtifactFamily(
-            "authority_investigation_report",
-            "derived_active",
-            "*/draft/investigation/judge/docs/authority-investigation-report.json",
-            _validate_authority_investigation_report,
-            consumer_boundaries=("Judge Investigation", "Judge Draft role loading", "promotion"),
-            payload_validator=_authority_investigation_report_payload,
-        ),
-        ActiveArtifactFamily(
-            "authority_claim_index",
-            "derived_active",
-            "*/draft/investigation/judge/docs/authority-claims.json",
-            _validate_authority_claim_index,
-            consumer_boundaries=("Judge Investigation", "Judge Draft role loading", "promotion"),
-            payload_validator=_authority_claim_index_payload,
-        ),
-        ActiveArtifactFamily(
-            "key_index_experiment",
-            "derived_active",
-            "*/draft/investigation/*/experiments/*.json",
-            _validate_key_index_experiment,
-            consumer_boundaries=("key-index experiment replay", "judge runtime"),
-            payload_validator=_key_index_experiment_payload,
-        ),
-        ActiveArtifactFamily(
-            "gate_feedback",
-            "derived_active",
-            "*/draft/.state/*/*-gate-feedback.json",
-            _validate_gate_feedback,
-            consumer_boundaries=("Draft gate replay", "promotion"),
-            payload_validator=_gate_feedback_payload,
-        ),
-        ActiveArtifactFamily(
-            "context_governance_review",
-            "derived_active",
-            "*/draft/.state/*/context-governance/*.json",
-            _validate_context_governance_review,
-            consumer_boundaries=("context governance audit", "judge context engineering"),
-            payload_validator=_context_governance_review_payload,
-        ),
-        ActiveArtifactFamily(
-            "mock_investigation_contract",
-            "derived_active",
-            "*/draft/investigation/mock/docs/mock-investigation-contract.json",
-            _validate_mock_investigation_contract,
-            consumer_boundaries=("Mock Investigation", "Mock Draft role loading", "promotion"),
-            payload_validator=_mock_investigation_contract_payload,
-        ),
-        ActiveArtifactFamily(
-            "draft_solidify_probe",
-            "derived_active",
-            "*/draft/probes/*-solidify-smoke.json",
-            _validate_draft_solidify_probe,
-            consumer_boundaries=("Solidify", "Draft Loop", "promotion"),
-            payload_validator=_draft_solidify_probe_payload,
-        ),
-        ActiveArtifactFamily(
             "investigation_validation_receipt",
             "derived_active",
             "*/draft/.state/*/investigation-validation.json",
             _validate_investigation_receipt,
             consumer_boundaries=("Draft role loading", "promotion"),
             payload_validator=_receipt_payload,
-        ),
-        ActiveArtifactFamily(
-            "draft_solidify_receipt",
-            "derived_active",
-            "*/draft/.state/*/solidify.json",
-            _validate_draft_solidify,
-            consumer_boundaries=("Draft role loading", "Draft Loop", "promotion"),
-            payload_validator=_solidify_payload,
-        ),
-        ActiveArtifactFamily(
-            "draft_role_review",
-            "derived_active",
-            "*/draft/.state/*/iterations/*-role-review.json",
-            _validate_draft_role_review,
-            consumer_boundaries=("Draft Loop review", "promotion"),
-            payload_validator=_draft_role_review_payload,
-        ),
-        ActiveArtifactFamily(
-            "draft_iteration_score",
-            "derived_active",
-            "*/draft/.state/*/iterations/*-score.json",
-            _validate_mapping_artifact,
-            consumer_boundaries=("Draft Loop review",),
-            payload_validator=_mapping_payload,
-        ),
-        ActiveArtifactFamily(
-            "draft_pending",
-            "derived_active",
-            "*/draft/.state/*/pending.json",
-            _validate_mapping_artifact,
-            consumer_boundaries=("Draft Loop",),
-            payload_validator=_mapping_payload,
         ),
         ActiveArtifactFamily(
             "endpoint_discovery_manifest",
@@ -1242,15 +709,6 @@ DEFAULT_ACTIVE_ARTIFACT_REGISTRY = ActiveArtifactRegistry(
             _validate_draft_iteration_cases,
             consumer_boundaries=("Draft frozen iteration input",),
             payload_validator=_draft_iteration_cases_payload,
-        ),
-        ActiveArtifactFamily(
-            "staleness_report",
-            "derived_active",
-            "*/draft/.state/*/staleness/*.json",
-            _validate_staleness_report,
-            consumer_boundaries=("staleness audit", "drift routing"),
-            payload_validator=_staleness_report_payload,
-            owned_directory_patterns=("*/draft/.state/*/staleness",),
         ),
         ActiveArtifactFamily(
             "case_pool_store",
