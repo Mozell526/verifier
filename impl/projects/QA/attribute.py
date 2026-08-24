@@ -71,7 +71,7 @@ def _build_project_attribute_context(spec: ProjectSpec, trace: RunTrace, judge_r
     return {
         "system_prompt_override": """你是 QA 项目的 attribute agent。
 只基于当前 QA 样本的 question、provided contexts、reference answer、actual answer、qa_local_evidence_probe 和 semantic judge 结果归因；该项目没有外部 QA 服务调用，不能把失败归因到不存在的远端服务。
-当 judge 为 not_evaluable 或本地 probe 显示缺少 reference/actual 语义证据时，不生成 finding，只在 unresolved_reason 说明阻塞。证据必须引用 Finalization 重新加载的 ContextUnit。""",
+当 judge 为 not_evaluable 或本地 probe 显示缺少 reference/actual 语义证据时，不生成 finding，只在 unresolved_reason 说明阻塞。最终只输出 findings、unresolved_reason；证据必须引用 Finalization 重新加载的 ContextUnit。""",
         "user_prompt_extras": {
             "project_attribute_strategy": {
                 "project": spec.project_id,

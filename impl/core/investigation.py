@@ -9,24 +9,7 @@ from typing import Any, Dict, Iterable, Mapping, Optional, Sequence
 
 from impl.tools.protocol import ToolResult, VerifiableTool, build_agno_tools
 
-from .schema import (
-    InvestigationManifest,
-    load_investigation_manifest,
-    load_judge_contract,
-    load_mock_contract,
-    validate_investigation_manifest,
-    validate_judge_contract,
-    validate_mock_contract,
-)
-from .authority_investigation_gates import (
-    CLAIM_INDEX_RELATIVE_PATH,
-    load_and_validate_authority_claim_index,
-)
-from .schema.investigation_judge import (
-    load_authority_investigation_report,
-    render_authority_report_markdown,
-    validate_authority_report,
-)
+from .schema import InvestigationManifest, load_investigation_manifest, validate_investigation_manifest
 from .schema.investigation_trace import (
     TRACE_GRAPH_SUFFIX,
     load_trace_graph,
@@ -40,7 +23,6 @@ _MERMAID_HEADER = re.compile(r"^(?:flowchart|graph)\s+(?:TB|TD|BT|RL|LR)\b")
 _MERMAID_NODE = re.compile(r"^\s*([A-Za-z][A-Za-z0-9_-]*)\s*(?:\[|\(|\{|-->|---)")
 _PATH_LIKE_KINDS = {"source", "document", "trace", "replay", "test", "function"}
 _REVISION_KEYS = {"source_revision", "revision", "commit", "sha256", "content_hash"}
-_BUSINESS_SOURCE_STALENESS_POLICIES = {"strict", "warn"}
 _ATTRIBUTE_TRACE_SECTIONS = (
     "## How to use this trace map",
     "## Operational index",
@@ -268,19 +250,6 @@ def validate_investigation_package(
             )
             evidence_files.append(str(located))
 
-    evidence_locations = {
-        str(evidence.ref_id): _evidence_location_ref(evidence)
-        for evidence in _all_evidence(manifest)
-    }
-    role_contract = _validate_role_contract(
-        manifest.role,
-        package=package,
-        artifact_by_relative=artifact_by_relative,
-        evidence_ref_ids=evidence_ids,
-        evidence_locations=evidence_locations,
-        tool_requirement_ids=tool_ids,
-    )
-
     tools = []
     implemented_tool_ids = {
         requirement.tool_id
@@ -367,11 +336,6 @@ def validate_investigation_package(
         "project_id": manifest.project_id,
         "role": manifest.role,
         "source_revision": manifest.source_revision,
-        "current_source_revision": detected_revision,
-        "source_revision_drifted": source_revision_drifted,
-        "business_source_staleness_policy": business_source_staleness_policy,
-        "staleness_warnings": staleness_warnings,
-        "warnings": [item["message"] for item in staleness_warnings],
         "manifest": str(manifest_path),
         "manifest_sha256": hashlib.sha256(manifest_path.read_bytes()).hexdigest(),
         "source_root": str(source) if source is not None else "",
@@ -384,7 +348,6 @@ def validate_investigation_package(
         "evidence_files": evidence_files,
         "mermaid_nodes": mermaid_nodes,
         "trace_graphs": trace_graphs,
-        "role_contract": role_contract,
         "tools": tools,
         "tool_execution_requested": execute_tools,
         "unresolved_reason": manifest.unresolved_reason,
@@ -760,205 +723,6 @@ def _resolve_module_path(
         raise ValueError(f"ambiguous ToolImplementationRef.module_path base: {value}")
     return unique[0]
 
-
-
-def _validate_role_contract(
-    role: str,
-    *,
-    package: Path,
-    artifact_by_relative: Mapping[str, Path],
-    evidence_ref_ids: set[str],
-    evidence_locations: Mapping[str, str] | None = None,
-    tool_requirement_ids: set[str],
-) -> Dict[str, Any]:
-    """Validate the mandatory role-specific contract without changing Manifest schema."""
-    if role == "judge":
-        relative = "docs/judge-investigation-contract.json"
-        loader = load_judge_contract
-        validator = validate_judge_contract
-    elif role == "mock":
-        relative = "docs/mock-investigation-contract.json"
-        loader = load_mock_contract
-        validator = None
-    else:
-        return {}
-
-    expected = (package / relative).resolve()
-    registered = artifact_by_relative.get(relative)
-    if registered is None:
-        raise FileNotFoundError(
-            f"role={role} requires {relative} registered in InvestigationManifest.artifacts"
-        )
-    if registered.resolve() != expected:
-        raise ValueError(
-            f"role={role} contract must be package-local at {relative}: {registered}"
-        )
-    if not expected.is_file():
-        raise FileNotFoundError(f"role={role} investigation contract not found: {expected}")
-
-    contract = loader(expected)
-    if role == "mock":
-        validate_mock_contract(contract, evidence_ref_ids=evidence_ref_ids)
-        summary = {
-            "business_value_ids": [item.value_id for item in contract.business_values],
-            "dimension_ids": [
-                item.dimension_id for item in contract.evaluation_scope.dimensions
-            ],
-            "demand_space_ids": [item.space_id for item in contract.demand_spaces],
-        }
-    else:
-        assert validator is not None
-        validator(
-            contract,
-            evidence_ref_ids=evidence_ref_ids,
-            tool_requirement_ids=tool_requirement_ids,
-        )
-        summary = {
-            "expectation_ids": [
-                item.expectation_id for item in contract.business_expectations
-            ],
-            "dimension_ids": [
-                item.dimension_id for item in contract.evaluation_dimensions
-            ],
-        }
-        # 权威报告是可选交接产物：只要 Manifest 登记了报告 artifact 就校验
-        # （spec/alg/investigate-authority-judge.md §14）。
-        if (
-            _AUTHORITY_REPORT_JSON in artifact_by_relative
-            or _AUTHORITY_REPORT_MD in artifact_by_relative
-        ):
-            summary["authority_report"] = _validate_authority_report_product(
-                package=package,
-                artifact_by_relative=artifact_by_relative,
-                evidence_locations=evidence_locations or {},
-                dimension_ids=set(summary["dimension_ids"]),
-            )
-    return {"path": str(expected), "relative_path": relative, **summary}
-
-
-def _evidence_location_ref(evidence: Any) -> str:
-    '''Compact location key for Authority Report cross-checks.
-
-    Matches the EvidenceRef location_ref when present, otherwise the raw
-    location string, so a report can always be verified against the Manifest.
-    '''
-    if evidence.location_ref is not None:
-        return f"{evidence.location_ref.location_scope.value}:{evidence.location_ref.location}"
-    return str(evidence.location or "")
-
-
-# 权威报告固定逻辑路径（spec/alg/investigate-authority-judge.md §13）。
-_AUTHORITY_REPORT_JSON = "docs/authority-investigation-report.json"
-_AUTHORITY_REPORT_MD = "docs/authority-investigation-report.md"
-
-
-def _validate_authority_report_product(
-    *,
-    package: Path,
-    artifact_by_relative: Mapping[str, Path],
-    evidence_locations: Mapping[str, str],
-    dimension_ids: set[str],
-) -> Dict[str, Any]:
-    '''Judge 权威报告门禁（spec/alg/investigate-authority-judge.md §14）。
-
-    Manifest 一旦登记权威报告 artifact（JSON 真相源 + 确定性渲染 Markdown），
-    两者必须同时存在于固定逻辑路径，且内容通过 validate_authority_report。
-    校验层只做确定性检查，资料与覆盖缺口是否足够由交接审查负责。
-    '''
-    for relative in (_AUTHORITY_REPORT_JSON, _AUTHORITY_REPORT_MD):
-        registered = artifact_by_relative.get(relative)
-        if registered is None:
-            raise FileNotFoundError(
-                f"authority investigation report requires both {_AUTHORITY_REPORT_JSON} "
-                f"and {_AUTHORITY_REPORT_MD} registered in InvestigationManifest.artifact_refs"
-            )
-        if registered.resolve() != (package / relative).resolve():
-            raise ValueError(
-                f"Judge authority report must be package-local at {relative}: {registered}"
-            )
-        if not (package / relative).is_file():
-            raise FileNotFoundError(
-                f"Judge authority report not found: {package / relative}"
-            )
-    report = load_authority_investigation_report(package / _AUTHORITY_REPORT_JSON)
-    validate_authority_report(
-        report,
-        evidence_locations=evidence_locations,
-        dimension_ids=dimension_ids,
-    )
-    claims_registered = artifact_by_relative.get(CLAIM_INDEX_RELATIVE_PATH)
-    if claims_registered is None:
-        raise FileNotFoundError(
-            f"authority investigation report requires {CLAIM_INDEX_RELATIVE_PATH} "
-            "registered in InvestigationManifest.artifact_refs"
-        )
-    claims_path = package / CLAIM_INDEX_RELATIVE_PATH
-    if claims_registered.resolve() != claims_path.resolve() or not claims_path.is_file():
-        raise FileNotFoundError(
-            f"Authority claim index must be package-local at {CLAIM_INDEX_RELATIVE_PATH}"
-        )
-    claim_gate = load_and_validate_authority_claim_index(
-        claims_path,
-        evidence_ref_ids=set(evidence_locations),
-        coverage_gaps={item.gap_id: item for item in report.coverage_gaps},
-    )
-    rendered = render_authority_report_markdown(report)
-    markdown_text = (package / _AUTHORITY_REPORT_MD).read_text(encoding="utf-8")
-    if markdown_text != rendered:
-        raise ValueError(
-            f"{_AUTHORITY_REPORT_MD} is stale: it must be deterministically rendered from "
-            f"{_AUTHORITY_REPORT_JSON} (render_authority_report_markdown)."
-        )
-    return {
-        "report_id": report.report_id,
-        "materials": len(report.materials),
-        "coverage_gaps": len(report.coverage_gaps),
-        "authority_claim_gate": claim_gate,
-    }
-
-
-def load_judge_solidify_investigation_projection(
-    spec: Any, *, use_candidate: bool | None = None
-) -> Dict[str, Any]:
-    """Load the minimal Judge investigation projection used only by Solidify checks."""
-    from .project_loader import (
-        resolve_project_package_root,
-        resolve_project_source_root,
-        resolve_role_assets,
-    )
-    from .schema.investigation_judge import (
-        load_judge_contract,
-        project_judge_runtime_contract,
-    )
-
-    selected_candidate = (
-        spec.role_draft("judge").get("enabled") is True
-        if use_candidate is None
-        else bool(use_candidate)
-    )
-    selected = resolve_role_assets(spec, "judge", use_candidate=selected_candidate)
-    packages = [
-        item for item in selected
-        if item["mapping"].kind == "investigation" and item["available"]
-    ]
-    if not packages:
-        return {}
-    if len(packages) != 1:
-        raise ValueError(f"Judge requires exactly one investigation package; found={len(packages)}")
-    project_root = resolve_project_package_root(spec, must_exist=True)
-    source_root = resolve_project_source_root(spec) if spec.has_business_source else None
-    validated = validate_investigation_package(
-        Path(packages[0]["path"]),
-        project_root=project_root,
-        expected_project_id=spec.project_id,
-        expected_role="judge",
-        source_root=source_root,
-        business_source_staleness_policy=("warn" if selected_candidate else "strict"),
-    )
-    contract = load_judge_contract(Path(validated["role_contract"]["path"]))
-    return {
-        "business_contract": project_judge_runtime_contract(contract),
-    }
 
 def _manifest_artifacts(manifest: Any):
     for relative, purpose in manifest.artifacts.items():

@@ -96,7 +96,7 @@ def _default_system_prompt(tool_call_limit: int) -> str:
 
 严格区分两种标识：source_file_catalog 中的 key 只能传给 source_list_symbols、source_read_functions 或 source_search_text，绝不是 ContextUnit ID 或引用，禁止传给 load_context_units。Search 和 Load 只向你返回本轮短 selection_ref；调用 Load 时必须逐字使用该 ref，禁止复制、缩写、猜测或重建物理 ID。source/业务 Tool 的完整结果会自动注册并记为已调查，其 runtime_metadata.attribute_context_evidence 会返回 registered 和可选的短 selection_ref，无需再次 Load，也不会暴露物理 ContextUnit ID。queries 和 unit_ids 参数必须直接传 JSON 数组，不要包成对象或自造字段名；一次 search 最多 4 条 query，一次 load 最多 8 个 ID。
 
-调查工具预算最多 {tool_call_limit} 次。调查阶段只交付 investigation_summary；运行时会独立进入 Finalization。禁止输出 markdown。"""
+调查工具预算最多 {tool_call_limit} 次。调查完成后只输出 investigation_summary；运行时会独立进入 Finalization。禁止输出 markdown。"""
 
 
 def _finalization_system_prompt() -> str:
@@ -104,7 +104,7 @@ def _finalization_system_prompt() -> str:
 
 运行时已经重新加载 Investigation 中实际呈现过的全部 ContextUnit。基于这些完整材料自审：每个结论是否真被材料支持、是否能解释当前 gap、是否排除了会导向不同修复的主要竞争解释。若输入包含 investigation_output_error，它只表示上一步摘要违反结构协议，不是业务证据；忽略非法摘要，只审核 finalized_context_units。材料不足时不得给 hypothesis，应输出整体 unresolved_reason。派生验证结果（计算、probe、replay、对照等）不能自行证明其输入来自当前业务事实；若结论依赖这类结果，evidence 必须同时引用承载原始业务事实的 ContextUnit 和承载验证结果的 ContextUnit。Tool 参数或 Tool 结果中由模型转写的 source_quote 不能替代原始材料引用。只证明“偏差发生在接口 A 与接口 B 之间”可以作为有限 finding，但如果该区间仍包含会导向不同修改位置的多个业务机制，必须在 unresolved_reason 中明确保留这些未区分路径，不得把结果标成完整归因。`unresolved_reason` 只能描述仍未归因的 expectation、竞争解释或证据边界；若 findings 已完整覆盖所有 not_fulfilled expectation 且没有真实遗留问题，必须输出空字符串，禁止填写“无”“没有未解决问题”“所有证据一致”等完成声明。
 
-每个 finding 只能是已验证的真实缺陷。evidence 必须引用 finalized_context_units 中的 ContextUnit；reason 指明材料中什么事实证明结论。不得生成 ref_id/hash/location。禁止输出 markdown。"""
+最终只输出 JSON：findings 和 unresolved_reason。每个 finding 只能是已验证的真实缺陷，包含 finding_id、affected_expectation_ids、conclusion、evidence。evidence 每项只填 finalized_context_units 中的 context_unit_id 和 reason；reason 指明材料中什么事实证明结论。不得生成 ref_id/hash/location。禁止输出 markdown。"""
 
 
 def fulfilled_attribute_result(trace: RunTrace) -> AttributeResult:
@@ -159,11 +159,11 @@ def attribute_failure(
     investigation_system = _default_system_prompt(tool_call_limit)
     if context.get("system_prompt_override"):
         investigation_system += "\n\n项目补充约束：\n" + str(context["system_prompt_override"])
-        investigation_system += "\n\n当前是 Investigation 阶段，项目补充约束中的最终输出要求暂不适用；本次只交付 investigation_summary。"
+        investigation_system += "\n\n当前是 Investigation 阶段，项目补充约束中的最终输出要求暂不适用；本次只输出 investigation_summary。"
     visible_context = {
         key: value for key, value in context.items()
         if key not in {
-            "system_prompt_override", "tools", "targets_override", "context_governance_reports",
+            "system_prompt_override", "tools", "targets_override",
         }
         and not str(key).startswith("_attribute_")
     }
@@ -189,29 +189,9 @@ def attribute_failure(
     )
     investigation_output_error = ""
     try:
-        investigation_user = json.dumps(to_dict(user_data), ensure_ascii=False)
-        from .context_governance import configure_context_governance, role_governance_config
-        investigation_governance = configure_context_governance(
-            investigation_client,
-            config=role_governance_config(
-                spec,
-                role="attribute",
-                stage="investigation",
-                trace_id=trace.trace_id,
-                case_id=str(trace.case_id or ""),
-                call_id=f"attribute-investigation:{context.get('_attribute_round', 1)}",
-                compiler_source="impl/core/attribute.py#investigation",
-            ),
-            project_id=spec.project_id,
-            system=investigation_system,
-            user=investigation_user,
-            output_spec=_ATTRIBUTE_INVESTIGATION_SPEC,
-            tools=list(context.get("tools") or []),
-        )
-        context.setdefault("context_governance_reports", []).append(investigation_governance)
         investigation = investigation_client.complete_json(
             investigation_system,
-            investigation_user,
+            json.dumps(to_dict(user_data), ensure_ascii=False),
             trace_id=f"{trace.trace_id}:attribute-investigation:{context.get('_attribute_round', 1)}",
             output_spec=_ATTRIBUTE_INVESTIGATION_SPEC,
         )
@@ -264,25 +244,6 @@ def attribute_failure(
                 trace,
                 f"Attribute Finalization prompt size {prompt_chars} exceeds policy budget {prompt_char_budget}",
             )
-        finalization_governance = configure_context_governance(
-            finalization_client,
-            config=role_governance_config(
-                spec,
-                role="attribute-finalization",
-                stage="finalization",
-                trace_id=trace.trace_id,
-                case_id=str(trace.case_id or ""),
-                call_id=f"attribute-finalization:{context.get('_attribute_round', 1)}",
-                compiler_source="impl/core/attribute.py#finalization",
-                max_prompt_chars=prompt_char_budget,
-            ),
-            project_id=spec.project_id,
-            system=finalization_system,
-            user=serialized_finalization_user,
-            output_spec=_ATTRIBUTE_OUTPUT_SPEC,
-            tools=[],
-        )
-        context.setdefault("context_governance_reports", []).append(finalization_governance)
         data = finalization_client.complete_json(
             finalization_system,
             serialized_finalization_user,

@@ -123,6 +123,10 @@ def build_judge_evidence_view(trace: RunTrace) -> Dict[str, Any]:
     }
 
 
+# 兼容内部旧名称；所有新调用统一使用 build_judge_evidence_view。
+_judge_run_trace_view = build_judge_evidence_view
+
+
 def load_judge_boundary_standard(spec: ProjectSpec) -> Dict[str, Any]:
     boundary = spec.judge_boundary_contract
     if not isinstance(boundary, dict) or not boundary:
@@ -145,10 +149,7 @@ def _derive_overall_status(business_expectations: list[Any], assessments: list[A
     if not business_expectations or not assessments:
         return "not_evaluable"
     if not blocking_ids:
-        # fulfilled.md §6：没有覆盖用户核心诉求的必办验收项时，不能用
-        # 空集合的“全部通过”推出整体办成；单项 assessment 保持原状，
-        # 这里只把不完整的整体评估合同收敛为 not_evaluable。
-        return "not_evaluable"
+        return "fulfilled"
     status_by_id = {
         str(item.get("expectation_id") if isinstance(item, dict) else getattr(item, "expectation_id", "")):
         str(item.get("status") if isinstance(item, dict) else getattr(item, "status", "")).strip().lower()
@@ -315,60 +316,6 @@ def judge_trace(
     boundary_standard = load_judge_boundary_standard(spec)
     judge_boundary = "" if migrated_context else load_project_document(spec, "judge_boundary")
     judge_standard = "" if migrated_context else load_project_document(spec, "judge_standard")
-    governance_config = dict(
-        (project_judge_context or {}).get("context_governance") or {}
-    )
-    if not governance_config:
-        from .context_governance import role_governance_config
-        governance_config = role_governance_config(
-            spec,
-            role="judge",
-            stage="judge",
-            trace_id=str(trace.trace_id or ""),
-            case_id=str(getattr(trace, "case_id", "") or ""),
-            compiler_source="impl/core/judge.py#judge_trace",
-            user_source="trace://judge-evidence-view",
-        )
-    else:
-        governance_config.setdefault("trace_id", str(trace.trace_id or ""))
-        governance_config.setdefault("case_id", str(getattr(trace, "case_id", "") or ""))
-    excluded_markers = governance_config.get("excluded_clause_markers") or []
-    if excluded_markers:
-        from .context_governance import slice_context_clauses
-        excluded_segments = list(governance_config.get("excluded_segments") or [])
-        evaluation, excluded = slice_context_clauses(
-            evaluation,
-            source="project://evaluation",
-            excluded_markers=excluded_markers,
-        )
-        excluded_segments.extend(excluded)
-        judge_boundary, excluded = slice_context_clauses(
-            judge_boundary,
-            source="project://judge_boundary",
-            excluded_markers=excluded_markers,
-        )
-        excluded_segments.extend(excluded)
-        judge_standard, excluded = slice_context_clauses(
-            judge_standard,
-            source="project://judge_standard",
-            excluded_markers=excluded_markers,
-        )
-        excluded_segments.extend(excluded)
-        if mandatory_context is not None:
-            mandatory_source = "contextunit://" + ",".join(
-                mandatory_context.get("unit_ids") or []
-            )
-            projected_content, excluded = slice_context_clauses(
-                mandatory_context["content"],
-                source=mandatory_source,
-                excluded_markers=excluded_markers,
-            )
-            mandatory_context = {
-                **mandatory_context,
-                "content": projected_content,
-            }
-            excluded_segments.extend(excluded)
-        governance_config["excluded_segments"] = excluded_segments
 
     if not user_intent and project_judge_context:
         user_intent = project_judge_context.get("user_intent") or (
@@ -384,8 +331,8 @@ def judge_trace(
         "首要职责：理解用户/下游消费者的真实业务意图 → 派生 business_expectations → "
         "基于完整执行链路（每轮 output、最终 output、交互过程和停止事实）判断 expectations 的 fulfillment。\n\n"
         "## expectation 拆分原则\n"
-        "business_expectations 的粒度直接决定判断精度。每个 expectation 必须是原子、独立可评价的判断单元："
-        "证据充分时判 fulfilled 或 not_fulfilled；确需评价但当前证据不足时按协议判 not_evaluable。\n"
+        "business_expectations 的粒度直接决定判断精度。每个 expectation 必须是原子可判定的——"
+            "仅凭当前 Judge evidence 中的业务事实就能明确判定 fulfilled 或 not_fulfilled。\n"
         "- 一个 expectation 只描述一个可独立验证的结果维度\n"
         "- 多维度意图必须拆成多个 expectation\n"
         "- 每个 expectation 必须有明确的 acceptance_criteria\n"
@@ -439,6 +386,8 @@ def judge_trace(
             "4. 把所有 expected_outcome 汇总成 expected 字段，按结构化输出约束的 JSON Schema 填入真实内容\n\n"
             "### 强约束\n"
             "- expected 字段必须非空\n"
+            "- 不要输出 fulfillment_assessments / overall_fulfillment / missing / wrong / extra 等判定域字段\n"
+            "- 输出 JSON，只含 expected、business_expectations\n"
         )
 
     system += (
@@ -450,6 +399,7 @@ def judge_trace(
         "- 不要把 HTTP 状态、run_status、attribute/cluster 结论当作满足依据\n"
         "- 不要归因内部代码、配置或 prompt 原因（属于 attribute agent）\n"
         "- 分析文字必须使用中文，包括 reasoning_summary 等所有文本字段。\n"
+        "- 输出 JSON。"
     )
     user_payload = to_dict({
         "user_intent": user_intent,
@@ -472,39 +422,6 @@ def judge_trace(
 
     has_reference = _has_input_reference(trace)
     output_spec = _build_judge_output_spec(has_actual, project_id=spec.project_id, has_reference=has_reference)
-    if governance_config:
-        governance_config["base_user_char_count"] = len(user)
-        governance_segments = list(governance_config.get("segments") or [])
-        for segment_id, source, content in (
-            ("project-evaluation", "project://evaluation", evaluation),
-            ("project-judge-boundary", "project://judge_boundary", judge_boundary),
-            ("project-judge-standard", "project://judge_standard", judge_standard),
-        ):
-            if content:
-                governance_segments.append({
-                    "segment_id": segment_id,
-                    "source": source,
-                    "content": content,
-                })
-        if mandatory_context is not None:
-            governance_segments.append({
-                "segment_id": "mandatory-context-units",
-                "source": "contextunit://" + ",".join(mandatory_context.get("unit_ids") or []),
-                "content": mandatory_context["content"],
-            })
-        governance_config["segments"] = governance_segments
-        from .context_governance import configure_context_governance
-        governance_report = configure_context_governance(
-            client,
-            config=governance_config,
-            project_id=spec.project_id,
-            system=system,
-            user=user,
-            output_spec=output_spec,
-            tools=tools,
-        )
-        if project_judge_context is not None:
-            project_judge_context["context_governance_report"] = governance_report
     try:
         data = client.complete_json(system, user, trace_id=trace.trace_id, output_spec=output_spec)
     except ValueError as exc:
@@ -570,37 +487,14 @@ def _reprompt_judge(
     trace_id: str,
     output_spec: Optional[StructuredOutputSpec] = None,
 ) -> Dict[str, Any]:
-    from .context_governance import compact_reprompt_previous_values
-    previous_values = compact_reprompt_previous_values(data, inconsistencies)
     appendix = (
         "\n\n## 上次输出存在不一致\n"
         + json.dumps(inconsistencies, ensure_ascii=False)
-        + "\n## 仅供修复的上次字段值\n"
-        + json.dumps(previous_values, ensure_ascii=False)
-        + "\n请仅按错误路径修正，并重新输出符合唯一 schema 的完整 JSON；"
-        "未列出的字段按原任务重新生成，不要复述上次输出。"
+        + "\n## 上次完整输出\n"
+        + json.dumps(data, ensure_ascii=False)
+        + "\n请保留未报错字段，只修正以上路径后重新输出完整 JSON。"
     )
-    reprompt_user = user + appendix
-    governance_config = dict(
-        getattr(client, "_context_governance_config", {}) or {}
-    )
-    if governance_config and output_spec is not None:
-        from .context_governance import configure_context_governance
-        configure_context_governance(
-            client,
-            config=governance_config,
-            project_id=str(getattr(client, "_project_id", "") or ""),
-            system=system,
-            user=reprompt_user,
-            output_spec=output_spec,
-            tools=list(
-                getattr(client, "_context_governance_tools", None)
-                or getattr(client, "tools", [])
-                or []
-            ),
-            reprompt=True,
-        )
-    return client.complete_json(system, reprompt_user, trace_id=trace_id, output_spec=output_spec)
+    return client.complete_json(system, user + appendix, trace_id=trace_id, output_spec=output_spec)
 
 
 def _build_judge_output_spec(has_actual: bool, project_id: str = "", has_reference: bool = False) -> StructuredOutputSpec:

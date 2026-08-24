@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, Mapping
 
-from impl.tools import ToolContext, ToolResult, VerifiableTool
+from impl.tools import ToolContext, ToolResult
 
 
 class ClientSearchConditionCompareTool:
@@ -14,29 +14,23 @@ class ClientSearchConditionCompareTool:
         trace = context.trace
         if trace is None:
             return ToolResult(tool_id=self.tool_id, tool_type=self.tool_type, status="failed", error="trace missing")
-        trace_input = trace.input if isinstance(trace.input, dict) else {}
-        reference_ready = "reference" in set(trace.ready or [])
-        reference = (
-            trace.reference_contract
-            if reference_ready
-            and isinstance(trace.reference_contract, dict)
-            and trace.reference_contract
-            else trace_input.get("reference")
-            if reference_ready and isinstance(trace_input.get("reference"), dict)
-            else {}
-        )
+        reference = trace.input.get("reference") if isinstance(trace.input.get("reference"), dict) else {}
+        intent_expected = context.inputs.get("expected") if isinstance(context.inputs.get("expected"), dict) else {}
         reference_conditions = reference.get("expected_conditions") or []
         reference_is_oracle = bool(reference.get("is_current_oracle") or reference.get("oracle") == "current")
-        if reference_is_oracle:
+        if intent_expected.get("conditions"):
+            expected_conditions = intent_expected.get("conditions") or []
+            expected_source = intent_expected.get("expected_source") or "intent_model"
+            query_logic = intent_expected.get("query_logic") or "AND"
+        elif reference_is_oracle:
             expected_conditions = reference_conditions
             expected_source = "reference_oracle"
             query_logic = reference.get("expected_logic") or reference.get("logic") or "AND"
         elif reference_conditions:
-            # A historical or non-oracle reference is evidence about another answer,
-            # not a business standard for this case.  Keep it visible in ``expected``
-            # for audit, but do not compare actual against it.
-            expected_conditions = []
-            expected_source = "reference_evidence"
+            # Fallback: use reference conditions even when not oracle, so condition comparison
+            # can perform semantic matching rather than returning evaluable=false.
+            expected_conditions = reference_conditions
+            expected_source = "reference_fallback"
             query_logic = reference.get("expected_logic") or reference.get("logic") or "AND"
         else:
             expected_conditions = []
@@ -49,17 +43,9 @@ class ClientSearchConditionCompareTool:
             "reference_conditions": reference_conditions,
             "reference_is_oracle": reference_is_oracle,
         }
-        extracted_output = trace.extracted_output or {}
-        actual_conditions = (
-            extracted_output.get("conditions")
-            if isinstance(extracted_output.get("conditions"), list)
-            else extracted_output.get("structured_output")
-            if isinstance(extracted_output.get("structured_output"), list)
-            else []
-        )
         actual = {
-            "query_logic": extracted_output.get("query_logic") or extracted_output.get("logic") or "AND",
-            "conditions": actual_conditions,
+            "query_logic": (trace.extracted_output or {}).get("logic") or "AND",
+            "conditions": (trace.extracted_output or {}).get("structured_output") or [],
         }
         equivalence_rules = (
             context.spec.verifier_extra_value("semantic_equivalence_rules", {})
@@ -73,6 +59,9 @@ class ClientSearchConditionCompareTool:
             boundary_limits.append({"reason": reference.get("expected_reason") or "empty conditions allowed by project boundary"})
         status = "succeeded"
         evaluable = bool(expected_conditions)
+        # Also evaluable when using reference_fallback (even if conditions differ, we can compare)
+        if expected_source == "reference_fallback":
+            evaluable = True
         outputs = {
             "target_population": self._query_text(trace.input, trace.normalized_request, trace.extracted_output),
             "expected": expected,
@@ -88,6 +77,8 @@ class ClientSearchConditionCompareTool:
             "expected_source_label": expected_source,
         }
         missing_evidence = [] if evaluable else [{"reason": "current intent/config expected conditions unavailable; reference expected_conditions kept as evidence only", "expected_source": expected_source}]
+        if evaluable and expected_source == "reference_fallback":
+            missing_evidence = [{"reason": "no intent/config expected conditions; using reference conditions as fallback for semantic comparison", "expected_source": expected_source}]
         evidence = [
             {"query": outputs["target_population"]},
             {"expected": expected},
@@ -116,16 +107,14 @@ class ClientSearchConditionCompareTool:
             if field_index is not None:
                 matched_actual.add(field_index)
                 actual_condition = actual_conditions[field_index]
-                reason = self._wrong_reason(expected_condition, actual_condition, equivalence_rules)
-                if reason:
-                    wrong.append(
-                        {
-                            "type": "wrong_condition",
-                            "expected_fragment": expected_condition,
-                            "actual_fragment": actual_condition,
-                            "reason": reason,
-                        }
-                    )
+                wrong.append(
+                    {
+                        "type": "wrong_condition",
+                        "expected_fragment": expected_condition,
+                        "actual_fragment": actual_condition,
+                        "reason": self._wrong_reason(expected_condition, actual_condition, equivalence_rules),
+                    }
+                )
                 continue
             missing.append({"type": "missing_condition", "expected_fragment": expected_condition, "reason": "用户目标客户集合需要该筛选条件，但 actual 未输出对应字段条件。"})
         for actual_index, actual_condition in enumerate(actual_conditions):
@@ -136,6 +125,7 @@ class ClientSearchConditionCompareTool:
         if expected_conditions and actual_conditions and expected_logic != actual_logic:
             wrong.append({"type": "wrong_query_logic", "expected_fragment": expected_logic, "actual_fragment": actual_logic, "reason": "AND/OR 逻辑不一致会改变目标客户集合覆盖范围。"})
         return wrong, missing, extra
+
     def _find_exact(self, expected_condition: Dict[str, Any], actual_conditions: list[Dict[str, Any]], matched_actual: set[int]) -> int | None:
         for index, actual_condition in enumerate(actual_conditions):
             if index not in matched_actual and actual_condition == expected_condition:
@@ -180,118 +170,8 @@ class ClientSearchConditionCompareTool:
                     if rule_field not in ("*", "", expected_condition.get("field", "")):
                         continue
                     if (expected_condition.get("operator") == rule.get("operator") and actual_condition.get("operator") == rule.get("equivalent_operator")) or                        (actual_condition.get("operator") == rule.get("operator") and expected_condition.get("operator") == rule.get("equivalent_operator")):
-                        # Operators are compatible; verify single-value equivalence
-                        if self._values_single_equivalent(expected_condition.get("value"), actual_condition.get("value")):
-                            return ""  # Compatible operators with equivalent values
-                        return "操作符兼容但值不等价：多值列表与单值不匹配。"
+                        return ""  # Empty string means no wrong reason - operators are compatible
             return "字段相同但操作符错误，会改变目标客户集合。"
         if expected_condition.get("value") != actual_condition.get("value"):
             return "字段相同但值或枚举值错误，筛选出来的客户不是目标客户或覆盖范围不正确。"
         return "字段条件语义不一致。"
-
-    @staticmethod
-    def _values_single_equivalent(expected_value: Any, actual_value: Any) -> bool:
-        """Check if values are equivalent under single-value MATCH/CONTAINS semantics.
-
-        A single-element list ["X"] is equivalent to scalar "X".
-        """
-        # Normalize: unwrap single-element lists
-        ev = expected_value[0] if isinstance(expected_value, list) and len(expected_value) == 1 else expected_value
-        av = actual_value[0] if isinstance(actual_value, list) and len(actual_value) == 1 else actual_value
-        return ev == av
-
-
-def build_condition_compare_verifiable_tool() -> VerifiableTool:
-    """Expose the current-case authority resolver to investigation Solidify."""
-
-    def execute(
-        *,
-        expected_conditions: list[Dict[str, Any]],
-        actual_conditions: list[Dict[str, Any]],
-        expected_is_current_oracle: bool,
-        expected_logic: str = "AND",
-        actual_logic: str = "AND",
-    ) -> ToolResult:
-        expected = {
-            "query_logic": expected_logic or "AND",
-            "conditions": expected_conditions or [],
-        }
-        actual = {
-            "query_logic": actual_logic or "AND",
-            "conditions": actual_conditions or [],
-        }
-        comparison = ClientSearchConditionCompareTool()
-        wrong, missing, extra = (
-            comparison._compare(expected, actual, {})
-            if expected_is_current_oracle and expected["conditions"]
-            else ([], [], [])
-        )
-        evaluable = bool(expected_is_current_oracle and expected["conditions"])
-        return ToolResult(
-            tool_id=ClientSearchConditionCompareTool.tool_id,
-            tool_type="comparison",
-            status="succeeded",
-            outputs={
-                "expected": expected,
-                "actual": actual,
-                "wrong": wrong,
-                "missing": missing,
-                "extra": extra,
-                "evaluable": evaluable,
-            },
-            missing_evidence=(
-                []
-                if evaluable
-                else [{
-                    "reason": (
-                        "current oracle expected conditions are required to "
-                        "resolve semantic mapping for the current case"
-                    )
-                }]
-            ),
-        )
-
-    return VerifiableTool(
-        tool_id=ClientSearchConditionCompareTool.tool_id,
-        description=(
-            "Compare current-case oracle conditions with actual conditions and "
-            "emit a scope-local semantic-mapping resolution claim."
-        ),
-        applicable_scenario=(
-            "Judge has a current-case oracle and needs deterministic evidence "
-            "for the semantic mapping authority gate."
-        ),
-        parameters={
-            "type": "object",
-            "properties": {
-                "expected_conditions": {
-                    "type": "array",
-                    "description": "Current-case oracle conditions.",
-                    "items": {"type": "object"},
-                },
-                "actual_conditions": {
-                    "type": "array",
-                    "description": "Conditions emitted by Live for the same case.",
-                    "items": {"type": "object"},
-                },
-                "expected_is_current_oracle": {
-                    "type": "boolean",
-                    "description": "Whether expected_conditions are the current case oracle.",
-                },
-                "expected_logic": {
-                    "type": "string",
-                    "description": "Boolean logic in the current-case oracle.",
-                },
-                "actual_logic": {
-                    "type": "string",
-                    "description": "Boolean logic in the Live output.",
-                },
-            },
-            "required": [
-                "expected_conditions",
-                "actual_conditions",
-                "expected_is_current_oracle",
-            ],
-        },
-        execute_fn=execute,
-    )

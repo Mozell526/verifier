@@ -7,7 +7,7 @@ from impl.core.judge_protocol import ProjectJudge
 from impl.core.judge import ensure_business_expectation
 from impl.core.project_loader import load_field_provider
 from impl.core.schema import JudgeResult, ProjectSpec, RunTrace, normalize_judge_result, to_dict, trace_extracted_output
-from impl.projects.client_search.live import FIELD_PATTERNS, boundary_from_trace, capability_manifest, enhanced_rules, external_boundary_sources, value_mappings
+from impl.projects.client_search.live import FIELD_PATTERNS, application_boundary as live_application_boundary, boundary_from_trace, capability_manifest, enhanced_rules, external_boundary_sources, state_executors as live_state_executors, trace_state_graph as live_trace_state_graph, value_mappings
 from impl.projects.client_search.tools import ClientSearchConditionCompareTool
 from impl.tools import ToolContext, ToolRegistry
 from impl.tools import build_agno_tools
@@ -208,7 +208,7 @@ def judge_governance() -> Dict[str, Any]:
         "judge_role": "只判断当前 API actual output 是否语义覆盖当前 query，不做根因归因。",
         "must_ignore_as_verdict_basis": ["HTTP 200", "review_verdict", "source", "run_status", "root_cause_cluster", "attribute_result", "cluster", "history"],
         "binary_when_evidence_sufficient": True,
-        "not_evaluable_only_when": ["LLM/API judge 调用不可用", "当前配置/枚举/字段证据不足以判断 expected-vs-actual", "application_boundary 明确排除了该需求且无法判断范围内输出"],
+        "uncertain_only_when": ["LLM/API judge 调用不可用", "当前配置/枚举/字段证据不足以判断 expected-vs-actual", "application_boundary 明确排除了该需求且无法判断范围内输出"],
         "actual_output_priority": "以 API 最终 actual conditions 的下游可执行语义为准；prompt/config/后处理存在表述冲突时，先判断 actual 是否能搜出用户核心意图，再把冲突写入 evidence/check。",
         "required_comparison": ["query core intent", "field semantic carrier", "operator for field type", "value normalization", "query_logic", "missing/wrong/extra conditions"],
     }
@@ -287,6 +287,7 @@ def build_intent_frame(spec: ProjectSpec, trace: RunTrace) -> Dict[str, Any]:
     context = build_judge_context(spec, trace)
     return {
         "project_id": spec.project_id,
+        "downstream_consumer": spec.project_id,
         "request_candidates": [
             {"source": f"{source_name}.{key}", "value": value}
             for source_name in ("normalized_request", "input")
@@ -344,7 +345,7 @@ def _build_core_context(spec: ProjectSpec, trace: RunTrace) -> Dict[str, Any]:
         "## client_search fulfillment_assessments 字段约束\n"
         "`query_logic` / `conditions` / `matched_level` / `intent_summary` 是业务输出字段，属于 EXTRACT_OUTPUT 范畴，"
         "**不得作为 fulfillment_assessments 的顶层字段输出**。"
-        "fulfillment_assessments 只能产本次唯一 StructuredOutput schema 声明的字段，"
+        "fulfillment_assessments 只能产 schema 定义的标准字段（expectation_id / status / expected_evidence / actual_evidence / downstream_impact / confidence 等），"
         "把 conditions / query_logic 的对比证据写入 `expected_evidence` 与 `actual_evidence` 数组中即可。\n"
     )
 
@@ -360,32 +361,6 @@ def _build_core_context(spec: ProjectSpec, trace: RunTrace) -> Dict[str, Any]:
             "critical_intent_dimensions": critical_dimensions,
         }),
         "tools": _build_judge_tools(spec),
-        "context_governance": {
-            "enabled": True,
-            "mode": "production",
-            "role": "judge",
-            "stage": "judge",
-            "compiler_source": "impl/core/judge.py#judge_trace",
-            "user_source": "trace://judge-evidence-view",
-            "runtime_owned_fields": [
-                "overall_fulfillment",
-                "actual",
-                "fulfillment_assessments[*].confidence",
-                "business_expectations[*].evidence_refs",
-                "fulfillment_assessments[*].evidence_refs",
-                "fulfillment_assessments[*].authority_analysis_ids",
-            ],
-            "excluded_clause_markers": ["`JudgeResult` 协议字段"],
-            "max_prompt_chars": 160000,
-            "segments": [
-                {
-                    "segment_id": f"client-search-system-extra-{index + 1}",
-                    "source": "project://judge.py#system_prompt_extras",
-                    "content": content,
-                }
-                for index, content in enumerate(system_extras)
-            ],
-        },
     }
 class ClientSearchJudge(ProjectJudge):
     def __init__(self, spec: ProjectSpec):

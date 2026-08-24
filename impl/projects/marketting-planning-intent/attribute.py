@@ -322,7 +322,7 @@ def _build_project_attribute_context(spec: ProjectSpec, trace: RunTrace, judge_r
         "system_prompt_override": """你是 marketting-planning-intent 项目的 attribute agent。
 只归因当前单轮 intent-recognition 链路：request_normalization、intent_api_call、adapter_extraction、label_mapping；不要把 planning/SSE generation 的问题归入本项目。
 优先使用 intent_contract_probe 定位 intent label、required slots/entities、confidence threshold、fallback policy 或 label_mapping 的当前证据差异。
-只调查 not_fulfilled expectation，按真实缺陷合并 findings。证据不足时不输出 hypothesis，只写一个 unresolved_reason。evidence 仅引用 Finalization 重载的 ContextUnit。""",
+只调查 not_fulfilled expectation，按真实缺陷合并 findings。证据不足时不输出 hypothesis，只写一个 unresolved_reason。最终只输出 findings、unresolved_reason，evidence 仅引用 Finalization 重载的 ContextUnit。""",
         "user_prompt_extras": {
             "project_attribute_strategy": {
                 "project": spec.project_id,

@@ -142,7 +142,7 @@ prompt 是“执行过程中的具体优化点”，可以频繁变化，由 ski
 
 同意。建议在 skill 目录下放一个 MAP.md（或 INDEX.md），只做映射，不进 SKILL.md：
 
-.agents/skills/draft/
+.claude/skills/draft/
 ├── SKILL.md          # 只讲目标和思考方式
 ├── MAP.md            # 文件用途与调用关系
 ├── reference/        # 模板与说明

@@ -26,7 +26,7 @@ def _build_project_attribute_context(
 Tool 由当前节点的 input/output data、进入条件、可观测事实和 observation gap 决定。公共 API、replay/probe、配置和源码各自只能证明其声明的边界：静态材料只能解释已经观察到的机制，不能证明当前 case 经过该机制；专用 replay 也不能越过自身边界证明路由选择或其他阶段。
 配置、文档或历史 probe JSON 证据优先使用 `source_search_text` 的精确 query、较小 max_results 和 context_lines 获取命中附近的最小充分原文；已有命中片段足以解释观察到的转换时立即停止，不得再读取整文件。只有小文件且无法用有界搜索表达所需材料时才允许 full_file；若材料会挤占 Finalization 预算，保留 unresolved，不以超量材料换取结论。
 只有当前 query 的公共边界偏差与同一 case 的机制级观察能被因果连接，并且足以排除会导向不同修复的主要解释时，才输出完整 finding。若只能证明偏差发生在两个接口之间，可保留有限 finding，但只要该区间仍包含 mock、session、adapter、请求构造等不同修复位置，必须同时写 unresolved_reason，列明尚未区分的机制；不得把边界定位标成完整归因。所需阶段数据不可取得、不同观察不一致或只能证明故障层级时，收缩为 unresolved。
-证据必须引用 Finalization 重载的 ContextUnit。
+最终只输出 findings、unresolved_reason，证据必须引用 Finalization 重载的 ContextUnit。
 若 findings 已覆盖全部 not_fulfilled expectation 且没有真实遗留问题，unresolved_reason 必须为 ""；禁止用该字段写“无未解决问题”或结论强化语。
 禁止输出 attributed_to、root_cause_summary、evidence_refs、causal_category、earliest_divergence、verification_steps 等旧字段或项目私有字段。""",
         "user_prompt_extras": {

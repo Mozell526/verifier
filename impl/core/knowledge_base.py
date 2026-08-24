@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 import math
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, List, Optional
 
 import requests
 
@@ -78,35 +78,15 @@ class BailianEmbedder(Embedder):
         normalized = [str(text) for text in texts]
         if not normalized:
             return [], {"error": "empty_embedding_input"}
-        # dashscope 1.x 的 TextEmbedding.call 不支持注入 requests.Session（会把
-        # session 当成请求参数导致 JSON 序列化失败），因此直接通过受 trust_env
-        # 控制的 session 调用 DashScope 同款 HTTP 接口，保持"桌面代理不干扰证据
-        # 链路"的意图。
-        response = self._session.post(
-            "https://dashscope.aliyuncs.com/api/v1/services/embeddings/text-embedding/text-embedding",
-            json={"model": self.id, "input": {"texts": normalized}},
-            headers={
-                "Authorization": "Bearer %s" % self.api_key,
-                "Content-Type": "application/json",
-            },
-            timeout=60,
+        response = dashscope.TextEmbedding.call(
+            model=self.id,
+            input=normalized,
+            api_key=self.api_key,
+            session=self._session,
         )
         if response.status_code != 200:
-            error_code = "embedding_failed"
-            message = ""
-            try:
-                body = response.json()
-            except ValueError:
-                body = {}
-            if isinstance(body, Mapping):
-                error_code = str(body.get("code") or error_code)
-                message = str(body.get("message") or "")
-            return [], {"error": error_code, "message": message}
-        try:
-            body = response.json()
-        except ValueError:
-            return [], {"error": "invalid_embedding_response", "message": "non-JSON embedding response"}
-        embeddings = (body.get("output") or {}).get("embeddings") or []
+            return [], {"error": getattr(response, "code", "embedding_failed"), "message": getattr(response, "message", "")}
+        embeddings = response.output.get("embeddings") or []
         if not embeddings:
             return [], {"error": "empty_embedding"}
         ordered: List[Optional[List[float]]] = [None] * len(normalized)
@@ -121,7 +101,7 @@ class BailianEmbedder(Embedder):
             ordered[index] = item.get("embedding") or []
         if any(item is None for item in ordered):
             return [], {"error": "mismatched_embedding_batch"}
-        return [list(item or []) for item in ordered], body.get("usage")
+        return [list(item or []) for item in ordered], getattr(response, "usage", None)
 
 
 class SemanticVectorDb(VectorDb):

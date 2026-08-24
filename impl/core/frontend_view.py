@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 
 from .schema import AttributeResult, CheckReport, ClusterSummary, FrontendViewModel, JudgeResult, ProjectSpec, RunTrace, _non_empty_reference, to_dict, trace_extracted_output, trace_normalized_request, trace_raw_response
-from .capability_carrier import live_carrier_report
 from .table_view import build_trace_table_row
 from .summary import summary_from_fulfillment
 from .show_schema import build_show_projection
@@ -207,17 +206,7 @@ def build_frontend_view(
             extensions["trace_show"] = build_show_projection(trace)
         except Exception as exc:
             extensions["trace_show"] = {"available": False, "reason": str(exc)}
-    table_row = None
-    if trace:
-        report = live_carrier_report(spec, judge)
-        table_row = build_trace_table_row(
-            trace,
-            judge,
-            attribute,
-            None,
-            check,
-            case_context={"capability_carrier": report} if report is not None else {},
-        )
+    table_row = build_trace_table_row(trace, judge, attribute, None, check) if trace else None
     return FrontendViewModel(
         project_info={"project_id": spec.project_id, "name": spec.name, "description": spec.description},
         run_trace_summary=to_dict(trace) if trace else {},

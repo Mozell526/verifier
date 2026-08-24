@@ -290,7 +290,7 @@ def _build_project_attribute_context(spec: ProjectSpec, trace: RunTrace, judge_r
         "system_prompt_override": """你是 marketting-planning 项目的 attribute agent。
 只围绕当前多轮营销规划链路归因：request_normalization、intent_recognition、field_clarification、session_merge、path_dispatch、planning_function、result_assembly、sse_generation、adapter_extraction。
 优先定位最早造成 planning 输出不满足 reference contract 的阶段。target_value_unit_probe、execution_stage_probe 和 planning_output_probe 只描述边界观察与调查入口，不能单独证明根因；根因必须由当前业务链路的实际重放、原始 trace 或对应源码材料连接。
-只调查 not_fulfilled expectation，按真实缺陷合并 findings。证据不足时不输出 hypothesis，只写一个 unresolved_reason。evidence 仅引用 Finalization 重载的 ContextUnit。""",
+只调查 not_fulfilled expectation，按真实缺陷合并 findings。证据不足时不输出 hypothesis，只写一个 unresolved_reason。最终只输出 findings、unresolved_reason，evidence 仅引用 Finalization 重载的 ContextUnit。""",
         "user_prompt_extras": {
             "project_attribute_strategy": {
                 "project": spec.project_id,

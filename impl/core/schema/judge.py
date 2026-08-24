@@ -34,10 +34,6 @@ class FulfillmentAssessment:
     downstream_impact: str = ""
     confidence: Optional[float] = None
     evidence_refs: List[Dict[str, Any]] = field(default_factory=list)
-    # Assessment 显式声明本次判断依赖的 authority.resolve Tool 调用。
-    # Core 后处理校验引用存在且属于当前 trace；引用不存在 → needs_human_review；
-    # 引用的 resolution 为 unresolved → not_evaluable（authority.md §8）。
-    authority_tool_call_ids: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -99,8 +95,7 @@ class JudgeFulfillmentAssessmentOutput:
     expected_evidence: List[Any] = field(default_factory=list)
     actual_evidence: List[Any] = field(default_factory=list)
     downstream_impact: str = ""
-    # Authority 调用引用必须来自真实运行时 audit；模型不得自造 ID。
-    authority_tool_call_ids: List[str] = field(default_factory=list)
+    confidence: Optional[float] = None
 
 
 @dataclass
@@ -108,9 +103,6 @@ class JudgeLLMOutput:
     # spec/struct_output.md：judge 调用 LLM 时应产出的结构（不含代码派生字段）。
     # 作为 StructuredOutputSpec.from_dataclass 的 dataclass 来源，传给 complete_json。
     business_expectations: List[JudgeBusinessExpectationOutput] = field(default_factory=list)
-    # Planning 对已配置 ProductExpectation 的显式适用性选择。
-    # 仅在项目 opt-in planning applicability 时消费；空列表表示业务不适用。
-    applicable_product_expectation_ids: List[str] = field(default_factory=list)
     fulfillment_assessments: List[JudgeFulfillmentAssessmentOutput] = field(default_factory=list)
     expected: Any = None
     # actual 是 live 系统真实输出，由代码从 RunTrace 填充；LLM 不产 actual，避免把摘要/比较中间态污染主字段。

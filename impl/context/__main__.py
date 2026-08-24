@@ -11,8 +11,6 @@ from impl.core.context.adapters import (
     load_project_context_adapter,
 )
 from impl.core.context.bootstrap import build_context_runtime
-from impl.core.context_governance import report_from_context_messages
-from impl.core.context_store import load_contexts_by_trace
 from impl.core.project_loader import load_project
 
 
@@ -63,70 +61,18 @@ def initialize_project_context(
     return result
 
 
-def audit_project_context(
-    project_id: str,
-    trace_id: str,
-    *,
-    caller: str = "judge",
-) -> Mapping[str, Any]:
-    """Return the latest actual ContextRecord and its deterministic audit."""
-
-    records = [
-        item
-        for item in load_contexts_by_trace(project_id, trace_id)
-        if not caller or item.caller == caller
-    ]
-    if not records:
-        raise ValueError(
-            f"no ContextRecord found for project={project_id!r}, "
-            f"trace={trace_id!r}, caller={caller!r}"
-        )
-    record = records[-1]
-    governance = dict(record.governance or {})
-    if not governance:
-        governance = report_from_context_messages(
-            project_id=project_id,
-            caller=record.caller,
-            messages=record.messages,
-        )
-    return {
-        "ok": True,
-        "project_id": project_id,
-        "trace_id": trace_id,
-        "caller": record.caller,
-        "record_id": record.record_id,
-        "created_at": record.created_at,
-        "prompt_size": record.prompt_size,
-        "governance": governance,
-    }
-
-
 def main(argv: Optional[Sequence[str]] = None) -> None:
     parser = argparse.ArgumentParser(description="Initialize governed ContextUnit knowledge")
     subparsers = parser.add_subparsers(dest="command", required=True)
     init_parser = subparsers.add_parser("init", help="register stable project context units")
     init_parser.add_argument("--project", required=True)
     init_parser.add_argument("--data-root", help="override context data root (primarily for tests)")
-    audit_parser = subparsers.add_parser(
-        "audit",
-        help="inspect the latest governed LLM context for one trace",
-    )
-    audit_parser.add_argument("--project", required=True)
-    audit_parser.add_argument("--trace", required=True)
-    audit_parser.add_argument("--caller", default="judge")
     args = parser.parse_args(argv)
 
     if args.command == "init":
         result = initialize_project_context(
             args.project,
             data_root=Path(args.data_root) if args.data_root else None,
-        )
-        print(json.dumps(result, ensure_ascii=False, sort_keys=True))
-    elif args.command == "audit":
-        result = audit_project_context(
-            args.project,
-            args.trace,
-            caller=args.caller,
         )
         print(json.dumps(result, ensure_ascii=False, sort_keys=True))
 

@@ -13,29 +13,11 @@ from ..portable_artifact import (
 )
 from .base import to_dict
 from .evidence import EvidenceRef
-from .investigation_key_index import (
-    InvestigationKeyIndex,
-    validate_investigation_key_indexes,
-)
 
 
 INVESTIGATION_SCHEMA_VERSION = 2
 SUPPORTED_INVESTIGATION_SCHEMA_VERSIONS = {1, 2}
 MAX_INLINE_EVIDENCE_PAYLOAD_BYTES = 16_384
-
-# 业务源切片投影模式的协议固定词汇（metadata.slice.mode / key-index 支撑门禁 /
-# staleness 路由共用同一口径，勿在别处再硬编码字符串）。
-SLICE_MODE_FIELD = "field"
-SLICE_MODE_YAML_MAPPING_FIELD = "yaml_mapping_field"
-SLICE_MODE_YAML_LIST_CHUNK = "yaml_list_chunk"
-
-# 声明了切片的资料按粒度物化为多个 Evidence 单元；值级/块级检索必须由
-# key-index 支撑，避免把全量内容塞进候选元数据（authority.md Investigate 义务）。
-_SLICED_MODES_REQUIRING_KEY_INDEX = {
-    SLICE_MODE_FIELD,
-    SLICE_MODE_YAML_MAPPING_FIELD,
-    SLICE_MODE_YAML_LIST_CHUNK,
-}
 
 
 @dataclass(frozen=True)
@@ -73,7 +55,6 @@ class InvestigationManifest:
     tool_requirements: list[ToolRequirement] = field(default_factory=list)
     artifacts: Dict[str, str] = field(default_factory=dict)
     artifact_refs: list[InvestigationArtifactRef] = field(default_factory=list)
-    key_indexes: list[InvestigationKeyIndex] = field(default_factory=list)
     unresolved_reason: str = ""
 
     @classmethod
@@ -91,9 +72,6 @@ class InvestigationManifest:
                 location=LogicalPathRef.from_mapping(location, field_path="artifact_refs.location"),
                 purpose=str(item.get("purpose") or ""),
             ))
-        raw_key_indexes = value.get("key_indexes") or []
-        if not isinstance(raw_key_indexes, list):
-            raise TypeError("InvestigationManifest.key_indexes must be a list")
         return cls(
             schema_version=int(value.get("schema_version") or 0),
             project_id=str(value.get("project_id") or ""),
@@ -103,7 +81,6 @@ class InvestigationManifest:
             tool_requirements=requirements,
             artifacts={str(key): str(item) for key, item in dict(value.get("artifacts") or {}).items()},
             artifact_refs=artifact_refs,
-            key_indexes=[InvestigationKeyIndex.from_dict(item) for item in raw_key_indexes],
             unresolved_reason=str(value.get("unresolved_reason") or ""),
         )
 
@@ -115,7 +92,6 @@ class InvestigationManifest:
             {"location": dict(item.location.to_mapping()), "purpose": item.purpose}
             for item in self.artifact_refs
         ]
-        data["key_indexes"] = [item.as_dict() for item in self.key_indexes]
         if self.schema_version >= 2:
             data.pop("artifacts", None)
         else:
@@ -179,7 +155,6 @@ def validate_investigation_manifest(manifest: InvestigationManifest) -> None:
         if evidence.ref_id in evidence_ids:
             raise ValueError(f"duplicate EvidenceRef.ref_id: {evidence.ref_id}")
         evidence_ids.add(evidence.ref_id)
-    _validate_sliced_evidence_key_index_support(manifest)
 
     tool_ids: set[str] = set()
     for requirement in manifest.tool_requirements:
@@ -198,7 +173,6 @@ def validate_investigation_manifest(manifest: InvestigationManifest) -> None:
     for artifact in manifest.artifact_refs:
         if not artifact.purpose.strip():
             raise ValueError("InvestigationArtifactRef.purpose is required")
-    validate_investigation_key_indexes(manifest.key_indexes)
     if manifest.schema_version >= 2:
         for evidence in _manifest_evidence(manifest):
             if evidence.kind in {
@@ -211,42 +185,6 @@ def validate_investigation_manifest(manifest: InvestigationManifest) -> None:
                 raise ValueError(f"ToolImplementationRef requires module_ref in schema v2: {requirement.tool_id}")
         if manifest.artifacts:
             raise ValueError("InvestigationManifest schema v2 forbids legacy artifacts mapping")
-
-
-def _validate_sliced_evidence_key_index_support(manifest: InvestigationManifest) -> None:
-    """门禁：大切片资料必须有 key-index 支撑（CG-ENG-006 / P4）。
-
-    调查层必须显式提供检索支撑：
-    - manifest.key_indexes 中存在 collection_ref 匹配该 evidence_ref 的索引；
-    - 字段级切片（field / yaml_mapping_field）可改用 EvidenceRef.metadata.key_index
-      声明（字段枚举来自业务源、运行时才知道最新字段，由运行时从已物化切片确定
-      性投影为 authority.evidence.<ref_id> 索引）；
-    - 块级切片（yaml_list_chunk）的 chunk 边界由 slice 声明固定，调查层可直接登记
-      manifest 索引；运行时投影只支持字段级，不接受声明绕过。
-    core 不做隐式决策：没有声明的切片资料不投影索引，也不允许无支撑通过。
-    """
-    indexed_collections = {
-        str(index.collection_ref or "").strip()
-        for index in manifest.key_indexes
-    }
-    for evidence in _manifest_evidence(manifest):
-        metadata = evidence.metadata or {}
-        slice_spec = metadata.get("slice")
-        if not isinstance(slice_spec, Mapping):
-            continue
-        mode = str(slice_spec.get("mode") or "").strip()
-        if mode not in _SLICED_MODES_REQUIRING_KEY_INDEX:
-            continue
-        ref_id = str(evidence.ref_id or "").strip()
-        if ref_id in indexed_collections:
-            continue
-        if mode != "yaml_list_chunk" and metadata.get("key_index"):
-            continue
-        raise ValueError(
-            "sliced EvidenceRef requires key-index support "
-            "(manifest key_indexes with matching collection_ref or "
-            f"metadata.key_index declaration): {evidence.ref_id} (slice mode={mode})"
-        )
 
 
 def _evidence_ref(value: Any) -> EvidenceRef:

@@ -197,13 +197,6 @@ class LlmRolePolicyOverride:
 
 
 @dataclass(frozen=True)
-class LlmFallback:
-    base_url: str
-    model: str
-    api_key: str
-
-
-@dataclass(frozen=True)
 class LlmCapabilities:
     json_mode: bool
     tool_calls: bool
@@ -220,9 +213,10 @@ class LlmConfig:
     temperature: float
     reasoning_effort: str
     request_timeout_seconds: float
+    max_attempts: int
+    retry_delay_seconds: float
     capabilities: LlmCapabilities
     role_policies: Mapping[str, LlmRolePolicyOverride] = field(default_factory=dict)
-    fallbacks: Sequence[LlmFallback] = field(default_factory=tuple)
 
     def policy_for(self, role: str) -> LlmRolePolicy:
         override = self.role_policies.get(str(role or ""), LlmRolePolicyOverride())
@@ -357,6 +351,8 @@ class RuntimeConfig:
                 "temperature": self.llm.temperature,
                 "reasoning_effort": self.llm.reasoning_effort,
                 "request_timeout_seconds": self.llm.request_timeout_seconds,
+                "max_attempts": self.llm.max_attempts,
+                "retry_delay_seconds": self.llm.retry_delay_seconds,
                 "capabilities": {
                     "json_mode": self.llm.capabilities.json_mode,
                     "tool_calls": self.llm.capabilities.tool_calls,
@@ -521,6 +517,8 @@ def parse_runtime_document(data: Mapping[str, Any]) -> ParsedRuntimeConfig:
             "temperature",
             "reasoning_effort",
             "request_timeout_seconds",
+            "max_attempts",
+            "retry_delay_seconds",
             "capabilities",
             "role_policies",
         },
@@ -552,6 +550,11 @@ def parse_runtime_document(data: Mapping[str, Any]) -> ParsedRuntimeConfig:
             _required(llm_data, "request_timeout_seconds", "llm"),
             "llm.request_timeout_seconds",
             minimum=0.001,
+        ),
+        max_attempts=_integer(_required(llm_data, "max_attempts", "llm"), "llm.max_attempts", minimum=1),
+        retry_delay_seconds=_number(
+            _required(llm_data, "retry_delay_seconds", "llm"),
+            "llm.retry_delay_seconds",
         ),
         capabilities=LlmCapabilities(
             json_mode=_boolean(_required(capability_data, "json_mode", "llm.capabilities"), "llm.capabilities.json_mode"),
@@ -797,13 +800,9 @@ def _validate_bindings(environment: EnvironmentRegistry) -> None:
         "llm.api_key",
         "llm.temperature",
         "llm.reasoning_effort",
+        "llm.max_attempts",
+        "llm.retry_delay_seconds",
         "llm.role_policies.live_stub.model",
-        "llm.fallback_1.base_url",
-        "llm.fallback_1.model",
-        "llm.fallback_1.api_key",
-        "llm.fallback_2.base_url",
-        "llm.fallback_2.model",
-        "llm.fallback_2.api_key",
         "embedding.provider",
         "embedding.enabled",
         "embedding.model",
@@ -828,7 +827,7 @@ def _validate_bindings(environment: EnvironmentRegistry) -> None:
         seen_bindings.add(variable.bind)
         if variable.type not in supported_types:
             raise ConfigError(f"unsupported environment type for {variable.name}: {variable.type}")
-        if variable.secret and variable.bind not in {"llm.api_key", "embedding.api_key", "llm.fallback_1.api_key", "llm.fallback_2.api_key"}:
+        if variable.secret and variable.bind not in {"llm.api_key", "embedding.api_key"}:
             raise ConfigError(f"secret variable {variable.name} cannot bind visible field {variable.bind}")
 
 

@@ -27,10 +27,7 @@ from __future__ import annotations
 
 import dataclasses
 import json
-import re
-import sys
 import typing
-from collections.abc import Sequence as ABCSequence
 from typing import Any, Dict, List, Literal, Optional, Type, Union, get_args, get_origin, get_type_hints
 
 
@@ -74,44 +71,6 @@ def _strip_optional(tp: Any) -> tuple[Any, bool]:
             return (Any, True)
         return (args[0], True)  # Union 视为 nullable，取第一个分支
     return (tp, False)
-
-
-def _resolve_annotation(tp: Any, dc_type: Type) -> Any:
-    """Resolve one raw dataclass annotation to a runtime type.
-
-    ``typing.get_type_hints`` cannot evaluate PEP 604 unions such as
-    ``X | None`` on Python < 3.10.  When it fails for one field the whole
-    dataclass falls back to raw string annotations, which the schema renderer
-    would otherwise silently turn into unconstrained ``{}``.  This helper
-    resolves each annotation individually (including the common ``X | None``
-    form) and raises a descriptive error instead of degrading silently.
-    """
-    if not isinstance(tp, str):
-        return tp
-    module = sys.modules.get(dc_type.__module__)
-    globalns = getattr(module, "__dict__", {}) if module is not None else {}
-    raw = tp.strip()
-    # 前向引用注解（"X | None"）在 __future__ annotations 下会保留引号本身
-    if len(raw) >= 2 and raw[0] == raw[-1] and raw[0] in ("'", '"'):
-        raw = raw[1:-1].strip()
-    # 支持任意可 eval 的左侧表达式（含 List[str]、tuple[str, ...] 等泛型形式）：
-    # eval 内层失败时保持 None → 上层 fail-loud，不静默退化为无约束。
-    pep604_none = re.fullmatch(r"(.*?) \| None\s*$", raw, re.DOTALL)
-    if pep604_none is not None:
-        try:
-            base_type = eval(pep604_none.group(1), globalns)  # noqa: S307 - annotations are code by design
-        except Exception:
-            base_type = None
-        if base_type is not None:
-            try:
-                return Optional[base_type]
-            except Exception:
-                return None
-        return None
-    try:
-        return eval(raw, globalns)  # noqa: S307 - annotations are code by design
-    except Exception:
-        return None
 
 
 def _type_to_schema(tp: Any, _defs: dict, _seen: set) -> Dict[str, Any]:
@@ -176,24 +135,12 @@ def _type_to_schema(tp: Any, _defs: dict, _seen: set) -> Dict[str, Any]:
             return {"type": json_types, "enum": values}
         return {"enum": values}
 
-    # JSON has one sequence representation: array.  Python tuple/Sequence
-    # annotations therefore compile to arrays too; accepting them as unknown
-    # would silently remove the output contract for common frozen schemas.
-    if origin in (list, tuple, ABCSequence):
+    # List[X] / list
+    if origin in (list, List):
         args = get_args(tp)
-        if origin is tuple and args and args[-1] is not Ellipsis:
-            schema = {
-                "type": "array",
-                "items": [_type_to_schema(item_tp, _defs, _seen) for item_tp in args],
-                "minItems": len(args),
-                "maxItems": len(args),
-            }
-        else:
-            item_tp = args[0] if args else Any
-            schema = {
-                "type": "array",
-                "items": _type_to_schema(item_tp, _defs, _seen),
-            }
+        item_tp = args[0] if args else Any
+        item_schema = _type_to_schema(item_tp, _defs, _seen)
+        schema = {"type": "array", "items": item_schema}
         if nullable:
             schema["type"] = ["array", "null"]
         return schema
@@ -238,24 +185,7 @@ def _dataclass_to_schema(dc_type: Type, _defs: Optional[dict] = None, _seen: Opt
     try:
         hints = get_type_hints(dc_type)
     except Exception:
-        resolved: Dict[str, Any] = {}
-        failures: List[str] = []
-        for name, raw in (getattr(dc_type, "__annotations__", {}) or {}).items():
-            tp = _resolve_annotation(raw, dc_type)
-            if tp is None:
-                display = raw.strip()
-                if len(display) >= 2 and display[0] == display[-1] and display[0] in ("'", '"'):
-                    display = display[1:-1].strip()
-                failures.append(f"{name}: {display!r}")
-                continue
-            resolved[name] = tp
-        if failures:
-            raise ValueError(
-                f"无法解析 {dc_type.__name__} 的字段类型注解，schema 不能静默退化为无约束 "
-                f"(Python {sys.version_info.major}.{sys.version_info.minor} 下请使用 "
-                f"typing.Optional[X] 代替 X | None): {', '.join(failures)}"
-            )
-        hints = resolved
+        hints = getattr(dc_type, "__annotations__", {})
 
     properties: Dict[str, Any] = {}
     required: List[str] = []
@@ -416,6 +346,7 @@ def render_output_constraint(spec: StructuredOutputSpec) -> str:
     """
     schema = spec.json_schema()
     schema_str = json.dumps(schema, ensure_ascii=False, indent=2)
+    required = schema.get("required") or []
     nonempty = set(spec.required_nonempty)
 
     lines: List[str] = []

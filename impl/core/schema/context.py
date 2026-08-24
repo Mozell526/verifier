@@ -23,10 +23,6 @@ class ContextRecord:
     llm_model: str = ""
     elapsed_ms: int = 0
     error: Optional[str] = None
-    # Optional deterministic Context Governance snapshot/finding report.
-    # Full messages remain the replay source; governance stores hashes,
-    # provenance metadata and gates rather than duplicating prompt text.
-    governance: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -41,4 +37,3 @@ class ContextRecordSummary:
     elapsed_ms: int = 0
     created_at: str = ""
     error: Optional[str] = None
-    governance_blocking: bool = False

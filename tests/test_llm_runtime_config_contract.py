@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
 from impl.core import llm_client as llm_module
 from impl.core.config import ConfigError, resolve_runtime_config
-from impl.core.config_schema import LlmFallback
 from impl.core.llm_client import LlmClient, chat_completions_url
 from impl.core.structured_output import FREE_TEXT_OUTPUT
 
@@ -36,33 +34,8 @@ def test_llm_client_inherits_resolved_public_model(tmp_path):
     assert client.protocol == "openai_compatible"
     assert client.base_url == resolved.llm.base_url
     assert client.temperature == resolved.llm.temperature
+    assert client.max_attempts == resolved.llm.max_attempts
     assert client.request_timeout_seconds == resolved.llm.request_timeout_seconds
-
-
-def test_llm_clients_share_router_health_for_identical_endpoint_pool(tmp_path):
-    resolved = _resolved(tmp_path, model="shared-router-model", api_key="primary-key")
-    config = replace(
-        resolved.llm,
-        fallbacks=(
-            LlmFallback(
-                base_url="https://fallback.example.test/v1",
-                model="fallback-model",
-                api_key="fallback-key",
-            ),
-        ),
-    )
-
-    first = LlmClient(config=config)
-    second = LlmClient(config=config)
-
-    assert first.llm_router is second.llm_router
-    primary = first.llm_router.endpoints[0]
-    first.llm_router.record_failure(primary)
-    first.llm_router.record_failure(primary)
-    assert second.llm_router.select().name == "fallback1"
-
-    different = LlmClient(config=replace(config, model="different-router-model"))
-    assert different.llm_router is not first.llm_router
 
 
 def test_llm_role_policy_stays_explicit_when_public_model_changes(tmp_path):
@@ -98,70 +71,10 @@ def test_llm_client_builds_openai_compatible_model_with_explicit_credential(tmp_
     assert captured["id"] == "deepseek-v4-flash"
     assert captured["provider"] == "deepseek"
     assert captured["api_key"] == "explicit-deepseek-key"
-    assert captured["base_url"] == resolved.llm.base_url
-    assert captured["timeout"] == resolved.llm.request_timeout_seconds
-    assert captured["max_retries"] == 0
+    assert captured["base_url"] == "https://api.deepseek.com/v1"
+    assert captured["timeout"] == 120
     assert captured["supports_native_structured_outputs"] is False
     assert captured["supports_json_schema_outputs"] is False
-
-
-def test_endpoint_probe_uses_real_short_completion(monkeypatch):
-    captured = {}
-
-    class FakeCompletions:
-        def create(self, **kwargs):
-            captured.update(kwargs)
-            message = type("Message", (), {"content": "OK"})()
-            choice = type("Choice", (), {"message": message, "finish_reason": "stop"})()
-            return type("Response", (), {"choices": [choice]})()
-
-    class FakeOpenAI:
-        def __init__(self, **kwargs):
-            captured["client"] = kwargs
-            self.chat = type("Chat", (), {"completions": FakeCompletions()})()
-
-    monkeypatch.setattr(llm_module, "OpenAI", FakeOpenAI)
-    endpoint = llm_module.LlmEndpoint(
-        name="primary",
-        base_url="https://example.test/v1",
-        model="test-model",
-        api_key="test-key",
-    )
-
-    assert LlmClient._endpoint_probe(endpoint) is True
-    assert captured["model"] == "test-model"
-    assert captured["max_tokens"] == 4
-    assert captured["temperature"] == 0
-    assert "Health probe" in captured["messages"][0]["content"]
-    assert captured["client"]["timeout"] == 10.0
-
-
-def test_endpoint_probe_accepts_reasoning_token_as_generation_evidence(monkeypatch):
-    class FakeCompletions:
-        def create(self, **kwargs):
-            message = type(
-                "Message",
-                (),
-                {"content": "", "reasoning_content": "We need answer."},
-            )()
-            choice = type(
-                "Choice", (), {"message": message, "finish_reason": "length"}
-            )()
-            return type("Response", (), {"choices": [choice]})()
-
-    class FakeOpenAI:
-        def __init__(self, **kwargs):
-            self.chat = type("Chat", (), {"completions": FakeCompletions()})()
-
-    monkeypatch.setattr(llm_module, "OpenAI", FakeOpenAI)
-    endpoint = llm_module.LlmEndpoint(
-        name="primary",
-        base_url="https://example.test/v1",
-        model="reasoning-model",
-        api_key="test-key",
-    )
-
-    assert LlmClient._endpoint_probe(endpoint) is True
 
 
 def test_llm_client_blocks_undeclared_model_capabilities(tmp_path):
@@ -186,31 +99,3 @@ def test_chat_completions_url_is_derived_from_api_root():
         chat_completions_url("https://api.deepseek.com/v1/")
         == "https://api.deepseek.com/v1/chat/completions"
     )
-
-
-def test_openai_like_adapter_canonicalizes_exact_registered_logical_tool_id(monkeypatch):
-    from agno.models.openai.like import OpenAILike
-    from impl.core.llm_client import _parse_tool_calls_with_aliases
-
-    parsed = [{"type": "function", "function": {"name": "investigation.search_index", "arguments": "{}"}}]
-    monkeypatch.setattr(OpenAILike, "parse_tool_calls", lambda self, data: parsed)
-    model = OpenAILike(id="test", api_key="test", base_url="http://localhost/v1")
-    model.logical_tool_aliases = {"investigation.search_index": "investigation_search_index"}
-
-    result = _parse_tool_calls_with_aliases(model, [])
-
-    assert result[0]["function"]["name"] == "investigation_search_index"
-
-
-def test_openai_like_adapter_does_not_fuzz_unknown_tool_name(monkeypatch):
-    from agno.models.openai.like import OpenAILike
-    from impl.core.llm_client import _parse_tool_calls_with_aliases
-
-    parsed = [{"type": "function", "function": {"name": "investigation.search-index", "arguments": "{}"}}]
-    monkeypatch.setattr(OpenAILike, "parse_tool_calls", lambda self, data: parsed)
-    model = OpenAILike(id="test", api_key="test", base_url="http://localhost/v1")
-    model.logical_tool_aliases = {"investigation.search_index": "investigation_search_index"}
-
-    result = _parse_tool_calls_with_aliases(model, [])
-
-    assert result[0]["function"]["name"] == "investigation.search-index"

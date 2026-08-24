@@ -8,9 +8,6 @@ from impl.core.schema import BusinessExpectation, FulfillmentAssessment, JudgeRe
 from impl.core.schema.normalize import normalize_fulfillment_assessment
 
 
-_FINALIZERS = (finalize_judge_result,)
-
-
 def _result(*, blocking: bool, status: str) -> JudgeResult:
     return JudgeResult(
         trace_id="trace-1",
@@ -29,44 +26,8 @@ def _result(*, blocking: bool, status: str) -> JudgeResult:
     )
 
 
-@pytest.mark.parametrize("finalizer", _FINALIZERS)
-def test_no_blocking_expectation_cannot_be_vacuously_fulfilled(finalizer) -> None:
-    result = finalizer(_result(blocking=False, status="fulfilled"))
-
-    assert result.fulfillment_assessments[0].status == "fulfilled"
-    assert result.overall_fulfillment["status"] == "not_evaluable"
-    assert result.overall_fulfillment["blocking_expectations"] == []
-    assert "缺少覆盖用户核心诉求的 blocking 必办验收项" in result.summary["reason"]
-    assert result.summary["reason_source"] == "aggregated_fulfillment"
-
-
-@pytest.mark.parametrize("finalizer", _FINALIZERS)
-def test_nonblocking_gap_does_not_fail_fulfilled_core_goal(finalizer) -> None:
-    result = JudgeResult(
-        trace_id="trace-1",
-        project_id="fixture-project",
-        business_expectations=[
-            BusinessExpectation(
-                expectation_id="core-goal",
-                blocking=True,
-                expected_outcome="complete the core goal",
-            ),
-            BusinessExpectation(
-                expectation_id="presentation-quality",
-                blocking=False,
-                expected_outcome="present the result clearly",
-            ),
-        ],
-        fulfillment_assessments=[
-            FulfillmentAssessment(expectation_id="core-goal", status="fulfilled"),
-            FulfillmentAssessment(
-                expectation_id="presentation-quality",
-                status="not_fulfilled",
-            ),
-        ],
-    )
-
-    result = finalizer(result)
+def test_nonblocking_gap_does_not_fail_overall() -> None:
+    result = finalize_judge_result(_result(blocking=False, status="not_fulfilled"))
 
     assert result.overall_fulfillment["status"] == "fulfilled"
     assert "1 non-blocking gaps" in result.summary["reason"]
@@ -104,7 +65,7 @@ def test_assessment_blocking_field_is_rejected() -> None:
         })
 
 
-def test_reprompt_contains_only_previous_values_needed_for_repair() -> None:
+def test_reprompt_contains_previous_complete_output() -> None:
     captured = {}
 
     class Client:
@@ -124,10 +85,9 @@ def test_reprompt_contains_only_previous_values_needed_for_repair() -> None:
     )
 
     assert result == {"ok": True}
-    assert "仅供修复的上次字段值" in captured["user"]
-    assert "上次完整输出" not in captured["user"]
+    assert "上次完整输出" in captured["user"]
     assert '"expectation_id": "core-goal"' in captured["user"]
-    assert "不要复述上次输出" in captured["user"]
+    assert "保留未报错字段" in captured["user"]
 
 
 @pytest.mark.parametrize("failure_marker", ["llm_call_failed", "llm_output_validation_failed"])

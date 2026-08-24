@@ -447,7 +447,7 @@ def _parse_service(value: Any, path: str) -> dict[str, Any]:
 
 def _parse_verifier(value: Any, project_root: Path, path_warnings: list[str]) -> dict[str, Any]:
     data = _mapping(value, "verifier")
-    _unknown(data, {"authority", "attribution", "field_provider", "endpoint_discovery", "roles", "assets", "scenarios", "judge", "presentation", "check_rules", "extra"}, "verifier")
+    _unknown(data, {"attribution", "field_provider", "endpoint_discovery", "roles", "assets", "scenarios", "judge", "presentation", "check_rules", "extra"}, "verifier")
     attribution = _mapping(_required(data, "attribution", "verifier"), "verifier.attribution")
     _unknown(attribution, {"enabled", "trace"}, "verifier.attribution")
     result: dict[str, Any] = {
@@ -455,16 +455,6 @@ def _parse_verifier(value: Any, project_root: Path, path_warnings: list[str]) ->
             "enabled": _boolean(_required(attribution, "enabled", "verifier.attribution"), "verifier.attribution.enabled")
         }
     }
-    if "authority" in data:
-        authority = _mapping(data["authority"], "verifier.authority")
-        _unknown(authority, {"enabled_scopes", "description"}, "verifier.authority")
-        from .authority_scopes import parse_enabled_scopes
-        result["authority"] = {
-            "enabled_scopes": parse_enabled_scopes(
-                authority.get("enabled_scopes", []),
-                "verifier.authority.enabled_scopes",
-            )
-        }
     if "trace" in attribution:
         trace_path = "verifier.attribution.trace"
         trace = _mapping(attribution["trace"], trace_path)
@@ -679,7 +669,7 @@ def _parse_assets(value: Any, path_warnings: list[str]) -> list[dict[str, Any]]:
     for index, raw_asset in enumerate(value):
         path = f"verifier.assets[{index}]"
         asset = _mapping(raw_asset, path)
-        _unknown(asset, {"asset_id", "kind", "enabled", "roles", "production_path", "candidate_path", "replace", "metadata"}, path)
+        _unknown(asset, {"asset_id", "kind", "enabled", "roles", "production_path", "candidate_path", "replace"}, path)
         asset_id = _string(_required(asset, "asset_id", path), f"{path}.asset_id")
         _snake_id(asset_id, f"{path}.asset_id")
         if asset_id in ids:
@@ -720,100 +710,6 @@ def _parse_assets(value: Any, path_warnings: list[str]) -> list[dict[str, Any]]:
                 raise ConfigError(f"{path}.candidate_path must stay under draft/")
         if "replace" in asset:
             parsed["replace"] = _boolean(asset["replace"], f"{path}.replace")
-        if "metadata" in asset:
-            metadata_path = f"{path}.metadata"
-            metadata = _mapping(asset["metadata"], metadata_path)
-            _unknown(
-                metadata,
-                {
-                    "planning",
-                    "scopes",
-                    "dimensions",
-                    "dimension_ids",
-                    "dimension_expectation_ids",
-                    "product_use_scenarios",
-                    "live_boundary_sha256",
-                    "coverage_keys",
-                    "judgment_kinds",
-                    "authority_sources",
-                    "resolution_tool_ids",
-                    "unavailable_tool_requirement_ids",
-                    "authority_status",
-                    "runtime_directive",
-                    "limitation_reason",
-                    "product_expectation_ids",
-                    "required_coverage_keys",
-                    "revision",
-                },
-                metadata_path,
-            )
-            parsed_metadata: dict[str, Any] = {}
-            if "planning" in metadata:
-                parsed_metadata["planning"] = _boolean(
-                    metadata["planning"], f"{metadata_path}.planning"
-                )
-            for field_name in (
-                "scopes",
-                "dimensions",
-                "dimension_ids",
-                "coverage_keys",
-                "judgment_kinds",
-                "authority_sources",
-                "resolution_tool_ids",
-                "unavailable_tool_requirement_ids",
-                "product_expectation_ids",
-                "required_coverage_keys",
-            ):
-                if field_name in metadata:
-                    parsed_metadata[field_name] = _string_list(
-                        metadata[field_name], f"{metadata_path}.{field_name}"
-                    )
-            if "dimension_expectation_ids" in metadata:
-                raw_mapping = _mapping(
-                    metadata["dimension_expectation_ids"],
-                    f"{metadata_path}.dimension_expectation_ids",
-                )
-                parsed_metadata["dimension_expectation_ids"] = {
-                    _string(key, f"{metadata_path}.dimension_expectation_ids key"):
-                    _string_list(value, f"{metadata_path}.dimension_expectation_ids.{key}")
-                    for key, value in raw_mapping.items()
-                }
-            if "product_use_scenarios" in metadata:
-                raw_mapping = _mapping(
-                    metadata["product_use_scenarios"],
-                    f"{metadata_path}.product_use_scenarios",
-                )
-                parsed_metadata["product_use_scenarios"] = {
-                    _string(key, f"{metadata_path}.product_use_scenarios key"):
-                    _string(value, f"{metadata_path}.product_use_scenarios.{key}")
-                    for key, value in raw_mapping.items()
-                }
-            if "live_boundary_sha256" in metadata:
-                parsed_metadata["live_boundary_sha256"] = _string(
-                    metadata["live_boundary_sha256"],
-                    f"{metadata_path}.live_boundary_sha256",
-                )
-            if "revision" in metadata:
-                parsed_metadata["revision"] = _string(
-                    metadata["revision"], f"{metadata_path}.revision"
-                )
-            if "authority_status" in metadata:
-                parsed_metadata["authority_status"] = _choice(
-                    metadata["authority_status"],
-                    f"{metadata_path}.authority_status",
-                    {"resolved", "unresolved"},
-                )
-            if "runtime_directive" in metadata:
-                parsed_metadata["runtime_directive"] = _string(
-                    metadata["runtime_directive"],
-                    f"{metadata_path}.runtime_directive",
-                )
-            if "limitation_reason" in metadata:
-                parsed_metadata["limitation_reason"] = _string(
-                    metadata["limitation_reason"],
-                    f"{metadata_path}.limitation_reason",
-                )
-            parsed["metadata"] = parsed_metadata
         result.append(parsed)
     return result
 

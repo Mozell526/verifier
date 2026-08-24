@@ -12,12 +12,8 @@ from .fallback import FallbackDecision
 from .evidence import EvidenceRef, ExecutionTraceEvent, ProbeResult
 from .draft_state import DRAFT_LOOP_STATE_VERSION, DRAFT_RUN_REPORT_VERSION, DraftEvidencePointer, DraftLoopIteration, DraftLoopState
 from .investigation import INVESTIGATION_SCHEMA_VERSION, InvestigationArtifactRef, InvestigationManifest, ToolImplementationRef, ToolRequirement, dump_investigation_manifest, load_investigation_manifest, validate_investigation_manifest
-from .investigation_key_index import InvestigationKeyEntry, InvestigationKeyIndex, validate_investigation_key_index, validate_investigation_key_indexes
-from .investigation_judge import AUTHORITY_REPORT_SCHEMA_VERSION, AuthorityInvestigationReport, CoverageGap, JUDGE_CONTRACT_SCHEMA_VERSION, JudgeInvestigationContract, MaterialConnection, MaterialDecision, MaterialInvestigation, dump_authority_investigation_report, dump_judge_contract, load_authority_investigation_report, load_judge_contract, project_judge_runtime_contract, render_authority_report_markdown, validate_authority_report, validate_judge_contract
-from .investigation_mock import MOCK_CONTRACT_SCHEMA_VERSION, MockInvestigationContract, dump_mock_contract, load_mock_contract, validate_mock_contract
 from .frontend import FrontendViewModel
 from .judge import BusinessExpectation, FulfillmentAssessment, GapItem, JudgeLLMOutput, JudgeReferenceOutput, JudgeResult, _item_value
-from .authority import AuthorityClaim, AuthorityIndependentResolution, AuthorityRequest, AuthorityResolution
 from .live import LiveExchange, LiveMultiTurnState, LiveRequest
 from .mock import MockBuildResult, MockBuildSpec, MockCase, MockContinueDecision, MockDataset, MockInteractionTurn, MockIntentFidelityOutput, MockIntentOutput, MockNextTurnOutput, MockSpec, MultiTurnCase, MultiTurnInteraction, MultiTurnPolicy, MultiTurnTurnExpectation, SingleTurnCase
 from .project import ProjectAnalysis, ProjectSpec, RoleAssetMapping
@@ -34,7 +30,7 @@ __all__ = [
     "AttributeEvidenceSelection", "AttributeFindingOutput", "AttributeLLMOutput", "AttributeResult", "AttributionFinding", "BatchRunResult", "BusinessExpectation", "CALL_STATUSES", "CasePoolSaveResponse", "CasePoolTable", "CasePoolsResponse", "CHAIN_STATUSES",
     "CheckReport", "ClusterSummary", "ConversationTurn", "DRAFT_LOOP_STATE_VERSION", "DRAFT_RUN_REPORT_VERSION", "DraftEvidencePointer", "DraftLoopIteration", "DraftLoopState", "EVENT_STATUSES", "EvidenceRef", "ExecutionTraceEvent",
     "FALLBACK_STATUSES", "FULFILLMENT_STATUSES", "FallbackDecision", "FrontendViewModel",
-    "AuthorityRequest", "AuthorityResolution", "AuthorityInvestigationReport", "CoverageGap", "FulfillmentAssessment", "GapItem", "GateDecision", "INTERACTION_MODES", "JudgeLLMOutput", "JudgeReferenceOutput", "JudgeResult", "LayerConfig",
+    "FulfillmentAssessment", "GapItem", "GateDecision", "INTERACTION_MODES", "JudgeLLMOutput", "JudgeReferenceOutput", "JudgeResult", "LayerConfig",
     "LiveExchange", "LiveMultiTurnState", "LiveRequest", "MockBuildResponse", "MockBuildResult", "MockBuildSpec", "MockCase", "MockCasesResponse", "MockContinueDecision", "MockDatasetsResponse", "MockInteractionTurn", "MockIntentFidelityOutput", "MockIntentOutput", "MockNextTurnOutput",
     "MockDataset", "MockSpec", "MultiTurnCase", "MultiTurnInteraction", "MultiTurnPolicy",
     "MultiTurnTraceSummary", "MultiTurnTurnExpectation", "ProbeResult", "ProjectAnalysis", "ProjectSpec", "RoleAssetMapping", "RunChainResponse",
@@ -55,7 +51,5 @@ __all__ = [
     "trace_input", "trace_mock_intent", "trace_normalized_request", "trace_output_source", "trace_project_fields", "trace_raw_response", "trace_stop_reason",
     "judge_expected_actual_gaps", "judge_primary_signal", "INVESTIGATION_SCHEMA_VERSION", "InvestigationManifest",
     "InvestigationArtifactRef", "ToolImplementationRef", "ToolRequirement", "dump_investigation_manifest", "load_investigation_manifest",
-    "validate_investigation_manifest", "InvestigationKeyEntry", "InvestigationKeyIndex", "validate_investigation_key_index", "validate_investigation_key_indexes",
-    "AUTHORITY_REPORT_SCHEMA_VERSION", "JUDGE_CONTRACT_SCHEMA_VERSION", "JudgeInvestigationContract", "MaterialConnection", "MaterialDecision", "MaterialInvestigation", "dump_judge_contract", "load_judge_contract", "validate_judge_contract", "project_judge_runtime_contract", "dump_authority_investigation_report", "load_authority_investigation_report", "render_authority_report_markdown", "validate_authority_report",
-    "MOCK_CONTRACT_SCHEMA_VERSION", "MockInvestigationContract", "dump_mock_contract", "load_mock_contract", "validate_mock_contract",
+    "validate_investigation_manifest",
 ]

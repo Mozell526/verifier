@@ -63,7 +63,7 @@ def test_projection_keeps_mock_and_pairs_each_turn():
 
 
 def test_all_current_projects_have_schema_valid_show_schema():
-    for project_id in ("QA", "client_search", "deerflow", "llm_probe", "marketting-planning", "marketting-planning-intent", "policy_search"):
+    for project_id in ("QA", "client_search", "deerflow", "marketting-planning", "marketting-planning-intent"):
         live = __import__(f"impl.projects.{project_id}.live_schema", fromlist=["live_schema"])
         show = load_show_schema(project_id)
         assert show is not None

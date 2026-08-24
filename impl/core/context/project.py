@@ -58,9 +58,6 @@ def load_role_mandatory_context(
     run_id: str = "",
     case_id: str = "",
     embedding_provider: Any = None,
-    phase: str = "runtime",
-    scopes: Optional[Iterable[str]] = None,
-    asset_ids: Optional[Iterable[str]] = None,
 ) -> Optional[Dict[str, Any]]:
     """Register configured Context assets and deterministically load one Role's mandatory units.
 
@@ -77,53 +74,18 @@ def load_role_mandatory_context(
         for item in resolve_role_assets(spec, normalized_role, use_candidate=draft_enabled)
         if item["mapping"].kind in {"context", "context_builder", "investigation"}
     ]
-    requested_scopes = {str(item).strip() for item in (scopes or ()) if str(item).strip()}
-    requested_asset_ids = {
-        str(item).strip() for item in (asset_ids or ()) if str(item).strip()
-    }
-    if phase not in {"planning", "assessment", "runtime"}:
-        raise ValueError(f"unsupported Context loading phase: {phase!r}")
-    if phase == "planning":
-        selected_assets = [
-            item for item in selected_assets
-            if item["mapping"].metadata.get("planning", True) is not False
-        ]
-    if requested_scopes:
-        selected_assets = [
-            item for item in selected_assets
-            if not item["mapping"].metadata.get("scopes")
-            or requested_scopes.intersection(
-                {str(scope) for scope in item["mapping"].metadata.get("scopes") or []}
-            )
-        ]
-    if requested_asset_ids:
-        selected_assets = [
-            item
-            for item in selected_assets
-            if str(item["mapping"].asset_id) in requested_asset_ids
-        ]
-    # Investigation packages are Harness-AI source material, not a runtime
-    # knowledge dump.  Once Solidify has registered Context assets/builders,
-    # only those explicit assets are mandatory; the package remains available
-    # to offline validation and is never injected wholesale into Judge.
-    if any(item["mapping"].kind in {"context", "context_builder"} for item in selected_assets):
-        selected_assets = [
-            item for item in selected_assets if item["mapping"].kind != "investigation"
-        ]
     configured_adapter = load_configured_context_adapter(spec)
     project_adapter = load_project_context_adapter(spec)
-    if not draft_enabled:
-        # A newly solidified Role may add candidate-only assets alongside
-        # existing production Context.  Current must keep the production units
-        # while treating each unavailable production counterpart as an empty
-        # ContextUnit slot.  An unavailable asset without a candidate remains a
-        # normal production configuration error and is deliberately retained so
-        # ``require_available=True`` fails closed below.
-        selected_assets = [
-            item
-            for item in selected_assets
-            if item["available"] or item["candidate_path"] is None
-        ]
+    if (
+        not draft_enabled
+        and selected_assets
+        and not any(item["available"] for item in selected_assets)
+        and all(item["candidate_path"] is not None for item in selected_assets)
+    ):
+        # A newly solidified Role may declare only candidate implementations.
+        # Current records those production selections as unavailable and keeps
+        # its existing empty Context baseline until promotion.
+        selected_assets = []
     if not selected_assets and configured_adapter is None and project_adapter is None:
         return None
 
@@ -250,11 +212,7 @@ def _asset_records(
                 roles=tuple(mapping.roles),
                 unit_type="investigation" if mapping.kind == "investigation" else "project_document",
                 source_type="role_asset",
-                tags={
-                    "asset_id": mapping.asset_id,
-                    "source": selected["source"],
-                    **dict(mapping.metadata or {}),
-                },
+                tags={"asset_id": mapping.asset_id, "source": selected["source"]},
             )
 
 

@@ -13,7 +13,6 @@ SchemaValidator 是唯一的通用校验类，不关心业务场景。
 from __future__ import annotations
 
 import dataclasses
-from collections.abc import Sequence as ABCSequence
 from typing import Any, Dict, List, Literal, Optional, get_args, get_origin, get_type_hints
 
 from .structured_output import StructuredOutputSpec
@@ -82,19 +81,11 @@ def _match_type(value: Any, tp: Any) -> tuple[bool, str]:
         return True, ""
 
     if origin is not None:
-        # JSON sequences must arrive as arrays (Python list after decoding),
-        # including fields declared as tuple[T, ...] or Sequence[T].
-        if origin in (list, tuple, ABCSequence):
+        # List[X]
+        if origin in (list, List):
             if not isinstance(value, list):
                 return False, f"期望 array，实际 {type(value).__name__}"
-            if origin is tuple and args and args[-1] is not Ellipsis:
-                if len(value) != len(args):
-                    return False, f"期望长度 {len(args)} 的 array，实际长度 {len(value)}"
-                for i, (item, item_type) in enumerate(zip(value, args)):
-                    ok, err = _match_type(item, item_type)
-                    if not ok:
-                        return False, f"[{i}]: {err}"
-            elif args:
+            if args:
                 for i, item in enumerate(value):
                     ok, err = _match_type(item, args[0])
                     if not ok:
@@ -240,7 +231,7 @@ class SchemaValidator:
             return []
         origin = get_origin(tp)
         args = get_args(tp)
-        if origin in (list, tuple, ABCSequence) and args and dataclasses.is_dataclass(args[0]):
+        if origin in (list, List) and args and dataclasses.is_dataclass(args[0]):
             if not isinstance(value, list):
                 return []
             sub_validator = SchemaValidator(StructuredOutputSpec.from_dataclass(args[0]))

@@ -14,7 +14,7 @@ def _project_tools(tools: list[Any] | None) -> list[Any]:
 
 def _attribute_quality_gate() -> dict[str, Any]:
     return {
-        "run_only_for": ["not_fulfilled with inspectable expected-vs-actual gap"],
+        "run_only_for": ["incorrect", "uncertain with inspectable expected-vs-actual gap"],
         "block_when_judge_unavailable": True,
         "minimum_evidence": ["current query", "actual conditions/matched_level", "judge expected-vs-actual diff", "execution_trace or project chain nodes", "project docs/config evidence"],
         "required_outputs": ["verified findings grouped by real defect", "ContextUnit-backed evidence", "one unresolved_reason when proof is insufficient"],

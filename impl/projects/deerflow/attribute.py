@@ -228,7 +228,7 @@ def _build_project_attribute_context(spec: ProjectSpec, trace: RunTrace, judge_r
 该项目通过 HTTP 调 deer-flow Gateway 完成多轮营销规划对话，thread_id + checkpointer 续上下文。
 归因链：request_normalization → thread_creation → turn_delivery → message_history_read → reply_extraction → tool_call_extraction → stage_inference → multi_turn_accumulation → interaction_controller。
 必须区分“业务输出不符合预期”和“代码链路已定位”：raw 与 extracted reply/tool_calls 一致时，说明提取忠实，不得把原始业务内容错误归因给 reply_extraction/tool_call_extraction；stage_inference_match=true 时，不得把业务阶段问题归因给 stage_inference。只有 probe 明确复现差异且 suspected location 与该差异对应时才可 strong；否则只能作为未验证上游假设并设为 weak。
-当 judge 为 not_evaluable 或本地 probe 显示缺少 reply/tool_calls/semantic judge 证据时，不生成 finding，只在 unresolved_reason 说明阻塞。证据必须引用 Finalization 重新加载的 ContextUnit。""",
+当 judge 为 not_evaluable 或本地 probe 显示缺少 reply/tool_calls/semantic judge 证据时，不生成 finding，只在 unresolved_reason 说明阻塞。最终只输出 findings、unresolved_reason；证据必须引用 Finalization 重新加载的 ContextUnit。""",
         "user_prompt_extras": {
             "project_attribute_strategy": {
                 "project": spec.project_id,

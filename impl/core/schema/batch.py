@@ -19,4 +19,3 @@ class BatchRunResult:
     check: Optional[CheckReport] = None
     table: Optional[CasePoolTable] = None
     fallbacks: List[FallbackDecision] = field(default_factory=list)
-    run_status: str = "completed"

@@ -61,7 +61,6 @@ def _normalize_record(data: Dict[str, Any]) -> ContextRecord:
         llm_model=str(data.get("llm_model") or ""),
         elapsed_ms=int(data.get("elapsed_ms") or 0),
         error=data.get("error"),
-        governance=dict(data.get("governance") or {}),
     )
 
 
@@ -78,7 +77,6 @@ def _record_to_dict(record: ContextRecord) -> Dict[str, Any]:
         "llm_model": record.llm_model,
         "elapsed_ms": record.elapsed_ms,
         "error": record.error,
-        "governance": record.governance,
     }
 
 
@@ -147,9 +145,6 @@ def list_recent_contexts(project_id: str, *, caller: str = "", limit: int = 20) 
             elapsed_ms=int(data.get("elapsed_ms") or 0),
             created_at=str(data.get("created_at") or ""),
             error=data.get("error"),
-            governance_blocking=bool(
-                ((data.get("governance") or {}).get("gate") or {}).get("blocking")
-            ),
         ))
     return result
 

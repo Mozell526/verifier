@@ -64,74 +64,8 @@ def summary_from_fulfillment(judge: dict) -> dict:
     expectations = judge.get("business_expectations") or []
     blocking_count = len([item for item in expectations if isinstance(item, dict) and item.get("blocking")])
     nonblocking_failures = len([dim for dim in dimensions if not dim["blocking"]])
-    authority_limitations = []
-    for assessment in assessments:
-        if not (
-            isinstance(assessment, dict)
-            and assessment.get("status") == "not_evaluable"
-        ):
-            continue
-        expectation_id = str(assessment.get("expectation_id") or "")
-        for evidence in assessment.get("actual_evidence") or []:
-            if (
-                isinstance(evidence, dict)
-                and evidence.get("kind") == "authority_limitation"
-            ):
-                authority_limitations.append({
-                    "analysis_id": str(evidence.get("analysis_id") or ""),
-                    "judgment_point": str(
-                        evidence.get("judgment_point") or ""
-                    ),
-                    "conflicting_sources": (
-                        evidence.get("conflicting_sources") or []
-                    ),
-                    "causal_reasoning": str(
-                        evidence.get("causal_reasoning") or ""
-                    ),
-                    "unresolved_question": str(
-                        evidence.get("unresolved_question") or ""
-                    ),
-                    "point_id": str(evidence.get("point_id") or expectation_id),
-                })
-        for evidence in assessment.get("evidence_refs") or []:
-            if (
-                isinstance(evidence, dict)
-                and evidence.get("kind") == "authority_unresolved"
-            ):
-                required = list(evidence.get("required_evidence") or [])
-                authority_limitations.append({
-                    "analysis_id": str(
-                        evidence.get("tool_call_id") or ""
-                    ),
-                    "judgment_point": "",
-                    "conflicting_sources": [],
-                    "causal_reasoning": str(evidence.get("reason") or ""),
-                    "unresolved_question": "；".join(
-                        str(item) for item in required
-                    ),
-                    "point_id": expectation_id,
-                })
 
-    if authority_limitations:
-        parts = []
-        for limitation in authority_limitations:
-            source_text = "；".join(
-                f"{item.get('source_label') or item.get('source_id')}：{item.get('claim')}"
-                for item in limitation.get("conflicting_sources") or []
-                if isinstance(item, dict)
-            )
-            parts.append(
-                "Authority "
-                f"{limitation.get('analysis_id') or ''}"
-                f"（{limitation.get('judgment_point') or ''}）未解决；"
-                f"冲突来源：{source_text or '未提供'}；"
-                f"原因：{limitation.get('causal_reasoning') or '当前调查无法确定'}；"
-                f"待澄清：{limitation.get('unresolved_question') or '未提供'}；"
-                f"受影响验收点：{limitation.get('point_id') or ''}"
-            )
-        reason = "not_evaluable · " + " | ".join(parts)
-        reason_source = "authority_limitation"
-    elif fulfillment_status == "fulfilled":
+    if fulfillment_status == "fulfilled":
         tail = f" · {reasoning_summary}" if reasoning_summary else ""
         incomplete = f" · {nonblocking_failures} non-blocking gaps" if nonblocking_failures else ""
         reason = f"fulfilled · {blocking_count} blocking expectations all met{incomplete}{tail}"
@@ -142,15 +76,6 @@ def summary_from_fulfillment(judge: dict) -> dict:
         primary_impact = next((dim["downstream_impact"] for dim in dimensions if dim["downstream_impact"]), "")
         tail = f" · {reasoning_summary}" if reasoning_summary else (" · " + primary_impact if primary_impact else "")
         reason = f"not_fulfilled · blocking=[{ids_text}]{tail}"
-        reason_source = "aggregated_fulfillment"
-    elif fulfillment_status == "not_evaluable" and expectations and not blocking_count:
-        reason = (
-            "not_evaluable · 缺少覆盖用户核心诉求的 blocking 必办验收项；"
-            "无法证明用户真正要办的事已经完成，需要补齐验收项或人工复核"
-        )
-        reason_source = "aggregated_fulfillment"
-    elif fulfillment_status == "not_evaluable" and expectations and not assessments:
-        reason = "not_evaluable · 已声明业务期望，但没有 fulfillment assessment 证据"
         reason_source = "aggregated_fulfillment"
     else:
         tail = reasoning_summary or "unclear"

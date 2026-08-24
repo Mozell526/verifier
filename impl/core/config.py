@@ -8,7 +8,6 @@ from typing import Any, Mapping, Optional
 
 from .config_bootstrap import parse_dotenv
 from .config_schema import (
-    LlmFallback,
     AttributeCompactionConfig,
     AttributeConfig,
     BrowserConfig,
@@ -136,7 +135,6 @@ def resolve_runtime_config(
     }
     missing_required = tuple(sorted(missing_required_values))
     role_policies = _apply_role_policy_overrides(parsed, values)
-    fallbacks = _resolve_llm_fallbacks(values)
     return RuntimeConfig(
         schema_version=parsed.schema_version,
         python=PythonConfig(executable=str(values["python.executable"])),
@@ -152,13 +150,14 @@ def resolve_runtime_config(
             temperature=float(values["llm.temperature"]),
             reasoning_effort=str(values["llm.reasoning_effort"]),
             request_timeout_seconds=float(values["llm.request_timeout_seconds"]),
+            max_attempts=int(values["llm.max_attempts"]),
+            retry_delay_seconds=float(values["llm.retry_delay_seconds"]),
             capabilities=LlmCapabilities(
                 json_mode=bool(values["llm.capabilities.json_mode"]),
                 tool_calls=bool(values["llm.capabilities.tool_calls"]),
                 context_window_tokens=int(values["llm.capabilities.context_window_tokens"]),
             ),
             role_policies=role_policies,
-            fallbacks=fallbacks,
         ),
         embedding=EmbeddingConfig(
             enabled=bool(values["embedding.enabled"]),
@@ -213,28 +212,6 @@ def resolve_runtime_config(
     )
 
 
-def _resolve_llm_fallbacks(values: Mapping[str, Any]) -> tuple[LlmFallback, ...]:
-    """解析 .env/config 中注册的 LLM fallback 端点（LLM_FALLBACK_{1,2}_*）。
-
-    只收集 base_url/model/api_key 三者齐全的条目，按序号升序作为降级优先级。
-    """
-    resolved: list[LlmFallback] = []
-    for index in (1, 2):
-        base_url = str(values.get(f"llm.fallback_{index}.base_url") or "").strip()
-        model = str(values.get(f"llm.fallback_{index}.model") or "").strip()
-        api_key = str(values.get(f"llm.fallback_{index}.api_key") or "").strip()
-        if not (base_url and model and api_key):
-            continue
-        resolved.append(
-            LlmFallback(
-                base_url=openai_compatible_base_url(base_url, f"llm.fallback_{index}.base_url"),
-                model=model,
-                api_key=api_key,
-            )
-        )
-    return tuple(resolved)
-
-
 def _discover_product_environment_names(config_path: Path) -> frozenset[str]:
     """Discover project/knowledge registrations without loading either config domain."""
     root = config_path.parent.parent if config_path.parent.name == "impl" else config_path.parent
@@ -272,6 +249,8 @@ def _base_values(parsed: ParsedRuntimeConfig) -> dict[str, Any]:
         "llm.temperature": parsed.llm.temperature,
         "llm.reasoning_effort": parsed.llm.reasoning_effort,
         "llm.request_timeout_seconds": parsed.llm.request_timeout_seconds,
+        "llm.max_attempts": parsed.llm.max_attempts,
+        "llm.retry_delay_seconds": parsed.llm.retry_delay_seconds,
         "llm.role_policies.live_stub.model": _role_policy_default_model(parsed, "live_stub"),
         "llm.capabilities.json_mode": parsed.llm.capabilities.json_mode,
         "llm.capabilities.tool_calls": parsed.llm.capabilities.tool_calls,

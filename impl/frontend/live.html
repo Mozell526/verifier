@@ -66,8 +66,7 @@ const defaultInputs={
   client_search:{user_text:'45岁女性保费10万以上'},
   QA:{question:'什么是犹豫期？',actual_answer:'犹豫期通常是投保人收到合同后的一段可无条件退保期限。',golden_answer:'犹豫期是投保人收到保险合同后，在规定天数内可申请解除合同并通常退还已交保费的期限。'},
   'marketting-planning':{query:'规划NBEV增长路径'},
-  'marketting-planning-intent':{query:'我想提高保费规模'},
-  policy_search:{session_id:'verifier-policy-search-live',trace_id:'verifier-policy-search-live',extra_input_params:{policySearchParseArgs:{query:'保额不低于50万的保单',currentTime:'2026-08-06 10:30:00',agentCode:'VERIFIER_TEST'},args:{contexts:[]}}}
+  'marketting-planning-intent':{query:'我想提高保费规模'}
 };
 function scopedKey(key){return key+':'+project()}
 let currentTrace = null;
@@ -182,7 +181,7 @@ function structuredDisplay(output){
 }
 function renderTrace(trace){
   showRaw('traceRaw', trace);
-  if(!trace){setStepBadge('trace','未运行','');document.getElementById('traceHuman').innerHTML='<div class="empty">尚未请求业务服务。</div>';return;}
+  if(!trace){setStepBadge('trace','未运行','');return;}
   setStepBadge('trace', trace.status || 'unknown', trace.status==='ok'?'ok':'bad');
   const output=trace.extracted_output || trace.live_result?.extracted_output || {};
   document.getElementById('traceHuman').innerHTML =
@@ -214,7 +213,7 @@ function fulfillmentBadgeState(status){return status==='fulfilled'?'ok':(status=
 function renderJudge(judge){
   const panel=judgePanel();
   showRaw('judgeRaw', panel);
-  if(!panel || !Object.keys(panel).length){setStepBadge('judge','未运行','');document.getElementById('judgeHuman').innerHTML='<div class="empty">尚未请求 Judge。</div>';return;}
+  if(!panel || !Object.keys(panel).length){setStepBadge('judge','未运行','');return;}
   const fulfillmentStatus=fulfillmentStatusFromJudge(panel);
   setStepBadge('judge', fulfillmentStatus || 'unknown', fulfillmentBadgeState(fulfillmentStatus) || 'warn');
   const fulfillment=renderFulfillment(panel);
@@ -231,7 +230,7 @@ function attributeBadgeState(attribute){
 function renderAttribute(attribute){
   const panel=attributePanel();
   showRaw('attributeRaw', panel);
-  if(!panel || !Object.keys(panel).length){setStepBadge('attribute','未运行','');document.getElementById('attributeHuman').innerHTML='<div class="empty">尚未请求 Attribute。</div>';return;}
+  if(!panel || !Object.keys(panel).length){setStepBadge('attribute','未运行','');return;}
   const status=panel.summary?.attribution_status || ((panel.findings || []).length ? 'attributed' : 'unresolved');
   const findings=expectationAttributionPanel().findings || panel.findings || [];
   const summaryText=panel.display_summary || panel.summary?.summary_text || panel.unresolved_reason || '';
@@ -241,13 +240,7 @@ function renderAttribute(attribute){
     '<div class="kv"><b>归因总结：</b>'+escapeHtml(summaryText || '暂无归因总结')+'</div>'+renderAttributionFindings({...panel, findings})+renderStateMachine(currentTrace, judgePanel(), panel);
 }
 function renderAll(){renderTrace(currentTrace);renderJudge(currentJudge);renderAttribute(currentAttribute)}
-function clearCurrentRun(){
-  currentTrace=null;currentJudge=null;currentAttribute=null;currentCluster=null;currentView=null;
-  sessionStorage.removeItem(scopedKey('lastTrace'));sessionStorage.removeItem(scopedKey('lastJudge'));sessionStorage.removeItem(scopedKey('lastAttribute'));sessionStorage.removeItem(scopedKey('lastCluster'));sessionStorage.removeItem(scopedKey('lastView'));sessionStorage.removeItem(scopedKey('lastChain'));
-  renderAll();
-}
 async function liveRun(){
-  clearCurrentRun();
   document.getElementById('status').textContent='请求业务服务中...';
   try{
     const payloadObj = payload();
@@ -288,7 +281,6 @@ async function runAttribute(){
   }catch(err){document.getElementById('status').textContent='Attribute 失败：'+err.message}
 }
 async function runChain(){
-  clearCurrentRun();
   document.getElementById('status').textContent='全链路运行中...';
   try{
     const body=payload();

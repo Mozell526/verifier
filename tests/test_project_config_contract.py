@@ -23,15 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_all_projects_have_one_canonical_runtime_config_and_matching_knowledge_route():
     project_ids = list_projects()
 
-    assert project_ids == [
-        "QA",
-        "client_search",
-        "deerflow",
-        "llm_probe",
-        "marketting-planning",
-        "marketting-planning-intent",
-        "policy_search",
-    ]
+    assert project_ids == ["QA", "client_search", "deerflow", "marketting-planning", "marketting-planning-intent"]
     for project_id in project_ids:
         spec = load_project(project_id)
         route = load_project_knowledge_route(project_id)

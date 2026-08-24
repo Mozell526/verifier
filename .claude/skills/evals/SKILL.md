@@ -71,28 +71,6 @@ verifier 分三层（见 `spec/adapter.md`），接入时**只补项目扩展层
 - judge/attribute 只搭基础设施（实现 build_context），质量优化走 attribute skill draft
 - adapter 的 `_load_*` 由 scaffold 已生成，确认齐全即可
 
-### 可选：轴2 接入
-
-轴2 不是每个项目的必做项。协议层只认一个项目符号：`live.py` 的 `capability_provider(spec)`。
-通用步骤不出现任何形态物料的函数名。
-
-1. **接入判定**（Step 0）：分两问，结论写进项目记录。
-   - ① 项目是否拥有**自己的受治理能力空间**？轴2 判的是"没办成的期望，本项目资料空间
-     承载得了吗"，需要项目自有物料做资料自认。能力口径是自由文本、或借自其他项目
-     （如通用探针类项目）→ 物料归属不在本项目，暂不接入。
-   - ② 有的话选形态。**协议本身形态无关**（任何 `CapabilityCarrierBase` 实现均可），
-     已实现形态现场发现（`impl/core/capability_*.py`；当前只有结构化形态
-     `StructuredCarrier`，适合 field×operator×value 可枚举的空间）。没有合适形态 →
-     暂不接入，明确记录；新形态等真实项目驱动，不预先实现
-     （见 `spec/alg/capability_carrier-generalization.md` §4）。
-2. **实现 provider**（填 stub）：`live.py` 写 `capability_provider`，选定形态并喂足
-   该形态要求的数据（数据 schema 见 `spec/alg/capability_carrier-reading.md`，
-   取数方式项目自定）。
-3. **开 scope**：`project.yaml` 里 `verifier.authority.enabled_scopes: [capability_carrier]`。
-   `config_check` 会卡「开了 scope 必须有 provider」；缺则装载失败，不产生半错 run。
-4. **建门**（纳入回归）：从真实 NF case 冻结项目自己的 NF 金标。
-5. **词表后置沉淀**（结构化形态特有）：真实误判出现再加词，走 `current_fingerprint` 变更门。
-
 ### Step 9: 验证（门禁）
 四项硬门禁，全部通过才算接入完成：
 ```bash

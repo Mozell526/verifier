@@ -10,14 +10,6 @@ from typing import Any, Dict, Iterator, Mapping, Optional, Sequence
 
 from .models import ContextUnitRecord
 
-# sqlite3.connect() on one file can stall forever in unixOpen/findReusableFd.
-# That wait is a process mutex, not busy_timeout, and it is keyed by the file —
-# not by the Python database object. Batch workers each call build_context_runtime,
-# so a per-instance lock does not cover the hang.
-_OPEN_LOCKS: Dict[str, threading.Lock] = {}
-_OPEN_LOCKS_GUARD = threading.Lock()
-_INITIALIZED_PATHS: set[str] = set()
-
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -27,47 +19,30 @@ def _stable_json(value: object) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
-def _resolved_key(path: Path) -> str:
-    return str(Path(path).resolve())
-
-
-def _open_lock_for(path: Path) -> threading.Lock:
-    key = _resolved_key(path)
-    with _OPEN_LOCKS_GUARD:
-        lock = _OPEN_LOCKS.get(key)
-        if lock is None:
-            lock = threading.Lock()
-            _OPEN_LOCKS[key] = lock
-        return lock
-
-
 class SQLiteContextDatabase:
     """Shared SQLite boundary for the Registry and Vector Index."""
 
     def __init__(self, path: Path):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._init_lock = threading.Lock()
+        self._initialized = False
         self.initialize()
 
-    def _open(self) -> sqlite3.Connection:
-        with _open_lock_for(self.path):
-            return sqlite3.connect(str(self.path), timeout=30.0)
-
     def connect(self) -> sqlite3.Connection:
-        connection = self._open()
+        connection = sqlite3.connect(str(self.path), timeout=30.0)
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA foreign_keys = ON")
-        connection.execute("PRAGMA busy_timeout = 30000")
+        connection.execute("PRAGMA journal_mode = WAL")
         return connection
 
     def initialize(self) -> None:
-        key = _resolved_key(self.path)
-        with _open_lock_for(self.path):
-            if key in _INITIALIZED_PATHS:
+        if self._initialized:
+            return
+        with self._init_lock:
+            if self._initialized:
                 return
-            connection = sqlite3.connect(str(self.path), timeout=30.0)
-            try:
-                connection.execute("PRAGMA journal_mode = WAL")
+            with self.connect() as connection:
                 connection.executescript(
                     """
                     CREATE TABLE IF NOT EXISTS context_units (
@@ -122,10 +97,7 @@ class SQLiteContextDatabase:
                         ON context_vectors(project_id, status, scope, unit_type, source_type);
                     """
                 )
-                connection.commit()
-            finally:
-                connection.close()
-            _INITIALIZED_PATHS.add(key)
+            self._initialized = True
 
     @contextmanager
     def transaction(self) -> Iterator[sqlite3.Connection]:

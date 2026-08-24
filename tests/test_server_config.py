@@ -23,12 +23,11 @@ def test_server_uses_config_defaults(monkeypatch):
     monkeypatch.setitem(sys.modules, "uvicorn", fake_uvicorn)
     monkeypatch.delenv("VERIFIER_HOST", raising=False)
     monkeypatch.delenv("VERIFIER_PORT", raising=False)
-    configured = runtime_config.get_runtime_config().server
 
     main([])
 
-    assert calls[0][1]["host"] == configured.host
-    assert calls[0][1]["port"] == configured.port
+    assert calls[0][1]["host"] == "127.0.0.1"
+    assert calls[0][1]["port"] == 8020
 
 
 def test_server_uses_env_port(monkeypatch):

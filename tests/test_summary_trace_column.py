@@ -30,10 +30,10 @@ def test_case_pool_keeps_output_reference_adjacent_and_puts_trace_last():
 
     assert (
         "<th>Output / 被评估输出</th><th>Reference</th><th>状态</th>"
-        "<th>Score / Judge</th><th>归因摘要</th><th>Trace</th><th>裁决</th>"
+        "<th>Score / Judge</th><th>归因摘要</th><th>Trace</th>"
     ) in source
     assert "<td class=\"case-output\">'+renderOutputCell(v)+'</td><td class=\"case-reference\">'+renderReferenceCell(v)+'</td>" in source
-    assert "<td class=\"case-trace\">'+renderTraceCell(v)+'</td><td class=\"case-carrier\">'+escapeHtml(carrierPlacementText(v) || '')+'</td></tr>" in source
+    assert "<td class=\"case-trace\">'+renderTraceCell(v)+'</td></tr>" in source
 
 
 def test_trace_cell_uses_only_current_case_trace_and_is_collapsed():
@@ -89,21 +89,6 @@ def test_single_chain_input_guard_has_canonical_comparator():
     assert "canonicalValue(chainComparableInput(left))" in source
 
 
-def test_live_new_request_clears_stale_chain_results_before_running():
-    source = LIVE_HTML.read_text(encoding="utf-8")
-
-    assert "function clearCurrentRun()" in source
-    assert source.index("clearCurrentRun();", source.index("async function liveRun()")) < source.index(
-        "await post('/api/live_run'", source.index("async function liveRun()")
-    )
-    assert source.index("clearCurrentRun();", source.index("async function runChain()")) < source.index(
-        "await post('/api/run_chain'", source.index("async function runChain()")
-    )
-    assert "document.getElementById('traceHuman').innerHTML='<div class=\"empty\">尚未请求业务服务。</div>'" in source
-    assert "document.getElementById('judgeHuman').innerHTML='<div class=\"empty\">尚未请求 Judge。</div>'" in source
-    assert "document.getElementById('attributeHuman').innerHTML='<div class=\"empty\">尚未请求 Attribute。</div>'" in source
-
-
 def test_output_and_reference_share_json_formatting():
     source = _summary_source()
 
@@ -121,7 +106,7 @@ def test_trace_column_is_wide_enough_for_full_trace_json():
     assert ".trace-scroll{max-height:430px;overflow:auto" in source
 
 
-def test_case_pool_empty_row_spans_new_trace_column():
+def test_case_pool_empty_rows_span_new_trace_column():
     source = _summary_source()
 
     assert source.count('colspan="12"') == 1
@@ -164,13 +149,12 @@ def test_real_row_error_counts_as_run_evidence_and_is_not_reset_to_pending():
     detector = source[start:end]
 
     assert "item.status==='error' && item.error" in detector
-    assert "item.execution_failed" in detector
 
 
 def test_selected_cases_show_running_and_surface_batch_failure():
     source = _summary_source()
-    start = source.index("async function submitBatchForEntries(")
-    end = source.index("\nasync function runSelectedCases()", start + 1)
+    start = source.index("async function runSelectedCases()")
+    end = source.index("\nfunction renderClusterSummary", start + 1)
     runner = source[start:end]
 
     assert "selectedIndexes=new Set" in runner
@@ -188,43 +172,7 @@ def test_case_status_shows_running_and_row_error_details():
     assert "['running','error'].includes(item.status)" in renderer
     assert "item.error" in renderer
     assert "error-text" in renderer
-    assert "失败" in renderer
     assert "<td>'+renderCaseStatus(v)+'</td>" in source
-
-
-def test_execution_status_treats_llm_failure_flags_as_error_not_done():
-    source = _summary_source()
-    start = source.index("function executionStatus(item)")
-    end = source.index("\nfunction ", start + 1)
-    status = source[start:end]
-
-    assert "executionFailureFlags(item)" in status
-    assert "llm_call_failed" in source
-    assert "llm_output_validation_failed" in source
-    flags = source[source.index("function executionFailureFlags(item)"):source.index("function renderCaseStatus(item)")]
-    assert "table_row" in flags or "quality_flags" in source[source.index("function flagsFromRun"):source.index("function executionFailureFlags")]
-
-
-def test_rerun_execution_failures_loops_without_resetting_filters():
-    source = _summary_source()
-    start = source.index("async function rerunExecutionFailures()")
-    end = source.index("\nasync function manualAttributeSelected", start)
-    rerun = source[start:end]
-
-    assert "submitBatchForEntries(failures,{resetFilters:false" in rerun
-    assert "resetCasePoolFilters" not in rerun
-    assert "waitForLlmCooldown" in rerun
-    assert "LLM_COOLDOWN_SECONDS" in rerun
-    assert "abandoned" in rerun
-    assert "连续同样失败已停止" in rerun
-
-
-def test_light_case_persists_execution_failure_bit():
-    source = _summary_source()
-    light = source[source.index("function lightCase(item)"):source.index("\nfunction conversationDetail")]
-
-    assert "execution_failed:!!item.execution_failed" in light
-    assert "execution_failure_flags" in light
 
 
 def test_batch_submission_sends_only_mock_case_fields():
@@ -250,7 +198,7 @@ def test_batch_merge_uses_protocol_request_key():
 
 def test_request_keys_bind_by_submission_index_not_case_id():
     source = _summary_source()
-    runner = source[source.index("async function submitBatchForEntries("):source.index("\nasync function runSelectedCases()")]
+    runner = source[source.index("async function runSelectedCases()"):source.index("\nfunction renderClusterSummary")]
 
     assert "selectedEntries.map((entry,index)" in runner
     assert "started.requests?.[index]?.request_key" in runner

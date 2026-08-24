@@ -14,7 +14,6 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Iterable, Mapping, Optional
 
-from .authority_scopes import capability_carrier_enabled
 from .config import ROOT, resolve_runtime_config
 from .active_artifacts import DEFAULT_ACTIVE_ARTIFACT_REGISTRY
 from .config_bootstrap import effective_environment_snapshot, render_env_example
@@ -192,7 +191,6 @@ def check_runtime_config_contract(
                     str(config_file),
                 ))
             _check_extra_consumers(report, root, project_id, config_file, project_document, extra_occurrences)
-            _check_capability_carrier_binding(report, spec, config_file)
         except (ConfigError, OSError) as exc:
             report.add(ConfigCheckIssue(code="project_config_invalid", message=str(exc), path=str(config_file)))
         for line, value in _personal_paths(config_file.read_text(encoding="utf-8")):
@@ -750,9 +748,6 @@ def _scan_public_config_bypasses(root: Path, registered_names: Iterable[str]) ->
         for path in sorted(scan_root.rglob("*.py")):
             if path.resolve() in excluded:
                 continue
-            domain = _source_execution_domain(root, path)
-            if domain in {"independent_tool", "test_fixture", "document_or_data"}:
-                continue
             try:
                 text = path.read_text(encoding="utf-8")
                 tree = ast.parse(text, filename=str(path))
@@ -1236,19 +1231,8 @@ def _source_execution_domain(root: Path, path: Path) -> str:
     parts = relative.parts
     if not parts:
         return "unknown"
-    first = parts[0]
-    if first.startswith(".tmp") or first.startswith("tmp"):
-        return "document_or_data"
-    if first == "experiments":
-        return "document_or_data"
     if parts[0] == "impl":
         if len(parts) >= 2 and parts[1] == "checklist":
-            return "independent_tool"
-        if len(parts) >= 4 and parts[1] == "projects" and parts[3] == "scripts":
-            return "independent_tool"
-        if "experiments" in parts:
-            return "independent_tool"
-        if len(parts) >= 5 and parts[3] == "draft" and parts[4] == "probes":
             return "independent_tool"
         return "formal_product"
     if parts[:4] == (".agents", "skills", "draft", "scripts"):
@@ -1605,29 +1589,6 @@ def _iter_extra_fields(document: Mapping[str, object]):
                     yield section, field_id, item
 
 
-def _check_capability_carrier_binding(
-    report: ConfigCheckReport,
-    spec: object,
-    config_file: Path,
-) -> None:
-    if not capability_carrier_enabled(spec):
-        return
-    project_id = str(getattr(spec, "project_id", "") or "")
-    import importlib
-
-    try:
-        module = importlib.import_module(f"impl.projects.{project_id}.live")
-    except ImportError:
-        module = None
-    if callable(getattr(module, "capability_provider", None)):
-        return
-    report.add(ConfigCheckIssue(
-        "capability_carrier_unbound",
-        f"{project_id} 轴2接入未完成：缺 capability_provider",
-        str(config_file),
-    ))
-
-
 def _check_extra_consumers(
     report: ConfigCheckReport,
     root: Path,
@@ -1738,11 +1699,7 @@ def _repository_secret_candidates(root: Path) -> list[tuple[Path, int, str]]:
             if len(parts) != 3 or not parts[1].isdigit():
                 continue
             candidates.append((root / parts[0], int(parts[1]), parts[2]))
-        return [
-            (path, line, text)
-            for path, line, text in candidates
-            if _secret_scan_path_allowed(root, path)
-        ]
+        return candidates
     candidates = []
     for path in root.rglob("*"):
         if not path.is_file() or path.suffix.lower() not in _SECRET_SCAN_SUFFIXES:
@@ -1754,28 +1711,7 @@ def _repository_secret_candidates(root: Path) -> list[tuple[Path, int, str]]:
         for line_number, line in enumerate(lines, 1):
             if re.search(pattern, line, re.IGNORECASE):
                 candidates.append((path, line_number, line))
-    return [
-        (path, line, text)
-        for path, line, text in candidates
-        if _secret_scan_path_allowed(root, path)
-    ]
-
-
-def _secret_scan_path_allowed(root: Path, path: Path) -> bool:
-    try:
-        relative = path.relative_to(root)
-        domain = _source_execution_domain(root, path)
-    except ValueError:
-        return False
-    # Skip tests and scratch. Keep scanning committed artifacts such as report/*.json.
-    if domain == "test_fixture":
-        return False
-    relative_posix = relative.as_posix()
-    if path.name.endswith("_tmp.py") or ".tmp" in relative_posix:
-        return False
-    if relative.parts[:1] == ("tmp",):
-        return False
-    return True
+    return candidates
 
 
 def _placeholder_secret(value: str) -> bool:

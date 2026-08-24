@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Literal, Optional, Sequence
+from typing import Literal, Optional
 
 import pytest
 
@@ -22,21 +22,6 @@ class DemoOutput:
     optional_items: list = field(default_factory=list)
 
 
-@dataclass
-class SequenceOutput:
-    variadic: tuple[str, ...]
-    fixed: tuple[str, int]
-    abstract: Sequence[str]
-
-
-@dataclass
-class Pep604UnionOutput:
-    required_id: str
-    optional_list: list[str] | None = None
-    optional_mapping: dict[str, int] | None = None
-    optional_nested: "Pep604UnionOutput | None" = None
-
-
 def test_json_schema_required_uses_default_to_control_omission():
     spec = StructuredOutputSpec.from_dataclass(DemoOutput)
 
@@ -49,63 +34,6 @@ def test_json_schema_required_uses_default_to_control_omission():
     assert "optional_flag" not in schema["required"]
     assert "optional_count" not in schema["required"]
     assert "optional_items" not in schema["required"]
-
-
-def test_tuple_and_sequence_render_as_json_arrays_and_validate_items():
-    spec = StructuredOutputSpec.from_dataclass(SequenceOutput)
-    properties = spec.json_schema()["properties"]
-
-    assert properties["variadic"] == {
-        "type": "array",
-        "items": {"type": "string", "minLength": 1},
-    }
-    assert properties["fixed"] == {
-        "type": "array",
-        "items": [
-            {"type": "string", "minLength": 1},
-            {"type": "integer"},
-        ],
-        "minItems": 2,
-        "maxItems": 2,
-    }
-    assert properties["abstract"] == {
-        "type": "array",
-        "items": {"type": "string", "minLength": 1},
-    }
-
-    validator = SchemaValidator(spec)
-    valid = {
-        "variadic": ["a", "b"],
-        "fixed": ["name", 2],
-        "abstract": ["x"],
-    }
-    assert validator.validate(valid) == []
-    assert "期望 array" in " ".join(validator.validate({**valid, "variadic": "ab"}))
-    assert "长度 2" in " ".join(validator.validate({**valid, "fixed": ["name"]}))
-    assert "[1]" in " ".join(validator.validate({**valid, "fixed": ["name", "2"]}))
-    assert "期望 array" in " ".join(validator.validate({**valid, "abstract": {"0": "x"}}))
-
-
-def test_pep604_union_annotations_render_constrained_schema_not_empty():
-    """CG-ENG-001：Python 3.9 下 X | None（含泛型与前向引用）不得静默退化为 {}。"""
-    spec = StructuredOutputSpec.from_dataclass(Pep604UnionOutput)
-    properties = spec.json_schema()["properties"]
-
-    assert properties["required_id"]["type"] == "string"
-    assert properties["optional_list"]["type"] == ["array", "null"]
-    assert properties["optional_mapping"]["type"] == ["object", "null"]
-    assert properties["optional_nested"] != {}
-
-
-def test_unresolvable_annotation_fails_loudly_instead_of_silent_empty():
-    """CG-ENG-001：无法解析的注解必须 fail-loud，不能把整个 schema 静默降级。"""
-
-    @dataclass
-    class UnresolvableOutput:
-        x: "MissingTypeInThisModule"
-
-    with pytest.raises(ValueError, match="无法解析"):
-        StructuredOutputSpec.from_dataclass(UnresolvableOutput).json_schema()
 
 
 def test_validator_required_matches_json_schema_required():
@@ -289,35 +217,3 @@ def test_judge_schema_defs_are_not_self_embedded():
     assert defs["GapItem"]["type"] == "object"
     assert "evidence_refs" not in defs["JudgeBusinessExpectationOutput"]["properties"]
     assert "evidence_refs" not in defs["JudgeFulfillmentAssessmentOutput"]["properties"]
-    # 新 Judge LLM 协议不再暴露旧 Authority 投影或模型自报置信度。
-    assert "authority_analysis_ids" not in defs["JudgeBusinessExpectationOutput"]["properties"]
-    assert "confidence" not in defs["JudgeFulfillmentAssessmentOutput"]["properties"]
-    assert "authority_tool_call_ids" in defs["JudgeFulfillmentAssessmentOutput"]["properties"]
-
-
-def test_live_schema_observation_allows_projection_but_keeps_type_and_extra_checks():
-    from impl.projects.client_search.live_schema import check
-
-    projection = {
-        "query": "中银保信",
-        "conditions": [],
-        "robot_text": "未识别到明确查询条件",
-        "query_logic": "AND",
-        "intent_summary": "未识别到明确查询条件",
-    }
-
-    assert check.output(projection) is False
-    assert check.observation(projection) is True
-    assert check.observation({**projection, "conditions": "not-a-list"}) is False
-    assert check.observation({**projection, "unknown_transport_field": 1}) is False
-
-
-def test_authority_output_schemas_render_constrained_not_empty():
-    """CG-ENG-001：真实 Authority 输出契约在 Python 3.9 下不得有字段退化为 {}。"""
-    from impl.core.schema.authority import AuthorityRequest, AuthorityResolution
-
-    for dc in (AuthorityRequest, AuthorityResolution):
-        schema = StructuredOutputSpec.from_dataclass(dc).json_schema()
-        assert set(schema["properties"]) >= {"decision_question"} if dc is AuthorityRequest else set(schema["properties"]) >= {"status", "statement", "reason"}
-        for prop in schema["properties"].values():
-            assert prop != {}

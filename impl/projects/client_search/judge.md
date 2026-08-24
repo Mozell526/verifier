@@ -24,7 +24,7 @@ judge 必须先消费项目 adapter 已确定的 `application_boundary`，再按
 3. 根据边界依据判断每个核心意图属于系统能力边界还是可评价系统范围。
 4. 从当前 API actual output 提取结构化条件、逻辑关系和关键返回字段。
 5. 在 `parser_and_result_set` 范围内，可把真实下游返回作为结果集验证证据，判断是否能搜到用户意图客户。
-6. 在 `parser_condition_semantics_only` 范围内，不能声称已验证 ES 实际结果集，也不要反复把下游不可用当作判定主因；应基于 parser 条件、ES 查询语法、字段语义、操作符语义、枚举能力和业务意图判断搜索语义是否等价，只有语义证据不足时才返回 `not_evaluable`，并说明缺少的依据。
+6. 在 `parser_condition_semantics_only` 范围内，不能声称已验证 ES 实际结果集，也不要反复把下游不可用当作判定主因；应基于 parser 条件、ES 查询语法、字段语义、操作符语义、枚举能力和业务意图判断搜索语义是否等价，只有语义证据不足时才返回 `uncertain`。
 7. 比较 expected-vs-actual：字段业务含义、操作符、枚举值、单位换算、年龄/日期/金额边界、AND/OR 逻辑和条件覆盖是否正确。
 8. 如果条件形态不同但结果集证据或 ES 查询语义等价，应按“能否检索到正确客户”判定，而不是机械判字段/操作符不一致。
 9. 输出 fulfillment-first 结果，并给出 expected、actual、missing、wrong、extra、evidence 和 reasoning_summary。
@@ -36,7 +36,7 @@ judge 必须先消费项目 adapter 已确定的 `application_boundary`，再按
 - 年龄、日期、区间、存在性、否定、数组/集合等操作符必须符合当前查询语义。
 - 缺少用户核心意图、加入用户未表达的额外强约束、错误合并或拆分多个必须条件，都应判 `incorrect`。
 - 如果后处理把中间条件转成等价可执行形态，应判断最终业务语义是否能覆盖正确客户，不机械要求保留中间字段或操作符。
-- `application_boundary` 排除结果集验证时，不能声称结果集已验证；但必须继续依据 ES 查询语义和 parser 条件判断是否等价，不能简单退化为字段字符串比对、重复说明外部依赖不可用或直接 `not_evaluable`。
+- `application_boundary` 排除结果集验证时，不能声称结果集已验证；但必须继续依据 ES 查询语义和 parser 条件判断是否等价，不能简单退化为字段字符串比对、重复说明外部依赖不可用或直接 `uncertain`。
 
 ## 禁止事项
 

@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-import json
-
 import pytest
 
 from impl.core import config as runtime_config
-from impl.core.config_schema import load_yaml_document
 
 
 PUBLIC_ENV_NAMES = (
@@ -42,24 +39,20 @@ def isolated_runtime_config(monkeypatch, tmp_path):
 
 def test_runtime_config_loads_yaml_defaults():
     loaded = runtime_config.get_runtime_config()
-    configured = load_yaml_document(runtime_config.CONFIG_PATH)
 
     assert loaded.schema_version == 1
     assert loaded.python.executable == "python"
-    assert loaded.server.host == configured["server"]["host"]
-    assert loaded.server.port == configured["server"]["port"]
-    assert loaded.uat.host == configured["uat"]["host"]
-    assert loaded.uat.port == configured["uat"]["port"]
+    assert loaded.server.host == "127.0.0.1"
+    assert loaded.server.port == 8020
+    assert loaded.uat.host == "127.0.0.1"
+    assert loaded.uat.port == 8021
     assert loaded.browser.driver_path == "chromedriver"
     assert loaded.llm.protocol == "openai_compatible"
     assert loaded.llm.provider == "deepseek"
     assert loaded.llm.model == "deepseek-v4-pro"
     assert loaded.llm.base_url == "https://api.deepseek.com/v1"
     assert loaded.llm.api_key == ""
-    assert (
-        loaded.llm.request_timeout_seconds
-        == configured["llm"]["request_timeout_seconds"]
-    )
+    assert loaded.llm.request_timeout_seconds == 120
     assert loaded.llm.capabilities.json_mode is True
     assert loaded.llm.capabilities.tool_calls is True
     assert loaded.attribute.finalization_prompt_char_budget == 160000
@@ -71,25 +64,6 @@ def test_runtime_config_loads_yaml_defaults():
     assert loaded.embedding.model == "text-embedding-v4"
     assert loaded.embedding.enabled is True
     assert "embedding.api_key" in loaded.missing_required
-
-
-def test_runtime_config_accepts_custom_yaml_ports_and_timeout(
-    monkeypatch, tmp_path
-):
-    configured = load_yaml_document(runtime_config.CONFIG_PATH)
-    configured["server"]["port"] = 19022
-    configured["uat"]["port"] = 19023
-    configured["llm"]["request_timeout_seconds"] = 601
-    custom_config = tmp_path / "config.yaml"
-    custom_config.write_text(json.dumps(configured), encoding="utf-8")
-    monkeypatch.setattr(runtime_config, "CONFIG_PATH", custom_config)
-    runtime_config.reset_runtime_config_for_tests()
-
-    loaded = runtime_config.get_runtime_config()
-
-    assert loaded.server.port == 19022
-    assert loaded.uat.port == 19023
-    assert loaded.llm.request_timeout_seconds == 601
 
 
 def test_embedding_secret_is_conditionally_required(monkeypatch):

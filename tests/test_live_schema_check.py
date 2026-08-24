@@ -52,7 +52,7 @@ def test_client_search_live_schema_required_nullable_fields_are_enforced():
 
 
 def test_project_live_schema_exports_dataclass_source_and_generated_json_schema():
-    for project_id in ("QA", "client_search", "marketting-planning-intent", "marketting-planning", "llm_probe"):
+    for project_id in ("QA", "client_search", "marketting-planning-intent", "marketting-planning"):
         live_schema = load_live_schema(project_id)
         request_schema = getattr(live_schema, "REQUEST_SCHEMA", None)
         output_schema = getattr(live_schema, "EXTRACT_OUTPUT_SCHEMA", None)
@@ -107,7 +107,6 @@ def test_live_schema_loader_binds_ready_from_project_config_only():
         "deerflow",
         "marketting-planning",
         "marketting-planning-intent",
-        "llm_probe",
     ):
         live_schema = load_live_schema(project_id)
         assert not any(hasattr(live_schema, name) for name in banned_config_names), project_id

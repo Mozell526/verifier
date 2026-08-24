@@ -155,84 +155,8 @@ def test_investigation_manifest_rejects_untraceable_or_large_evidence():
         validate_investigation_manifest(manifest)
 
 
-def test_investigation_manifest_requires_key_index_support_for_sliced_evidence():
-    """CG-ENG-006/P4 门禁：大切片资料必须有 key-index 支撑。"""
-    manifest = _manifest()
-    manifest.tool_requirements = []
-    manifest.evidence_refs = [
-        EvidenceRef(
-            ref_id="big-enums",
-            kind="source",
-            location_ref=LogicalPathRef(
-                PathScope.BUSINESS_SOURCE, "field_enums_args.yaml", sha256="0" * 64
-            ),
-            metadata={"slice": {"mode": "yaml_mapping_field"}},
-        )
-    ]
-    with pytest.raises(ValueError, match="requires key-index support"):
-        validate_investigation_manifest(manifest)
-
-    # 声明 key_index（运行时从已物化切片确定性投影）→ 门禁通过。
-    manifest.evidence_refs[0].metadata["key_index"] = {"entry_granularity": "field"}
-    validate_investigation_manifest(manifest)
-
-    # manifest 显式 key_indexes（collection_ref 匹配）同样满足门禁。
-    from impl.core.schema.investigation_key_index import (
-        InvestigationKeyEntry,
-        InvestigationKeyIndex,
-    )
-
-    manifest.evidence_refs[0].metadata.pop("key_index")
-    manifest.key_indexes = [
-        InvestigationKeyIndex(
-            index_key="material.big-enums.values",
-            collection_ref="big-enums",
-            target_kind="evidence_locator",
-            entry_granularity="yaml_list_range",
-            entries=(
-                InvestigationKeyEntry(
-                    key="values-0",
-                    name="枚举块",
-                    search_text="值",
-                    target_ref="evidence-navigation://big-enums/values[0:1]",
-                ),
-            ),
-        )
-    ]
-    validate_investigation_manifest(manifest)
-
-    # 块级切片不接受 metadata.key_index 声明绕过（运行时投影只支持字段级）。
-    manifest.key_indexes = []
-    manifest.evidence_refs[0].metadata["slice"] = {
-        "mode": "yaml_list_chunk",
-        "root_key": "k",
-        "list_key": "v",
-        "chunk_size": 256,
-    }
-    manifest.evidence_refs[0].metadata["key_index"] = {"entry_granularity": "field"}
-    with pytest.raises(ValueError, match="requires key-index support"):
-        validate_investigation_manifest(manifest)
-    manifest.key_indexes = [
-        InvestigationKeyIndex(
-            index_key="material.big-enums.values",
-            collection_ref="big-enums",
-            target_kind="evidence_locator",
-            entry_granularity="yaml_list_range",
-            entries=(
-                InvestigationKeyEntry(
-                    key="values-0",
-                    name="枚举块",
-                    search_text="值",
-                    target_ref="evidence-navigation://big-enums/values[0:1]",
-                ),
-            ),
-        )
-    ]
-    validate_investigation_manifest(manifest)
-
-
 def test_package_rejects_changed_evidence_content_or_missing_function(tmp_path: Path):
-    package = tmp_path / "draft" / "investigation" / "attribute"
+    package = tmp_path / "draft" / "investigation" / "judge"
     package.mkdir(parents=True)
     (package / "overview.md").write_text("# overview", encoding="utf-8")
     source = tmp_path / "business.py"
@@ -240,7 +164,7 @@ def test_package_rejects_changed_evidence_content_or_missing_function(tmp_path: 
     manifest = InvestigationManifest(
         schema_version=1,
         project_id="demo",
-        role="attribute",
+        role="judge",
         source_revision="abc",
         evidence_refs=[
             EvidenceRef(
@@ -319,64 +243,17 @@ def test_business_source_evidence_is_bound_to_configured_repo_and_revision(tmp_p
             source_root=source_root,
             expected_source_revision="revision-1",
         )
-    with pytest.raises(ValueError, match="outside the verifier project"):
-        validate_investigation_package(
-            package,
-            project_root=project,
-            source_root=source_root,
-            expected_source_revision="revision-1",
-            business_source_staleness_policy="warn",
-        )
 
     manifest.evidence_refs[0].location = f"{business_file}:run"
     manifest.evidence_refs[0].metadata["sha256"] = original_business_hash
     dump_investigation_manifest(manifest, package / "manifest.json")
-    with pytest.raises(ValueError, match="source_revision does not match"):
+    with pytest.raises(ValueError, match="does not match"):
         validate_investigation_package(
             package,
             project_root=project,
             source_root=source_root,
             expected_source_revision="revision-2",
         )
-    result_drift = validate_investigation_package(
-        package,
-        project_root=project,
-        source_root=source_root,
-        expected_source_revision="revision-2",
-        business_source_staleness_policy="warn",
-    )
-    assert result_drift["source_revision_drifted"] is True
-    assert result_drift["current_source_revision"] == "revision-2"
-    assert result_drift["source_revision"] == "revision-1"
-    assert result_drift["staleness_warnings"] == [{
-        "kind": "source_revision_drift",
-        "message": (
-            "investigation source_revision does not match the configured business source "
-            "repository: manifest=revision-1, current=revision-2"
-        ),
-        "expected": "revision-1",
-        "actual": "revision-2",
-    }]
-
-    business_file.write_text("def run():\n    return 2\n", encoding="utf-8")
-    with pytest.raises(ValueError, match="content hash changed"):
-        validate_investigation_package(
-            package,
-            project_root=project,
-            source_root=source_root,
-            expected_source_revision="revision-1",
-        )
-    content_drift = validate_investigation_package(
-        package,
-        project_root=project,
-        source_root=source_root,
-        expected_source_revision="revision-1",
-        business_source_staleness_policy="warn",
-    )
-    warning = content_drift["staleness_warnings"][0]
-    assert warning["kind"] == "evidence_content_drift"
-    assert warning["ref_id"] == "business-source"
-    assert warning["expected"] != warning["actual"]
 
     business_file.write_text("def run():\n    return 2\n", encoding="utf-8")
     with pytest.raises(ValueError, match="content hash changed"):
@@ -763,12 +640,6 @@ def test_candidate_tool_receipt_is_required_and_invalidated_by_code_change(tmp_p
     tool_path.write_text(tool_path.read_text(encoding="utf-8") + "# changed\n", encoding="utf-8")
     with pytest.raises(ValueError, match="Tool changed"):
         require_investigation_validation_receipt(spec, "attribute")
-    with pytest.raises(ValueError, match="Tool changed"):
-        require_investigation_validation_receipt(
-            spec,
-            "attribute",
-            business_source_staleness_policy="warn",
-        )
 
 
 def test_candidate_runtime_warns_for_stale_business_source_but_strict_validation_fails(
@@ -932,7 +803,7 @@ def test_attribute_trace_companion_requires_operational_usage_sections(tmp_path:
 
 
 def test_package_execution_requires_and_runs_explicit_anyof_smoke_inputs(tmp_path: Path):
-    package = tmp_path / "draft" / "investigation" / "attribute"
+    package = tmp_path / "draft" / "investigation" / "judge"
     tool_dir = tmp_path / "draft" / "tools"
     package.mkdir(parents=True)
     tool_dir.mkdir(parents=True)
@@ -954,7 +825,7 @@ def test_package_execution_requires_and_runs_explicit_anyof_smoke_inputs(tmp_pat
         InvestigationManifest(
             schema_version=1,
             project_id="demo",
-            role="attribute",
+            role="judge",
             source_revision="abc",
             tool_requirements=[
                 ToolRequirement(
@@ -1019,31 +890,6 @@ def test_package_execution_requires_and_runs_explicit_anyof_smoke_inputs(tmp_pat
 
 
 def test_validate_investigation_cli_fails_when_required_tool_inputs_are_missing():
-    spec = load_project("client_search")
-    project_root = spec.project_package_path(
-        ".",
-        field_path="project.package",
-        expected_type="directory",
-    )
-    package = spec.project_package_path(
-        "draft/investigation/attribute",
-        field_path="verifier.assets.investigation.attribute",
-        expected_type="directory",
-    )
-    try:
-        validate_investigation_package(
-            package,
-            project_root=project_root,
-            expected_project_id="client_search",
-            expected_role="attribute",
-            source_root=spec.source_root_path() if spec.has_business_source else None,
-        )
-    except ValueError as exc:
-        message = str(exc)
-        if "source_revision does not match" in message or "content hash changed" in message:
-            pytest.skip(message)
-        raise
-
     result = subprocess.run(
         [
             sys.executable,
@@ -1192,62 +1038,6 @@ def test_unavailable_production_mandatory_context_does_not_change_current(tmp_pa
         operation="mock",
         embedding_provider=DeterministicHashEmbeddingProvider(),
     ) is None
-
-
-def test_current_keeps_production_context_while_skipping_candidate_only_assets(tmp_path: Path):
-    (tmp_path / "judge-standard.md").write_text("production judge standard", encoding="utf-8")
-    investigation = tmp_path / "draft" / "investigation" / "judge"
-    investigation.mkdir(parents=True)
-    (investigation / "contract.md").write_text("candidate investigation", encoding="utf-8")
-    builder = tmp_path / "draft" / "context_builders" / "judge_investigation.py"
-    builder.parent.mkdir(parents=True)
-    builder.write_text(
-        "raise AssertionError('Current must not import a candidate-only Context builder')\n",
-        encoding="utf-8",
-    )
-    spec = _project_spec(
-        tmp_path,
-        judge_draft={"enabled": False, "module": "draft/judge.py"},
-        role_assets=[
-            RoleAssetMapping(
-                asset_id="judge_standard",
-                kind="context",
-                enabled=True,
-                roles=["judge"],
-                production_path="judge-standard.md",
-            ),
-            RoleAssetMapping(
-                asset_id="judge_investigation",
-                kind="investigation",
-                enabled=True,
-                roles=["judge"],
-                production_path="investigation/judge",
-                candidate_path="draft/investigation/judge",
-                replace=True,
-            ),
-            RoleAssetMapping(
-                asset_id="judge_investigation_context_builder",
-                kind="context_builder",
-                enabled=True,
-                roles=["judge"],
-                production_path="context_builders/judge_investigation.py",
-                candidate_path="draft/context_builders/judge_investigation.py",
-                replace=True,
-            ),
-        ],
-    )
-
-    result = load_role_mandatory_context(
-        spec,
-        role="judge",
-        operation="judge",
-        embedding_provider=DeterministicHashEmbeddingProvider(),
-    )
-
-    assert result is not None
-    assert result["unit_ids"] == ["project.demo.asset.judge_standard"]
-    assert "production judge standard" in result["content"]
-    assert "candidate investigation" not in result["content"]
 
 
 def test_missing_selected_candidate_mandatory_context_fails_closed(tmp_path: Path):
@@ -1457,83 +1247,3 @@ def test_draft_promotion_rolls_back_files_and_config_when_regression_load_fails(
     assert not (tmp_path / "tools" / "verify.py").exists()
     assert (tmp_path / "draft" / "tools" / "verify.py").read_text(encoding="utf-8") == "candidate tool"
     assert (tmp_path / "project.yaml").read_bytes() == original_config
-
-
-# --- material-positioning.md §5.2 信任模型门禁：inlive_boundary 必须回指登记 ---
-
-def _authority_report_with_inlive_boundary(*, with_registration, boundary_has_condition):
-    from impl.core.schema.investigation_judge import AuthorityInvestigationReport
-
-    decisions = []
-    if with_registration:
-        decisions.append({
-            "conclusion_kind": "normative_rule",
-            "governs": "信任模型登记：M1 受控输出空间（业务方声明）",
-            "statement": "业务方声明系统内字段空间是下游能力边界代理。",
-            "locator": "boundary-doc:judge-boundary-template",
-            "scenario": "默认",
-            "conditions": [],
-        })
-    decisions.append({
-        "conclusion_kind": "inlive_boundary",
-        "governs": "客户搜索可查询字段空间",
-        "statement": "输出空间由下游 ES 接口能力决定。",
-        "locator": "field-library:client-search",
-        "scenario": "默认",
-        "conditions": (
-            ["trust_model: M1 受控输出空间（登记见 信任模型登记）"]
-            if boundary_has_condition
-            else []
-        ),
-    })
-    return AuthorityInvestigationReport.from_dict({
-        "schema_version": 2,
-        "report_id": "r1",
-        "investigation_snapshot_id": "s1",
-        "business_scope": "客户搜索",
-        "materials": [{
-            "source_ref_id": "ref-boundary",
-            "source_location": "project_package:docs/judge-boundary-template.md",
-            "decisions": decisions,
-            "related_to": [],
-            "connections": [],
-            "limitations": [],
-        }],
-        "coverage_gaps": [],
-    })
-
-
-_EVIDENCE_LOCATIONS = {
-    "ref-boundary": "project_package:docs/judge-boundary-template.md",
-}
-
-
-def test_authority_report_rejects_inlive_boundary_without_trust_model():
-    """material-positioning.md §5：inlive_boundary 无已登记信任模型 → 校验拒绝。"""
-    from impl.core.schema.investigation_judge import validate_authority_report
-
-    report = _authority_report_with_inlive_boundary(
-        with_registration=False, boundary_has_condition=True
-    )
-    with pytest.raises(ValueError, match="no registered trust model"):
-        validate_authority_report(report, evidence_locations=_EVIDENCE_LOCATIONS, dimension_ids=set())
-
-
-def test_authority_report_accepts_inlive_boundary_with_registered_trust_model():
-    from impl.core.schema.investigation_judge import validate_authority_report
-
-    report = _authority_report_with_inlive_boundary(
-        with_registration=True, boundary_has_condition=True
-    )
-    validate_authority_report(report, evidence_locations=_EVIDENCE_LOCATIONS, dimension_ids=set())
-
-
-def test_authority_report_requires_trust_model_condition_reference():
-    """登记存在但 inlive_boundary 的 conditions 未回指 trust_model: → 仍拒绝。"""
-    from impl.core.schema.investigation_judge import validate_authority_report
-
-    report = _authority_report_with_inlive_boundary(
-        with_registration=True, boundary_has_condition=False
-    )
-    with pytest.raises(ValueError, match="no condition references the registered trust model"):
-        validate_authority_report(report, evidence_locations=_EVIDENCE_LOCATIONS, dimension_ids=set())

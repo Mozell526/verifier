@@ -24,7 +24,7 @@
 
 **特别注意：** 不要纠结 CONTAINS 和 MATCH 的问题，因为原项目会通过后处理处置，涉及输出为 CONTAINS 应改成 MATCH，或输出为 MATCH 应改成 CONTAINS 这种说法都是不必要的。
 
-下游不可用时的要求：不能因为无法调用 8081 就退化成机械比对 prompt/config 字段形态。judge 仍必须基于当前 parser 条件、ES 查询语法、字段语义、操作符语义、枚举能力和业务意图，尽可能判断搜索语义是否等价；只有条件语义或 ES 查询语义无法可靠判断时才返回 `not_evaluable`，并说明缺少的依据。
+下游不可用时的要求：不能因为无法调用 8081 就退化成机械比对 prompt/config 字段形态。judge 仍必须基于当前 parser 条件、ES 查询语法、字段语义、操作符语义、枚举能力和业务意图，尽可能判断搜索语义是否等价；只有条件语义或 ES 查询语义无法可靠判断时才返回 `uncertain`。
 
 ## Implementation mapping
 
@@ -34,7 +34,7 @@
 - client_search adapter 会把 parser 返回的 `conditions` 和 `query_logic` 组装成下游搜索请求格式，并按项目配置尝试调用 `application.downstream_search`。
 - 下游搜索证据写入 `RunTrace.extracted_output.downstream_search` 和 `execution_trace` 的 `client_search.downstream_search` 节点。
 - 如果下游搜索成功，judge 可结合实际搜索返回判断是否能搜到用户意图客户，并在 fulfillment evidence 中说明结果集已验证。
-- 如果下游搜索不可用、未配置或 parser 无条件导致跳过，judge 必须在 fulfillment evidence 中标记 `result_set_verified=false`，但仍要做好 ES 查询语义等价判断；不能只因为没有结果集就直接 `not_evaluable` 或只做字符串级条件比对。
+- 如果下游搜索不可用、未配置或 parser 无条件导致跳过，judge 必须在 fulfillment evidence 中标记 `result_set_verified=false`，但仍要做好 ES 查询语义等价判断；不能只因为没有结果集就直接 `uncertain` 或只做字符串级条件比对。
 - 如果 parser 条件形态与 prompt/config 略有不同，但 ES 查询语义或结果集等价，judge 可以按等价查询判 `fulfilled`。
 - judge 输出使用 fulfillment-first `JudgeResult` 协议字段：`business_expectations`、`fulfillment_assessments`、`overall_fulfillment`、`evidence`、`quality_flags`；application boundary 只能作为 fulfillment evidence 或项目上下文，不作为通用协议字段。
 - check agent 需要检查 judge 是否保留了下游搜索证据状态、是否把不可用结果集误当成已验证、是否在下游不可用时仍执行了 ES 查询语义等价判断、是否出现第二套 fulfilled/not_fulfilled 口径。

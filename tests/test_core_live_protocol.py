@@ -308,38 +308,6 @@ def test_request_shaped_case_does_not_generate_or_replace_its_intent():
     assert trace.extracted_output == {"answer": "authoritative-query"}
 
 
-def test_trace_records_actual_free_current_reference_contract_provenance():
-    live = _live(_SingleLive, _SingleMock())
-    live.spec = ProjectSpec(
-        project_id="demo",
-        name="demo",
-        runtime={"ready": ["reference"]},
-    )
-    reference = {
-        "oracle": "current",
-        "expected_conditions": [
-            {"field": "age", "operator": "GTE", "value": 31},
-        ],
-    }
-
-    trace = trace_from_live(
-        live,
-        SingleTurnCase(
-            id="case-current-reference",
-            input={"query": "30岁以上客户"},
-            reference=reference,
-        ),
-    )
-
-    assert len(trace.evidence_refs) == 1
-    proof = trace.evidence_refs[0]
-    assert proof.source == "trace.reference_contract"
-    assert proof.stage == "trace-construction"
-    assert proof.metadata["actual_free"] is True
-    assert proof.metadata["evidence_basis"] == "product_contract_fact"
-    assert proof.metadata["reference_contract_sha256"]
-
-
 def test_output_validation_failure_is_not_hidden_by_fallback_output():
     live = _live(_SingleLive, _SingleMock(), output_ok=False)
     ctx = TraceContext(project_id="demo", case_id="case-1")

@@ -155,7 +155,7 @@ def main(argv=None):
     elif args.cmd == "judge":
         emit(pipeline.judge(args.project, trace_from_json(load_json_arg(args.trace)), args.user_intent))
     elif args.cmd == "attribute":
-        emit(pipeline.attribute(args.project, trace_from_json(load_json_arg(args.trace)), judge_from_json(load_json_arg(args.judge)), manual_override=True))
+        emit(pipeline.attribute(args.project, trace_from_json(load_json_arg(args.trace)), judge_from_json(load_json_arg(args.judge))))
     elif args.cmd == "cluster":
         attrs = [attribute_from_json(item) for item in load_json_arg(args.attributes)]
         emit(pipeline.cluster(args.project, attrs))

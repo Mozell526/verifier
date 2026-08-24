@@ -5,8 +5,6 @@ import importlib
 from collections import Counter
 from typing import Any, Dict, Iterable, List, Mapping, Optional
 
-from .capability_carrier import carrier_text
-from .judge_protocol import execution_failure_markers
 from .schema import AttributeResult, CheckReport, FallbackDecision, FrontendViewModel, JudgeResult, RunTrace, normalize_attribute_result, normalize_check_report, normalize_frontend_view, normalize_judge_result, normalize_run_trace, to_dict, trace_conversation_summary, trace_conversation_transcript, trace_extracted_output, trace_output_source, trace_turn_records
 from .schema.accessors import trace_input as get_trace_input
 from .schema.table import CasePoolTable, ConversationTurn, TraceTableRow
@@ -176,20 +174,7 @@ def _root_cause(attribute: Optional[AttributeResult]) -> str:
     return "\n".join([*conclusions, attribute.unresolved_reason] if attribute.unresolved_reason else conclusions)
 
 
-def _execution_failure_flags(
-    judge: Optional[JudgeResult],
-    trace: RunTrace,
-    case_context: Dict[str, Any],
-) -> List[str]:
-    if judge is not None:
-        return sorted(execution_failure_markers(judge))
-    if trace.error or case_context.get("error") or str(trace.status or "") == "error":
-        return ["batch_case_failed"]
-    return []
-
-
 def _judge_summary(trace: RunTrace, judge: Optional[JudgeResult], case_context: Dict[str, Any]) -> Dict[str, Any]:
-    flags = _execution_failure_flags(judge, trace, case_context)
     if not judge:
         execution_error = trace.error or str(case_context.get("error") or "")
         if not execution_error:
@@ -205,10 +190,9 @@ def _judge_summary(trace: RunTrace, judge: Optional[JudgeResult], case_context: 
             "assessment_count": 0,
             "blocking_count": 0,
             "primary_failure_dimensions": [],
-            "quality_flags": flags,
         }
     if judge.summary:
-        payload = {
+        return {
             "status": (judge.overall_fulfillment or {}).get("status") or trace.status or "",
             "fulfillment_status": judge.summary.get("fulfillment_status") or "",
             "score": judge.summary.get("score"),
@@ -219,9 +203,7 @@ def _judge_summary(trace: RunTrace, judge: Optional[JudgeResult], case_context: 
             "assessment_count": judge.summary.get("assessment_count", 0),
             "blocking_count": judge.summary.get("blocking_count", 0),
             "primary_failure_dimensions": judge.summary.get("primary_failure_dimensions") or [],
-            "quality_flags": flags,
         }
-        return payload
     summary = summary_from_fulfillment(to_dict(judge))
     return {
         "status": (judge.overall_fulfillment or {}).get("status") or trace.status or "",
@@ -234,7 +216,6 @@ def _judge_summary(trace: RunTrace, judge: Optional[JudgeResult], case_context: 
         "assessment_count": summary.get("assessment_count", 0),
         "blocking_count": summary.get("blocking_count", 0),
         "primary_failure_dimensions": summary.get("primary_failure_dimensions") or [],
-        "quality_flags": flags,
     }
 
 
@@ -298,15 +279,10 @@ def build_trace_table_row(
     fallbacks = _fallbacks(trace, judge, attribute, check)
     fallback_summary = _fallback_summary(fallbacks)
     check_summary = _check_summary(check)
-    quality_flags = list(dict.fromkeys(
-        list(judge_summary.get("quality_flags") or [])
-        + list(attribution_summary.get("quality_flags") or [])
-        + list(fallback_summary.get("quality_flags") or [])
-    ))
+    quality_flags = list(judge_summary.get("quality_flags") or []) + list(attribution_summary.get("quality_flags") or []) + list(fallback_summary.get("quality_flags") or [])
     conversation_detail = _conversation_detail(trace)
     divergence_stage = ""
     issue_count = len(check.issues or []) + len(check.protocol_gaps or []) + len(check.consistency_gaps or []) if check else 0
-    placement = carrier_text(case_context.get("capability_carrier"))
 
     return TraceTableRow(
         id=_row_id(trace, case_context),
@@ -323,7 +299,6 @@ def build_trace_table_row(
         output_source=str(case_context.get("output_source") or trace_output_source(trace) or ""),
         score=judge_summary.get("score"),
         fulfillment_status=fulfillment_status,
-        carrier_placement=placement,
         judge_summary=judge_summary,
         attribution_summary=attribution_summary,
         check_summary=check_summary,
@@ -368,7 +343,7 @@ def build_trace_table_row_from_run(run: Dict[str, Any]) -> TraceTableRow:
     attribute = normalize_attribute_result(run.get("attribute"))
     view = normalize_frontend_view(run.get("frontend_view"))
     check = normalize_check_report(run.get("check"))
-    case_context = {key: run.get(key) for key in ("id", "scenario", "execution_mode", "output_source", "reference", "output", "capability_carrier") if run.get(key) is not None}
+    case_context = {key: run.get(key) for key in ("id", "scenario", "execution_mode", "output_source", "reference", "output") if run.get(key) is not None}
     return build_trace_table_row(trace, judge, attribute, view, check, case_context=case_context)
 
 
