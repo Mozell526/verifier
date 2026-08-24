@@ -46,7 +46,6 @@ _ATTRIBUTE_TRACE_SECTIONS = (
     "## Operational index",
     "## Investigation procedure",
 )
-_BUSINESS_SOURCE_STALENESS_POLICIES = {"strict", "warn"}
 
 
 def validate_investigation_package(

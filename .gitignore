@@ -1,50 +1,48 @@
-.gitignore
 # macOS / Python artifacts
 .DS_Store
 __pycache__/
 *.py[cod]
 
-# .claude contents tracked by git (except these)
-.claude/.DS_Store
-.claude/scheduled_tasks.lock
-.claude/scheduled_tasks.json
-.claude/bak/
+# Local secrets and operational notes
+.env
+env.md
+git.md
+.claude/settings.local.json
 
-# Runtime data
-impl/data/context_runtime/
-impl/data/context_store/
-data/
-*.xlsx
-*.xls
-report/
-search-test-case/
-issues/
-issue/
-
-# Project draft state (runtime-generated)
-impl/projects/client_search/draft/.state/
-impl/projects/client_search/start.sh
-impl/projects/deerflow/draft/.state/
-impl/projects/deerflow/draft/cases/mock_iteration*.json
-impl/projects/deerflow/draft/investigation/mock/
-impl/projects/deerflow/draft/probes/
-impl/projects/deerflow/draft/mock.py
-impl/projects/deerflow/draft/tools/mock_validation_tools.py
-impl/projects/deerflow/mock_base.py
-impl/projects/marketting-planning/draft/.state/
-impl/projects/marketting-planning-intent/draft/.state/
-
-# Playwright / codex / agent local artifacts
-.playwright-cli/
-.codex/
-.agents/
-.superpowers/
-hooks/review/
-
-# Other local-only files
-*.backup
-selenium_test*
-/test_*.py
-/_check_*.py
-/_test_*.py
+# Runtime / temporary data
+*.log
+tmp/
 trace_mkdir.py
+
+# Backups
+.claude/skills-backup/
+.claude/worktrees/
+impl/knowledge.backup/
+*.backup
+
+# Externalized runtime data & reports (kept locally, no longer tracked)
+report/api-check/
+impl/data/context_store/
+impl/data/context_runtime/
+.tmp-model-channel/
+.playwright-cli/
+# One-off verification/session reports at report/ root (framework docs live elsewhere)
+report/*_final_*.md
+report/fix_verification_final_*.md
+report/external_info_retrieval_capability.md
+report/final_assessment_algorithm_alignment.md
+report/multiturn-schema.md
+report/schema-audit-occam.md
+report/tool_capability_completion_report.md
+report/tool_capability_final_status.md
+report/tool_mechanism_verification.md
+report/verification_checklist.md
+
+# Local test artifacts
+selenium_test_results.json
+selenium_test.py
+material/
+test_agno_session.py
+test_who_creates_knowledge.py
+check_report_agno_refactor.md
+issue.md
