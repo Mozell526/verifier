@@ -1,0 +1,14 @@
+Judged 019–021 independently after re-running the overlay script and re-reading frozen traces plus `exit_wide` / `exit_surname` / `exit_role`. Appended `## Architect Response #1` to each issue (`spawn-id: f3e708f76cfa44c3`).
+
+**019 — real-problem.** HB009–HB014 live has no `searchClientName` (HB013 is empty). Bare names and legal IDs in the same pack parsed fine. All three overlays raw-`None`; they do not invent a name from the query. 4A name+product floor is red at parse. Judge NF is honest, not a 1A-overstrict miss.
+
+**020 — real-problem.** Same `searchClientName MATCH` shape: 12 true names = 7F/5NF (set B alone 4F/4NF). 匡西永 xlsx F / fresh NF; 王坤林 xlsx NF / fresh F. Prompt L1504–1508 still has the two mutually exclusive clauses. Fake names stay NF. This is 011’s mechanism on a fresh draw, not a reopening of 011.
+
+**021 — real-problem, with a factual correction.** My scores match: current 36/47, wide 27/47 (fake names lifted), surname 35/47 (five 保单号 killed), role 41/47 with misses = HB009–HB014. Role must not be merged into `judge.py`.
+
+Tightening on 021:
+- Frozen I485 昊轩 is **NF**, same as xlsx. There is no fresh-F vs xlsx-NF contradiction. Mixed overlays abstain (`undecided_given_name`). I did not decide §4.3.
+- Parked 去年 / 格式外 / 称谓 rows are not in the 48-pack; the parked guard abstains on unit queries.
+- Role’s 41/47 is overlay + inherit. Fake-name “passes” are mostly raw `None` inheriting current NF. I103 `高吉禄的保单号` misses the role F path because `{2,4}` greedy-eats `高吉禄的`. I248 红莲保单 is a real set A residual.
+
+No fourth overlay. No edits to `judge.py`, xlsx, canvas, set B, or the simulation script.

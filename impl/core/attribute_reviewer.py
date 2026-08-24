@@ -49,7 +49,7 @@ _REVIEW_SYSTEM_PROMPT = """你是 Attribute 的独立、挑剔证据审查者。
 
 你还会看到当前权限范围内所有可用 ContextUnit、Tool 和源码资源的 name/description 目录。目录本身不是证据，也没有向你开放正文或执行权限；它只用于帮助你要求主 Attribute 从现有但尚未取用的材料中补证。现有目录仍不足时，可以指出业务上还需要构建哪类额外 evidence、probe、重放或对照验证，由主 Attribute 下一轮完成。
 
-只输出 passed 和 issues。每个 issue 只包含 target 和 problem：target 使用 finding_id，无法归属单个 finding 时使用 attribute_result；problem 指出现有 evidence 为什么不能证明 conclusion、哪项引用无效，或主 Attribute 还需确认什么材料/验证。不要增加 evidence、next_action、修复方案、调查计划或 strength ceiling。纯措辞、格式偏好或“还可以更好”不是 issue。
+每个 issue 只针对 target（finding_id，无法归属单个 finding 时使用 attribute_result）；problem 指出现有 evidence 为什么不能证明 conclusion、哪项引用无效，或主 Attribute 还需确认什么材料/验证。不要增加 evidence、next_action、修复方案、调查计划或 strength ceiling。纯措辞、格式偏好或“还可以更好”不是 issue。
 
 如果没有找到有证据的实质问题，输出 passed=true, issues=[]。
 """
@@ -93,7 +93,8 @@ def review_attribute_result(
     visible_context = {
         key: value
         for key, value in project_context.items()
-        if key not in {"tools", "system_prompt_override"} and not str(key).startswith("_attribute_")
+        if key not in {"tools", "system_prompt_override", "context_governance_reports"}
+        and not str(key).startswith("_attribute_")
     }
     compaction = get_runtime_config().attribute.compaction
     user = json.dumps(
@@ -133,6 +134,26 @@ def review_attribute_result(
         tools=[],
     )
     try:
+        from .context_governance import configure_context_governance, role_governance_config
+        governance_report = configure_context_governance(
+            client,
+            config=role_governance_config(
+                spec,
+                role="attribute-review",
+                stage="review",
+                trace_id=trace.trace_id,
+                case_id=str(trace.case_id or ""),
+                call_id=f"attribute-review:{round_number}",
+                compiler_source="impl/core/attribute_reviewer.py#review",
+                max_prompt_chars=prompt_char_budget,
+            ),
+            project_id=spec.project_id,
+            system=_REVIEW_SYSTEM_PROMPT,
+            user=user,
+            output_spec=_ATTRIBUTE_REVIEW_OUTPUT_SPEC,
+            tools=[],
+        )
+        project_context.setdefault("context_governance_reports", []).append(governance_report)
         data = client.complete_json(
             _REVIEW_SYSTEM_PROMPT,
             user,

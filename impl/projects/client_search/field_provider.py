@@ -22,6 +22,7 @@ class ClientSearchFieldDefinitionProvider:
     def __init__(self, spec: ProjectSpec):
         self.spec = spec
         self._cached_data: Optional[dict] = None
+        self._cached_behavior_data: Optional[dict] = None
 
     def _load_yaml(self) -> dict:
         """加载 field_definitions YAML 文件（带缓存）。"""
@@ -41,6 +42,25 @@ class ClientSearchFieldDefinitionProvider:
 
         return self._cached_data
 
+    def _load_behavior_yaml(self) -> Optional[dict]:
+        """加载 behavior_intent_definitions YAML（可选，带缓存）。"""
+        if self._cached_behavior_data is not None:
+            return self._cached_behavior_data
+        try:
+            behavior_path = self.spec.source_path("behavior_intents")
+        except Exception:
+            behavior_path = ""
+        if not behavior_path:
+            self._cached_behavior_data = {}
+            return self._cached_behavior_data
+        full_path = Path(behavior_path)
+        if not full_path.is_file():
+            self._cached_behavior_data = {}
+            return self._cached_behavior_data
+        with open(full_path, 'r', encoding='utf-8') as f:
+            self._cached_behavior_data = yaml.safe_load(f) or {}
+        return self._cached_behavior_data
+
     def get_field_definition(self, field_name: str) -> Optional[dict]:
         """
         实现协议：从 YAML 中查找字段定义。
@@ -58,7 +78,7 @@ class ClientSearchFieldDefinitionProvider:
             field_entries = [item for item in intents if item.get('field') == field_name]
 
             if not field_entries:
-                return None
+                return self._get_behavior_field_definition(field_name)
 
             # 合并多个 intent 的信息
             operators = set()
@@ -105,4 +125,49 @@ class ClientSearchFieldDefinitionProvider:
 
         except Exception as e:
             logger.error(f"Error loading field definition for {field_name}: {e}")
+            return None
+
+    def _get_behavior_field_definition(self, field_name: str) -> Optional[dict]:
+        """field_definitions 未命中时，从 behavior_intent_definitions 的空间部分提供定义。"""
+        try:
+            data = self._load_behavior_yaml()
+            if not isinstance(data, dict):
+                return None
+            if str(data.get("field") or "").strip() != field_name:
+                return None
+            intents = data.get("intents")
+            if not isinstance(intents, list):
+                return None
+            supported = []
+            unsupported = []
+            for item in intents:
+                if not isinstance(item, dict):
+                    continue
+                activity = str(item.get("activity") or "").strip()
+                if not activity:
+                    continue
+                if item.get("is_supported") is False:
+                    unsupported.append(activity)
+                else:
+                    supported.append(activity)
+            if not supported and not unsupported:
+                return None
+            result = {
+                'field': field_name,
+                'operators': ['MATCH'],
+                'value_types': ['enum'],
+                'is_supported': bool(supported),
+                'is_supported_explicit': True,
+            }
+            description = (
+                "客户行为字段。空间部分来自 behavior_intent_definitions_args.yaml；"
+                "aliases/activity_template/selection_notes/examples 属 current_behavior，不作为裁决依据。"
+            )
+            result['description'] = description[:100]
+            enums = supported or unsupported
+            if len(enums) <= 5:
+                result['enums'] = enums[:5]
+            return result
+        except Exception as e:
+            logger.error(f"Error loading behavior definition for {field_name}: {e}")
             return None

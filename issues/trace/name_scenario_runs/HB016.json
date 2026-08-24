@@ -1,0 +1,174 @@
+{
+  "id": "HB016",
+  "query": "P01000008888888",
+  "role": "legal_id",
+  "expected_status": "fulfilled",
+  "source": "set_b",
+  "live_error": null,
+  "judge_error": null,
+  "live": {
+    "trace_id": "client_search:HB016:1786796722162",
+    "fields": [
+      "polNo"
+    ],
+    "values": [
+      "P01000008888888"
+    ],
+    "robot_text": "保单号为P01000008888888的客户",
+    "matched_patterns": "保单号-匹配",
+    "intent_summary": "保单号为P01000008888888的客户",
+    "conditions": [
+      {
+        "field": "polNo",
+        "operator": "MATCH",
+        "value": "P01000008888888",
+        "match_mode": null
+      }
+    ],
+    "extracted": {
+      "code": 0,
+      "msg": "操作成功",
+      "robot_text": "保单号为P01000008888888的客户",
+      "end_flag": 1,
+      "trace_id": null,
+      "query": "P01000008888888",
+      "query_logic": "AND",
+      "conditions": [
+        {
+          "field": "polNo",
+          "operator": "MATCH",
+          "value": "P01000008888888",
+          "match_mode": null
+        }
+      ],
+      "matched_level": 2,
+      "matched_patterns": "保单号-匹配",
+      "rewritten_query": "P01000008888888",
+      "intent_summary": "保单号为P01000008888888的客户",
+      "confidence": 0.95,
+      "cost_times": 144.0
+    }
+  },
+  "judge_status": "fulfilled",
+  "judge_reasoning": "用户输入符合保单号检索意图。实际输出将其映射为polNo的MATCH条件，值完整保留，AND逻辑无额外限制；下游结果集未验证，但当前仅评价解析语义，核心交付已满足。",
+  "judge": {
+    "trace_id": "client_search:HB016:1786796722162",
+    "project_id": "client_search",
+    "business_expectations": [
+      {
+        "expectation_id": "按保单号筛选目标客户",
+        "blocking": true,
+        "downstream_consumer": "find-target-customers客户搜索下游",
+        "user_intent": "使用保单号P01000008888888查找对应客户",
+        "expected_outcome": "交付以polNo字段匹配值P01000008888888的可执行客户搜索条件",
+        "required_capabilities": [
+          "保单号字段识别",
+          "MATCH操作符",
+          "保单号值原样保留",
+          "AND逻辑下的单条件查询"
+        ],
+        "acceptance_criteria": [
+          "条件字段承载保单号语义",
+          "操作符为下游支持的MATCH",
+          "查询值为P01000008888888且未增加未表达限制"
+        ],
+        "boundary": {
+          "judge_scope": "parser_condition_semantics_only",
+          "result_set_verified": false
+        },
+        "priority": "核心交付",
+        "evidence_refs": []
+      }
+    ],
+    "fulfillment_assessments": [
+      {
+        "expectation_id": "按保单号筛选目标客户",
+        "status": "fulfilled",
+        "score": 1.0,
+        "expected_evidence": [
+          "用户输入为P01000008888888，应形成保单号客户筛选条件",
+          "polNo字段支持保单号语义及MATCH操作符"
+        ],
+        "actual_evidence": [
+          "实际条件为polNo MATCH P01000008888888",
+          "robot_text明确表述为保单号为P01000008888888的客户",
+          "query_logic为AND且仅包含该条件"
+        ],
+        "downstream_impact": "条件语义可交付下游；下游结果集未验证，不影响本次解析语义判定",
+        "confidence": null,
+        "evidence_refs": [],
+        "authority_tool_call_ids": []
+      }
+    ],
+    "overall_fulfillment": {
+      "status": "fulfilled",
+      "assessment_count": 1,
+      "blocking_expectations": [
+        "按保单号筛选目标客户"
+      ]
+    },
+    "expected": {
+      "code": 0,
+      "msg": "操作成功",
+      "query": "P01000008888888",
+      "conditions": [
+        {
+          "field": "polNo",
+          "operator": "MATCH",
+          "value": "P01000008888888",
+          "match_mode": null
+        }
+      ],
+      "robot_text": "保单号为P01000008888888的客户",
+      "query_logic": "AND",
+      "rewritten_query": "P01000008888888"
+    },
+    "actual": {
+      "code": 0,
+      "msg": "操作成功",
+      "robot_text": "保单号为P01000008888888的客户",
+      "end_flag": 1,
+      "trace_id": null,
+      "query": "P01000008888888",
+      "query_logic": "AND",
+      "conditions": [
+        {
+          "field": "polNo",
+          "operator": "MATCH",
+          "value": "P01000008888888",
+          "match_mode": null
+        }
+      ],
+      "matched_level": 2,
+      "matched_patterns": "保单号-匹配",
+      "rewritten_query": "P01000008888888",
+      "intent_summary": "保单号为P01000008888888的客户",
+      "confidence": 0.95,
+      "cost_times": 144.0
+    },
+    "missing": [],
+    "wrong": [],
+    "extra": [],
+    "evidence": [
+      "用户输入：P01000008888888",
+      "实际输出：polNo MATCH P01000008888888",
+      "字段资料确认polNo为保单号字段且支持MATCH",
+      {
+        "source": "client_search.condition_compare",
+        "wrong": [],
+        "missing": [],
+        "extra": []
+      }
+    ],
+    "reasoning_summary": "用户输入符合保单号检索意图。实际输出将其映射为polNo的MATCH条件，值完整保留，AND逻辑无额外限制；下游结果集未验证，但当前仅评价解析语义，核心交付已满足。",
+    "summary": {
+      "reason": "fulfilled · 1 blocking expectations all met · 用户输入符合保单号检索意图。实际输出将其映射为polNo的MATCH条件，值完整保留，AND逻辑无额外限制；下游结果集未验证，但当前仅评价解析语义，核心交付已满足。",
+      "primary_failure_dimensions": [],
+      "reason_source": "aggregated_fulfillment",
+      "fulfillment_status": "fulfilled",
+      "assessment_count": 1,
+      "blocking_count": 1,
+      "is_formal_attribution": true
+    }
+  }
+}

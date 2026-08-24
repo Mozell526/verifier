@@ -1,0 +1,125 @@
+{
+  "decision": "insufficient_evidence",
+  "route": "solidify",
+  "summary": "本轮误用 base Python 启动，收到用户的项目专属解释器要求后被主动终止；五条冻结 RunTrace 中存在双侧或单侧 Operation cancelled，结果不完整且运行环境不符合要求。本轮不能计入有效比较，关闭后使用项目专属 agno 解释器重跑。",
+  "contract_coverage": [
+    {
+      "source_id": "authority:enum-value-authority",
+      "evidence": ["draft/.state/judge/solidify.json", "draft/.state/judge/iterations/001-run.json#rows"]
+    },
+    {
+      "source_id": "authority:evaluation-boundary-authority",
+      "evidence": ["draft/.state/judge/solidify.json", "draft/.state/judge/iterations/001-run.json#rows"]
+    },
+    {
+      "source_id": "authority:query-form-equivalence-authority",
+      "evidence": ["draft/.state/judge/solidify.json", "draft/.state/judge/iterations/001-run.json#rows"]
+    },
+    {
+      "source_id": "authority:semantic-mapping-authority",
+      "evidence": ["draft/.state/judge/solidify.json", "draft/.state/judge/iterations/001-run.json#rows"]
+    },
+    {
+      "source_id": "dimension:downstream-query-consumability",
+      "evidence": ["draft/.state/judge/solidify.json", "draft/.state/judge/iterations/001-run.json#rows"]
+    },
+    {
+      "source_id": "dimension:search-intent-preservation",
+      "evidence": ["draft/.state/judge/solidify.json", "draft/.state/judge/iterations/001-run.json#rows"]
+    },
+    {
+      "source_id": "expectation:find-target-customers",
+      "evidence": ["draft/.state/judge/solidify.json", "draft/.state/judge/iterations/001-run.json#rows"]
+    },
+    {
+      "source_id": "live_boundary",
+      "evidence": ["draft/.state/judge/solidify.json", "draft/.state/judge/iterations/001-run.json#rows"]
+    }
+  ],
+  "criteria": [
+    {
+      "criterion_id": "expectation_support",
+      "status": "not_evaluable",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "运行被主动终止，部分 case 没有生成 expectation，完整性不满足审查要求。"
+    },
+    {
+      "criterion_id": "atomic_pre_actual_expectations",
+      "status": "not_evaluable",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "没有成功 Planning，无法审查 pre-actual 原子性。"
+    },
+    {
+      "criterion_id": "pre_actual_blocking",
+      "status": "not_evaluable",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "没有成功 Planning，无法审查 blocking 是否在 actual 前冻结。"
+    },
+    {
+      "criterion_id": "dimension_coverage",
+      "status": "not_evaluable",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "业务维度未被模型执行，无法判断覆盖。"
+    },
+    {
+      "criterion_id": "fulfilled_external_evidence",
+      "status": "not_evaluable",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "没有有效 fulfilled 结果。"
+    },
+    {
+      "criterion_id": "not_fulfilled_live_boundary",
+      "status": "not_evaluable",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "没有有效 not_fulfilled 结果。"
+    },
+    {
+      "criterion_id": "not_evaluable_evidence_gap",
+      "status": "not_evaluable",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "结果中的 not_evaluable 来自运行时失败，不是业务证据缺口。"
+    },
+    {
+      "criterion_id": "missing_output_no_escape",
+      "status": "not_evaluable",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "部分模型调用被取消，无法审查缺输出是否逃逸。"
+    },
+    {
+      "criterion_id": "external_constraint_non_attribution",
+      "status": "not_evaluable",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "没有业务判断，无法审查外部约束归责。"
+    },
+    {
+      "criterion_id": "authority_anchor_scope",
+      "status": "not_evaluable",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "没有 Authority 激活事实可审查。"
+    },
+    {
+      "criterion_id": "authority_unresolved_conservatism",
+      "status": "not_evaluable",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "没有业务 Authority Gate 结果可审查。"
+    },
+    {
+      "criterion_id": "no_runtime_authority_investigation",
+      "status": "not_evaluable",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "部分运行在外部模型返回 Authority 判断前被取消。"
+    },
+    {
+      "criterion_id": "no_internal_or_unseen_leakage",
+      "status": "pass",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#frozen_cases_sha256"],
+      "finding": "Production 与 Draft 使用相同的五条 exposed 冻结 trace，未打开 promotion 或 reserve 内容。"
+    },
+    {
+      "criterion_id": "relative_improvement_no_regression",
+      "status": "not_evaluable",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "双侧均为运行时失败，不能比较业务合理性。"
+    }
+  ]
+}

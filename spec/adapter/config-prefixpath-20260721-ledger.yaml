@@ -155,6 +155,19 @@ entries:
       owner: impl.core.schema.investigation
       deletion_condition: schema v1 remains historical-only and no active package needs migration
 
+  - entry_id: policy-search-business-root
+    project: policy_search
+    historical_location: policy-search onboarding source repository supplied outside formal project configuration
+    semantic_scope: business_source
+    lifecycle: config_input
+    canonical_target:
+      kind: yaml_field
+      value: impl/projects/policy_search/project.yaml#project.resources.source.repository
+    consumers: [ProjectSpec.source_root_path, project tools, local_service, Investigation]
+    probe_id: project-source-config
+    disposition: split
+    compatibility: {status: removed}
+
   - entry_id: deerflow-business-root
     project: deerflow
     historical_location: source_project and application.external_repo
@@ -323,6 +336,33 @@ entries:
       status: retained
       owner: business investigation maintainer
       deletion_condition: stale receipt is revalidated against the current manifest
+
+  - entry_id: llm-probe-route-documents
+    project: llm_probe
+    historical_location: projects/llm_probe knowledge-route documents
+    semantic_scope: knowledge_route
+    lifecycle: config_input
+    canonical_target:
+      kind: yaml_field
+      value: projects/llm_probe/project.yaml#documents
+    consumers: [ProjectKnowledgeRoute, evals harness initialization]
+    probe_id: route-resolution
+    disposition: migrate
+    compatibility: {status: removed}
+
+  - entry_id: llm-probe-frozen-mock-cases
+    project: llm_probe
+    historical_location: impl/data/llm_probe/mock_cases.json path-bearing case payloads
+    semantic_scope: verifier_repo
+    lifecycle: derived_active
+    canonical_target:
+      kind: logical_path_ref
+      location_scope: verifier_repo
+      field: frozen MockCase persisted path references
+    consumers: [MockCase loader, evaluation input selection]
+    probe_id: active-registry
+    disposition: migrate
+    compatibility: {status: removed}
 
   - entry_id: historical-iteration-reports
     project: deerflow

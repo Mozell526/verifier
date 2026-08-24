@@ -65,7 +65,7 @@ def _build_project_attribute_context(spec: ProjectSpec, adapter, trace: RunTrace
     return {
         "system_prompt_override": """你是 QA 项目的 draft attribute agent。
 只基于当前 RunTrace、JudgeResult、qa_draft_probe 和 grounding_gap_tool 归因；不要复用历史 case，不要把其他项目字段带入 QA。
-如果 grounding_gap_tool 缺少 reference/actual，不生成 finding，只在 unresolved_reason 说明阻塞。最终只输出 findings、unresolved_reason，证据必须引用 Finalization 重载的 ContextUnit。""",
+如果 grounding_gap_tool 缺少 reference/actual，不生成 finding，只在 unresolved_reason 说明阻塞。证据必须引用 Finalization 重载的 ContextUnit。""",
         "user_prompt_extras": {
             "project_attribute_strategy": {
                 "project": spec.project_id,

@@ -1,0 +1,145 @@
+{
+  "decision": "insufficient_evidence",
+  "route": "solidify",
+  "summary": "四条冻结 RunTrace 完成运行，但 badcase-012 的 Draft 侧遭遇外部 LLM insufficient_quota，整轮不能作为无退化比较。有效事实仍显示：001 已保守转为 not_evaluable，但激活的是 evaluation-boundary-authority 而非上游 semantic-mapping-authority；126 仍把静态配置列表当成完整枚举并判 fulfilled。033 Draft fulfilled 比 Production 因午夜边界判 not_fulfilled 更符合人工标注。因存在基础设施失败且 Authority 类型/枚举依赖仍不精确，本轮判 insufficient_evidence，继续 Solidify。",
+  "criteria": [
+    {
+      "criterion_id": "expectation_support",
+      "status": "pass",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "有效 case 均生成验收点；十里堡仍错误固化为地名语义，随后仅由边界 Authority 阻断。"
+    },
+    {
+      "criterion_id": "atomic_pre_actual_expectations",
+      "status": "pass",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "所有有效 Draft 均保留 actual-free plan audit，但十里堡的语义前提仍在 Planning 阶段被错误固化。"
+    },
+    {
+      "criterion_id": "pre_actual_blocking",
+      "status": "pass",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "blocking 在 Planning 阶段确定，没有根据 actual 临时改变。"
+    },
+    {
+      "criterion_id": "dimension_coverage",
+      "status": "pass",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "多数维度有对应 assessment，但十里堡的语义冲突和百万医疗枚举完整性没有形成必须裁决的 Authority 依赖。"
+    },
+    {
+      "criterion_id": "fulfilled_external_evidence",
+      "status": "pass",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows/source-badcase-012/draft"],
+      "finding": "badcase-012 的 fulfilled 直接引用 actual clientAge RANGE [17,18] 和无额外约束事实，没有依赖未解决 Authority。"
+    },
+    {
+      "criterion_id": "not_fulfilled_live_boundary",
+      "status": "not_evaluable",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "Draft 对十里堡给出 not_fulfilled，但该结果建立在未确认的语义映射上，不能作为合格的 not_fulfilled。"
+    },
+    {
+      "criterion_id": "not_evaluable_evidence_gap",
+      "status": "not_evaluable",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "001 被 evaluation-boundary-authority 阻断，但没有先识别 semantic-mapping-authority；126 的枚举缺口仍未阻断。"
+    },
+    {
+      "criterion_id": "missing_output_no_escape",
+      "status": "pass",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "两个 actual 都有输出且所有 blocking 点均被评估，没有缺输出逃逸。"
+    },
+    {
+      "criterion_id": "external_constraint_non_attribution",
+      "status": "pass",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "Judge 只判断当前 parser 条件语义，没有把下游结果集未验证归因为 parser 错误。"
+    },
+    {
+      "criterion_id": "authority_anchor_scope",
+      "status": "pass",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "012、033 可直接判断；但十里堡和百万医疗并非直接可裁决，Draft 仍输出了 not_fulfilled/fulfilled。"
+    },
+    {
+      "criterion_id": "authority_unresolved_conservatism",
+      "status": "not_evaluable",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "001 实际激活并约束了 evaluation-boundary-authority；本轮仍暴露 semantic-mapping 和 enum-value 两类漏激活。"
+    },
+    {
+      "criterion_id": "no_runtime_authority_investigation",
+      "status": "pass",
+      "evidence": [
+        "draft/.state/judge/solidify.json",
+        "draft/.state/judge/iterations/001-run.json#rows"
+      ],
+      "finding": "运行时只选择并消费 Solidify 已注册 Authority，没有重新调查来源权威。"
+    },
+    {
+      "criterion_id": "no_internal_or_unseen_leakage",
+      "status": "pass",
+      "evidence": [
+        "draft/.state/judge/iterations/001-run.json#frozen_cases_sha256",
+        "draft/.state/judge/iterations/001-run.json#rows"
+      ],
+      "finding": "Production 与 Draft 使用相同冻结输入和 actual；人工 badcase annotation 未进入 Judge payload。"
+    },
+    {
+      "criterion_id": "relative_improvement_no_regression",
+      "status": "pass",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "012 Draft 侧受配额失败影响，无法证明无退化；001 Authority 类型和126枚举依赖仍不符合调查包要求。"
+    }
+  ],
+  "contract_coverage": [
+    {
+      "source_id": "authority:enum-value-authority",
+      "evidence": ["draft/.state/judge/solidify.json"]
+    },
+    {
+      "source_id": "authority:evaluation-boundary-authority",
+      "evidence": ["draft/.state/judge/solidify.json"]
+    },
+    {
+      "source_id": "authority:query-form-equivalence-authority",
+      "evidence": [
+        "draft/.state/judge/solidify.json"
+      ]
+    },
+    {
+      "source_id": "authority:semantic-mapping-authority",
+      "evidence": ["draft/.state/judge/solidify.json"]
+    },
+    {
+      "source_id": "dimension:downstream-query-consumability",
+      "evidence": [
+        "draft/.state/judge/solidify.json",
+        "draft/.state/judge/iterations/001-run.json#rows"
+      ]
+    },
+    {
+      "source_id": "dimension:search-intent-preservation",
+      "evidence": [
+        "draft/.state/judge/solidify.json",
+        "draft/.state/judge/iterations/001-run.json#rows"
+      ]
+    },
+    {
+      "source_id": "expectation:find-target-customers",
+      "evidence": [
+        "draft/.state/judge/solidify.json",
+        "draft/.state/judge/iterations/001-run.json#rows"
+      ]
+    },
+    {
+      "source_id": "live_boundary",
+      "evidence": [
+        "draft/.state/judge/solidify.json",
+        "draft/.state/judge/iterations/001-run.json#rows"
+      ]
+    }
+  ]
+}

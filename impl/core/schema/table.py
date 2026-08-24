@@ -34,6 +34,7 @@ class TraceTableRow:
     output_source: str = ""
     score: Optional[float] = None
     fulfillment_status: str = ""
+    carrier_placement: str = ""
     judge_summary: Dict[str, Any] = field(default_factory=dict)
     attribution_summary: Dict[str, Any] = field(default_factory=dict)
     check_summary: Dict[str, Any] = field(default_factory=dict)

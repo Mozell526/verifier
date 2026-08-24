@@ -70,18 +70,31 @@ def search_context_units_tool(
     ]
 
 
-def load_context_units_tool(context_run: ContextRun, unit_ids: Sequence[str]):
-    """Load complete authorized ContextUnits without exposing physical IDs."""
+def load_context_units_tool(
+    context_run: ContextRun,
+    unit_ids: Sequence[str],
+    *,
+    expose_materialized_ids: bool = False,
+):
+    """Load complete authorized ContextUnits without exposing physical IDs.
 
-    return [
-        {
+    expose_materialized_ids=True 时额外返回物化 unit_id（可寻址证据地址）。
+    主 LLM 上下文保持 selection_ref 遮罩；只有按物化单元引用依据的 Agent
+    （如 Authority Agent）才打开该开关。
+    """
+
+    items = []
+    for unit in context_run.load_context_units(unit_ids):
+        item = {
             "selection_ref": context_run.selection_ref_for_loaded_context_unit(unit.id),
             "name": unit.name,
             "description": unit.description,
             "content": unit.content,
         }
-        for unit in context_run.load_context_units(unit_ids)
-    ]
+        if expose_materialized_ids:
+            item["unit_id"] = unit.id
+        items.append(item)
+    return items
 
 
 class GuardedContextTools:

@@ -1,0 +1,112 @@
+{
+  "caller": "llm",
+  "created_at": "2026-08-13T04:20:40Z",
+  "elapsed_ms": 240,
+  "error": "all llm endpoints are cooling",
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "production"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "fee2d7a13aaf6651902c77f3ae2f42303f3807692c778b5f4caae00503a32fae",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [],
+      "lineage": {
+        "call_id": "",
+        "case_id": "",
+        "trace_id": "9f90a7ea-71ca-4b2e-a20c-96dd43e46cc7"
+      },
+      "messages": [
+        {
+          "char_count": 651,
+          "content_sha256": "e1a9c679f03693a53063227a018001eed60da87474a89941e6c270bd9cd06af6",
+          "role": "system"
+        },
+        {
+          "char_count": 9,
+          "content_sha256": "eb9b8ac4c800ce2eff0bfa059d7def95f190997bec8db61b2f5141fbbc3b96cb",
+          "role": "user"
+        }
+      ],
+      "mode": "production",
+      "output_contract": {
+        "field_names": [
+          "result"
+        ],
+        "identity": "impl.core.structured_output._FreeTextOutput",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "0e6eafd6d3ace83cfac721b52e752f76e937f5fddf316a1bbdeba23065325496",
+        "sha256": "0e6eafd6d3ace83cfac721b52e752f76e937f5fddf316a1bbdeba23065325496"
+      },
+      "project_id": "default",
+      "prompt_char_count": 660,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 9,
+        "occurred": false
+      },
+      "role": "llm",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "llm"
+          ],
+          "allowed_stages": [
+            "health_check"
+          ],
+          "char_count": 7,
+          "content_sha256": "bf0498eb3f7862ec49095527d22b5d9c9798f9b335b10ae60d2ceac02c67e4b4",
+          "order": 0,
+          "role": "llm",
+          "segment_id": "compiled-system",
+          "source": "impl/core/llm_client.py#complete_json-auto-governance",
+          "stage": "health_check"
+        },
+        {
+          "allowed_roles": [
+            "llm"
+          ],
+          "allowed_stages": [
+            "health_check"
+          ],
+          "char_count": 9,
+          "content_sha256": "eb9b8ac4c800ce2eff0bfa059d7def95f190997bec8db61b2f5141fbbc3b96cb",
+          "order": 1,
+          "role": "llm",
+          "segment_id": "case-user-payload",
+          "source": "trace://llm-call-payload",
+          "stage": "health_check"
+        }
+      ],
+      "stage": "health_check",
+      "tool_plan": []
+    }
+  },
+  "llm_model": "gpt-5.6-luna",
+  "messages": [
+    {
+      "content": "你是健康检查。\n\n## 输出约束：自由文本输出（单字段 result）\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"result\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    }\n  },\n  \"additionalProperties\": false,\n  \"required\": [\n    \"result\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['result']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n",
+      "role": "system"
+    },
+    {
+      "content": "只输出一个词：ok",
+      "role": "user"
+    }
+  ],
+  "project_id": "",
+  "prompt_size": 660,
+  "record_id": "eed82e2a-9d80-495c-9d5e-9085d33d92df",
+  "response": {
+    "runtime": {
+      "attempts": [],
+      "sdk_max_retries": 0,
+      "stage": "health_check"
+    }
+  },
+  "trace_id": "9f90a7ea-71ca-4b2e-a20c-96dd43e46cc7"
+}

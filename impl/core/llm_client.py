@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import inspect
+from types import MethodType
 import json
 import re
+import threading
 import time
 import uuid
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
@@ -9,6 +12,8 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 import json_repair
 from agno.agent import Agent
 from agno.models.openai.like import OpenAILike
+from .llm_router import LlmEndpoint, LlmRouter
+from openai import Omit, OpenAI
 
 from .config import get_llm_config
 from .config_schema import ConfigError, openai_compatible_base_url
@@ -19,6 +24,57 @@ if TYPE_CHECKING:
 # Session start timestamp: ensures sessions from different runs don't share context
 SESSION_START_TIME = int(time.time())
 _USE_CONFIG = object()
+_ROUTER_REGISTRY_LOCK = threading.Lock()
+_ROUTER_REGISTRY: dict[tuple[tuple[str, str, str, str], ...], LlmRouter] = {}
+
+
+def _parse_tool_calls_with_aliases(self, tool_calls_data):
+    parsed = OpenAILike.parse_tool_calls(self, tool_calls_data)
+    aliases = getattr(self, "logical_tool_aliases", {})
+    for call in parsed:
+        function = call.get("function") if isinstance(call, dict) else None
+        if isinstance(function, dict) and function.get("name") in aliases:
+            function["name"] = aliases[function["name"]]
+    return parsed
+
+
+def _json_context_tools(tools: List[Any]) -> List[Any]:
+    """Wrap tool entrypoints so tool results enter the model context as JSON text.
+
+    Agno stringifies non-string tool returns with str(), which leaks Python repr
+    (single quotes, True/False/None) into the model context. Wrapping at the LLM
+    boundary keeps the model view byte-identical to the audit log, and leaves the
+    tool layer's structured return contract intact for programmatic consumers.
+    """
+    from agno.tools import Function
+    from ..tools.protocol import json_tool
+
+    wrapped: List[Any] = []
+    for tool in tools or []:
+        if isinstance(tool, Function):
+            copy = tool.model_copy(deep=False)
+            if copy.entrypoint is not None:
+                copy.entrypoint = json_tool(copy.entrypoint)
+            wrapped.append(copy)
+        elif callable(tool):
+            wrapped.append(json_tool(tool))
+        else:
+            wrapped.append(tool)
+    return wrapped
+
+
+def _supported_agent_kwargs(factory: Any, kwargs: Dict[str, Any]) -> Dict[str, Any]:
+    """Only pass optional Agent settings supported by the installed Agno."""
+    try:
+        parameters = inspect.signature(factory).parameters
+    except (TypeError, ValueError):
+        return kwargs
+    if any(
+        parameter.kind == inspect.Parameter.VAR_KEYWORD
+        for parameter in parameters.values()
+    ):
+        return kwargs
+    return {key: value for key, value in kwargs.items() if key in parameters}
 
 
 class JsonExtractionError(ValueError):
@@ -273,6 +329,15 @@ def _extract_tool_call_log(result: Any) -> list:
     return logs
 
 
+def _tool_budget_error(tool_call_log: list, limit: Optional[int]) -> Optional[str]:
+    """Return a deterministic protocol error when an SDK run exceeds its budget."""
+    if limit is None or len(tool_call_log) <= int(limit):
+        return None
+    return (
+        f"actual tool calls {len(tool_call_log)} exceed configured limit {int(limit)}"
+    )
+
+
 def _extract_messages(result: Any) -> List[Dict[str, Any]]:
     """从 Agno RunResponse 提取 OpenAI messages 协议的完整消息列表。
 
@@ -310,7 +375,8 @@ def _extract_messages(result: Any) -> List[Dict[str, Any]]:
 
 def _track_context(self: "LlmClient", system: str, user: str, result: Any,
                    trace_id: str, token_metrics: Dict[str, Any],
-                   elapsed_ms: int, error: Optional[str]) -> None:
+                   elapsed_ms: int, error: Optional[str],
+                   *, runtime: Optional[Dict[str, Any]] = None) -> None:
     """把本次 LLM 调用的实际 messages 上传到 context_store，供 context.html 检索。
 
     只做记录，不阻断主流程；任何异常都吞掉。
@@ -331,9 +397,17 @@ def _track_context(self: "LlmClient", system: str, user: str, result: Any,
             response["content"] = content
         if token_metrics:
             response["metrics"] = token_metrics
+        if runtime:
+            response["runtime"] = runtime
         if error and result is not None:
             response["raw_response"] = _raw_response(result)
         prompt_size = sum(len(str(m.get("content") or "")) for m in messages)
+        runtime_model = str((runtime or {}).get("selected_model") or "")
+        if not runtime_model:
+            attempts = list((runtime or {}).get("attempts") or [])
+            if attempts:
+                last_attempt_model = attempts[-1].get("model")
+                runtime_model = str(last_attempt_model) if last_attempt_model else ""
         record = ContextRecord(
             record_id=str(uuid.uuid4()),
             trace_id=str(trace_id or ""),
@@ -343,9 +417,10 @@ def _track_context(self: "LlmClient", system: str, user: str, result: Any,
             response=response or None,
             created_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             prompt_size=int(prompt_size),
-            llm_model=str(self.model or ""),
+            llm_model=runtime_model or str(self.model or ""),
             elapsed_ms=int(elapsed_ms),
             error=error,
+            governance=dict(getattr(self, "_context_governance_report", {}) or {}),
         )
         save_context(record)
     except Exception:
@@ -371,9 +446,9 @@ def project_llm_client(spec: Any, role: str, knowledge: Any = None, tools: list 
         role: Role name (e.g., "judge", "attribute")
         knowledge: Optional knowledge base (DEPRECATED - use tools instead)
         tools: Optional list of tools to provide to the agent
-        tool_call_limit: Cap on tool calls within one agent.run() (attribute only)
-        compress_tool_results: If True, compress prior tool results (attribute only)
-        max_tool_calls_from_history: Prune tool messages from history (attribute only)
+        tool_call_limit: Cap on tool calls within one agent.run()
+        compress_tool_results: If True, compress prior tool results
+        max_tool_calls_from_history: Prune tool messages from history
     """
     project_id = str(getattr(spec, "project_id", "default") or "default")
     # CRITICAL: Do NOT create JsonDb or MemoryManager
@@ -423,8 +498,7 @@ class LlmClient:
         self.reasoning_effort = policy.reasoning_effort
         self.request_timeout_seconds = llm_config.request_timeout_seconds
         self.capabilities = llm_config.capabilities
-        self.max_attempts = llm_config.max_attempts
-        self.retry_delay_seconds = llm_config.retry_delay_seconds
+        self.llm_router = self._build_router(llm_config)
         self.memory_manager = memory_manager
         self.memory_db = memory_db
         self.knowledge = knowledge
@@ -436,25 +510,122 @@ class LlmClient:
         self.compress_tool_results = compress_tool_results
         self.max_tool_calls_from_history = max_tool_calls_from_history
 
-    def build_model(
-        self,
-        *,
-        reasoning_effort: Any = _USE_CONFIG,
-    ) -> OpenAILike:
-        """Build the single supported OpenAI-compatible model adapter."""
+
+    def _build_router(self, llm_config) -> LlmRouter:
+        """构建端点到路由器：主端点 + 已配置的 fallback 端点。"""
+        endpoints = [
+            LlmEndpoint(
+                name="primary",
+                base_url=self.base_url,
+                model=self.model,
+                api_key=self.api_key,
+            )
+        ]
+        for index, fb in enumerate(getattr(llm_config, "fallbacks", ()) or (), start=1):
+            endpoints.append(
+                LlmEndpoint(
+                    name=f"fallback{index}",
+                    base_url=fb.base_url,
+                    model=fb.model,
+                    api_key=fb.api_key,
+                )
+            )
+        registry_key = tuple(
+            (endpoint.name, endpoint.base_url, endpoint.model, endpoint.api_key)
+            for endpoint in endpoints
+        )
+        with _ROUTER_REGISTRY_LOCK:
+            router = _ROUTER_REGISTRY.get(registry_key)
+            if router is None:
+                router = LlmRouter(endpoints, probe_fn=self._endpoint_probe)
+                _ROUTER_REGISTRY[registry_key] = router
+            return router
+
+    @staticmethod
+    def _endpoint_probe(endpoint: LlmEndpoint) -> bool:
+        """用同一模型发送极短生成请求，验证真实调用链是否可用。"""
+        probe_nonce = uuid.uuid4().hex[:12]
+        client = OpenAI(
+            api_key=endpoint.api_key,
+            base_url=endpoint.base_url,
+            timeout=10.0,
+            max_retries=0,
+            default_headers={"User-Agent": "verifier/1.0"},
+        )
+        try:
+            response = client.chat.completions.create(
+                model=endpoint.model,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": f"Health probe {probe_nonce}. Reply with OK.",
+                    }
+                ],
+                temperature=0,
+                max_tokens=4,
+            )
+            choices = getattr(response, "choices", None) or []
+            if not choices:
+                return False
+            choice = choices[0]
+            message = getattr(choice, "message", None)
+            content = str(getattr(message, "content", "") or "").strip()
+            reasoning_content = str(
+                getattr(message, "reasoning_content", "") or ""
+            ).strip()
+            finish_reason = str(getattr(choice, "finish_reason", "") or "").strip()
+            return bool(content or reasoning_content or finish_reason)
+        except Exception:
+            return False
+    def _validate_config(self) -> None:
+        """配置/编程错误必须在重试、降级循环之外直接抛出。
+
+        build_model 与 complete_json 都先过这道校验：缺凭证、协议不支持等属于
+        部署/编程错误，不能当作普通请求失败被吞掉后返回 llm_request_failed。
+        """
         if self.protocol != "openai_compatible":
             raise ConfigError(f"unsupported LLM protocol: {self.protocol}")
         if not self.api_key:
             raise ConfigError("missing required configuration for llm: llm.api_key")
         if self.tools and not self.capabilities.tool_calls:
             raise ConfigError("configured LLM does not declare tool_calls capability")
+
+    def build_model(
+        self,
+        *,
+        reasoning_effort: Any = _USE_CONFIG,
+        endpoint: Optional[LlmEndpoint] = None,
+    ) -> OpenAILike:
+        """Build the single supported OpenAI-compatible model adapter."""
+        self._validate_config()
+        endpoint = endpoint or self.llm_router.select()
         model_kwargs = {
-            "id": self.model,
+            "id": endpoint.model if endpoint else self.model,
             "provider": self.provider,
-            "api_key": self.api_key,
-            "base_url": self.base_url,
+            "api_key": endpoint.api_key if endpoint else self.api_key,
+            "base_url": endpoint.base_url if endpoint else self.base_url,
             "temperature": self.temperature,
             "timeout": self.request_timeout_seconds,
+            # Some OpenAI-compatible gateways reject requests that identify as the
+            # official OpenAI SDK (User-Agent + X-Stainless-* telemetry headers).
+            # Send a neutral User-Agent and strip those SDK headers so the same
+            # client works across DeepSeek, private gateways, and local proxies.
+            "extra_headers": {
+                "User-Agent": "verifier/1.0",
+                "X-Stainless-Lang": Omit(),
+                "X-Stainless-Package-Version": Omit(),
+                "X-Stainless-Os": Omit(),
+                "X-Stainless-Arch": Omit(),
+                "X-Stainless-Runtime": Omit(),
+                "X-Stainless-Runtime-Version": Omit(),
+                "X-Stainless-Async": Omit(),
+                "X-Stainless-Retry-Count": Omit(),
+                "X-Stainless-Read-Timeout": Omit(),
+            },
+            # Keep one retry owner.  The verifier records and governs attempts
+            # below; OpenAI SDK retries would otherwise be invisible and multiply
+            # the configured wall-clock budget.
+            "max_retries": 0,
             "supports_native_structured_outputs": False,
             "supports_json_schema_outputs": False,
             # openai SDK 默认 UA（OpenAI/Python x.y.z）会被部分中转站的 Cloudflare
@@ -471,7 +642,9 @@ class LlmClient:
 
     def complete_json(self, system: str, user: str, trace_id: Optional[str] = None,
                       reasoning_effort: Any = _USE_CONFIG,
-                      output_spec: "StructuredOutputSpec" = None) -> Dict[str, Any]:
+                      output_spec: "StructuredOutputSpec" = None,
+                      stage: str = "",
+                      tools_override: Any = _USE_CONFIG) -> Dict[str, Any]:
         """
         Complete JSON request with isolated session per trace.
 
@@ -498,7 +671,38 @@ class LlmClient:
             )
         if not self.capabilities.json_mode:
             raise ConfigError("configured LLM does not declare json_mode capability")
-        model_client = self.build_model(reasoning_effort=reasoning_effort)
+        self._validate_config()
+        effective_tools = (
+            self.tools
+            if tools_override is _USE_CONFIG
+            else list(tools_override or [])
+        )
+        effective_tool_call_limit = (
+            self.tool_call_limit if effective_tools else None
+        )
+        model_tools = _json_context_tools(effective_tools)
+        effective_tool_call_limit = (
+            self.tool_call_limit if model_tools else None
+        )
+        if trace_id is None:
+            import uuid
+            trace_id = str(uuid.uuid4())
+        from .context_governance import ensure_call_context_governance
+        ensure_call_context_governance(
+            self,
+            project_id=str(getattr(self, "_project_id", "") or "default"),
+            role=str(
+                getattr(self, "_caller", "")
+                or getattr(self, "role", "")
+                or "llm"
+            ),
+            stage=str(stage or "complete_json"),
+            trace_id=str(trace_id),
+            system=system,
+            user=user,
+            output_spec=output_spec,
+            tools=effective_tools,
+        )
 
         # spec/struct_output.md：注入约束文案 + 返回后强校验阻断
         enforce_spec = output_spec
@@ -506,45 +710,102 @@ class LlmClient:
         system = system + "\n\n" + render_output_constraint(enforce_spec)
 
         start_ts = time.time()
+        attempt_records: list[Dict[str, Any]] = []
+        runtime = {
+            "stage": str(stage or ""),
+            "attempts": attempt_records,
+            "sdk_max_retries": 0,
+        }
         try:
+            self.llm_router.refresh_health_if_stale()
             # CRITICAL: Use trace-specific session ID to isolate different cases
             # BUT: Prevent conversation history accumulation within same session
-            if trace_id is None:
-                import uuid
-                trace_id = str(uuid.uuid4())
-
             # Each trace gets unique session, prevents cross-case contamination
             effective_session_id = f"{trace_id}:{SESSION_START_TIME}"
 
             # Retry policy is owned by RuntimeConfig, not copied into this consumer.
             last_exc: Optional[Exception] = None
             result = None
-            for attempt in range(self.max_attempts):
+            tried_endpoints: set[str] = set()
+            for attempt in range(len(self.llm_router.endpoints)):
+                attempt_started = time.monotonic()
+                # 降级：每个配置端点在单次请求中最多尝试一次，失败立即切换。
+                endpoint = self.llm_router.select(exclude=tried_endpoints)
+                model_client = self.build_model(
+                    reasoning_effort=reasoning_effort, endpoint=endpoint
+                )
+                aliases = {}
+                for function in model_tools:
+                    entrypoint = getattr(function, "entrypoint", None)
+                    logical_id = getattr(entrypoint, "logical_tool_id", None)
+                    runtime_name = getattr(function, "name", None)
+                    if logical_id and runtime_name and logical_id != runtime_name:
+                        aliases[logical_id] = runtime_name
+                if aliases:
+                    object.__setattr__(model_client, "logical_tool_aliases", aliases)
+                    object.__setattr__(model_client, "parse_tool_calls", MethodType(_parse_tool_calls_with_aliases, model_client))
                 try:
-                    agent = Agent(
-                        model=model_client,
-                        system_message=system,
-                        use_json_mode=True,
-                        tools=self.tools,
-                        knowledge=None,
-                        user_id=self.user_id,
-                        session_id=f"{effective_session_id}:retry{attempt}" if attempt else effective_session_id,
-                        enable_user_memories=False,
-                        enable_agentic_memory=False,
-                        num_history_runs=0,
-                        tool_call_limit=self.tool_call_limit,
-                        compress_tool_results=self.compress_tool_results,
-                        max_tool_calls_from_history=self.max_tool_calls_from_history,
-                    )
+                    agent = Agent(**_supported_agent_kwargs(
+                        Agent,
+                        {
+                            "model": model_client,
+                            "system_message": system,
+                            "use_json_mode": True,
+                            "tools": model_tools,
+                            "knowledge": None,
+                            "user_id": self.user_id,
+                            "session_id": (
+                                f"{effective_session_id}:retry{attempt}"
+                                if attempt
+                                else effective_session_id
+                            ),
+                            "enable_user_memories": False,
+                            "enable_agentic_memory": False,
+                            "num_history_runs": 0,
+                            "tool_call_limit": effective_tool_call_limit,
+                            "compress_tool_results": self.compress_tool_results,
+                            "max_tool_calls_from_history": (
+                                self.max_tool_calls_from_history
+                            ),
+                        },
+                    ))
                     result = agent.run(user)
+                    if _run_failed(result) or not _response_content(result).strip():
+                        detail = _response_content(result).strip()
+                        if not detail:
+                            detail = f"Agno run ended with status {_run_status(result)} and no response content"
+                        raise RuntimeError(detail)
+                    self.llm_router.record_success(endpoint)
+                    attempt_records.append({
+                        "attempt": attempt + 1,
+                        "endpoint": endpoint.name,
+                        "model": endpoint.model,
+                        "status": "succeeded",
+                        "elapsed_ms": int(
+                            (time.monotonic() - attempt_started) * 1000
+                        ),
+                    })
+                    runtime["selected_endpoint"] = endpoint.name
+                    runtime["selected_model"] = endpoint.model
                     last_exc = None
                     break
                 except Exception as exc:
+                    self.llm_router.record_failure(endpoint)
+                    tried_endpoints.add(endpoint.name)
+                    attempt_records.append({
+                        "attempt": attempt + 1,
+                        "endpoint": endpoint.name,
+                        "model": endpoint.model,
+                        "status": "failed",
+                        "elapsed_ms": int(
+                            (time.monotonic() - attempt_started) * 1000
+                        ),
+                        "error_type": type(exc).__name__,
+                        "error": str(exc)[:500],
+                    })
                     last_exc = exc
                     print(f"[LLM retry] attempt {attempt + 1} failed: {exc}")
-                    if attempt + 1 < self.max_attempts:
-                        time.sleep(self.retry_delay_seconds)
-            if last_exc is not None:
+            if last_exc is not None and result is None:
                 raise last_exc
 
             # Extract metrics for token tracking
@@ -561,7 +822,17 @@ class LlmClient:
                 }
                 print(f"[Token usage] {token_metrics['input_tokens']:,} in + {token_metrics['output_tokens']:,} out + {token_metrics['cache_read_tokens']:,} cache = {token_metrics['total_tokens']:,} total")
         except Exception as exc:
-            _track_context(self, system, user, None, trace_id or "", {}, int((time.time() - start_ts) * 1000), str(exc))
+            _track_context(
+                self,
+                system,
+                user,
+                None,
+                trace_id or "",
+                {},
+                int((time.time() - start_ts) * 1000),
+                str(exc),
+                runtime=runtime,
+            )
             return {"error": "llm_request_failed", "raw_text": str(exc)}
 
         content = _response_content(result)
@@ -575,11 +846,49 @@ class LlmClient:
                 detail = "LLM run completed without response content"
             raw_response = _raw_response(result)
             elapsed_ms = int((time.time() - start_ts) * 1000)
-            _track_context(self, system, user, result, trace_id or "", token_metrics, elapsed_ms, detail)
+            _track_context(
+                self,
+                system,
+                user,
+                result,
+                trace_id or "",
+                token_metrics,
+                elapsed_ms,
+                detail,
+                runtime=runtime,
+            )
             return {
                 "error": error_code,
                 "raw_text": detail,
                 "raw_model_response": raw_response,
+            }
+
+        tool_call_log = _extract_tool_call_log(result)
+        tool_budget_error = _tool_budget_error(
+            tool_call_log, effective_tool_call_limit
+        )
+        if tool_budget_error:
+            runtime["tool_budget"] = {
+                "configured_limit": int(effective_tool_call_limit),
+                "actual_calls": len(tool_call_log),
+                "status": "exceeded",
+            }
+            elapsed_ms = int((time.time() - start_ts) * 1000)
+            _track_context(
+                self,
+                system,
+                user,
+                result,
+                trace_id or "",
+                token_metrics,
+                elapsed_ms,
+                tool_budget_error,
+                runtime=runtime,
+            )
+            return {
+                "error": "tool_budget_exceeded",
+                "raw_text": tool_budget_error,
+                "tool_call_log": tool_call_log,
             }
 
         try:
@@ -594,7 +903,17 @@ class LlmClient:
         except JsonExtractionError as exc:
             raw_response = _raw_response(result)
             elapsed_ms = int((time.time() - start_ts) * 1000)
-            _track_context(self, system, user, result, trace_id or "", token_metrics, elapsed_ms, str(exc))
+            _track_context(
+                self,
+                system,
+                user,
+                result,
+                trace_id or "",
+                token_metrics,
+                elapsed_ms,
+                str(exc),
+                runtime=runtime,
+            )
             raise ValueError(f"[{getattr(self, '_caller', '') or 'llm'}] {exc}") from exc
         raw_response = _raw_response(result)
         elapsed_ms = int((time.time() - start_ts) * 1000)
@@ -614,10 +933,29 @@ class LlmClient:
             # 从 agno RunOutput 提取 tool call log
             if token_metrics:
                 parsed.setdefault("metrics", token_metrics)
-            tool_call_log = _extract_tool_call_log(result)
             if tool_call_log:
                 parsed.setdefault("_tool_call_log", tool_call_log)
-            _track_context(self, system, user, result, trace_id, token_metrics, elapsed_ms, None)
+            _track_context(
+                self,
+                system,
+                user,
+                result,
+                trace_id,
+                token_metrics,
+                elapsed_ms,
+                None,
+                runtime=runtime,
+            )
             return parsed
-        _track_context(self, system, user, result, trace_id or "", token_metrics, elapsed_ms, None)
+        _track_context(
+            self,
+            system,
+            user,
+            result,
+            trace_id or "",
+            token_metrics,
+            elapsed_ms,
+            None,
+            runtime=runtime,
+        )
         return {"value": parsed, "raw_model_response": raw_response}

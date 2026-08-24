@@ -1,0 +1,68 @@
+- generic [ref=f3e1]:
+  - banner [ref=f3e2]:
+    - heading "Live 请求" [level=1] [ref=f3e3]
+    - paragraph [ref=f3e4]: 单次请求链路：业务服务 → Judge → Attribute。Cluster 聚合在归因总结页处理。
+  - main [ref=f3e5]:
+    - generic [ref=f3e6]:
+      - generic [ref=f3e7]: Project
+      - combobox [ref=f3e8]:
+        - option "QA"
+        - option "client_search"
+        - option "deerflow"
+        - option "marketting-planning"
+        - option "marketting-planning-intent"
+        - option "policy_search" [selected]
+      - generic [ref=f3e9]: Input JSON
+      - textbox [ref=f3e10]: "{ \"session_id\": \"browser-unsupported-check\", \"trace_id\": \"browser-unsupported-check\", \"extra_input_params\": { \"policySearchParseArgs\": { \"query\": \"投诉超过3次的保单\", \"currentTime\": \"2026-08-11 10:30:00\", \"agentCode\": \"VERIFIER_TEST\" }, \"args\": { \"contexts\": [] } } }"
+      - generic [ref=f3e11]: User Intent（可选，传给 judge agent）
+      - textbox "可留空；填写后用于 judge 当前 RunTrace。" [ref=f3e12]
+      - generic [ref=f3e13]:
+        - button "请求业务服务" [active] [ref=f3e14] [cursor=pointer]
+        - button "请求 Judge" [ref=f3e15] [cursor=pointer]
+        - button "请求 Attribute" [ref=f3e16] [cursor=pointer]
+        - button "统一全链路" [ref=f3e17] [cursor=pointer]
+      - generic [ref=f3e18]: 按顺序执行单步按钮会复用当前页面保存的 lastTrace / lastJudge。
+      - generic [ref=f3e19]: 业务请求完成，可继续请求 Judge。
+    - generic [ref=f3e20]:
+      - generic [ref=f3e21]:
+        - generic [ref=f3e22]:
+          - generic [ref=f3e23]: 业务请求
+          - generic [ref=f3e24]: ok
+        - generic [ref=f3e25]:
+          - generic [ref=f3e26]: Judge
+          - generic [ref=f3e27]: 未运行
+        - generic [ref=f3e28]:
+          - generic [ref=f3e29]: Attribute
+          - generic [ref=f3e30]: 未运行
+      - group [ref=f3e31]:
+        - generic "业务请求结果 ok 收起" [ref=f3e47] [cursor=pointer]:
+          - heading "业务请求结果" [level=2] [ref=f3e33]
+          - generic [ref=f3e34]: ok
+          - text: 收起
+        - generic [ref=f3e35]:
+          - generic [ref=f3e36]:
+            - generic [ref=f3e61]: Trace ID：policy_search::1786416007487
+            - generic [ref=f3e62]: 业务执行：ok · 完成度：completed
+            - generic [ref=f3e63]: Mock 控制器：not_run
+            - group [ref=f3e64]:
+              - generic "状态机执行（6项）" [ref=f3e65] [cursor=pointer]
+            - generic [ref=f3e66]: "Output / 被评估输出：{ \"code\": 0, \"msg\": \"success\", \"status\": \"UNSUPPORTED\", \"query\": \"投诉超过3次的保单\", \"message\": \"当前查询场景本期暂不支持\" }"
+            - group [ref=f3e67]:
+              - generic "多轮执行（1 轮）" [ref=f3e68] [cursor=pointer]
+              - generic [ref=f3e69]:
+                - generic [ref=f3e70]: 停止原因：single_turn_completed
+                - generic [ref=f3e71]: 最终阶段：-
+                - generic [ref=f3e72]: "第 1 轮：{\"session_id\":\"browser-unsupported-check\",\"trace_id\":\"browser-unsupported-check\",\"extra_input_params\":{\"policySearchParseArgs\":{\"query\":\"投诉超过3次的保单\",\"currentTime\":\"2026-08-11 10:30:00\",\"agentCode\":\"VERIFIER_TEST\"},\"args\":{}}} · 输出：{\"code\":0,\"msg\":\"success\",\"status\":\"UNSUPPORTED\",\"query\":\"投诉超过3次的保单\",\"message\":\"当前查询场景本期暂不支持\"} · 状态：succeeded · 耗时：8ms"
+            - generic [ref=f3e73]: "结构化输出：{ \"code\": 0, \"msg\": \"success\", \"status\": \"UNSUPPORTED\", \"query\": \"投诉超过3次的保单\", \"message\": \"当前查询场景本期暂不支持\" }"
+          - generic [ref=f3e37]: Raw JSON
+          - generic [ref=f3e38]: "{ \"trace_id\": \"policy_search::1786416007487\", \"project_id\": \"policy_search\", \"case_id\": \"\", \"input\": { \"session_id\": \"browser-unsupported-check\", \"trace_id\": \"browser-unsupported-check\", \"extra_input_params\": { \"policySearchParseArgs\": { \"query\": \"投诉超过3次的保单\", \"currentTime\": \"2026-08-11 10:30:00\", \"agentCode\": \"VERIFIER_TEST\" }, \"args\": {} } }, \"normalized_request\": { \"session_id\": \"browser-unsupported-check\", \"trace_id\": \"browser-unsupported-check\", \"extra_input_params\": { \"policySearchParseArgs\": { \"query\": \"投诉超过3次的保单\", \"currentTime\": \"2026-08-11 10:30:00\", \"agentCode\": \"VERIFIER_TEST\" }, \"args\": {} } }, \"raw_response\": [ { \"code\": 0, \"msg\": \"success\", \"data\": { \"end_flag\": 1, \"extra_output_params\": { \"policySearchParseResult\": { \"status\": \"UNSUPPORTED\", \"query\": \"投诉超过3次的保单\", \"message\": \"当前查询场景本期暂不支持\" } } } } ], \"extracted_output\": { \"code\": 0, \"msg\": \"success\", \"status\": \"UNSUPPORTED\", \"query\": \"投诉超过3次的保单\", \"message\": \"当前查询场景本期暂不支持\" }, \"execution_mode\": \"live\", \"output_source\": \"live_service\", \"scenario\": \"\", \"application_boundary\": { \"dependency_status\": \"available\", \"allow_fallback\": false, \"notes\": \"UNSUPPORTED is an in-scope parser decision\" }, \"execution_trace\": [ { \"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": { \"project_id\": \"policy_search\" }, \"timestamp\": \"\", \"error\": \"\" }, { \"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": { \"project_id\": \"policy_search\" }, \"timestamp\": \"\", \"error\": \"\" } ], \"status\": \"ok\", \"error\": \"\", \"interaction_mode\": \"single_turn\", \"session_id\": \"\", \"created_at\": \"2026-08-11T02:40:07.487393+00:00\", \"conversation_summary\": { \"turn_count\": 1, \"final_output_turn\": 1, \"completion_status\": \"completed\", \"stop_reason\": \"single_turn_completed\", \"interaction_controller_status\": \"not_run\", \"interaction_controller_error\": \"\" }, \"turn_records\": [ { \"turn_index\": 1, \"mock_message\": \"投诉超过3次的保单\", \"request\": { \"session_id\": \"browser-unsupported-check\", \"trace_id\": \"browser-unsupported-check\", \"extra_input_params\": { \"policySearchParseArgs\": { \"query\": \"投诉超过3次的保单\", \"currentTime\": \"2026-08-11 10:30:00\", \"agentCode\": \"VERIFIER_TEST\" }, \"args\": {} } }, \"live_exchanges\": [ { \"exchange_id\": \"live-exchange-95ff3529-01f2-4a6f-870f-b81284cbfc05\", \"sequence\": 0, \"transport\": \"http\", \"method\": \"POST\", \"url\": \"http://127.0.0.1:8050/api/v1/policy-search/parse\", \"carries_live_request\": true, \"contributes_raw_response\": true, \"request_headers\": { \"Content-Type\": \"application/json\" }, \"request\": { \"session_id\": \"browser-unsupported-check\", \"trace_id\": \"browser-unsupported-check\", \"extra_input_params\": { \"policySearchParseArgs\": { \"query\": \"投诉超过3次的保单\", \"currentTime\": \"2026-08-11 10:30:00\", \"agentCode\": \"VERIFIER_TEST\" }, \"args\": {} } }, \"status_code\": 200, \"response_headers\": { \"date\": \"Tue, 11 Aug 2026 02:40:07 GMT\", \"server\": \"uvicorn\", \"content-length\": \"240\", \"content-type\": \"application/json\", \"Connection\": \"close\" }, \"response\": { \"code\": 0, \"msg\": \"success\", \"data\": { \"end_flag\": 1, \"extra_output_params\": { \"policySearchParseResult\": { \"status\": \"UNSUPPORTED\", \"query\": \"投诉超过3次的保单\", \"message\": \"当前查询场景本期暂不支持\" } } } }, \"started_at\": \"2026-08-11T02:40:07.479619+00:00\", \"finished_at\": \"2026-08-11T02:40:07.486948+00:00\" } ], \"raw_response\": [ { \"code\": 0, \"msg\": \"success\", \"data\": { \"end_flag\": 1, \"extra_output_params\": { \"policySearchParseResult\": { \"status\": \"UNSUPPORTED\", \"query\": \"投诉超过3次的保单\", \"message\": \"当前查询场景本期暂不支持\" } } } } ], \"extracted_output\": { \"code\": 0, \"msg\": \"success\", \"status\": \"UNSUPPORTED\", \"query\": \"投诉超过3次的保单\", \"message\": \"当前查询场景本期暂不支持\" }, \"call_status\": \"succeeded\", \"runtime_ms\": 8, \"execution_trace\": [ { \"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": { \"project_id\": \"policy_search\" }, \"timestamp\": \"\", \"error\": \"\" }, { \"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": { \"project_id\": \"policy_search\" }, \"timestamp\": \"\", \"error\": \"\" } ], \"application_boundary\": { \"dependency_status\": \"available\", \"allow_fallback\": false, \"notes\": \"UNSUPPORTED is an in-scope parser decision\" } } ], \"final_output_turn\": 1, \"completion_status\": \"completed\", \"interaction_controller_status\": \"not_run\", \"interaction_controller_error\": \"\", \"stop_reason\": \"single_turn_completed\", \"turn_index\": 1 }"
+      - group [ref=f3e39]:
+        - generic "Judge 评估 未运行 展开" [ref=f3e40] [cursor=pointer]:
+          - heading "Judge 评估" [level=2] [ref=f3e41]
+          - generic [ref=f3e42]: 未运行
+          - text: 展开
+      - group [ref=f3e43]:
+        - generic "Attribute 归因 未运行 展开" [ref=f3e44] [cursor=pointer]:
+          - heading "Attribute 归因" [level=2] [ref=f3e45]
+          - generic [ref=f3e46]: 未运行
+          - text: 展开

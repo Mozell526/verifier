@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import functools
 from typing import Any, Callable, Dict, Iterable, Optional, Protocol
+
+import json
 
 from agno.tools import Function, Toolkit
 
-from impl.core.schema import ProjectSpec, RunTrace
+from impl.core.schema import ProjectSpec, RunTrace, to_dict
 
 
 @dataclass
@@ -102,13 +105,44 @@ class AgnoToolCall:
         )
 
 
+def runtime_tool_name(tool_id: str) -> str:
+    """Return the deterministic function name exposed to OpenAI/Agno."""
+    if not isinstance(tool_id, str) or not tool_id.strip():
+        raise ValueError("tool_id must be a non-empty string")
+    runtime_name = tool_id.replace(".", "_")
+    if not runtime_name.replace("_", "").isalnum() or runtime_name[0].isdigit():
+        raise ValueError(f"tool_id cannot be represented as a runtime function name: {tool_id}")
+    return runtime_name
+
+
+def _validate_runtime_name_collisions(tool_ids: Iterable[str]) -> Dict[str, str]:
+    names: Dict[str, str] = {}
+    for tool_id in tool_ids:
+        runtime_name = runtime_tool_name(tool_id)
+        previous = names.get(runtime_name)
+        if previous is not None and previous != tool_id:
+            raise ValueError(
+                f"runtime function name collision: {previous!r} and {tool_id!r} both map to {runtime_name!r}"
+            )
+        names[runtime_name] = tool_id
+    return names
+
+
 class ToolRegistry:
     def __init__(self) -> None:
         self._tools: Dict[str, ProtocolTool] = {}
         self._agno_functions: Dict[str, Function] = {}
+        self._runtime_to_logical: Dict[str, str] = {}
 
     def register(self, tool: ProtocolTool) -> None:
+        if tool.tool_id in self._tools:
+            raise ValueError(f"tool already registered: {tool.tool_id}")
+        runtime_name = runtime_tool_name(tool.tool_id)
+        previous = self._runtime_to_logical.get(runtime_name)
+        if previous is not None and previous != tool.tool_id:
+            raise ValueError(f"runtime function name collision: {previous!r} and {tool.tool_id!r} both map to {runtime_name!r}")
         self._tools[tool.tool_id] = tool
+        self._runtime_to_logical[runtime_name] = tool.tool_id
         self._agno_functions[tool.tool_id] = self._to_agno_function(tool)
 
     def register_many(self, tools: Iterable[ProtocolTool]) -> None:
@@ -117,6 +151,21 @@ class ToolRegistry:
 
     def get(self, tool_id: str) -> ProtocolTool:
         return self._tools[tool_id]
+
+    def resolve_tool_id(self, name: str) -> str:
+        """Resolve a logical ID or canonical runtime function name, exactly."""
+        if name in self._tools:
+            return name
+        if name in self._runtime_to_logical:
+            return self._runtime_to_logical[name]
+        raise KeyError(name)
+
+    def get_by_function_name(self, name: str) -> ProtocolTool:
+        return self.get(self.resolve_tool_id(name))
+
+    def runtime_name(self, tool_id: str) -> str:
+        logical_id = self.resolve_tool_id(tool_id)
+        return runtime_tool_name(logical_id)
 
     def tools(self) -> list[ProtocolTool]:
         return list(self._tools.values())
@@ -128,9 +177,9 @@ class ToolRegistry:
         def entrypoint() -> ToolResult:
             raise RuntimeError("protocol tools require ToolContext; use select() or run() with context")
 
-        entrypoint.__name__ = tool.tool_id.replace(".", "_")
+        entrypoint.__name__ = runtime_tool_name(tool.tool_id)
         return Function(
-            name=tool.tool_id,
+            name=runtime_tool_name(tool.tool_id),
             description=f"{tool.tool_type} protocol tool",
             entrypoint=entrypoint,
             skip_entrypoint_processing=True,
@@ -140,7 +189,7 @@ class ToolRegistry:
         def entrypoint() -> dict:
             raise RuntimeError("protocol tools require ToolContext; use run_protocol_tools() with context")
 
-        entrypoint.__name__ = tool.tool_id.replace(".", "_")
+        entrypoint.__name__ = runtime_tool_name(tool.tool_id)
         entrypoint.__doc__ = f"{tool.tool_type} protocol tool; deterministic context-bound execution only."
         return entrypoint
 
@@ -160,13 +209,13 @@ class ToolRegistry:
     def run_selected(self, context: ToolContext, tool_type: str | None = None, policy: ToolSelectionPolicy | None = None) -> list[ToolResult]:
         results = []
         for call in self.select(context, tool_type, policy):
-            tool = self.get(call.function.name)
+            tool = self.get_by_function_name(call.function.name)
             results.append(tool.run(context))
         return results
 
     def run(self, tool_id: str, context: ToolContext) -> ToolResult:
         try:
-            return self.get(tool_id).run(context)
+            return self.get_by_function_name(tool_id).run(context)
         except KeyError:
             return ToolResult(tool_id=tool_id, tool_type="unknown", status="failed", error=f"tool not registered: {tool_id}")
 
@@ -194,24 +243,57 @@ def _validate_agno_tool_schema(tool: VerifiableTool, parameters: Dict[str, Any])
             raise ValueError(f"VerifiableTool parameter description is required: {tool.tool_id}.{field_name}")
 
 
+def _serialize_tool_result(result: Any) -> Any:
+    """Serialize tool returns to JSON text before they enter the model context.
+
+    Agno stringifies non-string tool returns with str(), which leaks Python repr
+    (single quotes, True/False/None) into the model context. Returning JSON text
+    keeps the model view byte-identical to the audit log, both as JSON strings.
+    """
+    if isinstance(result, ToolResult):
+        return json.dumps(to_dict(result), ensure_ascii=False, sort_keys=True, default=str)
+    if isinstance(result, (dict, list)):
+        return json.dumps(result, ensure_ascii=False, sort_keys=True, default=str)
+    return result
+
+
+def json_tool(fn: Callable[..., Any]) -> Callable[..., Any]:
+    """Wrap a tool callable so its return enters the model context as JSON text."""
+
+    @functools.wraps(fn)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        return _serialize_tool_result(fn(*args, **kwargs))
+
+    # functools.wraps 已保留 __name__/__doc__/__wrapped__ 及 __dict__（含
+    # logical_tool_id 等 verifier 私有元数据），无需再手动搬运。
+    return wrapper
+
+
 def build_agno_tools(verifiable_tools: Iterable[VerifiableTool]) -> list[Function]:
+    tool_list = list(verifiable_tools)
+    _validate_runtime_name_collisions(tool.tool_id for tool in tool_list)
     tools = []
-    for tool in verifiable_tools:
+    for tool in tool_list:
         if tool.execute_fn is None:
             raise ValueError(f"VerifiableTool.execute_fn is required: {tool.tool_id}")
         parameters = _normalize_agno_parameters(tool.parameters)
         _validate_agno_tool_schema(tool, parameters)
-        entrypoint = tool.execute_fn
-        entrypoint.__name__ = tool.tool_id.replace(".", "_")
-        if not getattr(entrypoint, "__doc__", None):
-            entrypoint.__doc__ = tool.description
-        tools.append(Function(
-            name=entrypoint.__name__,
+        # Never mutate the caller's function (it may be reused by another tool).
+        def entrypoint(*args, _execute=tool.execute_fn, **kwargs):
+            return _execute(*args, **kwargs)
+        entrypoint.__name__ = runtime_tool_name(tool.tool_id)
+        entrypoint.__doc__ = getattr(tool.execute_fn, "__doc__", None) or tool.description
+        function = Function(
+            name=runtime_tool_name(tool.tool_id),
             description=tool.description,
             entrypoint=entrypoint,
             parameters=parameters,
             skip_entrypoint_processing=True,
-        ))
+        )
+        # Adapter-only metadata: logical IDs remain available for exact compatibility
+        # lookup without exposing invalid names in the provider schema.
+        entrypoint.logical_tool_id = tool.tool_id
+        tools.append(function)
     return tools
 
 

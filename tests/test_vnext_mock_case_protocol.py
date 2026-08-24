@@ -335,12 +335,12 @@ def test_mock_services_default_to_one_case(monkeypatch):
     ]
 
 
-def test_summary_separates_one_dynamic_case_from_three_persisted_cases():
+def test_summary_separates_one_dynamic_case_from_full_persisted_dataset():
     html = (ROOT / "impl" / "frontend" / "summary.html").read_text(encoding="utf-8")
 
     assert "post('/api/mock_cases',{project:project(),count:1})" in html
-    assert "post('/api/mock_datasets',{project:project(),count:3})" in html
-    assert "post('/api/mock_datasets',{project:project(),count:500})" not in html
+    assert "post('/api/mock_datasets',{project:project(),count:500})" in html
+    assert "post('/api/mock_datasets',{project:project(),count:3})" not in html
     assert "post('/api/mock_datasets',{project:project(),count:1})" not in html
 
 

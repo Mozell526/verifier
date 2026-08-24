@@ -1,0 +1,225 @@
+{
+  "id": "HB015",
+  "query": "C000888123456",
+  "role": "legal_id",
+  "expected_status": "fulfilled",
+  "source": "set_b",
+  "live_error": null,
+  "judge_error": null,
+  "live": {
+    "trace_id": "client_search:HB015:1786796680212",
+    "fields": [
+      "clientNo"
+    ],
+    "values": [
+      "C000888123456"
+    ],
+    "robot_text": "客户号为C000888123456的客户",
+    "matched_patterns": "客户号-匹配",
+    "intent_summary": "客户号为C000888123456的客户",
+    "conditions": [
+      {
+        "field": "clientNo",
+        "operator": "MATCH",
+        "value": "C000888123456",
+        "match_mode": null
+      }
+    ],
+    "extracted": {
+      "code": 0,
+      "msg": "操作成功",
+      "robot_text": "客户号为C000888123456的客户",
+      "end_flag": 1,
+      "trace_id": null,
+      "query": "C000888123456",
+      "query_logic": "AND",
+      "conditions": [
+        {
+          "field": "clientNo",
+          "operator": "MATCH",
+          "value": "C000888123456",
+          "match_mode": null
+        }
+      ],
+      "matched_level": 2,
+      "matched_patterns": "客户号-匹配",
+      "rewritten_query": "C000888123456",
+      "intent_summary": "客户号为C000888123456的客户",
+      "confidence": 0.95,
+      "cost_times": 19.0
+    }
+  },
+  "judge_status": "fulfilled",
+  "judge_reasoning": "用户输入是完整客户号，实际输出准确生成 clientNo 的 MATCH 条件并完整保留值；查询仅含该条件且无额外限制，满足当前仅评估解析语义的边界。",
+  "judge": {
+    "trace_id": "client_search:HB015:1786796680212",
+    "project_id": "client_search",
+    "business_expectations": [
+      {
+        "expectation_id": "按完整客户号匹配目标客户",
+        "blocking": true,
+        "downstream_consumer": "find-target-customers",
+        "user_intent": "根据客户号 C000888123456 查询对应客户",
+        "expected_outcome": "生成以 clientNo 为字段、以 C000888123456 为值的客户号匹配条件",
+        "required_capabilities": [
+          "clientNo 字段",
+          "客户号值 C000888123456",
+          "MATCH 操作符"
+        ],
+        "acceptance_criteria": [
+          "条件字段语义为客户号",
+          "客户号值完整保留为 C000888123456",
+          "使用可执行的客户号匹配操作符"
+        ],
+        "boundary": {
+          "judge_scope": "parser_condition_semantics_only"
+        },
+        "priority": "核心交付",
+        "evidence_refs": []
+      },
+      {
+        "expectation_id": "保持单条件查询逻辑且不增加限制",
+        "blocking": true,
+        "downstream_consumer": "find-target-customers",
+        "user_intent": "仅按用户提供的完整客户号筛选，不附加未表达条件",
+        "expected_outcome": "查询逻辑为 AND，仅包含客户号条件，不增加其他字段或筛选限制",
+        "required_capabilities": [
+          "AND 查询逻辑",
+          "无未表达约束"
+        ],
+        "acceptance_criteria": [
+          "查询只包含一个客户号条件",
+          "没有额外字段、值或范围限制"
+        ],
+        "boundary": {
+          "judge_scope": "parser_condition_semantics_only"
+        },
+        "priority": "核心交付",
+        "evidence_refs": []
+      }
+    ],
+    "fulfillment_assessments": [
+      {
+        "expectation_id": "按完整客户号匹配目标客户",
+        "status": "fulfilled",
+        "score": 1.0,
+        "expected_evidence": [
+          "用户输入为完整客户号 C000888123456",
+          "期望生成客户号字段的匹配条件"
+        ],
+        "actual_evidence": [
+          "实际条件为 clientNo MATCH C000888123456",
+          "robot_text 明确为客户号为 C000888123456 的客户"
+        ],
+        "downstream_impact": "已交付可执行的客户号筛选条件；当前范围不要求验证下游实际客户结果集。",
+        "confidence": null,
+        "evidence_refs": [],
+        "authority_tool_call_ids": []
+      },
+      {
+        "expectation_id": "保持单条件查询逻辑且不增加限制",
+        "status": "fulfilled",
+        "score": 1.0,
+        "expected_evidence": [
+          "用户只提供一个客户号，没有表达其他筛选条件",
+          "期望使用单一客户号条件进行 AND 查询"
+        ],
+        "actual_evidence": [
+          "query_logic 为 AND",
+          "conditions 仅包含一个 clientNo 条件",
+          "比较证据显示 missing、wrong、extra 均为空"
+        ],
+        "downstream_impact": "客户集合未因未表达的额外条件而被收窄。",
+        "confidence": null,
+        "evidence_refs": [],
+        "authority_tool_call_ids": []
+      }
+    ],
+    "overall_fulfillment": {
+      "status": "fulfilled",
+      "assessment_count": 2,
+      "blocking_expectations": [
+        "按完整客户号匹配目标客户",
+        "保持单条件查询逻辑且不增加限制"
+      ]
+    },
+    "expected": {
+      "code": 0,
+      "msg": "操作成功",
+      "query": "C000888123456",
+      "conditions": [
+        {
+          "field": "clientNo",
+          "operator": "MATCH",
+          "value": "C000888123456",
+          "match_mode": null
+        }
+      ],
+      "robot_text": "客户号为C000888123456的客户",
+      "query_logic": "AND",
+      "rewritten_query": "C000888123456"
+    },
+    "actual": {
+      "code": 0,
+      "msg": "操作成功",
+      "robot_text": "客户号为C000888123456的客户",
+      "end_flag": 1,
+      "trace_id": null,
+      "query": "C000888123456",
+      "query_logic": "AND",
+      "conditions": [
+        {
+          "field": "clientNo",
+          "operator": "MATCH",
+          "value": "C000888123456",
+          "match_mode": null
+        }
+      ],
+      "matched_level": 2,
+      "matched_patterns": "客户号-匹配",
+      "rewritten_query": "C000888123456",
+      "intent_summary": "客户号为C000888123456的客户",
+      "confidence": 0.95,
+      "cost_times": 19.0
+    },
+    "missing": [],
+    "wrong": [],
+    "extra": [],
+    "evidence": [
+      {
+        "query": "C000888123456"
+      },
+      {
+        "actual_conditions": [
+          {
+            "field": "clientNo",
+            "operator": "MATCH",
+            "value": "C000888123456",
+            "match_mode": null
+          }
+        ],
+        "actual_query_logic": "AND"
+      },
+      {
+        "result_set_verified": false,
+        "judge_scope": "parser_condition_semantics_only"
+      },
+      {
+        "source": "client_search.condition_compare",
+        "wrong": [],
+        "missing": [],
+        "extra": []
+      }
+    ],
+    "reasoning_summary": "用户输入是完整客户号，实际输出准确生成 clientNo 的 MATCH 条件并完整保留值；查询仅含该条件且无额外限制，满足当前仅评估解析语义的边界。",
+    "summary": {
+      "reason": "fulfilled · 2 blocking expectations all met · 用户输入是完整客户号，实际输出准确生成 clientNo 的 MATCH 条件并完整保留值；查询仅含该条件且无额外限制，满足当前仅评估解析语义的边界。",
+      "primary_failure_dimensions": [],
+      "reason_source": "aggregated_fulfillment",
+      "fulfillment_status": "fulfilled",
+      "assessment_count": 2,
+      "blocking_count": 2,
+      "is_formal_attribution": true
+    }
+  }
+}

@@ -1,0 +1,313 @@
+{
+  "caller": "judge",
+  "created_at": "2026-08-20T05:22:10Z",
+  "elapsed_ms": 86713,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "production"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "34fa36784837d10c91e4eec88e857e611af02523d0c855dda69a2ca27cb5484d",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [],
+      "lineage": {
+        "call_id": "",
+        "case_id": "mock-agent-marketting-planning-intent-9e16256b",
+        "trace_id": "marketting-planning-intent:mock-agent-marketting-planning-intent-9e16256b:1787203242744"
+      },
+      "messages": [
+        {
+          "char_count": 6723,
+          "content_sha256": "5eabd13ae82894d101e151939925d72cf1d81add96216ab3f073373ecaf44539",
+          "role": "system"
+        },
+        {
+          "char_count": 3936,
+          "content_sha256": "6fe624e9f14306a024b68e5f9b40ab239d464ee7416eb6a5c42bae0c90ab7ed7",
+          "role": "user"
+        }
+      ],
+      "mode": "production",
+      "output_contract": {
+        "field_names": [
+          "acceptance_criteria",
+          "actual",
+          "actual_evidence",
+          "applicable_product_expectation_ids",
+          "authority_tool_call_ids",
+          "blocking",
+          "boundary",
+          "business_expectations",
+          "downstream_consumer",
+          "downstream_impact",
+          "error_type",
+          "evidence",
+          "evidence_ref",
+          "expectation_id",
+          "expected",
+          "expected_evidence",
+          "expected_outcome",
+          "extra",
+          "fulfillment_assessments",
+          "incomplete",
+          "kind",
+          "missing",
+          "priority",
+          "raw",
+          "reasoning_summary",
+          "required_capabilities",
+          "score",
+          "status",
+          "user_intent",
+          "wrong"
+        ],
+        "identity": "impl.core.schema.judge.JudgeLLMOutput",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "0ae0afb407db0b56761c1e5aec63fd8f5fa423085e6b9ba93a9ea9aa67bc4f84",
+        "sha256": "0ae0afb407db0b56761c1e5aec63fd8f5fa423085e6b9ba93a9ea9aa67bc4f84"
+      },
+      "project_id": "marketting-planning-intent",
+      "prompt_char_count": 10659,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 3936,
+        "occurred": false
+      },
+      "role": "judge",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 873,
+          "content_sha256": "525bd96f8dd21bf64f8bf8a14b2eb2da079eca4a5692f489211f1ea2b9c9fdd2",
+          "order": 0,
+          "role": "judge",
+          "segment_id": "mandatory-context-units",
+          "source": "contextunit://project.marketting-planning-intent.asset.judge_boundary,project.marketting-planning-intent.asset.judge_evaluation",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 2613,
+          "content_sha256": "3f4b740e86a7713a6a2f1538dc8b98349a0c4e3c7614073ac36eb0bc2ec0423c",
+          "order": 1,
+          "role": "judge",
+          "segment_id": "compiled-system",
+          "source": "impl/core/judge.py#judge_trace",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 3936,
+          "content_sha256": "6fe624e9f14306a024b68e5f9b40ab239d464ee7416eb6a5c42bae0c90ab7ed7",
+          "order": 2,
+          "role": "judge",
+          "segment_id": "case-user-payload",
+          "source": "trace://judge-evidence-view",
+          "stage": "judge"
+        }
+      ],
+      "stage": "judge",
+      "tool_plan": []
+    }
+  },
+  "llm_model": "deepseek-v4-flash-0731",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "你是通用评估系统的 judge agent。\n\n## 核心原则\n只基于当前 RunTrace、项目评判标准和动态检索的知识库内容判断，不继承历史 case。\n首要职责：理解用户/下游消费者的真实业务意图 → 派生 business_expectations → 基于完整执行链路（每轮 output、最终 output、交互过程和停止事实）判断 expectations 的 fulfillment。\n\n## expectation 拆分原则\nbusiness_expectations 的粒度直接决定判断精度。每个 expectation 必须是原子、独立可评价的判断单元：证据充分时判 fulfilled 或 not_fulfilled；确需评价但当前证据不足时按协议判 not_evaluable。\n- 一个 expectation 只描述一个可独立验证的结果维度\n- 多维度意图必须拆成多个 expectation\n- 每个 expectation 必须有明确的 acceptance_criteria\n- 每个 expectation 必须在比较 actual 前确定 blocking：只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true\n- fulfillment_assessments 只判断对应 expectation 的 status 和证据，不得重新定义 blocking\n- expectation_id 必须是描述性的中文短语，禁止使用 E1/E2/exp_01 等占位符 ID\n- reasoning_summary 必须是中文写成的判断依据\n\n## 输出词表\n`fulfillment_assessments[*].status` 必须从以下 3 个值中选择：\n  - fulfilled：该 expectation 完全满足\n  - not_fulfilled：该 expectation 未满足\n  - not_evaluable：当前无法评估\n禁用 failed/passed/incorrect/wrong/met/unmet/partially_fulfilled/partial/success/fail/ok/unknown 等同义词。\n`fulfillment_assessments[*].expected_evidence` 与 `actual_evidence` **必须是数组**（JSON array / list），即使只有一条证据也要用 `[...]` 包裹，不可直接用字符串或对象。\n\n不要输出 overall_fulfillment；公共层会在项目契约补充完成后根据 blocking expectations 确定性派生整体状态。\n\n## 评估规范\n\n\n## 评估边界\n\n\n## 判断标准\n\n\n## 项目 ContextUnit（按 Role policy 在运行前确定性装载）\n## ContextUnit: judge_boundary: judge_boundary.md (project.marketting-planning-intent.asset.judge_boundary)\n# Judge Boundary\n\nIn scope:\n\n- single-turn query normalization\n- intent-recognition API call\n- adapter extraction of the intent label and confidence\n- label correctness against the current reference intent\n\nOut of scope:\n\n- multi-turn planning state\n- SSE planning output\n- planning card generation\n- downstream business data availability\n\n\n## ContextUnit: judge_evaluation: evaluation.md (project.marketting-planning-intent.asset.judge_evaluation)\n# Evaluation\n\nJudge evaluates whether the normalized `intent` returned by the intent-recognition endpoint matches the current case reference or judge-generated expected intent.\n\nThe evaluation boundary excludes multi-turn field collection, SSE streaming, planning-card generation, and downstream planning execution.\n\n\n\n\n## marketing-planning-intent 评估关键维度\n请将 user prompt 中的 critical_intent_dimensions 作为拆分 business_expectations 的骨架，围绕 intent label、必需 slots/entities、置信度阈值、fallback 策略和 dispatch 边界判断 fulfillment。\n## 工具使用原则\n所有工具的用途、调用时机和参数含义以 Agno tool schema 为准；user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息。\n\n## 禁止事项\n- 不要把 reference answer 当作默认主目标（除非 case 明确指定）\n- 不要把 HTTP 状态、run_status、attribute/cluster 结论当作满足依据\n- 不要归因内部代码、配置或 prompt 原因（属于 attribute agent）\n- 分析文字必须使用中文，包括 reasoning_summary 等所有文本字段。\n\n\n## 输出约束：judge 判定输出（reference 已固化，仅产 fulfillment 判定）\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"business_expectations\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeBusinessExpectationOutput\"\n      },\n      \"minItems\": 1\n    },\n    \"applicable_product_expectation_ids\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"fulfillment_assessments\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeFulfillmentAssessmentOutput\"\n      }\n    },\n    \"expected\": {},\n    \"missing\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"wrong\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"extra\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"evidence\": {\n      \"type\": \"array\",\n      \"items\": {}\n    },\n    \"reasoning_summary\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    }\n  },\n  \"additionalProperties\": false,\n  \"$defs\": {\n    \"JudgeBusinessExpectationOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"blocking\": {\n          \"type\": \"boolean\"\n        },\n        \"downstream_consumer\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"user_intent\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected_outcome\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"required_capabilities\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"acceptance_criteria\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"boundary\": {\n          \"type\": \"object\"\n        },\n        \"priority\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"blocking\"\n      ]\n    },\n    \"JudgeFulfillmentAssessmentOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"score\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        },\n        \"expected_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"actual_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"downstream_impact\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"authority_tool_call_ids\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"status\"\n      ]\n    },\n    \"GapItem\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"kind\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"error_type\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected\": {},\n        \"actual\": {},\n        \"evidence_ref\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"raw\": {},\n        \"incomplete\": {\n          \"type\": \"boolean\"\n        }\n      },\n      \"additionalProperties\": false\n    }\n  },\n  \"required\": [\n    \"business_expectations\",\n    \"reasoning_summary\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['business_expectations', 'reasoning_summary']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n",
+      "created_at": 1787203253,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "0d6c6558-54a2-44d7-9bd8-71fb83510e6b",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"user_intent\": \"customer_portrait\", \"run_trace\": {\"trace_id\": \"marketting-planning-intent:mock-agent-marketting-planning-intent-9e16256b:1787203242744\", \"project_id\": \"marketting-planning-intent\", \"case_id\": \"mock-agent-marketting-planning-intent-9e16256b\", \"intent_input\": {\"session_id\": \"default_session\", \"trace_id\": \"default_trace\", \"org_id\": \"default_org\", \"user_text\": \"帮我看看上季度买了重疾险的客户都是啥样的？\", \"extra_input_params\": {\"agent_args\": {\"conversation_id\": \"default_session\", \"message\": {\"content\": \"帮我看看上季度买了重疾险的客户都是啥样的？\", \"content_type\": \"text\"}}, \"args\": {\"extensions\": {}, \"contexts\": []}}}, \"normalized_request\": {\"session_id\": \"default_session\", \"trace_id\": \"default_trace\", \"org_id\": \"default_org\", \"user_text\": \"帮我看看上季度买了重疾险的客户都是啥样的？\", \"extra_input_params\": {\"agent_args\": {\"conversation_id\": \"default_session\", \"message\": {\"content\": \"帮我看看上季度买了重疾险的客户都是啥样的？\", \"content_type\": \"text\"}}, \"args\": {\"extensions\": {}, \"contexts\": []}}}, \"final_output\": {}, \"final_output_turn\": null, \"turns\": [{\"turn_index\": 1, \"request\": {\"session_id\": \"default_session\", \"trace_id\": \"default_trace\", \"org_id\": \"default_org\", \"user_text\": \"帮我看看上季度买了重疾险的客户都是啥样的？\", \"extra_input_params\": {\"agent_args\": {\"conversation_id\": \"default_session\", \"message\": {\"content\": \"帮我看看上季度买了重疾险的客户都是啥样的？\", \"content_type\": \"text\"}}, \"args\": {\"extensions\": {}, \"contexts\": []}}}, \"extracted_output\": {}, \"call_status\": \"failed\", \"runtime_ms\": 6, \"error\": \"marketing-planning intent service unavailable: <urlopen error <urlopen error [Errno 61] Connection refused>>\", \"fallbacks\": [{\"fallback_id\": \"live-error-marketting-planning-intent\", \"source_stage\": \"live\", \"fallback_type\": \"live_error\", \"status\": \"error\", \"reason\": \"marketing-planning intent service unavailable: <urlopen error <urlopen error [Errno 61] Connection refused>>\", \"missing_evidence\": [\"live_response\"], \"recoverable\": true, \"needs_human_review\": true, \"quality_flags\": [\"live_service_unavailable\"], \"evidence_refs\": [], \"failed_gate_ids\": [], \"metadata\": {\"case_id\": \"\", \"session_id\": \"\", \"failure_type\": \"live_service_unavailable\"}}], \"validation\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"marketting-planning-intent\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"execution_trace\": [], \"application_boundary\": {}, \"project_fields\": {}}], \"conversation_transcript\": [], \"conversation_summary\": {\"turn_count\": 1, \"final_output_turn\": null, \"completion_status\": \"failed\", \"stop_reason\": \"execution_error\", \"interaction_controller_status\": \"not_run\", \"interaction_controller_error\": \"\"}, \"stop_reason\": \"execution_error\", \"completion_status\": \"failed\", \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"marketting-planning-intent\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"turn_1\", \"status\": \"failed\", \"evidence\": \"marketing-planning intent service unavailable: <urlopen error <urlopen error [Errno 61] Connection refused>>\", \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"evidence_refs\": [], \"raw_response_evidence\": [], \"evidence_completeness\": {\"complete\": false, \"missing_evidence\": [\"final_output\", \"successful_execution\"]}, \"application_boundary\": {}, \"reference_contract\": {\"intent\": \"customer_portrait\", \"confidence\": 0.95, \"target_value\": \"重疾险\", \"path_types\": [], \"subIntent\": null}, \"scenario\": \"intent_recognition\", \"status\": \"error\", \"error\": \"marketing-planning intent service unavailable: <urlopen error <urlopen error [Errno 61] Connection refused>>\"}, \"reference_contract\": {\"intent\": \"customer_portrait\", \"confidence\": 0.95, \"target_value\": \"重疾险\", \"path_types\": [], \"subIntent\": null}, \"application_boundary\": {}, \"critical_intent_dimensions\": [\"intent_label\", \"required_slots_or_entities\", \"confidence_threshold\", \"fallback_policy\", \"dispatch_boundary\"]}",
+      "created_at": 1787203253,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "b0ad9f13-54ef-4005-98e7-20524726c111",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"意图标签识别为customer_portrait\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"客户画像意图识别下游链路\",\n      \"user_intent\": \"将用户查询正确识别为客户画像（customer_portrait）意图\",\n      \"expected_outcome\": \"intent-recognition API 成功调用并返回意图标签 customer_portrait\",\n      \"required_capabilities\": [\"intent_recognition_api\", \"intent_label_extraction\"],\n      \"acceptance_criteria\": [\n        \"存在成功的 intent-recognition API 调用\",\n        \"返回的 intent 标签与参考意图 customer_portrait 一致\"\n      ],\n      \"boundary\": {\n        \"includes\": [\"single-turn intent recognition\", \"intent label correctness\"],\n        \"excludes\": [\"multi-turn planning state\", \"SSE planning output\", \"planning card generation\", \"downstream planning execution\"]\n      },\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"提取重疾险目标实体\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"客户画像查询条件构建\",\n      \"user_intent\": \"从用户语句中提取目标产品实体（重疾险），作为画像筛选条件\",\n      \"expected_outcome\": \"输出结构化 target_value=重疾险 的 slot/entity\",\n      \"required_capabilities\": [\"entity_extraction\", \"slot_filling\"],\n      \"acceptance_criteria\": [\n        \"返回结果包含 target_value 字段\",\n        \"target_value 的值为 重疾险\"\n      ],\n      \"boundary\": {\n        \"includes\": [\"single-turn slot/entity extraction\"],\n        \"excludes\": [\"下游业务数据查询\"]\n      },\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"置信度达到阈值\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"意图结果可信度判断\",\n      \"user_intent\": \"识别结果应附带置信度且达到参考阈值 0.95\",\n      \"expected_outcome\": \"返回 confidence 且 confidence >= 0.95\",\n      \"required_capabilities\": [\"confidence_estimation\"],\n      \"acceptance_criteria\": [\n        \"confidence 字段存在\",\n        \"confidence >= 0.95\"\n      ],\n      \"boundary\": {\n        \"includes\": [\"confidence output\"],\n        \"excludes\": [\"模型内部实现\"]\n      },\n      \"priority\": \"P1\"\n    },\n    {\n      \"expectation_id\": \"服务不可用时fallback降级可用\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"异常时的意图识别兜底\",\n      \"user_intent\": \"当 live 意图服务不可用时，通过 fallback 提供可用的降级结果或明确人工介入\",\n      \"expected_outcome\": \"fallback 成功提供可用的意图识别降级结果，或产生明确且可恢复的人工介入提示\",\n      \"required_capabilities\": [\"fallback_mechanism\", \"error_handling\"],\n      \"acceptance_criteria\": [\n        \"fallback 被触发\",\n        \"fallback 状态为成功或明确的恢复路径\",\n        \"下游可获得可用的 intent 结果或人工处理指引\"\n      ],\n      \"boundary\": {\n        \"includes\": [\"fallback policy execution\"],\n        \"excludes\": [\"人工处理的实际执行\"]\n      },\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"意图识别结果正确分发\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"customer_portrait 业务链路路由\",\n      \"user_intent\": \"识别出的意图应能正确分发到 customer_portrait 对应的处理链路\",\n      \"expected_outcome\": \"基于 intent 标签将请求路由至客户画像业务链路\",\n      \"required_capabilities\": [\"intent_dispatch\", \"routing\"],\n      \"acceptance_criteria\": [\n        \"存在 intent 识别输出可供路由\",\n        \"dispatch 目标与 customer_portrait 意图匹配\"\n      ],\n      \"boundary\": {\n        \"includes\": [\"dispatch boundary correctness\"],\n        \"excludes\": [\"planning card 生成与 SSE 输出\"]\n      },\n      \"priority\": \"P1\"\n    },\n    {\n      \"expectation_id\": \"查询文本归一化\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"后续意图识别输入\",\n      \"user_intent\": \"单轮查询应被正常归一化且不改变用户原意\",\n      \"expected_outcome\": \"normalized_request 正确生成并保留用户原始查询内容\",\n      \"required_capabilities\": [\"query_normalization\"],\n      \"acceptance_criteria\": [\n        \"normalized_request.user_text 存在\",\n        \"normalized_request.user_text 与用户原始输入一致\"\n      ],\n      \"boundary\": {\n        \"includes\": [\"single-turn query normalization\"],\n        \"excludes\": [\"多轮状态管理\"]\n      },\n      \"priority\": \"P2\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"意图标签识别为customer_portrait\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        \"intent-recognition API 调用成功\",\n        \"返回 intent 标签为 customer_portrait\"\n      ],\n      \"actual_evidence\": [\n        \"turn_1 call_status=failed\",\n        \"error=marketing-planning intent service unavailable: Connection refused\",\n        \"final_output 为空\",\n        \"conversation_summary.completion_status=failed\"\n      ],\n      \"downstream_impact\": \"下游无法获得意图标签，客户画像意图识别链路整体中断\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"提取重疾险目标实体\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        \"structured slot 输出包含 target_value=重疾险\"\n      ],\n      \"actual_evidence\": [\n        \"无任何结构化 slot/entity 输出\",\n        \"final_output 为空\",\n        \"fallback missing_evidence 包含 live_response\"\n      ],\n      \"downstream_impact\": \"无法构建客户画像的产品筛选条件，画像查询不可执行\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"置信度达到阈值\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        \"confidence 字段存在\",\n        \"confidence >= 0.95\"\n      ],\n      \"actual_evidence\": [\n        \"没有任何 intent 识别结果，无 confidence 字段\",\n        \"服务调用失败导致输出缺失\"\n      ],\n      \"downstream_impact\": \"下游无法判断识别结果的可信度，影响自动决策\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"服务不可用时fallback降级可用\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        \"fallback 提供可用的降级 intent 结果\",\n        \"或产生明确的恢复/人工介入指引\"\n      ],\n      \"actual_evidence\": [\n        \"fallbacks[0].fallback_type=live_error\",\n        \"fallbacks[0].status=error\",\n        \"needs_human_review=true\",\n        \"quality_flags=['live_service_unavailable']\",\n        \"无成功降级输出\"\n      ],\n      \"downstream_impact\": \"异常场景下无兜底结果，用户请求无法被继续处理，需人工介入\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"意图识别结果正确分发\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        \"基于识别的 intent 路由到 customer_portrait 链路\"\n      ],\n      \"actual_evidence\": [\n        \"无 intent 识别结果可用于分发\",\n        \"execution_trace 止于 turn_1 failed\"\n      ],\n      \"downstream_impact\": \"无法触发客户画像业务链路\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"查询文本归一化\",\n      \"status\": \"fulfilled\",\n      \"score\": 1,\n      \"expected_evidence\": [\n        \"normalized_request 正确生成\",\n        \"normalized_request.user_text 保留原始查询内容\"\n      ],\n      \"actual_evidence\": [\n        \"normalized_request.user_text=\\\"帮我看看上季度买了重疾险的客户都是啥样的？\\\"\",\n        \"与 intent_input.user_text 完全一致\"\n      ],\n      \"downstream_impact\": \"查询文本在归一化阶段无误，可继续作为输入\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"expected\": {},\n  \"missing\": [],\n  \"wrong\": [],\n  \"extra\": [],\n  \"evidence\": [\n    {\n      \"source\": \"run_trace.turns[0]\",\n      \"value\": {\n        \"call_status\": \"failed\",\n        \"error\": \"marketing-planning intent service unavailable: <urlopen error <urlopen error [Errno 61] Connection refused>>\"\n      }\n    },\n    {\n      \"source\": \"run_trace.fallbacks[0]\",\n      \"value\": {\n        \"fallback_type\": \"live_error\",\n        \"status\": \"error\",\n        \"needs_human_review\": true,\n        \"quality_flags\": [\"live_service_unavailable\"]\n      }\n    },\n    {\n      \"source\": \"run_trace.normalized_request\",\n      \"value\": {\n        \"user_text\": \"帮我看看上季度买了重疾险的客户都是啥样的？\"\n      }\n    },\n    {\n      \"source\": \"reference_contract\",\n      \"value\": {\n        \"intent\": \"customer_portrait\",\n        \"confidence\": 0.95,\n        \"target_value\": \"重疾险\"\n      }\n    }\n  ],\n  \"reasoning_summary\": \"本次运行在意图识别服务调用阶段即失败（Connection refused），没有产生任何 intent、confidence 或 slot/entity 输出，final_output 为空，completion_status 为 failed。reference_contract 期望意图为 customer_portrait、置信度 0.95、目标实体为重疾险，但实际链路完全未产出这些结果。唯一成功的是查询归一化：normalized_request 与原输入完全一致。fallback 虽被触发，但状态为 error 且需人工介入，未提供可用降级结果。因此除查询文本归一化外，其余围绕意图标签、目标实体、置信度、fallback、分发的期望均未满足。\"\n}",
+      "created_at": 1787203253,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "24e38a29-b00b-4b42-91e4-4d3c5baca2db",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 3244,
+        "output_tokens": 8002,
+        "provider_metrics": null,
+        "reasoning_tokens": 5671,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 11246
+      },
+      "name": null,
+      "provider_data": {
+        "id": "83e18d09-880f-4ac8-a362-ed65970e086f",
+        "model_extra": {
+          "request_id": "83e18d09-880f-4ac8-a362-ed65970e086f"
+        }
+      },
+      "reasoning_content": "我们需要判断该 case。用户意图：customer_portrait（客户画像）。但整个 run 在 turn 1 阶段因为 intent service unavailable 失败，final_output 为空，completion_status failed，fallback 记录了 live_error，missing_evidence 包括 live_response，需要 human review。reference_contract 给出 intent=customer_portrait, confidence=0.95, target_value=重疾险。但实际没有调用到 intent recognition API，没有输出 intent label、confidence、slots。所以围绕 critical_intent_dimensions 拆 business_expectations。\n\n注意 judge_boundary：评估范围只有 single-turn query normalization、intent-recognition API call、adapter extraction intent label and confidence、label correctness against reference intent。out of scope 是 multi-turn planning state、SSE planning output、planning card generation、downstream business data availability。\n\n我们需要从 user prompt 理解真实业务意图：用户问“帮我看看上季度买了重疾险的客户都是啥样的？”，这个 query 需要被归一化并识别为 customer_portrait（客户画像）意图，同时需要提取 target_value=重疾险（required slot/entity）以及置信度至少多少？reference confidence=0.95。但用户 prompt 没有 explicit confidence threshold，不过 reference contract 有 confidence 0.95。评估维度包括 confidence_threshold，我们需要判断识别结果的置信度是否达到阈值。由于服务不可用，没有任何输出，所以这些 expectation 都 not fulfilled。\n\n拆分 expectations：\n\n1. intent_label 识别：期望 intent-recognition API 被成功调用并返回意图标签，且标签与参考意图一致（customer_portrait）。实际：turn 1 call_status failed，无输出。blocking: true? 这是核心目的，阻断。downstream_consumer: intent-recognition 下游 planning 或业务系统。priority: high。acceptance_criteria: 存在 successful API call，返回 intent=customer_portrait。\n\n2. required_slots_or_entities：期望从 query 中提取 target_value=重疾险（产品实体/目标值），以确保客户画像查询可执行。实际无输出。blocking: true? 这个也关键，因为如果没有 target_value，customer_portrait 无法区分具体产品。blocking true。\n\n3. confidence_threshold：期望返回的 confidence 达到阈值（reference 0.95）。实际无 confidence。因为核心结果 absent，这个也无法满足，status not_fulfilled 或 not_evaluable？由于缺乏返回结果，无法验证 confidence 是否达标，但 expectation 本身是要求返回置信度并达到阈值。由于整个调用失败，没有输出 confidence，所以 not_fulfilled（证据缺失且由系统失败导致）。可以算 not_fulfilled，因为 even 没有返回。\n\n4. fallback_policy：期望在 live service 不可用时触发 fallback 机制以提供可用的识别结果或明确降级说明。实际有 fallback 记录，但 fallback status = error，recoverable=true, needs_human_review=true，且没有成功 fallback 输出（如规则匹配或缓存结果）。所有 missing_evidence 包含 live_response。所以 fallback 未成功恢复业务，not_fulfilled。blocking? 如果意图识别核心失败，fallback 成功与否也影响下游能否继续，但 fallback 本身是备用机制。可以设 blocking true 因为服务不可用时 fallback 是保障。不过也可以不 blocking。严格来说 fallback 不是核心业务能力，而是异常处理，如果 core 成功则 fallback 不需要。因为核心失败了，fallback 是唯一 hope，所以 blocking true。\n\n5. dispatch_boundary：期望 intent 识别结果被正确 dispatch 到 customer_portrait 业务链路/action；且 query normalization 保持原 query 不变（单轮查询归一化）。实际没有输出，没有 dispatch。not_fulfilled。\n\n还有 query normalization：单轮查询归一化在 scope 内。normalized_request 与原始相同，这算 fulfilled？normalized_request 存在且等于 user_text。但这不是核心意图识别。评估维度里没有 normalization 显式列出，但 judge_boundary 包含 single-turn query normalization。我们可以加一个 expectation：query 归一化不改变用户原意，normalized_request 被正确生成。实际 normalized_request 有值且与 user_text 一致。这个 fulfilled。\n\n但要注意：critical_intent_dimensions 是骨架，不一定需要每个都拆成 expectation 吗？“请将 user prompt 中的 critical_intent_dimensions 作为拆分 business_expectations 的骨架”。最好每个维度都有对应 expectation，这样全面。\n\n另外 fallback_policy 维度：fallback 记录已经生成（live-error fallback），但 fallback status error。我们可以把 fallback 拆成两个层面：fallback 是否被触发（是）和 fallback 是否提供可用的降级结果（否）。但一个 expectation 一个维度。主 expectation 是 fallback 策略正确执行并为下游提供可用的替代结果。触发本身是执行过程的一部分。\n\n注意输出约束：business_expectations 至少一个。fulfillment_assessments 可以没有？schema 中 fulfullment_assessments 是数组，但 required 只要求 business_expectations 和 reasoning_summary。但为了判断，我们应对每个 expectation 提供 assessment。appicaple_product_expectation_ids 可空？应该可以空数组。但为了完整，我们可以不给，或提供空数组。Schema 中 appictable_product_expectation_ids 是数组，不是 required。我们仍可包含空数组 []。expected/missing/wrong/extra/evidence 可以空。\n\n需要确定 authority_tool_call_ids：没有工具调用，因为服务不可用。可以空数组。\n\n评分：score 可以是 number or null。可以提供 0/1 分。status 严格词表。\n\n具体输出：\nbusiness_expectations:\n- expectation_id: \"意图标签识别为customer_portrait\"\n  blocking: true\n  downstream_consumer: \"下游客户画像查询/规划链路\"\n  user_intent: \"识别用户查询的意图类别，正确归类为客户画像（customer_portrait）\"\n  expected_outcome: \"intent-recognition API 成功返回意图标签且为 customer_portrait\"\n  required_capabilities: [\"intent_recognition_api\", \"intent_label_extraction\", \"label_mapping\"]\n  acceptance_criteria: [\"存在成功的 intent-recognition API 调用\", \"返回的 intent 标签与参考意图 customer_portrait 一致\"]\n  boundary: {\"includes\": [\"intent label correctness\"], \"excludes\": [\"multi-turn planning\", \"SSE output\", \"planning card\"]}\n  priority: \"P0\"\n\n- expectation_id: \"重疾险目标实体提取\"\n  blocking: true\n  downstream_consumer: \"客户画像查询条件构建\"\n  user_intent: \"从用户语句中提取限定产品类型的实体（重疾险）作为客户画像的筛选条件\"\n  expected_outcome: \"返回 target_value=重疾险 等结构化 slot/entity\"\n  required_capabilities: [\"entity_extraction\", \"slot_filling\"]\n  acceptance_criteria: [\"提取结果包含 target_value 字段且值为 重疾险\"]\n  boundary: {\"includes\": [\"slot/entity extraction from single turn\"], \"excludes\": [\"business data retrieval\"]}\n  priority: \"P0\"\n\n- expectation_id: \"置信度达到阈值\"\n  blocking: false? 用户没有明确要求置信度，但 reference 有置信度 0.95。对下游来说，低置信度可能触发 fallback。但是否 blocking？如果置信度低于阈值，可能 still usable with warning。这个可以设 blocking false。但如果没有置信度输出，会阻碍下游判断。不过主失败已经存在。按规则“只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true”。confidence 缺失不一定阻断，因为 intent 正确就可以用。但 intent 本身也缺失了。这有点循环。我认为 confidence_threshold 不是 blocking，因为即使没有它，intent 正确也能继续。设 false。\n  expected_outcome: \"返回置信度 confidence 且达到参考阈值 0.95\"\n  acceptance_criteria: [\"confidence 字段存在\", \"confidence >= 0.95\"]\n\n- expectation_id: \"服务不可用时的fallback降级\"\n  blocking: true? 如果核心 intent 服务不可用，fallback 是能否继续的关键。这个 case 的 fallback 被触发但 error。对下游而言，fallback 失败意味着整个链路不可用，所以 blocking true。但根据原则“只有缺失后会阻断...才设 true”，fallback 缺失确实阻断（因为核心也失败）。设 true。\n\n- expectation_id: \"意图识别结果正确分发\"\n  blocking: false? dispatch 发生在 intent 识别之后，如果 intent 失败则 dispatch 也无法发生。对用户核心目的来说，没有 dispatch 就阻断。但 dispatch 不是本 case 范围内？judge_boundary out of scope 包括 planning card generation 和 downstream planning execution，但 dispatch 边界本身是 critical dimension。评估边界说 intent-recognition endpoint 的归一化 intent 是否匹配。dispatch boundary 可能指识别结果被路由到 customer_portrait 意图对应的处理器。我认为可以设 blocking false 因为即使不 dispatch，只要 intent 对，下游可以自行路由。但 case 中无输出。\n\n- expectation_id: \"查询文本归一化\"\n  blocking: false. normalized_request 存在并保留原文。fulfilled.\n\n需要避免太多 expectation 导致冗余。至少覆盖 critical_intent_dimensions 五个维度。可以加 normalization 作为第六个。\n\nfulfillment_assessments 对应每个 expectation：\n1. intent_label: not_fulfilled. expected_evidence: [\"intent-recognition API 调用成功\", \"intent=customer_portrait\"]; actual_evidence: [\"turn_1 call_status=failed\", \"error=marketing-planning intent service unavailable: Connection refused\", \"final_output={}\"]; downstream_impact: 下游无法获得意图标签，客户画像链路无法启动。authority_tool_call_ids: [].\n2. target entity: not_fulfilled. expected_evidence: [\"target_value=重疾险\"]; actual_evidence: [\"无结构化 slot 输出\", \"final_output 为空\", \"fallback missing_evidence 包含 live_response\"].\n3. confidence: not_fulfilled 或 not_evaluable? 由于没有输出，无法判断 confidence 是否达标。但这本身是因为服务失败造成的缺失，预期是必须返回 confidence。根据协议“确需评价但当前证据不足时按协议判 not_evaluable”。但证据不足是因为执行失败，不是我们无法评价；我们可以基于 absence 判定 not_fulfilled，因为 expected evidence 完全缺失。我认为 not_fulfilled 更合适。注意：“不要因为证据不足而判 not_fulfilled”？原则上 not_evaluable 用于无法判断。但既然整个输出缺失，我们可以明确说未满足“返回置信度且达到阈值”。用 not_fulfilled。\n\n4. fallback: not_fulfilled. expected_evidence: [\"fallback 成功提供可用的识别结果 或 明确的降级输出\"]; actual_evidence: [\"fallbacks[0].status=error\", \"fallbacks[0].recoverable=true\", \"needs_human_review=true\", \"quality_flags=['live_service_unavailable']\", \"无成功的 fallback 输出\"]. 注意这里 fallback 记录本身存在，证明 fallback 策略被触发，但没有成功。所以 not_fulfilled.\n\n5. dispatch: not_fulfilled. expected_evidence: [\"根据 intent 将请求路由到 customer_portrait 业务链路\"]; actual_evidence: [\"无 intent 输出，无法路由\", \"execution_trace 止于 turn_1 failed\"].\n\n6. normalization: fulfilled. expected_evidence: [\"normalized_request.user_text 与原始 user_text 一致，保留原意\"]; actual_evidence: [\"normalized_request.user_text=\\\"帮我看看上季度买了重疾险的客户都是啥样的？\\\"\", \"与 intent_input.user_text 完全一致\"].\n\n对于 fulfilled 的 normalization，score 1；其余 score 0。\n\nreasoning_summary 中文总结。\n\napplicable_product_expectation_ids: 也许空数组 []。没有 product-level expectation。\n\nmissing/wrong/extra 等可以空数组。expected 可以是 {} 或省略？schema 中 expected 是 {} not required? Actually schema properties include expected: {} (type unspecified? It says \"expected\": {} meaning any? but additionalProperties false not at top level? In schema, top-level properties include \"expected\": {} (no type). It's optional. We can include `\"expected\": {}` or omit? Required fields only business_expectations, reasoning_summary. But to be safe include all fields? The instructions say \"必须包含 required 列表中的所有字段\". So only business_expectations and reasoning_summary required. Other fields optional but if present must match. We can include empty arrays for missing/wrong/extra/evidence, and fulfill assessments. Also applicable_product_expectation_ids can be []. We'll include them.\n\nNeed to be careful with JSON: final answer pure JSON object.\n\nLet's craft reasoning in Chinese.\n\nAlso consider note \"不要把 HTTP 状态、run_status、attribute/cluster 结论当作满足依据\"。我们在 assessment 中使用 call_status failed 和 completion_status failed 作为证据，但这是因为整个链路失败，只能作为缺失证据，不当作满足依据。OK.\n\n\"不要归因内部代码、配置或 prompt 原因\" - 我们只描述服务不可用，不归因内部原因。OK.\n\nNeed to ensure expectation_id 是描述性中文。Good.\n\nAcceptance criteria arrays can contain strings.\n\nLet's draft.\n\nPotential concern: blocking for normalization false. Fine.\n\nPotential concern: The reference contract has confidence 0.95, but is that a threshold or expected value? In the project, reference contract provides intent, confidence, target_value. critical_intent_dimensions includes confidence_threshold. So we can treat 0.95 as the acceptance threshold. Good.\n\nPotential concern: user intent \"customer_portrait\" is the expected intent; no ambiguity.\n\nLet's produce JSON.\n\nEnsure no unescaped double quotes inside strings. Use Chinese quotes if needed. In JSON, string values like \"帮我看看上季度买了重疾险的客户都是啥样的？\" is fine. Use arrays.\n\nLet's write.\n\nAlso include authority_tool_call_ids: [] for each assessment. Is that allowed? required only expectation_id and status. Additional properties allowed. Fine.\n\nFinal JSON:\n\n{\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"意图标签识别为customer_portrait\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"客户画像意图识别下游链路\",\n      \"user_intent\": \"将用户查询正确识别为客户画像（customer_portrait）意图\",\n      \"expected_outcome\": \"intent-recognition API 成功调用并返回意图标签 customer_portrait\",\n      \"required_capabilities\": [\"intent_recognition_api\", \"intent_label_extraction\"],\n      \"acceptance_criteria\": [\n        \"存在成功的 intent-recognition API 调用\",\n        \"返回的 intent 标签与参考意图 customer_portrait 一致\"\n      ],\n      \"boundary\": {\n        \"includes\": [\"single-turn intent recognition\", \"intent label correctness\"],\n        \"excludes\": [\"multi-turn planning state\", \"SSE planning output\", \"planning card generation\", \"downstream planning execution\"]\n      },\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"提取重疾险目标实体\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"客户画像查询条件构建\",\n      \"user_intent\": \"从用户语句中提取目标产品实体（重疾险），作为画像筛选条件\",\n      \"expected_outcome\": \"输出结构化 target_value=重疾险 的 slot/entity\",\n      \"required_capabilities\": [\"entity_extraction\", \"slot_filling\"],\n      \"acceptance_criteria\": [\n        \"返回结果包含 target_value 字段\",\n        \"target_value 的值为 重疾险\"\n      ],\n      \"boundary\": {\"includes\": [\"single-turn slot/entity extraction\"], \"excludes\": [\"下游业务数据查询\"]},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"置信度达到阈值\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"意图结果可信度判断\",\n      \"user_intent\": \"识别结果应附带置信度且达到参考阈值 0.95\",\n      \"expected_outcome\": \"返回 confidence 且 confidence >= 0.95\",\n      \"required_capabilities\": [\"confidence_estimation\"],\n      \"acceptance_criteria\": [\"confidence 字段存在\", \"confidence >= 0.95\"],\n      \"boundary\": {\"includes\": [\"confidence output\"], \"excludes\": [\"模型内部实现\"]},\n      \"priority\": \"P1\"\n    },\n    {\n      \"expectation_id\": \"服务不可用时fallback降级可用\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"异常时的意图识别兜底\",\n      \"user_intent\": \"当 live 意图服务不可用时，通过 fallback 提供可用的降级结果或明确人工介入\",\n      \"expected_outcome\": \"fallback 成功提供可用的意图识别降级结果，或产生明确且可恢复的人工介入提示\",\n      \"required_capabilities\": [\"fallback_mechanism\", \"error_handling\"],\n      \"acceptance_criteria\": [\n        \"fallback 被触发\",\n        \"fallback 状态为成功或明确的恢复路径\",\n        \"下游可获得可用的 intent 结果或人工处理指引\"\n      ],\n      \"boundary\": {\"includes\": [\"fallback policy execution\"], \"excludes\": [\"人工处理的实际执行\"]},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"意图识别结果正确分发\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"customer_portrait 业务链路路由\",\n      \"user_intent\": \"识别出的意图应能正确分发到 customer_portrait 对应的处理链路\",\n      \"expected_outcome\": \"基于 intent 标签将请求路由至客户画像业务链路\",\n      \"required_capabilities\": [\"intent_dispatch\", \"routing\"],\n      \"acceptance_criteria\": [\n        \"存在 intent 识别输出可供路由\",\n        \"dispatch 目标与 customer_portrait 意图匹配\"\n      ],\n      \"boundary\": {\"includes\": [\"dispatch boundary correctness\"], \"excludes\": [\"planning card 生成与 SSE 输出\"]},\n      \"priority\": \"P1\"\n    },\n    {\n      \"expectation_id\": \"查询文本归一化\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"后续意图识别输入\",\n      \"user_intent\": \"单轮查询应被正常归一化且不改变用户原意\",\n      \"expected_outcome\": \"normalized_request 正确生成并保留用户原始查询内容\",\n      \"required_capabilities\": [\"query_normalization\"],\n      \"acceptance_criteria\": [\n        \"normalized_request.user_text 存在\",\n        \"normalized_request.user_text 与用户原始输入一致\"\n      ],\n      \"boundary\": {\"includes\": [\"single-turn query normalization\"], \"excludes\": [\"多轮状态管理\"]},\n      \"priority\": \"P2\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"意图标签识别为customer_portrait\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\"intent-recognition API 调用成功\", \"返回 intent 标签为 customer_portrait\"],\n      \"actual_evidence\": [\"turn_1 call_status=failed\", \"error=marketing-planning intent service unavailable: Connection refused\", \"final_output 为空\", \"conversation_summary.completion_status=failed\"],\n      \"downstream_impact\": \"下游无法获得意图标签，客户画像意图识别链路整体中断\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"提取重疾险目标实体\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\"structured slot 输出包含 target_value=重疾险\"],\n      \"actual_evidence\": [\"无任何结构化 slot/entity 输出\", \"final_output 为空\", \"fallback missing_evidence 包含 live_response\"],\n      \"downstream_impact\": \"无法构建客户画像的产品筛选条件，画像查询不可执行\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"置信度达到阈值\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\"confidence 字段存在\", \"confidence >= 0.95\"],\n      \"actual_evidence\": [\"没有任何 intent 识别结果，无 confidence 字段\", \"服务调用失败导致输出缺失\"],\n      \"downstream_impact\": \"下游无法判断识别结果的可信度，影响自动决策\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"服务不可用时fallback降级可用\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\"fallback 提供可用的降级 intent 结果\", \"或产生明确的恢复/人工介入指引\"],\n      \"actual_evidence\": [\"fallbacks[0].fallback_type=live_error\", \"fallbacks[0].status=error\", \"needs_human_review=true\", \"quality_flags=['live_service_unavailable']\", \"无成功降级输出\"],\n      \"downstream_impact\": \"异常场景下无兜底结果，用户请求无法被继续处理，需人工介入\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"意图识别结果正确分发\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\"基于识别的 intent 路由到 customer_portrait 链路\"],\n      \"actual_evidence\": [\"无 intent 识别结果可用于分发\", \"execution_trace 止于 turn_1 failed\"],\n      \"downstream_impact\": \"无法触发客户画像业务链路\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"查询文本归一化\",\n      \"status\": \"fulfilled\",\n      \"score\": 1,\n      \"expected_evidence\": [\"normalized_request 正确生成\", \"normalized_request.user_text 保留原始查询内容\"],\n      \"actual_evidence\": [\"normalized_request.user_text=\\\"帮我看看上季度买了重疾险的客户都是啥样的？\\\"\", \"与 intent_input.user_text 完全一致\"],\n      \"downstream_impact\": \"查询文本在归一化阶段无误，可继续作为输入\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"expected\": {},\n  \"missing\": [],\n  \"wrong\": [],\n  \"extra\": [],\n  \"evidence\": [\n    {\"source\": \"run_trace.turns[0]\", \"value\": {\"call_status\": \"failed\", \"error\": \"marketing-planning intent service unavailable: <urlopen error <urlopen error [Errno 61] Connection refused>>\"}},\n    {\"source\": \"run_trace.fallbacks[0]\", \"value\": {\"fallback_type\": \"live_error\", \"status\": \"error\", \"needs_human_review\": true, \"quality_flags\": [\"live_service_unavailable\"]}},\n    {\"source\": \"run_trace.normalized_request\", \"value\": {\"user_text\": \"帮我看看上季度买了重疾险的客户都是啥样的？\"}},\n    {\"source\": \"reference_contract\", \"value\": {\"intent\": \"customer_portrait\", \"confidence\": 0.95, \"target_value\": \"重疾险\"}}\n  ],\n  \"reasoning_summary\": \"本次运行在意图识别服务调用阶段即失败（Connection refused），没有产生任何 intent、confidence 或 slot/entity 输出，final_output 为空，completion_status 为 failed。reference_contract 期望意图为 customer_portrait、置信度 0.95、目标实体为重疾险，但实际链路完全未产出这些结果。唯一成功的是查询归一化：normalized_request 与原输入完全一致。fallback 虽被触发，但状态为 error 且需人工介入，未提供可用降级结果。因此除查询文本归一化外，其余围绕意图标签、目标实体、置信度、fallback、分发的期望均未满足。\"\n}\n\nNeed to ensure evidence array elements are valid any; okay.\n\nOne thing: “不要在 JSON 外输出解释” - final only JSON. Good.\n\nDouble-check schema: `additionalProperties: false` at top-level, and our keys include only allowed: business_expectations, applicable_product_expectation_ids, fulfillment_assessments, expected, missing, wrong, extra, evidence, reasoning_summary. All allowed because schema includes them. Good.\n\nCheck JudgeBusinessExpectationOutput required: expectation_id, blocking. We have those. Other fields optional but present.\n\nCheck JudgeFulfillmentAssessmentOutput required: expectation_id, status. We have those. Additional fields allowed.\n\nGapItem array empty is okay.\n\nPotential issue: top-level \"expected\": {} is an empty object. Schema says properties.expected type {} — not specified, so any allowed. Fine.\n\nPotential issue: blocking for fallback might be debatable. Since core service unavailable, fallback is the guarantee. I'll keep true.\n\nPotential issue: should \"置信度达到阈值\" be blocking false? It's fine.\n\nPotential issue: \"意图识别结果正确分发\" is arguably not_evaluable due to no intent output. But because the entire upstream failed, we know dispatch did not occur. So not_fulfilled is accurate. However, some might say since dispatch can't happen without intent, it's not_evaluable because we can't test dispatch behavior. But \"not_evaluable\" is for cases where evidence insufficient despite having attempt. Here there is no attempt and no possibility due to failure; we can definitively say dispatch outcome not delivered. I'll keep not_fulfilled.\n\nPotential issue: normalization fulfilled despite overall failure? Yes, normalized_request exists. Good.\n\nLet's finalize.",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "marketting-planning-intent",
+  "prompt_size": 18302,
+  "record_id": "8ce6e93a-1850-4cb5-a9f8-cb0b9e3f53d3",
+  "response": {
+    "content": "{\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"意图标签识别为customer_portrait\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"客户画像意图识别下游链路\",\n      \"user_intent\": \"将用户查询正确识别为客户画像（customer_portrait）意图\",\n      \"expected_outcome\": \"intent-recognition API 成功调用并返回意图标签 customer_portrait\",\n      \"required_capabilities\": [\"intent_recognition_api\", \"intent_label_extraction\"],\n      \"acceptance_criteria\": [\n        \"存在成功的 intent-recognition API 调用\",\n        \"返回的 intent 标签与参考意图 customer_portrait 一致\"\n      ],\n      \"boundary\": {\n        \"includes\": [\"single-turn intent recognition\", \"intent label correctness\"],\n        \"excludes\": [\"multi-turn planning state\", \"SSE planning output\", \"planning card generation\", \"downstream planning execution\"]\n      },\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"提取重疾险目标实体\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"客户画像查询条件构建\",\n      \"user_intent\": \"从用户语句中提取目标产品实体（重疾险），作为画像筛选条件\",\n      \"expected_outcome\": \"输出结构化 target_value=重疾险 的 slot/entity\",\n      \"required_capabilities\": [\"entity_extraction\", \"slot_filling\"],\n      \"acceptance_criteria\": [\n        \"返回结果包含 target_value 字段\",\n        \"target_value 的值为 重疾险\"\n      ],\n      \"boundary\": {\n        \"includes\": [\"single-turn slot/entity extraction\"],\n        \"excludes\": [\"下游业务数据查询\"]\n      },\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"置信度达到阈值\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"意图结果可信度判断\",\n      \"user_intent\": \"识别结果应附带置信度且达到参考阈值 0.95\",\n      \"expected_outcome\": \"返回 confidence 且 confidence >= 0.95\",\n      \"required_capabilities\": [\"confidence_estimation\"],\n      \"acceptance_criteria\": [\n        \"confidence 字段存在\",\n        \"confidence >= 0.95\"\n      ],\n      \"boundary\": {\n        \"includes\": [\"confidence output\"],\n        \"excludes\": [\"模型内部实现\"]\n      },\n      \"priority\": \"P1\"\n    },\n    {\n      \"expectation_id\": \"服务不可用时fallback降级可用\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"异常时的意图识别兜底\",\n      \"user_intent\": \"当 live 意图服务不可用时，通过 fallback 提供可用的降级结果或明确人工介入\",\n      \"expected_outcome\": \"fallback 成功提供可用的意图识别降级结果，或产生明确且可恢复的人工介入提示\",\n      \"required_capabilities\": [\"fallback_mechanism\", \"error_handling\"],\n      \"acceptance_criteria\": [\n        \"fallback 被触发\",\n        \"fallback 状态为成功或明确的恢复路径\",\n        \"下游可获得可用的 intent 结果或人工处理指引\"\n      ],\n      \"boundary\": {\n        \"includes\": [\"fallback policy execution\"],\n        \"excludes\": [\"人工处理的实际执行\"]\n      },\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"意图识别结果正确分发\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"customer_portrait 业务链路路由\",\n      \"user_intent\": \"识别出的意图应能正确分发到 customer_portrait 对应的处理链路\",\n      \"expected_outcome\": \"基于 intent 标签将请求路由至客户画像业务链路\",\n      \"required_capabilities\": [\"intent_dispatch\", \"routing\"],\n      \"acceptance_criteria\": [\n        \"存在 intent 识别输出可供路由\",\n        \"dispatch 目标与 customer_portrait 意图匹配\"\n      ],\n      \"boundary\": {\n        \"includes\": [\"dispatch boundary correctness\"],\n        \"excludes\": [\"planning card 生成与 SSE 输出\"]\n      },\n      \"priority\": \"P1\"\n    },\n    {\n      \"expectation_id\": \"查询文本归一化\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"后续意图识别输入\",\n      \"user_intent\": \"单轮查询应被正常归一化且不改变用户原意\",\n      \"expected_outcome\": \"normalized_request 正确生成并保留用户原始查询内容\",\n      \"required_capabilities\": [\"query_normalization\"],\n      \"acceptance_criteria\": [\n        \"normalized_request.user_text 存在\",\n        \"normalized_request.user_text 与用户原始输入一致\"\n      ],\n      \"boundary\": {\n        \"includes\": [\"single-turn query normalization\"],\n        \"excludes\": [\"多轮状态管理\"]\n      },\n      \"priority\": \"P2\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"意图标签识别为customer_portrait\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        \"intent-recognition API 调用成功\",\n        \"返回 intent 标签为 customer_portrait\"\n      ],\n      \"actual_evidence\": [\n        \"turn_1 call_status=failed\",\n        \"error=marketing-planning intent service unavailable: Connection refused\",\n        \"final_output 为空\",\n        \"conversation_summary.completion_status=failed\"\n      ],\n      \"downstream_impact\": \"下游无法获得意图标签，客户画像意图识别链路整体中断\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"提取重疾险目标实体\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        \"structured slot 输出包含 target_value=重疾险\"\n      ],\n      \"actual_evidence\": [\n        \"无任何结构化 slot/entity 输出\",\n        \"final_output 为空\",\n        \"fallback missing_evidence 包含 live_response\"\n      ],\n      \"downstream_impact\": \"无法构建客户画像的产品筛选条件，画像查询不可执行\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"置信度达到阈值\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        \"confidence 字段存在\",\n        \"confidence >= 0.95\"\n      ],\n      \"actual_evidence\": [\n        \"没有任何 intent 识别结果，无 confidence 字段\",\n        \"服务调用失败导致输出缺失\"\n      ],\n      \"downstream_impact\": \"下游无法判断识别结果的可信度，影响自动决策\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"服务不可用时fallback降级可用\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        \"fallback 提供可用的降级 intent 结果\",\n        \"或产生明确的恢复/人工介入指引\"\n      ],\n      \"actual_evidence\": [\n        \"fallbacks[0].fallback_type=live_error\",\n        \"fallbacks[0].status=error\",\n        \"needs_human_review=true\",\n        \"quality_flags=['live_service_unavailable']\",\n        \"无成功降级输出\"\n      ],\n      \"downstream_impact\": \"异常场景下无兜底结果，用户请求无法被继续处理，需人工介入\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"意图识别结果正确分发\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        \"基于识别的 intent 路由到 customer_portrait 链路\"\n      ],\n      \"actual_evidence\": [\n        \"无 intent 识别结果可用于分发\",\n        \"execution_trace 止于 turn_1 failed\"\n      ],\n      \"downstream_impact\": \"无法触发客户画像业务链路\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"查询文本归一化\",\n      \"status\": \"fulfilled\",\n      \"score\": 1,\n      \"expected_evidence\": [\n        \"normalized_request 正确生成\",\n        \"normalized_request.user_text 保留原始查询内容\"\n      ],\n      \"actual_evidence\": [\n        \"normalized_request.user_text=\\\"帮我看看上季度买了重疾险的客户都是啥样的？\\\"\",\n        \"与 intent_input.user_text 完全一致\"\n      ],\n      \"downstream_impact\": \"查询文本在归一化阶段无误，可继续作为输入\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"expected\": {},\n  \"missing\": [],\n  \"wrong\": [],\n  \"extra\": [],\n  \"evidence\": [\n    {\n      \"source\": \"run_trace.turns[0]\",\n      \"value\": {\n        \"call_status\": \"failed\",\n        \"error\": \"marketing-planning intent service unavailable: <urlopen error <urlopen error [Errno 61] Connection refused>>\"\n      }\n    },\n    {\n      \"source\": \"run_trace.fallbacks[0]\",\n      \"value\": {\n        \"fallback_type\": \"live_error\",\n        \"status\": \"error\",\n        \"needs_human_review\": true,\n        \"quality_flags\": [\"live_service_unavailable\"]\n      }\n    },\n    {\n      \"source\": \"run_trace.normalized_request\",\n      \"value\": {\n        \"user_text\": \"帮我看看上季度买了重疾险的客户都是啥样的？\"\n      }\n    },\n    {\n      \"source\": \"reference_contract\",\n      \"value\": {\n        \"intent\": \"customer_portrait\",\n        \"confidence\": 0.95,\n        \"target_value\": \"重疾险\"\n      }\n    }\n  ],\n  \"reasoning_summary\": \"本次运行在意图识别服务调用阶段即失败（Connection refused），没有产生任何 intent、confidence 或 slot/entity 输出，final_output 为空，completion_status 为 failed。reference_contract 期望意图为 customer_portrait、置信度 0.95、目标实体为重疾险，但实际链路完全未产出这些结果。唯一成功的是查询归一化：normalized_request 与原输入完全一致。fallback 虽被触发，但状态为 error 且需人工介入，未提供可用降级结果。因此除查询文本归一化外，其余围绕意图标签、目标实体、置信度、fallback、分发的期望均未满足。\"\n}",
+    "metrics": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 3244,
+      "output_tokens": 8002,
+      "reasoning_tokens": 5671,
+      "total_tokens": 11246
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 76710,
+          "endpoint": "fallback1",
+          "model": "deepseek-v4-flash-0731",
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "selected_endpoint": "fallback1",
+      "selected_model": "deepseek-v4-flash-0731",
+      "stage": ""
+    }
+  },
+  "trace_id": "marketting-planning-intent:mock-agent-marketting-planning-intent-9e16256b:1787203242744"
+}

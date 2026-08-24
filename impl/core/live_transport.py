@@ -26,11 +26,12 @@ def _redact_headers(headers: Dict[str, Any] | None) -> Dict[str, Any]:
 
 
 def _decode_body(payload: bytes) -> Any:
+    """JSON body 解析为结构；非 JSON 保留原始文本，不得改写成 dict 包装。"""
     text = payload.decode("utf-8", errors="replace")
     try:
         return json.loads(text)
     except json.JSONDecodeError:
-        return {"text": text}
+        return text
 
 
 def _decode_http_error_body(exc: urllib.error.HTTPError) -> Any:
@@ -51,6 +52,27 @@ class LiveResponseView:
     status_code: Optional[int]
     response: Any
     error: Optional[str] = None
+
+
+class LiveForbiddenContentTypeError(RuntimeError):
+    """响应 Content-Type 命中禁用列表（如流式 SSE），在读取 body 前拒绝。"""
+
+    def __init__(self, content_type: str):
+        self.content_type = str(content_type)
+        super().__init__(f"forbidden content-type: {self.content_type}")
+
+
+class LiveHTTPStatusError(urllib.error.URLError):
+    """业务服务已响应，但以非 2xx 状态拒绝请求。"""
+
+    def __init__(self, status_code: int, response: Any):
+        self.status_code = int(status_code)
+        self.response = copy.deepcopy(response)
+        detail = json.dumps(response, ensure_ascii=False) if response is not None else ""
+        super().__init__(f"HTTP {self.status_code}: {detail}".rstrip())
+
+    def __str__(self) -> str:
+        return str(self.reason)
 
 
 class LiveTransport:
@@ -88,11 +110,13 @@ class LiveTransport:
         timeout: float = 30.0,
         carries_live_request: bool = False,
         contributes_raw_response: bool = False,
+        forbid_content_types: Optional[Iterable[str]] = None,
     ) -> LiveResponseView:
         return self.request(
             "GET", url, headers=headers, timeout=timeout,
             carries_live_request=carries_live_request,
             contributes_raw_response=contributes_raw_response,
+            forbid_content_types=forbid_content_types,
         )
 
     def post(
@@ -104,11 +128,13 @@ class LiveTransport:
         timeout: float = 30.0,
         carries_live_request: bool = False,
         contributes_raw_response: bool = False,
+        forbid_content_types: Optional[Iterable[str]] = None,
     ) -> LiveResponseView:
         return self.request(
             "POST", url, json_body=json_body, headers=headers, timeout=timeout,
             carries_live_request=carries_live_request,
             contributes_raw_response=contributes_raw_response,
+            forbid_content_types=forbid_content_types,
         )
 
     def request(
@@ -121,6 +147,7 @@ class LiveTransport:
         timeout: float = 30.0,
         carries_live_request: bool = False,
         contributes_raw_response: bool = False,
+        forbid_content_types: Optional[Iterable[str]] = None,
     ) -> LiveResponseView:
         if self._sealed:
             raise RuntimeError("LiveTransport is sealed")
@@ -134,12 +161,23 @@ class LiveTransport:
         response_headers: Dict[str, Any] = {}
         response_payload: Any = None
         error: Optional[str] = None
+        rejected_content_type: Optional[str] = None
+        forbidden_markers = [str(marker).lower() for marker in (forbid_content_types or ()) if str(marker).strip()]
         try:
             request = urllib.request.Request(url, data=body, headers=actual_headers, method=method)
             with urllib.request.urlopen(request, timeout=float(timeout)) as response:
                 status_code = int(getattr(response, "status", response.getcode()))
                 response_headers = dict(response.headers.items()) if getattr(response, "headers", None) else {}
-                response_payload = _decode_body(response.read())
+                content_type = next(
+                    (str(value).lower() for key, value in response_headers.items() if str(key).lower() == "content-type"),
+                    "",
+                )
+                if any(marker in content_type for marker in forbidden_markers):
+                    # 在读取 body 之前拒绝流式/禁用类型，避免挂在无限 SSE 流上。
+                    rejected_content_type = content_type
+                    error = f"forbidden content-type (rejected before body read): {content_type}"
+                else:
+                    response_payload = _decode_body(response.read())
         except urllib.error.HTTPError as exc:
             status_code = int(exc.code)
             response_headers = dict(exc.headers.items()) if exc.headers else {}
@@ -166,9 +204,30 @@ class LiveTransport:
         )
         self._exchanges.append(exchange)
         view = LiveResponseView(exchange_id, status_code, copy.deepcopy(response_payload), error)
+        if rejected_content_type is not None:
+            raise LiveForbiddenContentTypeError(rejected_content_type)
         if error:
+            if status_code is not None:
+                raise LiveHTTPStatusError(status_code, response_payload)
             raise urllib.error.URLError(error)
         return view
+
+
+def declared_wire_body(request: Any) -> Any:
+    """HTTP JSON body that RealLive must put on the wire.
+
+    Flat REQUEST_SCHEMA projects send the whole payload. Envelope requests
+    (url / headers / capability plus nested body) send only `body`.
+    """
+    if not isinstance(request, dict):
+        return request
+    nested = request.get("body")
+    if not isinstance(nested, dict):
+        return request
+    markers = ("url", "method", "headers", "capability_ref", "capability", "show_schema")
+    if any(key in request for key in markers):
+        return nested
+    return request
 
 
 def validate_real_transport(transport: LiveTransport, request: Any) -> None:
@@ -177,7 +236,8 @@ def validate_real_transport(transport: LiveTransport, request: Any) -> None:
     request_exchanges = [item for item in exchanges if item.carries_live_request]
     if not request_exchanges:
         raise RuntimeError("RealLive missing carries_live_request exchange")
-    if not any(item.request == request for item in request_exchanges):
+    declared = declared_wire_body(request)
+    if not any(item.request == request or item.request == declared for item in request_exchanges):
         raise RuntimeError("RealLive wire request does not match REQUEST_SCHEMA payload")
     response_exchanges = [
         item for item in exchanges

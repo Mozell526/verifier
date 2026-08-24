@@ -1,0 +1,611 @@
+{
+  "case_count": 1,
+  "current": {
+    "assets": [
+      {
+        "asset_id": "judge_investigation",
+        "available": false,
+        "kind": "investigation",
+        "location": {
+          "location": "investigation/judge",
+          "location_scope": "project_package"
+        },
+        "source": "production"
+      },
+      {
+        "asset_id": "judge_business_contract",
+        "available": false,
+        "kind": "context",
+        "location": {
+          "location": "context/judge_business_contract.md",
+          "location_scope": "project_package"
+        },
+        "source": "production"
+      },
+      {
+        "asset_id": "judge_evaluation",
+        "available": true,
+        "kind": "context",
+        "location": {
+          "location": "evaluation.md",
+          "location_scope": "project_package"
+        },
+        "source": "production"
+      },
+      {
+        "asset_id": "judge_boundary",
+        "available": true,
+        "kind": "context",
+        "location": {
+          "location": "judge_boundary_protocals.md",
+          "location_scope": "project_package"
+        },
+        "source": "production"
+      },
+      {
+        "asset_id": "judge_standard",
+        "available": true,
+        "kind": "context",
+        "location": {
+          "location": "judge.md",
+          "location_scope": "project_package"
+        },
+        "source": "production"
+      }
+    ],
+    "draft_enabled": false
+  },
+  "decision": null,
+  "draft": {
+    "assets": [
+      {
+        "asset_id": "judge_investigation",
+        "available": true,
+        "kind": "investigation",
+        "location": {
+          "location": "draft/investigation/judge",
+          "location_scope": "project_package"
+        },
+        "source": "candidate"
+      },
+      {
+        "asset_id": "judge_business_contract",
+        "available": true,
+        "kind": "context",
+        "location": {
+          "location": "draft/context/judge_business_contract.md",
+          "location_scope": "project_package"
+        },
+        "source": "candidate"
+      },
+      {
+        "asset_id": "judge_evaluation",
+        "available": true,
+        "kind": "context",
+        "location": {
+          "location": "evaluation.md",
+          "location_scope": "project_package"
+        },
+        "source": "production"
+      },
+      {
+        "asset_id": "judge_boundary",
+        "available": true,
+        "kind": "context",
+        "location": {
+          "location": "judge_boundary_protocals.md",
+          "location_scope": "project_package"
+        },
+        "source": "production"
+      },
+      {
+        "asset_id": "judge_standard",
+        "available": true,
+        "kind": "context",
+        "location": {
+          "location": "judge.md",
+          "location_scope": "project_package"
+        },
+        "source": "production"
+      }
+    ],
+    "draft_enabled": true,
+    "solidify_receipt": {
+      "manifest_sha256": "8a6d93b3e2859b2da2ed971c2e08e471aadf046a22784e6da3186a599e30d4d1",
+      "role_contract_sha256": "45fecf156332bddc493f707fc0498f8937e2ba0c9beb64a80f2d5cf96d6e23f7",
+      "runtime_staleness": {
+        "current_source_revision": "0b65fad1e843671b64e8ed8e470e424206bf51c6",
+        "policy": "warn",
+        "source_revision": "0b65fad1e843671b64e8ed8e470e424206bf51c6",
+        "source_revision_drifted": false,
+        "warnings": [
+          {
+            "actual": "338b3913095dfa07138dc7aaa18fb2e1f331f255cc8c369ff581edb76b79df8d",
+            "expected": "f4543a9cb0c053209e07a5a0f1964162fcf9e784dce01ae1e1193832221afad8",
+            "kind": "evidence_content_drift",
+            "message": "EvidenceRef content hash changed: business-field-definitions; expected=f4543a9cb0c053209e07a5a0f1964162fcf9e784dce01ae1e1193832221afad8, actual=338b3913095dfa07138dc7aaa18fb2e1f331f255cc8c369ff581edb76b79df8d",
+            "ref_id": "business-field-definitions"
+          },
+          {
+            "actual": "9cc8c280d8e2c4855f77c51735795fa628a7d2ffbe38fdb0d7c5316603dde5ed",
+            "expected": "b29f955142f6e3161fc93c7a6298842b55a55b9770dc606701bc174fa26959b3",
+            "kind": "evidence_content_drift",
+            "message": "EvidenceRef content hash changed: business-enhanced-rules; expected=b29f955142f6e3161fc93c7a6298842b55a55b9770dc606701bc174fa26959b3, actual=9cc8c280d8e2c4855f77c51735795fa628a7d2ffbe38fdb0d7c5316603dde5ed",
+            "ref_id": "business-enhanced-rules"
+          }
+        ]
+      },
+      "schema_version": 1
+    }
+  },
+  "elapsed_seconds": 712.736,
+  "frozen_cases_sha256": "1ac3308a12eb3c135bfba49b9cbda8358dac60e62331de3cc90da094a240fcf1",
+  "note": "Protocol facts only. Draft Skill must decide improvement against frozen Current, objective, config.review and real experiments; equality or missing evidence is not success.",
+  "project_id": "client_search",
+  "role": "judge",
+  "rows": [
+    {
+      "case_key": "source-badcase-008",
+      "current": {
+        "actual": {
+          "conditions": [
+            {
+              "field": "orphanType",
+              "match_mode": null,
+              "operator": "MATCH",
+              "value": "纯存续单客户"
+            }
+          ],
+          "intent_summary": "存续客户类型为纯存续单客户",
+          "query": "纯存续单客户",
+          "query_logic": "AND",
+          "robot_text": "存续客户类型为纯存续单客户"
+        },
+        "business_expectations": [
+          {
+            "acceptance_criteria": [
+              "conditions 中包含 field=orphanType 的条件",
+              "intent_summary 表达孤儿单/存续客户类型意图而非其他业务维度"
+            ],
+            "blocking": true,
+            "boundary": {
+              "downstream_result_set_available": false,
+              "judge_scope": "parser_condition_semantics_only",
+              "note": "下游结果集不可用，仅按解析条件语义判断"
+            },
+            "downstream_consumer": "下游客户搜索（ES 客户查询）",
+            "evidence_refs": [],
+            "expectation_id": "孤儿单客户群体识别与字段定位",
+            "expected_outcome": "输出包含 orphanType 字段的筛选条件，意图摘要明确表达孤儿单客户类型语义",
+            "priority": "high",
+            "required_capabilities": [
+              "orphanType 字段识别",
+              "孤儿单意图归类"
+            ],
+            "user_intent": "用户输入“孤儿单”，意图查询孤儿单客户群体，系统应识别该意图属于孤儿单/存续客户类型筛选维度"
+          },
+          {
+            "acceptance_criteria": [
+              "conditions 中 orphanType 的 value 等于“在职有效客户”",
+              "若输出 value 与当前口径不一致，即为值归一化错误"
+            ],
+            "blocking": true,
+            "boundary": {
+              "口径冲突说明": "capability_manifest 的 value_mappings 中“孤儿单→纯存续单客户”与 notes 标注的当前口径“孤儿单=在职有效客户”冲突；notes 明确标注为“当前口径”，视为字段业务语义的权威来源，value_mappings 中的冲突映射属于当前系统配置可优化部分，应纳入评估"
+            },
+            "downstream_consumer": "下游客户搜索（ES 客户查询）",
+            "evidence_refs": [],
+            "expectation_id": "孤儿单枚举值映射正确性",
+            "expected_outcome": "value 映射为“在职有效客户”（capability_manifest 中明确标注当前口径：孤儿单=在职有效客户）",
+            "priority": "high",
+            "required_capabilities": [
+              "orphanType 枚举值归一化",
+              "口语别名映射"
+            ],
+            "user_intent": "“孤儿单”应按当前业务口径映射为正确的 orphanType 枚举值，从而检索到正确的孤儿单客户"
+          },
+          {
+            "acceptance_criteria": [
+              "operator 在 orphanType 支持范围内（MATCH）",
+              "未引入用户未表达的额外强约束条件"
+            ],
+            "blocking": false,
+            "boundary": {
+              "note": "CONTAINS/MATCH 差异可由后处理处置，不作为判定重点"
+            },
+            "downstream_consumer": "下游客户搜索（ES 客户查询）",
+            "evidence_refs": [],
+            "expectation_id": "操作符与条件组合逻辑正确性",
+            "expected_outcome": "operator=MATCH、query_logic=AND，仅包含孤儿单对应的单一条件",
+            "priority": "medium",
+            "required_capabilities": [
+              "orphanType 操作符（MATCH）",
+              "AND 逻辑组合"
+            ],
+            "user_intent": "孤儿单查询应使用 orphanType 字段支持的操作符，并形成正确、无多余强约束的条件组合"
+          },
+          {
+            "acceptance_criteria": [
+              "conditions 非空",
+              "未将非空请求误判为不支持或空查询"
+            ],
+            "blocking": false,
+            "boundary": {
+              "note": "孤儿单属于 orphanType 枚举能力内请求，无上游字段缺失限制"
+            },
+            "downstream_consumer": "下游客户搜索（ES 客户查询）",
+            "evidence_refs": [],
+            "expectation_id": "请求边界内可表达性",
+            "expected_outcome": "structured_output 非空，query 非空，未出现 empty-recognition",
+            "priority": "medium",
+            "required_capabilities": [
+              "orphanType 字段表达能力"
+            ],
+            "user_intent": "“孤儿单”在 orphanType 字段能力边界内，应正常输出非空结构化条件，不应误判为不支持或空查询"
+          }
+        ],
+        "evidence": [
+          "capability_manifest.orphanType.enums = [在职有效客户, 纯存续单客户, 非纯存续单客户]",
+          "capability_manifest.orphanType.notes 当前口径：孤儿单=在职有效客户；有存续单=纯存续单客户；非存续单=非纯存续单客户；非纯孤儿单=非纯存续单客户",
+          "capability_manifest.orphanType.value_mappings 中“孤儿单→纯存续单客户”与当前口径冲突，判定为当前系统配置中的值映射错误",
+          "actual final_output.conditions = [{\"field\": \"orphanType\", \"match_mode\": null, \"operator\": \"MATCH\", \"value\": \"纯存续单客户\"}]",
+          "application_boundary：downstream_result_set_available=false，judge_scope=parser_condition_semantics_only，result_set_verified=false",
+          "field_search_definition 未返回额外枚举/口径信息，口径以 capability_manifest 的 notes 为准"
+        ],
+        "expected": {
+          "code": 0,
+          "conditions": [
+            {
+              "field": "orphanType",
+              "match_mode": null,
+              "operator": "MATCH",
+              "value": "在职有效客户"
+            }
+          ],
+          "confidence": null,
+          "cost_times": null,
+          "end_flag": null,
+          "intent_summary": "存续客户类型为在职有效客户",
+          "matched_level": null,
+          "matched_patterns": null,
+          "msg": "success",
+          "query": "在职有效客户",
+          "query_logic": "AND",
+          "rewritten_query": "孤儿单",
+          "robot_text": "存续客户类型为在职有效客户",
+          "trace_id": null
+        },
+        "extra": [],
+        "fulfillment_assessments": [
+          {
+            "actual_evidence": [
+              "conditions 包含 {\"field\": \"orphanType\", \"operator\": \"MATCH\", \"value\": \"纯存续单客户\"}",
+              "intent_summary=“存续客户类型为纯存续单客户”，robot_text=“存续客户类型为纯存续单客户”"
+            ],
+            "authority_tool_call_ids": [
+              "field.search_definition"
+            ],
+            "confidence": 0.95,
+            "downstream_impact": "字段定位正确，下游可按 orphanType 字段构建客户查询，不阻塞检索路径",
+            "evidence_refs": [],
+            "expectation_id": "孤儿单客户群体识别与字段定位",
+            "expected_evidence": [
+              "输入“孤儿单”应解析出 orphanType 字段条件",
+              "意图应归类为孤儿单/存续客户类型维度"
+            ],
+            "score": 1.0,
+            "status": "fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "actual 输出 value=“纯存续单客户”",
+              "与当前口径“孤儿单=在职有效客户”不符，疑似沿用了 value_mappings 中“孤儿单→纯存续单客户”的错误映射",
+              "field_search_definition 未返回更细化的枚举口径，以 capability_manifest 的 notes 为准"
+            ],
+            "authority_tool_call_ids": [
+              "field.search_definition"
+            ],
+            "confidence": 0.85,
+            "downstream_impact": "下游将按 orphanType=纯存续单客户 检索，返回“有存续单客户”而非用户意图的“孤儿单（在职有效客户）”客户群体，结果集偏离核心意图，属阻断性错误",
+            "evidence_refs": [],
+            "expectation_id": "孤儿单枚举值映射正确性",
+            "expected_evidence": [
+              "capability_manifest.notes 明确标注“当前口径：孤儿单=在职有效客户”",
+              "因此孤儿单应归一化为枚举值“在职有效客户”"
+            ],
+            "score": 0.0,
+            "status": "not_fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "operator=MATCH，query_logic=AND",
+              "仅 1 条 orphanType 条件，无多余条件"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.95,
+            "downstream_impact": "查询结构合法可执行，操作符与逻辑组合不构成阻塞",
+            "evidence_refs": [],
+            "expectation_id": "操作符与条件组合逻辑正确性",
+            "expected_evidence": [
+              "orphanType 支持操作符为 MATCH",
+              "单一意图应输出单一 AND 条件，不引入额外强约束"
+            ],
+            "score": 1.0,
+            "status": "fulfilled"
+          },
+          {
+            "actual_evidence": [
+              "structured_output 非空，conditions 含 1 条 orphanType 条件",
+              "query=“纯存续单客户”非空，未出现 empty-recognition"
+            ],
+            "authority_tool_call_ids": [],
+            "confidence": 0.95,
+            "downstream_impact": "请求被正常表达，无上游能力缺失导致的表达限制",
+            "evidence_refs": [],
+            "expectation_id": "请求边界内可表达性",
+            "expected_evidence": [
+              "“孤儿单”属于 orphanType 枚举能力内请求，应输出非空条件"
+            ],
+            "score": 1.0,
+            "status": "fulfilled"
+          }
+        ],
+        "missing": [],
+        "overall_fulfillment": {
+          "blocking_expectations": [
+            "孤儿单客户群体识别与字段定位",
+            "孤儿单枚举值映射正确性"
+          ],
+          "status": "not_fulfilled"
+        },
+        "project_id": "client_search",
+        "reasoning_summary": "用户输入“孤儿单”，核心意图是查询孤儿单客户群体。capability_manifest 中 orphanType 字段枚举为[在职有效客户、纯存续单客户、非纯存续单客户]，其 notes 明确标注“当前口径：孤儿单=在职有效客户；有存续单=纯存续单客户”。虽然 value_mappings 中存在“孤儿单→纯存续单客户”的映射，但该映射与明确标注为“当前口径”的字段业务语义说明直接冲突，属于当前系统可优化部分（值归一化/字段映射配置）的错误，按 judge boundary 应纳入评估范围，不能以其自身配置作为绝对正确标准。actual output 将“孤儿单”解析为 orphanType MATCH 纯存续单客户：字段定位正确、操作符 MATCH 与 AND 逻辑正确、请求在字段能力边界内得到正常表达，但枚举值映射错误——正确值应为“在职有效客户”。application_boundary 表明下游结果集不可用（parser_condition_semantics_only），故基于解析条件语义判断：按当前口径，orphanType=纯存续单客户 对应“有存续单客户”，与用户意图的“孤儿单（在职有效客户）”不是同一客户群体，属于阻断性 wrong（枚举值映射错误）。判定：字段定位、操作符/逻辑、边界内表达均 fulfilled；枚举值映射 not_fulfilled。",
+        "summary": {
+          "assessment_count": 4,
+          "blocking_count": 2,
+          "fulfillment_status": "not_fulfilled",
+          "is_formal_attribution": true,
+          "primary_failure_dimensions": [
+            {
+              "blocking": true,
+              "downstream_impact": "下游将按 orphanType=纯存续单客户 检索，返回“有存续单客户”而非用户意图的“孤儿单（在职有效客户）”客户群体，结果集偏离核心意图，属阻断性错误",
+              "evidence": "actual 输出 value=“纯存续单客户” | 与当前口径“孤儿单=在职有效客户”不符，疑似沿用了 value_mappings 中“孤儿单→纯存续单客户”的错误映射 | field_search_definition 未返回更细化的枚举口径，以 capability_manifest 的 notes 为准 | capability_manifest.notes 明确标注“当前口径：孤儿单=在职有效客户” | 因此孤儿单应归一化为枚举值“在职有效客户”",
+              "expectation_id": "孤儿单枚举值映射正确性",
+              "status": "not_fulfilled"
+            }
+          ],
+          "reason": "not_fulfilled · blocking=[孤儿单枚举值映射正确性] · 用户输入“孤儿单”，核心意图是查询孤儿单客户群体。capability_manifest 中 orphanType 字段枚举为[在职有效客户、纯存续单客户、非纯存续单客户]，其 notes 明确标注“当前口径：孤儿单=在职有效客户；有存续单=纯存续单客户”。虽然 value_mappings 中存在“孤儿单→纯存续单客户”的映射，但该映射与明确标注为“当前口径”的字段业务语义说明直接冲突，属于当前系统可优化部分（值归一化/字段映射配置）的错误，按 judge boundary 应纳入评估范围，不能以其自身配置作为绝对正确标准。actual output 将“孤儿单”解析为 orphanType MATCH 纯存续单客户：字段定位正确、操作符 MATCH 与 AND 逻辑正确、请求在字段能力边界内得到正常表达，但枚举值映射错误——正确值应为“在职有效客户”。application_boundary 表明下游结果集不可用（parser_condition_semantics_only），故基于解析条件语义判断：按当前口径，orphanType=纯存续单客户 对应“有存续单客户”，与用户意图的“孤儿单（在职有效客户）”不是同一客户群体，属于阻断性 wrong（枚举值映射错误）。判定：字段定位、操作符/逻辑、边界内表达均 fulfilled；枚举值映射 not_fulfilled。",
+          "reason_source": "aggregated_fulfillment"
+        },
+        "trace_id": "client_search:badcase-008:1785239538449",
+        "wrong": [
+          {
+            "actual": {
+              "field": "orphanType",
+              "operator": "MATCH",
+              "value": "纯存续单客户"
+            },
+            "error_type": "enum_value_mapping_error",
+            "evidence_ref": "fulfillment_assessments[1]",
+            "expected": {
+              "field": "orphanType",
+              "operator": "MATCH",
+              "value": "在职有效客户"
+            },
+            "incomplete": false,
+            "kind": "wrong",
+            "raw": {
+              "notes": "当前口径：孤儿单=在职有效客户；有存续单=纯存续单客户；非存续单=非纯存续单客户；非纯孤儿单=非纯存续单客户。",
+              "value_mappings": {
+                "孤儿单": "纯存续单客户"
+              }
+            }
+          }
+        ]
+      },
+      "current_metrics": {
+        "elapsed_seconds": 344.719954
+      },
+      "current_runtime": {
+        "authority_audit": {},
+        "authority_tool_call_ids": [],
+        "environment": "missing",
+        "environment_snapshot_sha256": ""
+      },
+      "draft": {
+        "actual": {
+          "conditions": [
+            {
+              "field": "orphanType",
+              "match_mode": null,
+              "operator": "MATCH",
+              "value": "纯存续单客户"
+            }
+          ],
+          "intent_summary": "存续客户类型为纯存续单客户",
+          "query": "纯存续单客户",
+          "query_logic": "AND",
+          "robot_text": "存续客户类型为纯存续单客户"
+        },
+        "business_expectations": [
+          {
+            "acceptance_criteria": [
+              "orphanType 条件值必须为「孤儿单」的正确归一化枚举值（在职有效客户）",
+              "操作符为 MATCH，query_logic 为 AND",
+              "不得虚构用户未表达的额外条件"
+            ],
+            "blocking": true,
+            "boundary": {
+              "judge_scope": "parser_condition_semantics_only",
+              "result_set_verified": false
+            },
+            "downstream_consumer": "下游客户搜索 ES 查询",
+            "evidence_refs": [],
+            "expectation_id": "检索孤儿单目标客户",
+            "expected_outcome": "将「孤儿单」正确归一化为 orphanType 枚举值并输出可执行条件，使下游能检索到孤儿单客户",
+            "priority": "high",
+            "required_capabilities": [
+              "orphanType 字段枚举归一化",
+              "MATCH 操作符"
+            ],
+            "user_intent": "用户输入「孤儿单」，意图检索孤儿单目标客户群体"
+          }
+        ],
+        "evidence": [
+          {
+            "query": "孤儿单"
+          },
+          {
+            "actual": {
+              "conditions": [
+                {
+                  "field": "orphanType",
+                  "match_mode": null,
+                  "operator": "MATCH",
+                  "value": "纯存续单客户"
+                }
+              ],
+              "query_logic": "AND"
+            }
+          },
+          {
+            "authority_resolve": "孤儿单→在职有效客户；value_mappings 中孤儿单→纯存续单客户为错误别名映射"
+          },
+          {
+            "environment_snapshot_sha256": "af4c3e9d80bc4fcf7bd3c333c42468eda2fff555a3cabb495b1cdb9e149ecfa0",
+            "source": "authority_runtime",
+            "tool_call_ids": [
+              "authority.client_search.2ac992bed87d"
+            ]
+          },
+          {
+            "extra": [],
+            "missing": [],
+            "source": "client_search.condition_compare",
+            "wrong": []
+          }
+        ],
+        "expected": {
+          "code": 0,
+          "conditions": [
+            {
+              "field": "orphanType",
+              "match_mode": null,
+              "operator": "MATCH",
+              "value": "在职有效客户"
+            }
+          ],
+          "msg": "success",
+          "query": "孤儿单",
+          "query_logic": "AND",
+          "rewritten_query": "在职有效客户",
+          "robot_text": "存续客户类型为在职有效客户"
+        },
+        "extra": [],
+        "fulfillment_assessments": [
+          {
+            "actual_evidence": [
+              "actual 输出条件：orphanType MATCH 纯存续单客户",
+              "actual 将「孤儿单」错误归一化为「纯存续单客户」，与权威口径「在职有效客户」不符",
+              "actual 未虚构额外条件，query_logic=AND，操作符 MATCH 正确"
+            ],
+            "authority_tool_call_ids": [
+              "authority.client_search.2ac992bed87d"
+            ],
+            "confidence": 0.97,
+            "downstream_impact": "下游将按「纯存续单客户」检索，返回的是有存续单客户而非孤儿单客户，检索结果与用户意图不符，无法命中目标客户群体",
+            "evidence_refs": [],
+            "expectation_id": "检索孤儿单目标客户",
+            "expected_evidence": [
+              "用户意图「孤儿单」应归一化为 orphanType 枚举值「在职有效客户」",
+              "authority.resolve 结论：字段定义 notes 声明「当前口径：孤儿单=在职有效客户」，示例「孤儿单客户」输出为「在职有效客户」；value_mappings 中「孤儿单→纯存续单客户」为错误别名映射",
+              "expected 条件：orphanType MATCH 在职有效客户，query_logic=AND"
+            ],
+            "score": 0.0,
+            "status": "not_fulfilled"
+          }
+        ],
+        "missing": [],
+        "overall_fulfillment": {
+          "blocking_expectations": [
+            "检索孤儿单目标客户"
+          ],
+          "status": "not_fulfilled"
+        },
+        "project_id": "client_search",
+        "reasoning_summary": "用户输入「孤儿单」，属于 find-target-customers 场景（描述目标客户群体），应输出非空 business_expectations。核心业务目标为检索孤儿单目标客户。orphanType 字段在 capability_manifest 内且可表达（枚举含在职有效客户/纯存续单客户/非纯存续单客户），故该维度属于清单内可支持能力。判断点存在标准冲突：字段定义 notes 声明「孤儿单=在职有效客户」，而 value_mappings 声明「孤儿单→纯存续单客户」，直接证据无法裁决，故调用 authority.resolve。authority 已 resolved：孤儿单应归一化为「在职有效客户」，value_mappings 中「孤儿单→纯存续单客户」为需修正的错误别名映射。actual 输出 orphanType MATCH 纯存续单客户，将孤儿单错误归一化为纯存续单客户，属于职责内错误值交付，未达成核心业务目标，判 not_fulfilled。操作符 MATCH、query_logic AND、未虚构额外条件均正确，但核心值错误导致下游检索结果与用户意图不符。",
+        "summary": {
+          "assessment_count": 1,
+          "blocking_count": 1,
+          "fulfillment_status": "not_fulfilled",
+          "is_formal_attribution": true,
+          "primary_failure_dimensions": [
+            {
+              "blocking": true,
+              "downstream_impact": "下游将按「纯存续单客户」检索，返回的是有存续单客户而非孤儿单客户，检索结果与用户意图不符，无法命中目标客户群体",
+              "evidence": "actual 输出条件：orphanType MATCH 纯存续单客户 | actual 将「孤儿单」错误归一化为「纯存续单客户」，与权威口径「在职有效客户」不符 | actual 未虚构额外条件，query_logic=AND，操作符 MATCH 正确 | 用户意图「孤儿单」应归一化为 orphanType 枚举值「在职有效客户」 | authority.resolve 结论：字段定义 notes 声明「当前口径：孤儿单=在职有效客户」，示例「孤儿单客户」输出为「在职有效客户」；value_mappings 中「孤儿单→纯存续单客户」为错误别名映射 | expected 条件：orphanType MATCH 在职有效客户，query_logic=AND",
+              "expectation_id": "检索孤儿单目标客户",
+              "status": "not_fulfilled"
+            }
+          ],
+          "reason": "not_fulfilled · blocking=[检索孤儿单目标客户] · 用户输入「孤儿单」，属于 find-target-customers 场景（描述目标客户群体），应输出非空 business_expectations。核心业务目标为检索孤儿单目标客户。orphanType 字段在 capability_manifest 内且可表达（枚举含在职有效客户/纯存续单客户/非纯存续单客户），故该维度属于清单内可支持能力。判断点存在标准冲突：字段定义 notes 声明「孤儿单=在职有效客户」，而 value_mappings 声明「孤儿单→纯存续单客户」，直接证据无法裁决，故调用 authority.resolve。authority 已 resolved：孤儿单应归一化为「在职有效客户」，value_mappings 中「孤儿单→纯存续单客户」为需修正的错误别名映射。actual 输出 orphanType MATCH 纯存续单客户，将孤儿单错误归一化为纯存续单客户，属于职责内错误值交付，未达成核心业务目标，判 not_fulfilled。操作符 MATCH、query_logic AND、未虚构额外条件均正确，但核心值错误导致下游检索结果与用户意图不符。",
+          "reason_source": "aggregated_fulfillment"
+        },
+        "trace_id": "client_search:badcase-008:1785239538449",
+        "wrong": [
+          {
+            "actual": {
+              "field": "orphanType",
+              "operator": "MATCH",
+              "value": "纯存续单客户"
+            },
+            "error_type": "wrong_enum_value",
+            "evidence_ref": "authority.client_search.2ac992bed87d",
+            "expected": {
+              "field": "orphanType",
+              "operator": "MATCH",
+              "value": "在职有效客户"
+            },
+            "incomplete": false,
+            "kind": "value",
+            "raw": "用户「孤儿单」被归一化为纯存续单客户，权威口径应为在职有效客户"
+          }
+        ]
+      },
+      "draft_metrics": {
+        "elapsed_seconds": 367.969351
+      },
+      "draft_runtime": {
+        "authority_audit": {
+          "authority.client_search.2ac992bed87d": {
+            "environment_snapshot_sha256": "af4c3e9d80bc4fcf7bd3c333c42468eda2fff555a3cabb495b1cdb9e149ecfa0",
+            "request": {
+              "decision_question": "client_search 客户搜索产品中，字段 orphanType 的业务口径：用户口语词「孤儿单」应归一化为哪个枚举值？当前字段定义 notes 声明「孤儿单=在职有效客户」，而 value_mappings 声明「孤儿单→纯存续单客户」，两份资料冲突，正确的归一化口径以哪个为准？"
+            },
+            "resolution": {
+              "basis_evidence_ref_ids": [
+                "authority-ref-e2dc17b613b09a72",
+                "authority-ref-d125f046d632f817",
+                "authority-ref-3e40692fe7a5ef83",
+                "authority-ref-e0828ed2ffdad875",
+                "authority-case-20dac12c008a74ff",
+                "authority-case-5d2a625316496d00"
+              ],
+              "reason": "字段定义文件（field_definitions_args.yaml，物化单元 authority-ref-e2dc17b613b09a72）是字段语义与意图的权威定义源：其 orphanType 意图 stock_customer_type 的 notes 以「当前口径」明确声明孤儿单=在职有效客户，示例数据给出可直接执行的归一化地面真值（孤儿单客户→在职有效客户、有存续单的客户→纯存续单客户、非纯孤儿单→非纯存续单客户），构成一致的存量客户类型语义体系；而 value_mappings（物化单元 authority-ref-d125f046d632f817）文件头自述「标准枚举值以客户信息表格定义为准」，即别名表的标准值应服从字段定义口径，其 orphanType 段却把「孤儿单」「孤儿单客户」「存续单客户」全部映射为「纯存续单客户」，与字段定义刻意区分的两类（孤儿单=在职有效客户、有存续单=纯存续单客户）相矛盾，属该别名表中的错误条目。字段枚举（authority-ref-3e40692fe7a5ef83）确认「在职有效客户」为 orphanType 合法枚举值，且字段定义检索工具结果（authority-case-20dac12c008a74ff）也定位到同一来源文件，因此在该业务条件下，归一化口径以字段定义 notes/示例为准：孤儿单→在职有效客户。",
+              "required_evidence": [],
+              "statement": "口语词「孤儿单」应归一化为枚举值「在职有效客户」。字段定义（field_definitions_args.yaml）中 orphanType 意图 stock_customer_type 的 notes 显式声明「当前口径：孤儿单=在职有效客户」，且示例「孤儿单客户」的输出正是「在职有效客户」；value_mappings 中「孤儿单→纯存续单客户」与上述业务口径冲突，属于需修正的别名映射错误，不构成正确口径。",
+              "status": "resolved"
+            }
+          }
+        },
+        "authority_tool_call_ids": [
+          "authority.client_search.2ac992bed87d"
+        ],
+        "environment": "ok",
+        "environment_snapshot_sha256": "af4c3e9d80bc4fcf7bd3c333c42468eda2fff555a3cabb495b1cdb9e149ecfa0"
+      }
+    }
+  ],
+  "schema_version": 2,
+  "workers": 1
+}

@@ -1,0 +1,24 @@
+{
+  "affected_subjects": [],
+  "authority_problem": true,
+  "diagnosis": "Authority 调查依赖的业务资料 revision/hash 已变化，当前调查结论和 Claim Index 不能证明仍对应真实资料。",
+  "diagnosis_code": "authority_material_stale",
+  "gate": "AUTHORITY_MATERIAL_FRESHNESS",
+  "harness_prompt": "[Draft Authority Gate Feedback]\n\nOwner stage: investigate\nGate: AUTHORITY_MATERIAL_FRESHNESS\nDiagnosis code: authority_material_stale\n\nDiagnosis:\nAuthority 调查依赖的业务资料 revision/hash 已变化，当前调查结论和 Claim Index 不能证明仍对应真实资料。\n\nAffected subjects:\n- 无\n\nMissing proof:\n- EvidenceRef content hash changed: business-field-definitions; expected=3dedac53cad685e5bf6c391646fb8ead6d820b38d0718863410defa64be8a928, actual=83dd4b5a5d64b09fd3374d23082565b0f816a986b573fe4721d78e8f8bb504d3\n\nImprove by investigating:\n- 重新 Load 发生变化的原始资料并检查 Authority claim、条件和 coverage gap 是否仍成立\n- 完成重查后更新 EvidenceRef revision/hash，并重新生成 Investigation validation receipt\n\nDo not optimize by:\n- 不得修改冻结 Case、expected_status 或 Production Judge 来迎合门禁\n- 不得把 SearchHit 或手工构造的 AuthorityResolution 冒充决定性 Runtime 证据\n\nPass when:\n所有 Authority 决定资料与当前 revision/hash 一致，Claim/Gap 重新校验通过。\n",
+  "improvement_options": [
+    "重新 Load 发生变化的原始资料并检查 Authority claim、条件和 coverage gap 是否仍成立",
+    "完成重查后更新 EvidenceRef revision/hash，并重新生成 Investigation validation receipt"
+  ],
+  "missing_proof": [
+    "EvidenceRef content hash changed: business-field-definitions; expected=3dedac53cad685e5bf6c391646fb8ead6d820b38d0718863410defa64be8a928, actual=83dd4b5a5d64b09fd3374d23082565b0f816a986b573fe4721d78e8f8bb504d3"
+  ],
+  "owner_stage": "investigate",
+  "pass_condition": "所有 Authority 决定资料与当前 revision/hash 一致，Claim/Gap 重新校验通过。",
+  "prohibited_shortcuts": [
+    "不得修改冻结 Case、expected_status 或 Production Judge 来迎合门禁",
+    "不得把 SearchHit 或手工构造的 AuthorityResolution 冒充决定性 Runtime 证据"
+  ],
+  "project_id": "client_search",
+  "role": "judge",
+  "schema_version": 1
+}

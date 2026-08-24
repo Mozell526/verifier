@@ -1,0 +1,156 @@
+{
+  "decision": "regressed",
+  "route": "solidify",
+  "summary": "新 loop 第 1 轮完成 5 条 frozen exposed case。badcase-012 的 Production 侧发生连接错误，因此仅 4 条构成有效配对。Draft 在 badcase-033 保持直接证据 fulfilled，但 badcase-001 仍把无 oracle 的裸短语单向解释为地点并强判 not_fulfilled，漏掉 semantic-mapping-authority；badcase-126 仍把未声明封闭世界的静态百万医疗列表当成完整全集，漏掉 enum-value-authority；badcase-167 对已明确提示不支持的投保日期输出无 Authority ID 的 not_evaluable，并把产品字段判错，整体从 Production fulfilled 退化为 not_evaluable。结构化 Authority candidate 已进入上下文但未进入 frozen plan/Gate，故本轮返回 Solidify。",
+  "criteria": [
+    {
+      "criterion_id": "expectation_support",
+      "status": "fail",
+      "evidence": [
+        "draft/.state/judge/iterations/001-run.json#rows/source-badcase-001/draft/business_expectations",
+        "draft/.state/judge/iterations/001-run.json#rows/source-badcase-167/draft/business_expectations"
+      ],
+      "finding": "badcase-001 的 Planning 在无澄清或 oracle 时仍预设地点语义；badcase-167 的计划未把明确 unsupported 提示作为可接受降级路径。"
+    },
+    {
+      "criterion_id": "atomic_pre_actual_expectations",
+      "status": "pass",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "Draft 结果均保留 judge_plan_audit，业务点在 assessment 前冻结；失败来自点的语义和 Authority 绑定。"
+    },
+    {
+      "criterion_id": "pre_actual_blocking",
+      "status": "pass",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "blocking 由 frozen plan 决定，没有根据 actual 临时改写。"
+    },
+    {
+      "criterion_id": "dimension_coverage",
+      "status": "pass",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "有效 case 均覆盖 search-intent-preservation 或 downstream-query-consumability，没有整维度静默跳过。"
+    },
+    {
+      "criterion_id": "fulfilled_external_evidence",
+      "status": "fail",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows/source-badcase-126/draft"],
+      "finding": "badcase-126 的 fulfilled 依赖静态配置完整覆盖真实下游百万医疗合法值全集，但没有封闭世界规则、受治理导出或下游观测。"
+    },
+    {
+      "criterion_id": "not_fulfilled_live_boundary",
+      "status": "fail",
+      "evidence": [
+        "draft/.state/judge/iterations/001-run.json#rows/source-badcase-001/draft",
+        "draft/.state/judge/iterations/001-run.json#rows/source-badcase-167/draft"
+      ],
+      "finding": "badcase-001 的 not_fulfilled 建立在未裁决的地点解释上；badcase-167 把产品字段判错且没有正确应用已明确的 unsupported 边界。"
+    },
+    {
+      "criterion_id": "not_evaluable_evidence_gap",
+      "status": "fail",
+      "evidence": [
+        "draft/.state/judge/iterations/001-run.json#rows/source-badcase-001/draft",
+        "draft/.state/judge/iterations/001-run.json#rows/source-badcase-126/draft",
+        "draft/.state/judge/iterations/001-run.json#rows/source-badcase-167/draft"
+      ],
+      "finding": "001 和 126 的真正 Authority 缺口被强判；167 则在没有 authority_analysis_ids 的情况下输出 not_evaluable，三态与 Gate 不一致。"
+    },
+    {
+      "criterion_id": "missing_output_no_escape",
+      "status": "pass",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows/source-badcase-167/draft"],
+      "finding": "Draft 显式评估了缺失的投保日期条件，没有通过省略业务点逃避判断；问题是边界结论和 Authority 协议。"
+    },
+    {
+      "criterion_id": "external_constraint_non_attribution",
+      "status": "fail",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows/source-badcase-167/draft/reasoning_summary"],
+      "finding": "actual 已说明投保日期暂不支持搜索并保留姓名与产品条件，Draft 仍把时间点输出为无 Authority 的 not_evaluable，没有按项目标准接受该边界降级。"
+    },
+    {
+      "criterion_id": "authority_anchor_scope",
+      "status": "fail",
+      "evidence": [
+        "draft/.state/judge/iterations/001-run.json#rows/source-badcase-001/draft",
+        "draft/.state/judge/iterations/001-run.json#rows/source-badcase-126/draft"
+      ],
+      "finding": "Planning/Assessment 上下文虽暴露 Authority candidate，但 frozen point 的 authority_analysis_ids 仍为空，001 与 126 均未进入对应 Gate。"
+    },
+    {
+      "criterion_id": "authority_unresolved_conservatism",
+      "status": "fail",
+      "evidence": [
+        "draft/.state/judge/iterations/001-run.json#rows/source-badcase-001/draft",
+        "draft/.state/judge/iterations/001-run.json#rows/source-badcase-126/draft"
+      ],
+      "finding": "未解决 Authority 没有绑定到 frozen plan，确定性保守约束无法生效，模型继续给出强结论。"
+    },
+    {
+      "criterion_id": "no_runtime_authority_investigation",
+      "status": "pass",
+      "evidence": [
+        "draft/.state/judge/solidify.json",
+        "draft/.state/judge/iterations/001-run.json#rows"
+      ],
+      "finding": "运行时只消费 Solidify 注册的 Authority catalog，没有重新调查权威来源；缺陷是候选未绑定到 frozen plan。"
+    },
+    {
+      "criterion_id": "no_internal_or_unseen_leakage",
+      "status": "pass",
+      "evidence": [
+        "draft/probes/judge-badcase-cases.json",
+        "draft/.state/judge/iterations/001-run.json#frozen_cases_sha256"
+      ],
+      "finding": "Current 与 Draft 使用同一 frozen trace；人工 expected_business_outcome 未进入 Judge 请求，promotion-only 数据未打开。"
+    },
+    {
+      "criterion_id": "relative_improvement_no_regression",
+      "status": "fail",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "4 条有效配对中，001 和 126 未修复 Authority 漏激活，167 从 Production fulfilled 退化为 Draft not_evaluable；不能证明相对改进且无退化。"
+    }
+  ],
+  "contract_coverage": [
+    {
+      "source_id": "authority:enum-value-authority",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows/source-badcase-126/draft"]
+    },
+    {
+      "source_id": "authority:evaluation-boundary-authority",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows/source-badcase-167"]
+    },
+    {
+      "source_id": "authority:query-form-equivalence-authority",
+      "evidence": [
+        "draft/.state/judge/iterations/001-run.json#rows/source-badcase-012",
+        "draft/.state/judge/iterations/001-run.json#rows/source-badcase-033"
+      ]
+    },
+    {
+      "source_id": "authority:semantic-mapping-authority",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows/source-badcase-001/draft"]
+    },
+    {
+      "source_id": "dimension:downstream-query-consumability",
+      "evidence": [
+        "draft/.state/judge/iterations/001-run.json#rows/source-badcase-126",
+        "draft/.state/judge/iterations/001-run.json#rows/source-badcase-167"
+      ]
+    },
+    {
+      "source_id": "dimension:search-intent-preservation",
+      "evidence": [
+        "draft/.state/judge/iterations/001-run.json#rows/source-badcase-001",
+        "draft/.state/judge/iterations/001-run.json#rows/source-badcase-033"
+      ]
+    },
+    {
+      "source_id": "expectation:find-target-customers",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"]
+    },
+    {
+      "source_id": "live_boundary",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows/source-badcase-167/draft/reasoning_summary"]
+    }
+  ]
+}

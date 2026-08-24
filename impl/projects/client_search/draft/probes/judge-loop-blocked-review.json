@@ -1,0 +1,128 @@
+{
+  "decision": "blocked",
+  "route": "blocked",
+  "summary": "Investigate、Solidify、80 项定向回归与 unseen 离线协议验证均已通过；最新单 case Draft Loop 中 Current 产生有效判断，但 Draft assessment 因外部 LLM insufficient_quota 未产生有效 JudgeResult，不能比较三态、Authority 依赖精确度或 Draft 是否改善。本轮保留为外部额度阻塞，不得 promotion。",
+  "criteria": [
+    {
+      "criterion_id": "expectation_support",
+      "status": "not_evaluable",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "Draft assessment 因 insufficient_quota 未生成有效 JudgeResult；Current 单侧结果不能证明 Draft expectation 支撑。"
+    },
+    {
+      "criterion_id": "atomic_pre_actual_expectations",
+      "status": "not_evaluable",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "Draft 没有可审查的完整 planning/assessment 输出。"
+    },
+    {
+      "criterion_id": "pre_actual_blocking",
+      "status": "not_evaluable",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "Draft 没有可审查的完整 planning/assessment 输出。"
+    },
+    {
+      "criterion_id": "dimension_coverage",
+      "status": "not_evaluable",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "Draft 没有可审查的有效 assessment。"
+    },
+    {
+      "criterion_id": "fulfilled_external_evidence",
+      "status": "not_evaluable",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "Draft 没有可审查的有效 assessment。"
+    },
+    {
+      "criterion_id": "not_fulfilled_live_boundary",
+      "status": "not_evaluable",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "Draft 没有可审查的有效 assessment。"
+    },
+    {
+      "criterion_id": "not_evaluable_evidence_gap",
+      "status": "not_evaluable",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "Draft not_evaluable 来自外部 LLM insufficient_quota，不是 Authority Gate 业务结果。"
+    },
+    {
+      "criterion_id": "missing_output_no_escape",
+      "status": "not_evaluable",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "Draft 没有可审查的有效 assessment。"
+    },
+    {
+      "criterion_id": "external_constraint_non_attribution",
+      "status": "not_evaluable",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "Draft 没有可审查的有效 assessment。"
+    },
+    {
+      "criterion_id": "authority_anchor_scope",
+      "status": "not_evaluable",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "Draft 没有完成 assessment，无法审查 actual 可见后的 Authority 依赖选择。"
+    },
+    {
+      "criterion_id": "authority_unresolved_conservatism",
+      "status": "not_evaluable",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "Draft 没有可审查的 Authority Gate 业务输出。"
+    },
+    {
+      "criterion_id": "no_runtime_authority_investigation",
+      "status": "pass",
+      "evidence": [
+        "draft/.state/judge/solidify.json",
+        "draft/probes/authority-gate-observables.json"
+      ],
+      "finding": "Solidify receipt 显式编译 unresolved Gate；本轮未发生运行时重新调查。"
+    },
+    {
+      "criterion_id": "no_internal_or_unseen_leakage",
+      "status": "not_evaluable",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "冻结输入未向 Judge 传入人工 annotation，但 Draft 没有完整输出，无法完成泄漏审查。"
+    },
+    {
+      "criterion_id": "relative_improvement_no_regression",
+      "status": "not_evaluable",
+      "evidence": ["draft/.state/judge/iterations/001-run.json#rows"],
+      "finding": "Current 有效、Draft 因 insufficient_quota 失败，不能形成有效 Current/Draft 比较。"
+    }
+  ],
+  "contract_coverage": [
+    {
+      "source_id": "authority:enum-value-authority",
+      "evidence": ["draft/.state/judge/solidify.json"]
+    },
+    {
+      "source_id": "authority:evaluation-boundary-authority",
+      "evidence": ["draft/.state/judge/solidify.json"]
+    },
+    {
+      "source_id": "authority:query-form-equivalence-authority",
+      "evidence": ["draft/.state/judge/solidify.json"]
+    },
+    {
+      "source_id": "authority:semantic-mapping-authority",
+      "evidence": ["draft/.state/judge/solidify.json"]
+    },
+    {
+      "source_id": "dimension:downstream-query-consumability",
+      "evidence": ["draft/.state/judge/solidify.json"]
+    },
+    {
+      "source_id": "dimension:search-intent-preservation",
+      "evidence": ["draft/.state/judge/solidify.json"]
+    },
+    {
+      "source_id": "expectation:find-target-customers",
+      "evidence": ["draft/.state/judge/solidify.json"]
+    },
+    {
+      "source_id": "live_boundary",
+      "evidence": ["draft/.state/judge/solidify.json"]
+    }
+  ]
+}

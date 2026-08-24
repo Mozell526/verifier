@@ -1,0 +1,18 @@
+Done. I read all four issue files, the charter/learning, the trace extract, the oracles (`fulfilled.md`, `material-positioning.md`), the canvas, and the cited prompt lines — then independently sourced the claims the verifier flagged as "未消元" before judging. One Architect Response appended to each file (append-only, originals intact, spawn-id `5f7ddad9f3a27ddc` in each).
+
+## Verdicts (all four: **real-problem**)
+
+| Issue | Root cause confirmed | Key independent evidence I added |
+|---|---|---|
+| **006** bare-name rule self-contradiction | Same prompt rule used in opposite directions: I485/I539 (extracted name struck for missing catalog evidence) vs I288/I616 (nothing extracted but extraction demanded) | Verified all prompt clauses at stated lines; traced `searchClientName` note "无法确认是自然人人名时宁可不输出" to history-052, where the `姓名-模糊匹配 {1,3}` rule is itself called "低优先级/过度捕获" — decisive against I288 |
+| **007** I046 NF vs I161 F, same `is_supported=false` pattern | Blocking label for "去年" is model-chosen with no gate; identical live pattern judged opposite | Confirmed the blocking flip in both Judge JSONs; noted the old judge actually treated the date as non-blocking (F) in I046, so the new NF is a double drift; under the canvas's own decision rule I046 would flip |
+| **008** no space-gate on expectation split (I263) | New judge made an inexpressible common-sense dim (relative age) blocking; its own `expected.conditions` omit it | Read the raw context_store JSON for I263 (trace is faithful); confirmed `project.yaml` has only **absolute** age/birthday — zero relative-age capability anywhere; backed the verifier's correction of the canvas |
+| **009** "explicit object + empty conditions = NF" overrides legitimate refusal (I034) | New judge demanded `polNo MATCH P07000000` (9 chars, far below the 16–18 format) **without ever loading the format** | Verified the evidence asymmetry (new loaded only `operators=[MATCH]`, old cited the format) and the length math |
+
+## Where I pushed back rather than rubber-stamped
+- **Issue-009 material refinement:** the verifier's "合法拒识可以是 F" collides with `fulfilled §7.1/§5/D3` ("如实拒绝 ≠ 办成"). The old judge's F — which the canvas labels "旧更好" — is itself an instance of the forbidden refuse-as-F pattern. So the correct target is *not* "restore old F"; it is "don't force NF for out-of-space values," landing on NE (输入坏, still allowed under §3.1) or non-blocking — with an explicit prohibition on reverting to refuse=F.
+- Stress-tested each issue for a `reasonable-design` defense; none survived (the contradictions are internal to one prompt run, not constraint-driven tradeoffs).
+
+Each Improvement Proposal is concrete (specific `judge.py` line ranges and edits + re-run verification sets) but explicitly notes it is a recommendation only: this run is review/analysis-only, the charter red-lines modifying `judge.py`, and charter §4 reserves the direction calls (形态撑 F? 「去年」blocking?) to the user.
+
+Note on spawn evidence: I reported `pid: unknown` — as an in-process peer I cannot reliably observe my own process id; the `spawn-id` is the matching element.

@@ -222,6 +222,7 @@ def normalize_trace_table_row(value: Any) -> Optional[TraceTableRow]:
         output_source=str(data.get("output_source") or ""),
         score=data.get("score"),
         fulfillment_status=_normalize_fulfillment_status(data.get("fulfillment_status")),
+        carrier_placement=str(data.get("carrier_placement") or ""),
         judge_summary=data.get("judge_summary") if isinstance(data.get("judge_summary"), dict) else {},
         attribution_summary=data.get("attribution_summary") if isinstance(data.get("attribution_summary"), dict) else {},
         check_summary=data.get("check_summary") if isinstance(data.get("check_summary"), dict) else {},
@@ -440,6 +441,11 @@ def normalize_fulfillment_assessment(value: Any) -> Optional[FulfillmentAssessme
         downstream_impact=str(data.get("downstream_impact") or ""),
         confidence=data.get("confidence"),
         evidence_refs=_as_list(data.get("evidence_refs")),
+        authority_tool_call_ids=[
+            str(item)
+            for item in _as_list(data.get("authority_tool_call_ids"))
+            if str(item).strip()
+        ],
     )
 
 

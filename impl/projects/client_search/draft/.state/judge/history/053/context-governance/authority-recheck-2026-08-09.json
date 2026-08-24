@@ -1,0 +1,542 @@
+{
+  "schema_version": 1,
+  "review_id": "authority-recheck-2026-08-09",
+  "project_id": "client_search",
+  "role": "judge",
+  "stage": "draft",
+  "status": "open",
+  "objective": "Re-check authority-related implementations against AGENTS.md (no compat layer/fallback/dead code/self-invented wheels) and re-verify the open CG-ENG-003 record: whether any real governed Authority record exists.",
+  "scope": {
+    "source_components": [
+      "impl/core/authority_environment.py",
+      "impl/core/authority_tool.py",
+      "impl/core/authority_gate.py",
+      "impl/core/authority_key_index.py",
+      "impl/core/authority_investigation_gates.py",
+      "impl/core/schema/authority.py",
+      "impl/core/context_governance.py",
+      "impl/core/structured_output.py"
+    ],
+    "evidence_records": {
+      "authority_resolve": "latest=authority-2026-08-08T07:18:36Z-de84106d-ad1.json (no governance metadata)",
+      "governed_records": 0,
+      "note": "Re-audited 2026-08-09: no ContextRecord in the store carries governance metadata (authority, authority-claim-compare, judge all historical)."
+    }
+  },
+  "findings": [
+    {
+      "finding_id": "CG-ENG-003",
+      "status": "open",
+      "severity": "low",
+      "problem": "No real governed Authority record exists; closed CG-AUTH-001..005 findings rest on unit-test and code-inspection evidence only.",
+      "evidence": [
+        {
+          "detail": "impl.context audit --project client_search --trace authority-resolve --caller authority on latest record de84106d returns only historical_provenance_unavailable diagnostic; mode=production, non-blocking.",
+          "kind": "context_store_aggregate"
+        },
+        {
+          "detail": "Full store scan on 2026-08-09: 0 ContextRecords with governance metadata; latest authority/claim-compare/judge records all predate governance wiring.",
+          "kind": "context_store_aggregate"
+        }
+      ],
+      "impact": "Record-verified closure of the lineage/governance fixes still pending a real governed Draft run.",
+      "owner": {
+        "primary": "draft_loop",
+        "secondary": [
+          "context_store"
+        ]
+      },
+      "remediation": "Rerun a governed representative Draft case and confirm the stored Authority records carry originating trace/case/call lineage plus governance metadata.",
+      "blocked_stage": "draft_loop_and_promotion"
+    },
+    {
+      "finding_id": "AUTH-R16-001",
+      "status": "closed",
+      "severity": "low",
+      "problem": "Latent loop-variable closure capture (B023 class) in authority_key_index.py validate_target and context_governance.py instruction_clause/mentions. Both are invoked synchronously inside the same loop iteration today, so no runtime bug, but the closures capture the loop variable by reference and any future deferred invocation would silently see the last iteration.",
+      "evidence": [
+        {
+          "detail": "impl/core/authority_key_index.py:288-291 validate_target references index.collection_ref/index.index_key; InvestigationKeyIndexRegistry.register invokes target_validator synchronously and does not store it.",
+          "kind": "source",
+          "lines": "282-306",
+          "path": {
+            "location": "impl/core/authority_key_index.py",
+            "location_scope": "verifier_repo"
+          }
+        },
+        {
+          "detail": "impl/core/context_governance.py:433-445 instruction_clause/mentions capture line; called at 448/468 within the same iteration.",
+          "kind": "source",
+          "lines": "426-482",
+          "path": {
+            "location": "impl/core/context_governance.py",
+            "location_scope": "verifier_repo"
+          }
+        }
+      ],
+      "impact": "No current behavior change; defensive fix removes a future footgun without touching persisted hashes or behavior.",
+      "owner": {
+        "primary": "core_authority_compiler",
+        "secondary": [
+          "core_compiler"
+        ]
+      },
+      "remediation": "Bind the loop variable via a default argument (def validate_target(target_ref, _index=index): / def instruction_clause(marker, _line=line):) or extract a small helper taking the value as a parameter.",
+      "blocked_stage": null,
+      "verification_evidence": [
+        "impl/core/authority_key_index.py: loop-defined validate_target binds the loop variable via default argument (_index=index); no loop-variable closure capture remains.",
+        "impl/core/context_governance.py: instruction_clause binds the loop line via default argument (_line=line); no loop-variable closure capture remains.",
+        "Behavior unchanged: both are still invoked synchronously inside the same iteration; tests test_authority_runtime/test_investigation_key_index/test_context_governance pass."
+      ]
+    },
+    {
+      "finding_id": "AUTH-R16-002",
+      "status": "closed",
+      "severity": "low",
+      "problem": "Duplicated stable-hash helpers across core with subtly different serialization: authority_environment._sha256 (default separators with spaces, default=str), authority_investigation_gates._stable_hash / investigation_validation._stable_hash (compact separators, no default=str), context_governance._stable_sha256 (compact separators, default=str). Identical behavior for JSON-serializable inputs except authority_environment variant differs byte-wise.",
+      "evidence": [
+        {
+          "detail": "impl/core/authority_environment.py:216, impl/core/authority_investigation_gates.py:42, impl/core/investigation_validation.py:193, impl/core/context_governance.py:57-66.",
+          "kind": "source",
+          "lines": "216-222",
+          "path": {
+            "location": "impl/core/authority_environment.py",
+            "location_scope": "verifier_repo"
+          }
+        }
+      ],
+      "impact": "Standardization debt only; blanket unification is NOT safe because changing serialization changes persisted sha256 values in manifests/claims (would break frozen evidence). Only the byte-identical variants can be safely routed to one shared helper.",
+      "owner": {
+        "primary": "core_shared",
+        "secondary": []
+      },
+      "remediation": "Optional: move the compact-separators variant into one shared helper (e.g. source_staleness) and import from there; leave authority_environment._sha256 byte-identical or document why it differs.",
+      "blocked_stage": null,
+      "verification_evidence": [
+        "impl/core/hashing.py: single stable_sha256 (compact separators + sort_keys + default=str) is the shared canonical helper.",
+        "impl/core/context_governance.py: local _stable_sha256 removed, call sites use stable_sha256; impl/core/authority_investigation_gates.py and impl/core/investigation_validation.py: local _stable_hash removed, call sites use stable_sha256; hashlib imports dropped where unused.",
+        "Byte-identical for JSON-serializable inputs (same compact serialization); persisted manifest/tool-inputs/claims hashes remain valid; authority_environment._sha256 (default separators, persisted snapshot) intentionally untouched.",
+        "tests: test_context_governance/test_authority_investigation_gates/test_investigation_protocol (except known source_revision drift)/test_solidify_receipt/test_investigation_key_index 80 passed; authority runtime/tool/gate/enforcement/investigation_key_index/draft_gate_feedback/judge_blocking 105 passed.",
+        "ruff clean on all touched files."
+      ]
+    },
+    {
+      "finding_id": "AUTH-R16-003",
+      "status": "closed",
+      "severity": "low",
+      "problem": "Governance scanner lacks an explicit check that the rendered LLM output contract has at least one property (CG-ENG-001 secondary suggestion). Root cause is fixed (structured_output now fails loudly), so this is defense-in-depth only.",
+      "evidence": [
+        {
+          "detail": "impl/core/context_governance.py scanner checks output_contract_count / schema_duplicate_injection / manual_field_list_duplicate, but no check on output_contract.field_names being empty.",
+          "kind": "source",
+          "lines": "245-422",
+          "path": {
+            "location": "impl/core/context_governance.py",
+            "location_scope": "verifier_repo"
+          }
+        }
+      ],
+      "impact": "A degenerate zero-field output contract would not be flagged; harmless today because the compiler raises before rendering.",
+      "owner": {
+        "primary": "context_governance_scanner",
+        "secondary": []
+      },
+      "remediation": "Optional: in scan phase, emit a blocking finding when an LLM output stage snapshot has output_contract.field_names == [].",
+      "blocked_stage": null,
+      "verification_evidence": [
+        "impl/core/context_governance.py scan_compiled_context: registered output contract with zero field names now emits blocking finding output_contract_empty (fail-closed); historical record path intentionally not extended (field_names=[] there means unknown contract, already fail-closed via output_contract_count marker check).",
+        "tests: test_context_governance + test_client_search_context_governance pass (no existing governed compile uses an empty contract)."
+      ]
+    },
+    {
+      "finding_id": "DRAFT-R16-004",
+      "status": "open",
+      "severity": "low",
+      "problem": "Staleness large-material gate has two open items (abbrname_enums 176183 chars, claimplancodename_enums 176200 chars): declared business sources without a registered key-index/positional consumption channel in the manifest. They are not in manifest evidence_refs, so they are draft/investigation-layer TODOs (P4 class), not Authority context defects.",
+      "evidence": [
+        {
+          "detail": "staleness-audit-2026-08-09.json large_material_gate findings status=open; manifest evidence_refs do not include them.",
+          "kind": "context_store_aggregate"
+        }
+      ],
+      "impact": "If these enum sources become authority-relevant later, they would need a consumption channel; no current Authority behavior impact.",
+      "owner": {
+        "primary": "draft_investigation",
+        "secondary": [
+          "source_staleness"
+        ]
+      },
+      "remediation": "Register a positional/key-index consumption channel in the manifest (same class as planfullname) when these enums are investigated.",
+      "blocked_stage": null
+    },
+    {
+      "finding_id": "AUTH-R17-001",
+      "status": "closed",
+      "severity": "medium",
+      "problem": "Authority 证据空间包含调用角色的 live role assets（角色/阶段泄漏 + 同一文件双重注册）。build_authority_environment 把 role_asset_context_records(role=judge) 全部注册进 Authority 搜索空间：judge_evaluation(evaluation.md)、judge_standard(judge.md)、judge_boundary(judge_boundary_protocals.md)、judge_business_contract 及 8 个 investigation 包文件。其中 3 个与 investigation manifest 已冻结的 evidence refs（project-evaluation-contract/current-judge-standard/project-judge-boundary）指向同一文件：同一内容以冻结单元（带 sha256 钉定）与 live 单元（无钉定、漂移无保护）双重注册。",
+      "evidence": [
+        {
+          "detail": "authority search_context_units(['evaluation']) 实测返回 judge_evaluation: evaluation.md（C8）与 Evidence project-evaluation-contract（C4，同一文件两个候选）；load C8 返回 evaluation.md 全文（含『标准答案只能作为参考』）。",
+          "kind": "reproduction"
+        },
+        {
+          "detail": "impl/core/authority_environment.py:1198-1205 注册 role_asset_context_records；1208+ manifest 物化再注册同源文件。",
+          "kind": "source",
+          "lines": "1198-1208",
+          "path": {
+            "location": "impl/core/authority_environment.py",
+            "location_scope": "verifier_repo"
+          }
+        },
+        {
+          "detail": "spec/alg/authority.md §4.2：证据空间 = 当前 Judge Investigation manifest 物化的 ContextUnit + 本次已登记 Tool 物化结果；role assets 二者皆非。",
+          "kind": "spec"
+        }
+      ],
+      "impact": "Authority 子模型可 search/load judge 评估标准与 live judge 协议（expected-output 偏置通道，违背『不做当前输出对不对的判断』）；同一内容重复候选浪费上下文；live 单元绕过 manifest sha256 冻结保护；context_unit_count 虚增（365 含 12 个非证据单元）。",
+      "owner": {
+        "primary": "core_authority_compiler",
+        "secondary": [
+          "core_compiler"
+        ]
+      },
+      "remediation": "build_authority_environment 不再把 role assets 注册进 Authority runtime（manifest 物化已覆盖被冻结的 judge standard/evaluation/boundary；claims/report/overview 走文件直读与 key-index，不经 context 搜索）；同步调整 snapshot 指纹（删除 asset 相关指纹计算，保留 manifest+工具指纹）。",
+      "blocked_stage": null,
+      "verification_evidence": [
+        "impl/core/authority_environment.py: build_authority_environment no longer registers role_asset_context_records into the Authority runtime; manifest materialization is the only evidence source.",
+        "impl/core/authority_environment.py: _invalidate_stale_evidence_refs extended to evidence-space level (investigation_manifest/role_asset/runtime_tool) so old code-registered role assets and stale tool results are deterministically set inactive at env build.",
+        "Re-run: role assets judge_evaluation/judge_standard/judge_boundary status=inactive; search('evaluation') returns only frozen manifest unit project-evaluation-contract; context_unit_count 365->353; value retrieval (在职有效客户->value-mappings) intact.",
+        "tests: test_authority_runtime/tool/gate/investigation_gates/key_index/enhanced_rules 82 passed; judge consumption 43 passed (1 known business-field-enums drift failure unrelated).",
+        "ruff clean on authority_environment.py."
+      ]
+    },
+    {
+      "finding_id": "AUTH-R17-002",
+      "status": "closed",
+      "severity": "low-medium",
+      "problem": "context_coverage.has_candidate 恒为 True：构建期 build_material_decision_key_index_registry 预解析 material-decisions load_targets 时经 run.selection_refs_for_context_units 把 6 个来源单元计入 _debug['candidate_ids']（导航寻址被计入搜索候选）。prompt 中 ungoverned 的信号条件（has_candidate 与 has_loaded 均 false）在真实运行时不可达。",
+      "evidence": [
+        {
+          "detail": "fresh env debug_snapshot candidate_ids=6 authority-ref-*（无任何 search/load）；根因调用栈 build_authority_environment->create_authority_navigation_tools->build_material_decision_key_index_registry->_resolve_load_targets->load_target_resolver->selection_refs_for_context_units。",
+          "kind": "reproduction"
+        },
+        {
+          "detail": "impl/core/context/runtime.py selection_refs_for_context_units（导航寻址）与 search_context_units（真实搜索）共用 _debug['candidate_ids']。",
+          "kind": "source"
+        }
+      ],
+      "impact": "CG-ENG-007 ungoverned/gap_only 可审计信号失真：无检索/加载时 has_candidate 仍 true，分类只能靠模型语义，信号退化为 has_loaded 单因子。",
+      "owner": {
+        "primary": "core_authority_compiler",
+        "secondary": [
+          "context_governance_scanner"
+        ]
+      },
+      "remediation": "selection_refs_for_context_units 不再把导航寻址单元计入 _debug['candidate_ids']（candidate_ids 只记录真实 search_context_units 结果）。",
+      "blocked_stage": null,
+      "verification_evidence": [
+        "impl/core/context/runtime.py: selection_refs_for_context_units 不再把导航寻址单元计入 _debug['candidate_ids']；candidate_ids 只记录真实 search_context_units 命中。",
+        "验证：fresh env 无任何 search/load 时 candidate_ids=[]，coverage={'searched': False, 'candidate_count': 0, 'has_candidate': False, 'has_loaded': False}（此前恒为 6/True）。",
+        "tests/test_context_runtime.py::test_navigation_refs_do_not_pollute_search_candidates 新增。"
+      ]
+    },
+    {
+      "finding_id": "AUTH-R17-003",
+      "status": "closed",
+      "severity": "low",
+      "problem": "ungoverned/gap_only 专属缺料文案是死代码：_normalize_independent_resolution 在 unresolved 时兜底补默认 required_evidence，使 resolve_authority claim 分支 if not required: 恒不执行。",
+      "evidence": [
+        {
+          "detail": "resolve_authority claim 分支 ungoverned/gap_only 的 if not required 分支与 _normalize_independent_resolution 的默认补丁冲突；实测 ungoverned/gap_only 均返回通用文案。",
+          "kind": "reproduction"
+        }
+      ],
+      "impact": "ungoverned（无管辖资料）与 gap_only（有管辖但不足）的缺料清单语义未区分，文案仍非空合理，非阻断。",
+      "owner": {
+        "primary": "core_authority_compiler",
+        "secondary": []
+      },
+      "remediation": "删除死分支并保留 normalize 默认，或按 comparison.status 覆盖分类文案。",
+      "blocked_stage": null,
+      "verification_evidence": [
+        "impl/core/authority_environment.py: resolve_authority claim 分支删除 if not required: 死代码；ungoverned/gap_only 仅清空 statement，required_evidence 继承 _normalize_independent_resolution 兜底默认。"
+      ]
+    },
+    {
+      "finding_id": "AUTH-R17-004",
+      "status": "closed",
+      "severity": "medium",
+      "problem": "Core 后处理 gate 只按 resolution.status=='unresolved' 强制降级；claim 担保模式返回的 ungoverned/gap_only（spec/grill/authority.md §2.2『必须强制降 not_evaluable』）与 contradicted（§4.2-2『肯定性 verdict 不得成立 + needs_human_review』）均不被 gate 兜底消费。Judge LLM 失误（拿到 gap_only 仍输出 fulfilled）时过度自信结论直接放行。",
+      "evidence": [
+        {
+          "detail": "实测：apply_authority_gate 对 audit 中 resolution.status=gap_only/ungoverned/contradicted + assessment=fulfilled 均保持 fulfilled、零 marker；仅 unresolved 降 not_evaluable。",
+          "kind": "reproduction"
+        },
+        {
+          "detail": "spec/grill/authority.md §2.2：ungoverned 与 gap_only 都必须强制把依赖该断言的 assessment 降为 not_evaluable（与主协议 §8.4 对 unresolved 的硬校验同口径）。",
+          "kind": "spec"
+        },
+        {
+          "detail": "spec/grill/authority.md §4.2-2：contradicted → 依赖它的肯定性 verdict 不得成立；assessment 标 needs_human_review。",
+          "kind": "spec"
+        },
+        {
+          "detail": "实测矩阵：draft vs production 9/9 PASS 中 S2 的 NE 来自 mock judge LLM 自行消费，非 gate 兜底（claim 模式 marker 缺失）。",
+          "kind": "reproduction"
+        }
+      ],
+      "impact": "claim 模式是标准断言担保的主通道（judge prompt 明确『若判决需要自己提出规范性断言，使用 claim 参数』）；gate 漏掉该通道的 unresolved 类，使『真查证过仍不足 → not_evaluable』的硬校验只对提问模式生效，风险评估：过度自信 verdict 穿透。",
+      "owner": {
+        "primary": "core_authority_compiler",
+        "secondary": [
+          "core_judge_reconcile"
+        ]
+      },
+      "remediation": "apply_authority_gate 的 status 判定扩展为 unresolved 类：{'unresolved','ungoverned','gap_only'} → 强制 not_evaluable + 挂 authority_unresolved 证据（gap_only 额外带 required_evidence）；{'contradicted'} → 肯定性（fulfilled）verdict 不得成立，标 needs_human_review；supported/resolved 不覆盖。对齐 spec/grill/authority.md §2.2/§4.2。",
+      "blocked_stage": null,
+      "verification_evidence": [
+        "impl/core/authority_gate.py: 新增 _UNRESOLVED_RESOLUTION_STATUSES={unresolved,ungoverned,gap_only}，unresolved 类强制 not_evaluable + authority_unresolved（含 resolution_status）；contradicted+fulfilled → not_evaluable + authority_contradicted + needs_human_review；否定性 verdict 不受罚。",
+        "验证：gate 单测六值全符合 spec（resolved/supported 不覆盖；unresolved/ungoverned/gap_only→NE；contradicted+fulfilled→NE+人审；contradicted+not_fulfilled→保持）。",
+        "端到端：023 judge 误判 fulfilled 引用 gap_only resolution → gate 兜底 not_evaluable + authority_unresolved(resolution_status=gap_only)。",
+        "tests/test_authority_gate.py::test_claim_mode_* 新增 4 项。"
+      ]
+    },
+    {
+      "finding_id": "AUTH-R18-001",
+      "status": "closed",
+      "severity": "medium",
+      "problem": "not_evaluable 成因标记机制断裂：authority_gate 的 _classify_not_evaluable_cause 只认 judge 显式输出的「结论类型：」标记，但 judge 的 prompt/输出契约从未要求输出该标记 → judge 判的每个 not_evaluable 都落入 not_evaluable_cause_missing + needs_human_review。authority 参与判定的 case（gap_only/ungoverned/contradicted 已消费）全部被挂人审，无 governed 记录（与 spec/alg/authority.md §8.4『有 authority_tool_call_ids 不标人审』相悖）。",
+      "evidence": [
+        {
+          "kind": "reproduction",
+          "detail": "039 run：case[4](023)/case[17](088)/case[26](133) 的 not_evaluable assessment 均被追加 not_evaluable_cause_missing + needs_human_review；judge prompt（draft/judge.py system_extras + judge.md）无「结论类型：」输出要求。"
+        },
+        {
+          "kind": "spec",
+          "detail": "spec/alg/authority.md §8.4：assessment not_evaluable 且成因=职责外/依据不充分 且 authority_tool_call_ids 为空 → 才标 needs_human_review；有真实查证记录不静默放行、也不要求复述标记。"
+        }
+      ],
+      "impact": "authority 参与判定的 not_evaluable 全部需人工复核，draft 判定不可自动消费；CG-ENG-003『无 governed Authority record』的直接机制成因。",
+      "owner": "core",
+      "remediation": "gate 对已消费的 authority resolution（unresolved/ungoverned/gap_only/contradicted/tool_failure）从审计确定性派生 not_evaluable 成因，不要求 judge 复述「结论类型：」标记；resolved/supported 而 judge 仍 not_evaluable → 保持人审（消费决定，无法派生）。",
+      "blocked_stage": "",
+      "verification_evidence": [
+        "tests/test_authority_gate.py::test_ne_with_unresolved_authority_record_derives_cause / test_ne_with_supported_authority_record_keeps_human_review",
+        "/tmp/verify_effect_fixes.py 场景1：gap_only + judge not_evaluable → 仅 authority_unresolved，无人审标记"
+      ]
+    },
+    {
+      "finding_id": "AUTH-R18-002",
+      "status": "closed",
+      "severity": "medium",
+      "problem": "authority supported（能力边界确定性裁决）被 _apply_explicit_unsupported_boundary_gate 机械翻转为 not_evaluable：judge 已现场咨询 authority 并消费 supported 裁决判 not_fulfilled，gate 仍按『字段 is_supported=false 只证明可识别、可执行性未确认』的保守语义翻转 → authority 的确定性裁决被降级成『无法判断』，与同类别 case[22](inlive_boundary→not_fulfilled) 消费不一致。",
+      "evidence": [
+        {
+          "kind": "reproduction",
+          "detail": "039 run：case[17](088 customerReview supported→not_evaluable) vs case[22](113 公司名称 inlive_boundary→not_fulfilled)：同一『产品不支持该搜索』语义，消费结果不一致。"
+        },
+        {
+          "kind": "code",
+          "detail": "judge.py _apply_explicit_unsupported_boundary_gate 无条件把 blocking not_fulfilled 翻转 not_evaluable，未区分是否已消费 authority 确定性裁决。"
+        }
+      ],
+      "impact": "authority 已裁决的能力边界被 gate 扭曲，draft 对 production 的判定退化为 not_evaluable，authority 效果被浪费。",
+      "owner": "client_search judge",
+      "remediation": "blocking assessment 存在 authority_tool_call_ids（已现场咨询）时，explicit_unsupported gate 不再机械翻转；可执行性已由权威审计确认，非『仅登记可识别』的保守场景。",
+      "blocked_stage": "",
+      "verification_evidence": [
+        "/tmp/verify_effect_fixes.py 场景2：supported + judge not_fulfilled → 保持 not_fulfilled，无 explicit_unsupported_capability_boundary 翻转"
+      ]
+    },
+    {
+      "finding_id": "AUTH-R18-003",
+      "status": "closed",
+      "severity": "medium",
+      "problem": "material-decisions 索引无值级检索面：manifest 冻结的 decision search_text 只有决策声明文本（结论分类/governs/statement），没有具体口语值/枚举值；authority 按『孤儿单』『7月盘客』等业务值检索 material decision（证明力分类合同：哪个资料是 normative_rule/current_behavior/inlive_boundary）恒为空，报告文件又不在可搜索证据空间（role_asset 单元 inactive）→ authority 无法通过任何检索路径找到证明力分类，裁决依赖 LLM 碰运气。",
+      "evidence": [
+        {
+          "kind": "reproduction",
+          "detail": "实测（修复前）：search_index(authority.material-decisions, 孤儿单)→0 命中；search_context_units(MaterialDecision/decision-2/current_behavior)→ 全部无关单元（enhanced-rules 其他字段切片、planfullname 分块）；039 run 中 authority 引用 business-value-mappings.decision-2 但检索路径不可复现。"
+        }
+      ],
+      "impact": "authority 对同一证据的证明力判断（如 value-mappings 只是 current_behavior、不构成正式口径）无法稳定获得 → 错判 resolved（B 象限穿透）或无故 unresolved。",
+      "owner": "core + investigation",
+      "remediation": "运行时把物化切片的值级内容确定性投影进 material-decisions 索引的 search_text（与字段切片 key-index 投影同一机制）；search_text 只用于词法匹配不进模型上下文，不截断目标值（孤儿单在 33 个 value-mappings 切片里排后，原 2000 截断会截掉）。",
+      "blocked_stage": "",
+      "verification_evidence": [
+        "实测（修复后）：search_index(authority.material-decisions, 孤儿单)→ business-value-mappings.decision-1/2 命中；纯存续单客户→5 个 decision 命中；7月盘客→enhanced-rules.decision-1 命中"
+      ]
+    },
+    {
+      "finding_id": "AUTH-R19-001",
+      "status": "closed",
+      "severity": "high",
+      "problem": "judge 消费 authority 能力/职责边界裁决未按 fulfilled.md §3 / authority.md §8.3 三态映射：真实 039 run 中 4 个 authority 参与 case 有 2 个消费反（088 职责内能力缺失判 ne 逃逸归责；113 职责外判 nf 过度归责）。",
+      "evidence": [
+        {
+          "kind": "reproduction",
+          "detail": "039 run case[17](088): authority supported 职责内能力缺失 + judge ne（应 nf）；case[22](113): authority supported 职责外 + judge nf（应 ne）；case[26](133) 职责外 ne 正确；case[4](023) gap_only ne 正确。"
+        },
+        {
+          "kind": "spec",
+          "detail": "fulfilled.md §3 第二步：resolved=职责外→说不清；resolved=职责内能力缺失+期望未达成→没办成；unresolved→说不清。authority.md §8.3 同口径。"
+        }
+      ],
+      "impact": "authority 的职责裁决被 judge 自由消费，draft 对 production 的判定错误率 50%（该 4 case 样本）。",
+      "owner": "core",
+      "remediation": "authority_gate 按 resolution statement 结论类型前缀确定性三态消费：职责外→not_evaluable（无论 judge 判定）；职责内能力缺失→judge 判 not_evaluable 时修正 not_fulfilled（无 unresolved/tool_failure/引用错误时）；职责内正常→不覆盖。",
+      "blocked_stage": "",
+      "verification_evidence": [
+        "tests/test_authority_gate.py::test_boundary_outside_forces_not_evaluable_whatever_judge_says / test_capability_gap_converts_judge_ne_to_not_fulfilled / test_capability_gap_does_not_override_unresolved_driven_ne / test_within_scope_does_not_override",
+        "/tmp/verify_fulfilled_consumption.py：088→nf、113→ne、133→ne（不人审）、023→nf（stub 场景）全 PASS"
+      ]
+    },
+    {
+      "finding_id": "AUTH-R19-002",
+      "status": "closed",
+      "severity": "medium",
+      "problem": "_apply_explicit_unsupported_boundary_gate 把 is_supported=false 的 blocking not_fulfilled 机械翻转 not_evaluable，与 fulfilled.md §2.2/§4.1『职责内能力缺失=功能未实现=没办成』冲突；probes 测试固化旧语义。",
+      "evidence": [
+        {
+          "kind": "code",
+          "detail": "judge.py _apply_explicit_unsupported_boundary_gate 旧逻辑：is_supported=false + all_conditions_unsupported → blocking 核心交付强制 not_evaluable。is_supported=false 字段在清单内=职责内，能力缺失=没办成，不得降 ne。"
+        }
+      ],
+      "impact": "职责内能力缺失被包装成说不清，authority/字段能力信号无法驱动确定性 nf。",
+      "owner": "client_search judge",
+      "remediation": "gate 改造：judge 判 fulfilled（如实拒绝=办成）→ 修正 not_fulfilled + explicit_unsupported_capability_boundary；judge 判 not_fulfilled → 保持；已消费 authority 调用 → 交 authority_gate §8.3 兜底。",
+      "blocked_stage": "",
+      "verification_evidence": [
+        "probes/test_judge_authority_signals.py::test_explicit_unsupported_gate_keeps_capability_gap_as_not_fulfilled（nf 保持 + fulfilled→nf 修正）"
+      ]
+    },
+    {
+      "finding_id": "AUTH-R19-003",
+      "status": "closed",
+      "severity": "medium",
+      "problem": "上下文工程未对齐三态消费：authority prompt 未硬约束 statement 结论类型前缀（gate 需确定性解析）；judge prompt 无三态消费规则（039 判反的上下文根因）；_enrich_unsupported_boundary_evidence 的 decision_rule 残留『must be not_evaluable, not not_fulfilled』旧语义会误导 judge。",
+      "evidence": [
+        {
+          "kind": "code",
+          "detail": "authority_environment._resolve_system_prompt 只要求 statement 明确结论类型，未约束前缀；judge.py system_extras authority 段只有『supported 可消费』无三态映射；judge.py:633 decision_rule 残留旧语义。"
+        }
+      ],
+      "impact": "LLM 层无三态消费契约，依赖 gate 事后修正；结论类型解析脆弱。",
+      "owner": "core + client_search judge",
+      "remediation": "authority prompt：能力/职责边界问题 statement 必须以「职责外：」「职责内能力缺失：」「职责内正常：」开头；judge prompt：补三态消费规则；修正 decision_rule 残留文案。",
+      "blocked_stage": "",
+      "verification_evidence": [
+        "代码审查 + 单元/端到端测试通过"
+      ]
+    },
+    {
+      "finding_id": "AUTH-R20-001",
+      "status": "closed",
+      "severity": "high",
+      "problem": "nf/ne 分界的 authority 触发面依赖词法重叠（request_notice_overlap）：请求是具体值、提示是字段标签（093 车牌：贵C826N1 vs 车牌号）时重叠为空 → all_conditions_unsupported=False → authority 未装配 → §8.3 三态消费 gate 不运行 → 职责外/依据不充分类 not_evaluable 无调用记录静默通过（违反 fulfilled.md §2.3 硬前提 1、§10、§11-9/11）。073（投保日期部分拒绝）同样因非 all_conditions_unsupported 不触发。",
+      "evidence": [
+        {
+          "kind": "runtime",
+          "detail": "30 条冻结集扫描（修复前）：093/138/073 mode=not_required、authority_candidate_reasons=[]；039 run 中 093 判 not_evaluable 无 authority_tool_call_ids 且无 authority_required_not_consulted 人审标记。"
+        },
+        {
+          "kind": "runtime",
+          "detail": "_enrich_unsupported_boundary_evidence 对 093 实测解析出 explicit_unsupported_fields=[licensePlateNo, is_supported=false, explicit=true]，但 all_conditions_unsupported 仍为 False（重叠为空）。同语义 088（盘客重叠命中）→ on_demand → 职责内能力缺失 → nf；093 → 静默 ne：分界取决于词法重叠而非能力语义。"
+        }
+      ],
+      "impact": "职责外/依据不充分类 not_evaluable 可无 authority 查证记录静默通过；is_supported=false 的 nf/ne 落位不一致（088 nf vs 093 静默 ne）。",
+      "owner": "client_search judge",
+      "remediation": "_authority_candidate_reasons 新增两个确定性触发面：explicit_unsupported_capability（key-index Search→Load 已解析到 is_supported=false 字段）→ capability_or_responsibility_boundary:explicit_unsupported_field；acknowledges_requested_constraint（系统拒绝/降级了请求自身约束，含部分保留）→ capability_or_responsibility_boundary:unsupported_constraint_acknowledged。",
+      "blocked_stage": "",
+      "verification_evidence": [
+        "30 条冻结集重扫：激活 5/30 → 7/30（008/023/073/088/093/113/133）",
+        "30 条冻结集当前代码重放（039 记录的 judge 判定 + authority 审计，gate 仅 on_demand 装配时执行）：088 ne→nf、113 nf→ne（三态消费）；073/093 ne 增加 human_review（不再静默）；133 ne+HR（旧 run resolution statement 前缀不在句首，pre-R19 格式，fail-closed 正确；新 run 按 R19-003 前缀约束干净消费，E2E 已验证）；138 仍静默（AUTH-R20-002）",
+        "tests/test_client_search_judge_investigation.py 新增 2 项触发测试全 PASS；probes/test_judge_authority_signals.py 新增 093 类零条件 gate 测试全 PASS"
+      ]
+    },
+    {
+      "finding_id": "AUTH-R20-002",
+      "status": "closed",
+      "severity": "medium",
+      "problem": "138（陈金秀在别的业务员的投保的平安产品）无确定性 runtime 信号：系统静默丢弃业务员归属维度，无 manifest 字段、无 unsupported notice、reference 为空 → 不触发 authority；039 run 中 138 判 not_evaluable（职责外/下游能力边界）无调用记录。且冻结 authority-investigation-report.json 仅 2 个覆盖缺口（semantic-mapping-authority、query-form-equivalence-authority），未按 fulfilled.md §9.2 记录职责内外类问题（093/113/133/138/148）的覆盖缺口与 required_evidence。",
+      "evidence": [
+        {
+          "kind": "runtime",
+          "detail": "30 条冻结集扫描：source-badcase-138 mode=not_required；actual=[searchClientName MATCH 陈金秀]，无 notice/operator/enum/material 冲突信号。"
+        },
+        {
+          "kind": "investigation",
+          "detail": "authority-investigation-report.json coverage_gaps 仅 2 项，均非职责内外类；§9.2 要求的职责内外类覆盖缺口缺失。"
+        }
+      ],
+      "impact": "职责外类 not_evaluable 在『系统静默丢维度』场景仍可无 authority 记录通过；职责边界正向确认依赖调查层 normative_rule 覆盖。",
+      "owner": "client_search investigation",
+      "remediation": "调查层按 fulfilled.md §9.2 为职责内外类问题（093/113/133/138/148）补覆盖缺口（required_evidence 指向业务方确认的职责边界/下游接口声明）；runtime 触发面再评估是否需要『请求维度缺失』信号（依赖调查层缺口索引，不靠启发式）。",
+      "blocked_stage": null,
+      "verification_evidence": [
+        {
+          "kind": "investigation",
+          "detail": "已按 fulfilled.md §9 任务 2 为职责内外类问题补 4 个覆盖缺口（responsibility-boundary-unsupported-field / responsibility-boundary-entity-name-query / silently-dropped-request-dimension / enum-space-search-consumption-boundary），required_evidence 指向业务方确认的职责边界声明/下游接口声明；report 现有 6 缺口，validate_investigation_package 通过（warn 策略，仅既有 3 条 evidence_content_drift）。"
+        },
+        {
+          "kind": "runtime",
+          "detail": "新缺口已进入 material-decisions key-index（build_material_decision_key_index 同构条目，manifest 经 build_authority_key_index.py 重生成，共 20 entries）；词法检索实测：业务员→silently-dropped-request-dimension、车牌→responsibility-boundary-unsupported-field、公司→responsibility-boundary-entity-name-query、产品全称→enum-space-search-consumption-boundary，authority 命中后按 authority_environment.py 硬协议必须 unresolved 消费。"
+        },
+        {
+          "kind": "gate",
+          "detail": "三态消费回归：/tmp/verify_fulfilled_consumption.py 四 case 全 PASS；tests 中仅剩既有业务源 hash 漂移失败（test_client_search_judge_solidify_projection_matches_smoke_evidence，business-field-enums 2fded→7567，已拍板不修不回退）。"
+        },
+        {
+          "kind": "runtime",
+          "detail": "runtime 触发面已落地：impl/core/authority_key_index.py 新增 coverage_gap_trigger_hit（请求文本在完整 material-decisions 索引中的唯一最高命中是 coverage-gap 时返回 gap_id），judge _authority_candidate_reasons 消费为 capability_or_responsibility_boundary:coverage_gap:<id>，judge prompt 补缺口消费规则。30 条冻结集实测：138/088/113/148 触发 on_demand（138 由原 not_required 变为 on_demand），003/013/063/143 等 11 个噪声命中均被更相关 MaterialDecision 压住不误触发；138 authority 环境含 authority_tool、缺口可达（coverage-gap://silently-dropped-request-dimension）、snapshot 生成。"
+        },
+        {
+          "kind": "test",
+          "detail": "新增 tests/test_investigation_key_index.py::test_coverage_gap_trigger_hit_requires_top_hit_gap 与 tests/test_client_search_judge_investigation.py::test_candidate_triggers_on_coverage_gap_for_silently_dropped_dimension；相关集合 116 passed，仅剩既有业务源 hash 漂移失败（已拍板不修不回退）。真实 LLM 全量重跑待网络环境。"
+        }
+      ]
+    },
+    {
+      "finding_id": "AUTH-R21-001",
+      "status": "closed",
+      "severity": "medium",
+      "problem": "上下文工程契约缺口：authority_gate §8.4 要求 judge 在 actual_evidence 显式输出「结论类型：职责外/完全无关/依据不充分/输入坏/Authority 能力不可用」标记，但 judge prompt（_build_core_context system_prompt_extras）从未指示该契约 → LLM 不会写标记 → 所有非 authority 消费的 not_evaluable（含应豁免的输入坏/完全无关）都被标 not_evaluable_cause_missing + needs_human_review（噪音人审，破坏豁免设计）。",
+      "evidence": [
+        {
+          "kind": "code",
+          "detail": "rg 全库：结论类型 仅出现在 authority_gate.py（消费端）与 authority_environment.py（authority prompt），judge prompt 无该契约。"
+        },
+        {
+          "kind": "runtime",
+          "detail": "apply_authority_gate 模拟：ne + 无标记 → not_evaluable_cause_missing + needs_human_review；ne + 「结论类型：输入坏」→ 豁免无标记。同一输入只差一个 prompt 契约。"
+        }
+      ],
+      "impact": "豁免成因（输入坏/完全无关）也被标人审；职责外/依据不充分类 ne 的差在哪儿依赖 LLM 自发书写，无 prompt 契约则全部 fail-closed 转人审。",
+      "owner": "client_search judge 上下文工程",
+      "remediation": "judge prompt 增加 not_evaluable 成因契约段：五种标签、职责外/职责内能力缺失/依据不充分必须消费 authority.resolve、依据不充分给缺料清单、完全无关/输入坏豁免；_not_applicable_judge_result evidence 补 cause=完全无关。",
+      "blocked_stage": "",
+      "verification_evidence": [
+        "tests/test_client_search_judge_investigation.py 新增 test_judge_prompt_contract_requires_not_evaluable_cause_markers（prompt 含五种标签+缺料清单）",
+        "test_candidate_reports_unrelated_request_as_not_applicable 更新：evidence 含 cause=完全无关",
+        "相关测试集 73 passed（1 项已知哈希漂移）"
+      ]
+    }
+  ],
+  "gate": {
+    "blocked_stage": "draft_loop_and_promotion",
+    "blocking": false,
+    "reason": "AUTH-R19-001/002/003 closed（fulfilled.md 三态消费落地 + 上下文工程对齐）; open: CG-ENG-003(需真实 governed run)、R16 低危三项、R18 已 closed。"
+  },
+  "positive_controls": [
+    "Authority search/load tool sequence validation, two-phase claim isolation, tools_override=[] at model boundary, context_coverage derived signal, and declaration-driven authority.evidence.* projection all re-verified against implementation.",
+    "write_portable_export / write_active_artifact routing re-checked (round 15 gate_feedback fix intact); all 17 call sites correctly split active vs portable.",
+    "Draft/production judge.py module-level byte-identical helpers: 0 remaining after round-14 consolidation.",
+    "All broad except sites in authority files are fail-loud (re-raise) or documented deterministic policy (_materialize_tool_result); no hidden fallback.",
+    "Authority runtime + gates + key-index test suites: 100 passed."
+  ],
+  "unresolved": [
+    "Whether to apply the defensive B023 binding (AUTH-R16-001), unify byte-identical hash helpers (AUTH-R16-002), add the empty-contract scanner check (AUTH-R16-003), or register the two enum sources (DRAFT-R16-004); all pending user decision.",
+    "规范冲突待协解（fulfilled.md §2.3 vs authority.md §8.3/调查共识）：§2.3 把 093 车牌列为「职责外→说不清」示例，但 R19/R20 落地把 is_supported=false（字段在清单内）确定性消费为「职责内能力缺失→没办成」，且 §8.1 要求职责外/能力缺失边界由 authority 现场裁决。093 的最终落位依赖 authority 裁决（trigger 已修复，on_demand），但规范示例与门禁默认语义存在字面张力，需与先前 grill 协解确认是否调整 §2.3 示例。",
+    "AUTH-R20-002 已 closed（调查层缺口 + runtime 缺口索引触发面落地，离线验证通过）；138 真实 LLM 端到端（authority 现场 unresolved→ne(依据不充分)+缺料清单）待 30 条全量重跑（网络环境）最终确认。"
+  ]
+}

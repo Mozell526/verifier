@@ -1,0 +1,314 @@
+{
+  "caller": "judge",
+  "created_at": "2026-08-20T06:37:44Z",
+  "elapsed_ms": 56932,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "production"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "502fcbedc29706f90a240949cc459da3403b1f6f7443a486fa751454ed24851e",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [],
+      "lineage": {
+        "call_id": "",
+        "case_id": "llm-probe-policy_search-product-tail",
+        "trace_id": "llm_probe:llm-probe-policy_search-product-tail:1787207807758"
+      },
+      "messages": [
+        {
+          "char_count": 6811,
+          "content_sha256": "6bc41cc9442d41be75eba596e778e6b8e1a80c34046eb78478b0ff5b1f573bdb",
+          "role": "system"
+        },
+        {
+          "char_count": 5931,
+          "content_sha256": "7819df0eaf0d3710b57d69f605c4fd597522196c7a6b23cb4bcc92812df06427",
+          "role": "user"
+        }
+      ],
+      "mode": "production",
+      "output_contract": {
+        "field_names": [
+          "acceptance_criteria",
+          "actual",
+          "actual_evidence",
+          "applicable_product_expectation_ids",
+          "authority_tool_call_ids",
+          "blocking",
+          "boundary",
+          "business_expectations",
+          "downstream_consumer",
+          "downstream_impact",
+          "error_type",
+          "evidence",
+          "evidence_ref",
+          "expectation_id",
+          "expected",
+          "expected_evidence",
+          "expected_outcome",
+          "extra",
+          "fulfillment_assessments",
+          "incomplete",
+          "kind",
+          "missing",
+          "output_text",
+          "priority",
+          "raw",
+          "reasoning_summary",
+          "required_capabilities",
+          "score",
+          "status",
+          "user_intent",
+          "wrong"
+        ],
+        "identity": "impl.core.schema.judge.JudgeLLMOutput",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "40fa7a66e30b1a0dd26fea5170efaf75abd4add050e000d4a15b236de1d31ba9",
+        "sha256": "40fa7a66e30b1a0dd26fea5170efaf75abd4add050e000d4a15b236de1d31ba9"
+      },
+      "project_id": "llm_probe",
+      "prompt_char_count": 12742,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 5931,
+        "occurred": false
+      },
+      "role": "judge",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 478,
+          "content_sha256": "600c5ea3215f199a7ceb66e89af155ba94303255c0aceb785cf2125468b8a0fc",
+          "order": 0,
+          "role": "judge",
+          "segment_id": "mandatory-context-units",
+          "source": "contextunit://project.llm_probe.asset.judge_boundary,project.llm_probe.asset.judge_evaluation",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 2090,
+          "content_sha256": "3fc24129ac8bb96ec5ee85fbd7be47310f965365d3bfe24b7d824b89d7c28318",
+          "order": 1,
+          "role": "judge",
+          "segment_id": "compiled-system",
+          "source": "impl/core/judge.py#judge_trace",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 5931,
+          "content_sha256": "7819df0eaf0d3710b57d69f605c4fd597522196c7a6b23cb4bcc92812df06427",
+          "order": 2,
+          "role": "judge",
+          "segment_id": "case-user-payload",
+          "source": "trace://judge-evidence-view",
+          "stage": "judge"
+        }
+      ],
+      "stage": "judge",
+      "tool_plan": []
+    }
+  },
+  "llm_model": "deepseek-v4-flash-0731",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "你是通用评估系统的 judge agent。\n\n## 核心原则\n只基于当前 RunTrace、项目评判标准和动态检索的知识库内容判断，不继承历史 case。\n首要职责：理解用户/下游消费者的真实业务意图 → 派生 business_expectations → 基于完整执行链路（每轮 output、最终 output、交互过程和停止事实）判断 expectations 的 fulfillment。\n\n## expectation 拆分原则\nbusiness_expectations 的粒度直接决定判断精度。每个 expectation 必须是原子、独立可评价的判断单元：证据充分时判 fulfilled 或 not_fulfilled；确需评价但当前证据不足时按协议判 not_evaluable。\n- 一个 expectation 只描述一个可独立验证的结果维度\n- 多维度意图必须拆成多个 expectation\n- 每个 expectation 必须有明确的 acceptance_criteria\n- 每个 expectation 必须在比较 actual 前确定 blocking：只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true\n- fulfillment_assessments 只判断对应 expectation 的 status 和证据，不得重新定义 blocking\n- expectation_id 必须是描述性的中文短语，禁止使用 E1/E2/exp_01 等占位符 ID\n- reasoning_summary 必须是中文写成的判断依据\n\n## 输出词表\n`fulfillment_assessments[*].status` 必须从以下 3 个值中选择：\n  - fulfilled：该 expectation 完全满足\n  - not_fulfilled：该 expectation 未满足\n  - not_evaluable：当前无法评估\n禁用 failed/passed/incorrect/wrong/met/unmet/partially_fulfilled/partial/success/fail/ok/unknown 等同义词。\n`fulfillment_assessments[*].expected_evidence` 与 `actual_evidence` **必须是数组**（JSON array / list），即使只有一条证据也要用 `[...]` 包裹，不可直接用字符串或对象。\n\n不要输出 overall_fulfillment；公共层会在项目契约补充完成后根据 blocking expectations 确定性派生整体状态。\n\n## 评估规范\n\n\n## 评估边界\n\n\n## 判断标准\n\n\n## 项目 ContextUnit（按 Role policy 在运行前确定性装载）\n## ContextUnit: judge_boundary: judge_boundary.md (project.llm_probe.asset.judge_boundary)\n# Judge Boundary\n\nIn scope:\n\n- 非流式 HTTP 响应字符串是否兑现能力描述\n- show_schema 指出的输出片段\n\nOut of scope:\n\n- SSE / 流式协议\n- 下游检索结果集\n- 被测服务是否由 verifier 启动\n- 各业务项目自己的 EXTRACT 字段协议\n\n\n## ContextUnit: judge_evaluation: evaluation.md (project.llm_probe.asset.judge_evaluation)\n# Evaluation\n\nJudge 只看三件事：能力描述、请求信封（尤其是 body）、`output_text`。\n\n有 show_schema 时，只把其中指出的部分当作重要证据。没有 gold output，不要把 actual 抄成 expected。\n\n\n\n\n## 能力描述\n只根据能力描述判断 output_text 是否兑现了该能力。没有 gold output，不要编造参考答案。\n## 工具使用原则\n所有工具的用途、调用时机和参数含义以 Agno tool schema 为准；user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息。\n\n## 禁止事项\n- 不要把 reference answer 当作默认主目标（除非 case 明确指定）\n- 不要把 HTTP 状态、run_status、attribute/cluster 结论当作满足依据\n- 不要归因内部代码、配置或 prompt 原因（属于 attribute agent）\n- 分析文字必须使用中文，包括 reasoning_summary 等所有文本字段。\n\n\n## 输出约束：judge 判定输出（自产 reference + fulfillment 判定）\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"business_expectations\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeBusinessExpectationOutput\"\n      },\n      \"minItems\": 1\n    },\n    \"applicable_product_expectation_ids\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"fulfillment_assessments\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeFulfillmentAssessmentOutput\"\n      }\n    },\n    \"expected\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"output_text\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"output_text\"\n      ]\n    },\n    \"missing\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"wrong\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"extra\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"evidence\": {\n      \"type\": \"array\",\n      \"items\": {}\n    },\n    \"reasoning_summary\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    }\n  },\n  \"additionalProperties\": false,\n  \"$defs\": {\n    \"JudgeBusinessExpectationOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"blocking\": {\n          \"type\": \"boolean\"\n        },\n        \"downstream_consumer\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"user_intent\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected_outcome\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"required_capabilities\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"acceptance_criteria\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"boundary\": {\n          \"type\": \"object\"\n        },\n        \"priority\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"blocking\"\n      ]\n    },\n    \"JudgeFulfillmentAssessmentOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"score\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        },\n        \"expected_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"actual_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"downstream_impact\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"authority_tool_call_ids\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"status\"\n      ]\n    },\n    \"GapItem\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"kind\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"error_type\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected\": {},\n        \"actual\": {},\n        \"evidence_ref\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"raw\": {},\n        \"incomplete\": {\n          \"type\": \"boolean\"\n        }\n      },\n      \"additionalProperties\": false\n    }\n  },\n  \"required\": [\n    \"expected\",\n    \"business_expectations\",\n    \"reasoning_summary\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['business_expectations', 'expected', 'reasoning_summary']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n\n### 嵌套字段子结构约束\n以下字段内部的子结构也必须严格遵守，不可随意编造字段名或类型：\n- **`expected`** 字段 (项目 llm_probe 的 expected/live output 结构) 必须符合以下结构：\n  ```json\n  {\n    \"type\": \"object\",\n    \"properties\": {\n      \"output_text\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"additionalProperties\": false,\n    \"required\": [\n      \"output_text\"\n    ]\n  }\n  ```\n",
+      "created_at": 1787207807,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "07c7b8e3-089e-4f3d-9175-a845780af194",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"user_intent\": \"把自然语言保单筛选意图转成可执行的查询语法树。\\n只负责解析与过滤条件，不负责下游保单列表检索。\", \"run_trace\": {\"trace_id\": \"llm_probe:llm-probe-policy_search-product-tail:1787207807758\", \"project_id\": \"llm_probe\", \"case_id\": \"llm-probe-policy_search-product-tail\", \"intent_input\": {\"capability_ref\": \"policy_search\", \"method\": \"POST\", \"body\": {\"session_id\": \"ps-prod\", \"trace_id\": \"ps-prod\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"产品名尾号康宁的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}}, \"normalized_request\": {\"capability_ref\": \"policy_search\", \"method\": \"POST\", \"body\": {\"session_id\": \"ps-prod\", \"trace_id\": \"ps-prod\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"产品名尾号康宁的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}}, \"final_output\": {\"output_text\": \"{\\\"code\\\": 1001, \\\"msg\\\": \\\"保单搜索解析失败\\\", \\\"data\\\": null}\"}, \"final_output_turn\": 1, \"turns\": [{\"turn_index\": 1, \"request\": {\"capability_ref\": \"policy_search\", \"method\": \"POST\", \"body\": {\"session_id\": \"ps-prod\", \"trace_id\": \"ps-prod\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"产品名尾号康宁的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}}, \"extracted_output\": {\"output_text\": \"{\\\"code\\\": 1001, \\\"msg\\\": \\\"保单搜索解析失败\\\", \\\"data\\\": null}\"}, \"call_status\": \"succeeded\", \"runtime_ms\": 10294, \"error\": null, \"fallbacks\": [], \"validation\": [], \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"llm_probe\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"llm_probe\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"request_normalization\", \"status\": \"succeeded\", \"evidence\": {\"capability_ref\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"http_call\", \"status\": \"succeeded\", \"evidence\": {\"url\": \"\", \"method\": \"POST\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"output_stringify\", \"status\": \"succeeded\", \"evidence\": {\"output_chars\": 47}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"application_boundary\": {\"scope\": \"non_streaming_http_llm_probe\", \"streaming\": false}, \"project_fields\": {\"capability_ref\": \"policy_search\", \"capability\": \"\", \"show_schema\": null}}], \"conversation_transcript\": [], \"conversation_summary\": {\"turn_count\": 1, \"final_output_turn\": 1, \"completion_status\": \"completed\", \"stop_reason\": \"single_turn_completed\", \"interaction_controller_status\": \"not_run\", \"interaction_controller_error\": \"\"}, \"stop_reason\": \"single_turn_completed\", \"completion_status\": \"completed\", \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"llm_probe\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"llm_probe\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"request_normalization\", \"status\": \"succeeded\", \"evidence\": {\"capability_ref\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"http_call\", \"status\": \"succeeded\", \"evidence\": {\"url\": \"\", \"method\": \"POST\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"output_stringify\", \"status\": \"succeeded\", \"evidence\": {\"output_chars\": 47}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"evidence_refs\": [], \"raw_response_evidence\": null, \"evidence_completeness\": {\"complete\": true, \"missing_evidence\": []}, \"application_boundary\": {\"scope\": \"non_streaming_http_llm_probe\", \"streaming\": false}, \"reference_contract\": {}, \"scenario\": \"http_probe\", \"status\": \"ok\", \"error\": null}, \"capability\": \"把自然语言保单筛选意图转成可执行的查询语法树。\\n只负责解析与过滤条件，不负责下游保单列表检索。\", \"show_schema\": null, \"request\": {\"url\": \"\", \"method\": \"POST\", \"headers\": {}, \"body\": {\"session_id\": \"ps-prod\", \"trace_id\": \"ps-prod\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"产品名尾号康宁的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"capability_ref\": \"policy_search\"}, \"output_text\": \"{\\\"code\\\": 1001, \\\"msg\\\": \\\"保单搜索解析失败\\\", \\\"data\\\": null}\", \"application_boundary\": {\"scope\": \"non_streaming_http_llm_probe\", \"streaming\": false}}",
+      "created_at": 1787207807,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "21d17725-1f98-44e1-885e-25dd851397d7",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"expected\": {\"output_text\": \"成功的解析响应，应在 data 字段中携带表达“产品名以‘康宁’结尾”的查询语法树或等价的结构化过滤条件，且不能返回失败码 1001。\"}, \"business_expectations\": [{\"expectation_id\": \"解析自然语言查询为可执行的查询语法树\", \"blocking\": true, \"downstream_consumer\": \"保单搜索解析服务的下游调用方（policy_search 消费者）\", \"user_intent\": \"将自然语言保单筛选意图（“产品名尾号康宁的保单”）转换为可执行的查询语法树\", \"expected_outcome\": \"返回成功状态且 data 中包含能表达查询条件（如产品名以“康宁”结尾）的查询语法树结构\", \"required_capabilities\": [\"policy_search\", \"自然语言到筛选条件解析\", \"查询语法树构造\"], \"acceptance_criteria\": [\"output_text 应包含成功标识，而非 code=1001 失败码\", \"output_text 中应包含查询语法树或等价的结构化过滤条件\", \"语法树应体现产品名尾号为“康宁”的筛选意图\"], \"boundary\": {\"scope\": \"non_streaming_http_llm_probe\", \"show_schema\": null}, \"priority\": \"high\"}, {\"expectation_id\": \"保持仅解析与过滤条件、不返回检索结果的边界\", \"blocking\": false, \"downstream_consumer\": \"能力范围校验方（判断是否越界执行下游检索）\", \"user_intent\": \"能力边界只负责解析与过滤条件生成，不负责保单列表检索\", \"expected_outcome\": \"输出停留在解析或错误信息层面，不应包含保单列表检索结果或触发下游检索的迹象\", \"required_capabilities\": [\"policy_search\", \"解析边界控制\"], \"acceptance_criteria\": [\"output_text 不应包含保单列表检索结果\", \"output_text 不应包含检索结果字段或列表数据\"], \"boundary\": {\"scope\": \"non_streaming_http_llm_probe\", \"show_schema\": null}, \"priority\": \"low\"}], \"applicable_product_expectation_ids\": [], \"fulfillment_assessments\": [{\"expectation_id\": \"解析自然语言查询为可执行的查询语法树\", \"status\": \"not_fulfilled\", \"score\": 0, \"expected_evidence\": [\"成功码或其他成功标识\", \"data 中携带查询语法树或结构化过滤条件\", \"过滤条件体现产品名以“康宁”结尾\"], \"actual_evidence\": [\"output_text 为 {\\\"code\\\": 1001, \\\"msg\\\": \\\"保单搜索解析失败\\\", \\\"data\\\": null}\", \"data 为 null，没有任何查询语法树或过滤条件\", \"msg 明确表示“保单搜索解析失败”\"], \"downstream_impact\": \"下游无法获得可执行的查询语法树，无法依据解析结果进行保单筛选，核心能力完全未兑现\", \"authority_tool_call_ids\": []}, {\"expectation_id\": \"保持仅解析与过滤条件、不返回检索结果的边界\", \"status\": \"fulfilled\", \"score\": 1, \"expected_evidence\": [\"输出不包含保单列表检索结果\", \"输出不包含检索相关数据或列表\"], \"actual_evidence\": [\"output_text 仅包含 code/msg/data 字段，data 为 null\", \"没有出现任何保单列表或检索结果数据，未越界到下游检索\"], \"downstream_impact\": \"边界约束未被破坏，失败响应未越界返回或触发下游保单检索结果\", \"authority_tool_call_ids\": []}], \"missing\": [{\"kind\": \"missing\", \"error_type\": \"missing_query_tree\", \"expected\": \"成功响应中的可执行查询语法树或结构化过滤条件\", \"actual\": \"code=1001 失败响应，data=null\", \"evidence_ref\": \"final_output.output_text\", \"raw\": \"{\\\"code\\\": 1001, \\\"msg\\\": \\\"保单搜索解析失败\\\", \\\"data\\\": null}\", \"incomplete\": true}], \"wrong\": [], \"extra\": [], \"evidence\": [{\"source\": \"run_trace.final_output.output_text\", \"value\": \"{\\\"code\\\": 1001, \\\"msg\\\": \\\"保单搜索解析失败\\\", \\\"data\\\": null}\"}, {\"source\": \"intent_input.body.extra_input_params.policySearchParseArgs.query\", \"value\": \"产品名尾号康宁的保单\"}], \"reasoning_summary\": \"用户意图是把自然语言保单筛选查询“产品名尾号康宁的保单”解析为可执行的查询语法树，只负责解析和过滤条件，不负责下游检索。请求信封表明这是 policy_search 解析场景，能力描述也要求产出查询语法树。实际 output_text 返回 code=1001、msg=“保单搜索解析失败”、data=null，没有携带任何查询语法树或结构化过滤条件，因此核心能力完全未兑现，判定为 not_fulfilled。能力边界方面，失败响应只停留在错误信息层面，没有包含任何保单列表检索结果，未越界触发下游检索，因此边界期望判定为 fulfilled。主要缺口是缺失可执行查询语法树。\"}",
+      "created_at": 1787207807,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "c21d35c4-e28c-407d-ae78-cc3bd99a6a91",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 2048,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 4117,
+        "output_tokens": 4349,
+        "provider_metrics": null,
+        "reasoning_tokens": 3240,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 8466
+      },
+      "name": null,
+      "provider_data": {
+        "id": "a77b804f-b49e-49ab-a220-091d114200d6",
+        "model_extra": {
+          "request_id": "a77b804f-b49e-49ab-a220-091d114200d6"
+        }
+      },
+      "reasoning_content": "我们有一个针对 policy_search 能力的案例。用户意图：将自然语言保单筛选意图转换为可执行的查询语法树。仅解析和过滤条件，不处理下游保单列表检索。\n\n请求体包含 policySearchParseArgs.query = \"产品名尾号康宁的保单\"（即“产品名称以‘康宁’结尾的保单”）。响应为 {\"code\": 1001, \"msg\": \"保单搜索解析失败\", \"data\": null}。\n\n我们需要评估该输出是否满足所宣称的能力：将自然语言意图解析为可执行的查询语法树。输出是失败响应，不包含任何查询语法树。因此，未满足该能力。\n\n我们需要构建 business_expectations。该意图有两个主要方面：\n1. 将自然语言查询解析为可执行的查询语法树/过滤条件。\n2. 输出应为成功的解析结果并包含语法树结构（而不仅仅是失败）。\n\n潜在期望：\n- 能够输入查询\"产品名尾号康宁的保单\"并返回表示对应过滤器/语法树的成功解析结果（将产品名称与以\"康宁\"结尾匹配）。\n- 可能期望响应包含一个成功代码（例如 0 或 200）和语法树数据，而不是失败。\n\n我们还需要评估输出。\n\n预期证据：包含语法树或解析出的过滤器的已解析查询树响应。实际证据：失败响应，无数据。\n\n待填补的缺口：输出中缺少已解析的语法树；提供了失败信息。\n\n在定义期望时，我们需要确保思考其在 scope 内：仅非流式HTTP响应、能力描述、请求体、output_text。\n\n因此期望：\n\n1. expectation_id: \"自然语言查询成功解析为查询语法树\"\n   blocking: true，因为没有解析树，核心目的彻底失败。\n   downstream_consumer: 可能，策略搜索消费者/下游调用方。\n   user_intent: 将自然语言保单筛选意图转换为可执行的查询语法树。\n   expected_outcome: 系统应返回成功响应，其中包含有效查询语法树，表示过滤器（例如，product_name 以'康宁'结尾）以及任何相关的过滤条件。\n   required_capabilities: [\"policy_search 解析\", \"查询语法树构造\", \"自然语言到过滤器映射\"]\n   acceptance_criteria: output_text 应包含已解析的查询语法树（或过滤器），包含匹配查询的预期条件，且包含成功状态（不是失败响应）。\n   boundary: 仅限非流式HTTP响应字符串，只在 show_schema 指向的地方进行评估。此处没有 show_schema，因此依据能力描述评估输出文本。\n   priority: 高\n\n2. expectation_id: \"不触发下游检索的解析范围界定\"\n   这可能不是必要的，但该能力声明\"只负责解析与过滤条件，不负责下游保单列表检索\"。这方面在输出中无法直接观察。我们可以将其包含为一个非阻塞的期望，说明失败响应未执行检索（但也未执行解析，因此未满足？或者可评价为：输出没有触发检索的迹象，但由于失败，解析也未发生。然而该期望是关于范围的；输出未显示任何检索迹象。但这也未能解析。我们是否需要单独列出一个期望？通常我们会评估输出是否不包含检索结果，但失败响应中数据为 null。可能并不需要；也许保持简单。\n\n由于意图只有一个维度：将意图解析为语法树。失败响应意味着该维度完全未满足。我们可以只设置一个期望。\n\n为了更精确，我们可以添加一个期望，期望响应是一个成功的解析结果，包含可执行语法树，包含产品名称条件\"尾号康宁\"（即以'康宁'结尾）。或许检查失败响应中的哪个部分出错：它不包含任何语法树。\n\n但是注意：能力描述说\"只负责解析与过滤条件，不负责下游保单列表检索。\" 这意味着如果被测试的端点实际上是一个处理候选选择的服务，该能力仅涵盖解析部分。在请求中，有一个 \"policySearchParseArgs\"，所以端点应为策略搜索解析。该输出显示\"保单搜索解析失败\"——表明解析失败。因此它没有兑现能力。\n\n我们还应考虑 output_text 是否是最终响应，并且执行跟踪显示\"output_stringify\"，因此这是实际的模型/服务输出。该输出没有语法树。\n\n现在构建 JSON。\n\n约束：\n- business_expectations：至少一项。描述性 ID，是否需要额外字段？Schema 要求 expectation_id 和 blocking，其他可选但建议添加更多。将添加 downstream_consumer、user_intent、expected_outcome、required_capabilities、acceptance_criteria、boundary、priority。\n- applicable_product_expectation_ids: 似乎与项目定义的产品期望相关？没有提供。我们可以将其保留为空数组？文档说该字段是数组，但未明确是否必须非空。required 只包括 business_expectations、expected、reasoning_summary。其他字段为可选但 schema 允许。我们可以提供空数组或省略？Schema 显示它在属性列表中，但在是 `required` 吗？在顶层，required 是 [\"expected\", \"business_expectations\", \"reasoning_summary\"]。所以 applicability... 是可选的。但在输出 schema 中，它在属性中列出，但没有必需性。我们可以提供空数组或省略。指令提到 `applicable_product_expectation_ids` 是顶层字段。由于它是可选的，我们可以省略？为安全起见，我们可以将其包含为空数组，或者省略。提示中的指令：\"你的输出必须是合法 JSON，并且严格符合 JSON Schema... 必须包含 required 列表中的所有字段。\" 所以只需要 required 字段。我们可以包含可选字段。我会包含 applicable_product_expectation_ids: [] 因为它可能在下游有用。但最小化风险：空数组合法。\n\n- fulfillment_assessments：与期望匹配，为每个期望提供状态。将为每个期望提供一个对象。\n- expected：对象与 output_text。需要提供一个字符串作为 output_text。这里的\"expected\"是 judge 自产的参考期望。我们可以描述预期的输出，比如一个示例成功的解析响应。但注意：没有金标准，不要编造答案。然而 schema 需要 output_text 非空。我们可以提供关于应该包含什么的一般描述，而不是精确的 JSON。可以是：\"应返回包含解析出的查询语法树的成功响应（例如，包含 code=0 及按照产品名尾部匹配'康宁'构造的过滤条件树的 data 字段）\"，这是一个一般性期望而不是编造精确答案。我想这样可以。\n\n- missing/wrong/extra 是可选字段。我们可以包含缺口：missing 包含表示缺少已解析树的一项。将提供这些，虽然不是必需。\n\n- evidence：可选。\n\n- reasoning_summary：中文简述。\n\n现在草拟期望：\n\n期望1：解析自然语言查询为查询语法树（blocking）\n- expectation_id: \"解析自然语言查询为可执行的查询语法树\"\n- blocking: true\n- downstream_consumer: \"llm_probe judge 公共层 / 保单搜索解析服务的下游调用方\"\n- user_intent: \"将自然语言保单筛选意图（“产品名尾号康宁的保单”）转为可执行的查询语法树\"\n- expected_outcome: \"返回成功状态且 data 中包含能表达查询条件（如产品名以“康宁”结尾）的查询语法树结构\"\n- required_capabilities: [\"自然语言到筛选条件解析\", \"查询语法树构造\", \"policy_search\"]\n- acceptance_criteria: [\n    \"output_text 应包含成功标识（非 1001 等失败码）\",\n    \"output_text 中应包含查询语法树或等价结构化过滤条件\",\n    \"语法树应体现产品名尾号为“康宁”的筛选意图\"\n  ]\n- boundary: {\"scope\": \"non_streaming_http_llm_probe\", \"show_schema\": null}\n- priority: \"high\"\n\n期望2：仅负责解析与过滤条件，不执行下游检索（blocking: false）\n- user_intent: \"边界上只做查询解析与过滤条件生成，不牵扯保单列表检索\"\n- expected_outcome: \"输出应停留在解析结果层面，不应返回或请求保单列表检索结果。注意当前 case 实际输出为失败响应，因此该边界期望无法独立达成，但失败响应本身也未越界。\"\n- 但这可能不明确。由于该期望是关于 scope 的，在失败响应下它可能被评估为 fulfilled，因为失败响应没有执行或返回检索结果。但它也表明没有解析发生。未执行检索这一点成立。然而 exclusion scope 只是能力描述中的上下文，并不一定是要测试的行为。我认为可以加入该期望以覆盖描述中的这一部分，但将其标记为非阻塞。status：fulfilled？让我们仔细考虑。期望是\"只负责解析与过滤条件，不负责下游保单列表检索\"，有两个部分：负责解析与过滤，不负责检索。在我们的期望中，我们会描述\"不负责下游保单列表检索\"作为范围边界。由于没有下游检索的证据，该边界被遵守。但将 fulfilment 定为 fulfilled 是否合理？输出失败响应，不包含检索结果，所以确实没有涉及下游检索。我会说 fulfilled with evidence: output_text 不包含任何检索结果或检索相关数据；它只是一个失败消息, data null。因此检索范围未被触发。这可能是 fulfilled。然而, 这个期望可能被认为不在范围内或不必要。但为了全面覆盖能力描述, 可以包括它。\n\n然而, 能力描述是\"把自然语言保单筛选意图转成可执行的查询语法树。\\n只负责解析与过滤条件，不负责下游保单列表检索。\" 所以它可以分解为:\n- 将自然语言意图转换为可执行查询语法树(主要能力)\n- 仅解析与过滤条件, 不检索列表(约束)\n\n期望2: \"输出限制在解析/过滤条件层面, 不包含保单列表检索结果\" blocking: false。由于实际是失败响应, 没有列表检索发生, 所以 fulfilled。但这可能很勉强; 一个失败响应必然不包含检索。这满足约束, 尽管它未满足主要能力。这可以。\n\n但请注意, 指令说\"每个 expectation 必须有一个明确的 acceptance_criteria\"。所以我们会添加。\n\n期望2的 acceptance_criteria:\n- \"output_text 不能包含保单列表检索结果或检索相关的字段\"\n- \"输出不包含请求/触发下游检索的迹象\"\n\n实际证据: {\"output_text\": \"{\\\"code\\\":1001,\\\"msg\\\":\\\"保单搜索解析失败\\\",\\\"data\\\":null}\"} 不包含检索结果。\n\n我将设置状态为 fulfilled。\n\n现在, 对于 fulfillment_assessments：\n\n1. 期望1:\n- status: \"not_fulfilled\"\n- score: 0\n- expected_evidence: [\"成功的解析响应，包含 code=0 或等价成功码\", \"data 字段包含查询语法树或过滤条件结构\", \"语法树体现产品名尾号“康宁”的过滤条件\"]\n- actual_evidence: [\"output_text 为 {\\\"code\\\": 1001, \\\"msg\\\": \\\"保单搜索解析失败\\\", \\\"data\\\": null}\", \"data 为 null，无任何查询语法树或过滤条件\", \"msg 明确表示解析失败\"]\n- downstream_impact: \"下游无法获得可执行的查询语法树，无法继续基于该解析结果执行保单筛选；核心能力完全未兑现\"\n- authority_tool_call_ids: []（没有工具调用）\n\n2. 期望2:\n- status: \"fulfilled\"\n- score: 1\n- expected_evidence: [\"输出只包含解析/失败层面信息，不包含保单列表检索结果\"]\n- actual_evidence: [\"output_text 只包含 code/msg/data 字段，data 为 null，无检索结果列表\", \"未出现任何保单列表或检索结果数据\"]\n- downstream_impact: \"边界约束未被破坏，失败响应没有越界触发/返回下游检索结果\"\n- authority_tool_call_ids: []\n\n注意: `authority_tool_call_ids` 可能需要一个数组；空数组合法。\n\n现在 reasoned_summary: 中文, 解释逻辑。\n\nGaps:\n- missing: 一个 GapItem，因为有显著缺失。例如:\n  {\n    \"kind\": \"missing\",\n    \"error_type\": \"missing_query_tree\",\n    \"expected\": \"成功返回查询语法树\",\n    \"actual\": \"code=1001 失败响应，data=null\",\n    \"evidence_ref\": \"final_output.output_text\",\n    \"raw\": \"{\\\"code\\\": 1001, \\\"msg\\\": \\\"保单搜索解析失败\\\", \\\"data\\\": null}\",\n    \"incomplete\": true\n  }\n- wrong: 也许没有, 或者错误响应被认为 wrong。我们将 wrong 留空。\n- extra: 空。\n\nexpected.output_text 字符串: 我们需要提供非空字符串。我们可以说:\n\"成功的解析响应，应包含失败码为成功、data 中携带表达“产品名以‘康宁’结尾”的查询语法树/结构化过滤条件\"。\n\n我们不编造精确 JSON, 而是描述。这满足\"不要将 reference answer 作为默认主目标\"。\n\n现在评估是否可能\"not_evaluable\"。鉴于我们有明确输出且能力明确, 不是 not_evaluable。它是直接失败。所以 not_fulfilled。\n\n我们还应验证 HTTP 响应是否整体兑现能力描述。响应是失败，所以不兑现。\n\n现在构建最终 JSON。注意\"最终回答首字符必须是 {，末尾必须是 }\"。没有 markdown。\n\n包含 `applicable_product_expectation_ids`: 由于没有项目提供产品期望，我们可以将其留空。但也许我们应该省略？schema 允许 `minItems` 仅适用于 business_expectations。`applicable_product_expectation_ids` 没有 minItems，空数组没问题。\n\n包含 `evidence`: 可以包含对 output_text 的引用，例如 {\"source\": \"run_trace.final_output.output_text\", \"value\": \"{\\\"code\\\": 1001, \\\"msg\\\": \\\"保单搜索解析失败\\\", \\\"data\\\": null}\"}。\n\n确保所有字段符合 schema。\n\nJSON 中的字符串：包含双引号需要转义。在 JSON 值中，比如 \"产品名尾号“康宁”的保单\"，这是可以的，只要我们不使用英文双引号作为引号。原始查询 \"产品名尾号康宁的保单\" 没有嵌入引号，所以没问题。\n\n现在，编写 clearly。\n\nbusiness_expectations 中，为清晰起见提供所有字段。注意 schema 不需要它们，但允许。对于 acceptance_criteria，它是一个数组，可以包含字符串或对象？schema 允许任何项。我们将使用字符串。\n\n在 reasoning_summary 中，描述：请求中的查询是“产品名尾号康宁的保单”，能力是解析为语法树。实际输出是 code 1001 失败，没有任何结构化解析结果。因此核心期望未满足。边界期望 fulfilled，因为失败响应未越过解析层、没有返回任何检索结果。缺口主要是查询语法树缺失。\n\n英语或中文？指令说分析文字必须使用中文。所以 reasoning_summary 用中文。GapItem 的原始文本等字段可以用字符串。我们会让 reasoning 中文，expected/actual 中文。\n\n现在在最终 JSON 中构造。\n\n确保 fulfillment_assessments 与 expectations 对齐。期望1的 id 是 \"解析自然语言查询为可执行的查询语法树\"。期望2的 id 是 \"保持仅解析与过滤条件、不返回检索结果的边界\"。\n\n现在最终输出。",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "llm_probe",
+  "prompt_size": 15505,
+  "record_id": "e85be88c-85b6-44bc-a7b4-2bf2e55caff2",
+  "response": {
+    "content": "{\"expected\": {\"output_text\": \"成功的解析响应，应在 data 字段中携带表达“产品名以‘康宁’结尾”的查询语法树或等价的结构化过滤条件，且不能返回失败码 1001。\"}, \"business_expectations\": [{\"expectation_id\": \"解析自然语言查询为可执行的查询语法树\", \"blocking\": true, \"downstream_consumer\": \"保单搜索解析服务的下游调用方（policy_search 消费者）\", \"user_intent\": \"将自然语言保单筛选意图（“产品名尾号康宁的保单”）转换为可执行的查询语法树\", \"expected_outcome\": \"返回成功状态且 data 中包含能表达查询条件（如产品名以“康宁”结尾）的查询语法树结构\", \"required_capabilities\": [\"policy_search\", \"自然语言到筛选条件解析\", \"查询语法树构造\"], \"acceptance_criteria\": [\"output_text 应包含成功标识，而非 code=1001 失败码\", \"output_text 中应包含查询语法树或等价的结构化过滤条件\", \"语法树应体现产品名尾号为“康宁”的筛选意图\"], \"boundary\": {\"scope\": \"non_streaming_http_llm_probe\", \"show_schema\": null}, \"priority\": \"high\"}, {\"expectation_id\": \"保持仅解析与过滤条件、不返回检索结果的边界\", \"blocking\": false, \"downstream_consumer\": \"能力范围校验方（判断是否越界执行下游检索）\", \"user_intent\": \"能力边界只负责解析与过滤条件生成，不负责保单列表检索\", \"expected_outcome\": \"输出停留在解析或错误信息层面，不应包含保单列表检索结果或触发下游检索的迹象\", \"required_capabilities\": [\"policy_search\", \"解析边界控制\"], \"acceptance_criteria\": [\"output_text 不应包含保单列表检索结果\", \"output_text 不应包含检索结果字段或列表数据\"], \"boundary\": {\"scope\": \"non_streaming_http_llm_probe\", \"show_schema\": null}, \"priority\": \"low\"}], \"applicable_product_expectation_ids\": [], \"fulfillment_assessments\": [{\"expectation_id\": \"解析自然语言查询为可执行的查询语法树\", \"status\": \"not_fulfilled\", \"score\": 0, \"expected_evidence\": [\"成功码或其他成功标识\", \"data 中携带查询语法树或结构化过滤条件\", \"过滤条件体现产品名以“康宁”结尾\"], \"actual_evidence\": [\"output_text 为 {\\\"code\\\": 1001, \\\"msg\\\": \\\"保单搜索解析失败\\\", \\\"data\\\": null}\", \"data 为 null，没有任何查询语法树或过滤条件\", \"msg 明确表示“保单搜索解析失败”\"], \"downstream_impact\": \"下游无法获得可执行的查询语法树，无法依据解析结果进行保单筛选，核心能力完全未兑现\", \"authority_tool_call_ids\": []}, {\"expectation_id\": \"保持仅解析与过滤条件、不返回检索结果的边界\", \"status\": \"fulfilled\", \"score\": 1, \"expected_evidence\": [\"输出不包含保单列表检索结果\", \"输出不包含检索相关数据或列表\"], \"actual_evidence\": [\"output_text 仅包含 code/msg/data 字段，data 为 null\", \"没有出现任何保单列表或检索结果数据，未越界到下游检索\"], \"downstream_impact\": \"边界约束未被破坏，失败响应未越界返回或触发下游保单检索结果\", \"authority_tool_call_ids\": []}], \"missing\": [{\"kind\": \"missing\", \"error_type\": \"missing_query_tree\", \"expected\": \"成功响应中的可执行查询语法树或结构化过滤条件\", \"actual\": \"code=1001 失败响应，data=null\", \"evidence_ref\": \"final_output.output_text\", \"raw\": \"{\\\"code\\\": 1001, \\\"msg\\\": \\\"保单搜索解析失败\\\", \\\"data\\\": null}\", \"incomplete\": true}], \"wrong\": [], \"extra\": [], \"evidence\": [{\"source\": \"run_trace.final_output.output_text\", \"value\": \"{\\\"code\\\": 1001, \\\"msg\\\": \\\"保单搜索解析失败\\\", \\\"data\\\": null}\"}, {\"source\": \"intent_input.body.extra_input_params.policySearchParseArgs.query\", \"value\": \"产品名尾号康宁的保单\"}], \"reasoning_summary\": \"用户意图是把自然语言保单筛选查询“产品名尾号康宁的保单”解析为可执行的查询语法树，只负责解析和过滤条件，不负责下游检索。请求信封表明这是 policy_search 解析场景，能力描述也要求产出查询语法树。实际 output_text 返回 code=1001、msg=“保单搜索解析失败”、data=null，没有携带任何查询语法树或结构化过滤条件，因此核心能力完全未兑现，判定为 not_fulfilled。能力边界方面，失败响应只停留在错误信息层面，没有包含任何保单列表检索结果，未越界触发下游检索，因此边界期望判定为 fulfilled。主要缺口是缺失可执行查询语法树。\"}",
+    "metrics": {
+      "cache_read_tokens": 2048,
+      "cache_write_tokens": 0,
+      "input_tokens": 4117,
+      "output_tokens": 4349,
+      "reasoning_tokens": 3240,
+      "total_tokens": 8466
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 56930,
+          "endpoint": "fallback1",
+          "model": "deepseek-v4-flash-0731",
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "selected_endpoint": "fallback1",
+      "selected_model": "deepseek-v4-flash-0731",
+      "stage": ""
+    }
+  },
+  "trace_id": "llm_probe:llm-probe-policy_search-product-tail:1787207807758"
+}

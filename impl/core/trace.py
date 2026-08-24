@@ -20,6 +20,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from .schema import (
+    EvidenceRef,
     ExecutionTraceEvent,
     FallbackDecision,
     RunTrace,
@@ -32,6 +33,43 @@ from .config import get_runtime_config
 if TYPE_CHECKING:
     from .interaction_protocol import NormalizedCaseInteraction
     from .live_protocol import ProjectLive
+
+
+def _reference_contract_evidence(
+    reference_contract: Dict[str, Any],
+    *,
+    reference_ready: bool,
+) -> list[EvidenceRef]:
+    """Record provenance for a current, actual-free case contract."""
+
+    if (
+        not reference_ready
+        or not reference_contract
+        or str(reference_contract.get("oracle") or "") != "current"
+    ):
+        return []
+    reference_sha256 = hashlib.sha256(
+        json.dumps(
+            reference_contract,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
+    return [EvidenceRef(
+        ref_id=f"reference-contract:{reference_sha256[:16]}",
+        source="trace.reference_contract",
+        kind="contract_snapshot",
+        stage="trace-construction",
+        summary="当前 Case 在 actual 执行前携带的产品 reference contract",
+        metadata={
+            "evidence_status": "decisive",
+            "evidence_basis": "product_contract_fact",
+            "actual_free": True,
+            "producer": "impl.core.trace.trace_from_live",
+            "reference_contract_sha256": reference_sha256,
+        },
+    )]
 
 
 def attach_config_provenance(trace: RunTrace, spec: Any) -> RunTrace:
@@ -411,7 +449,10 @@ def trace_from_live(
         application_boundary=application_boundary,
         project_fields=project_fields,
         runtime_logs=[],
-        evidence_refs=[],
+        evidence_refs=_reference_contract_evidence(
+            reference_contract,
+            reference_ready="reference" in ready,
+        ),
         execution_trace=execution_trace,
         status=call_status,
         error=call_error,

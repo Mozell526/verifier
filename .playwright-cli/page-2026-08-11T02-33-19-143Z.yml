@@ -1,0 +1,157 @@
+- generic [active] [ref=f2e1]:
+  - banner [ref=f2e2]:
+    - heading "归因总结" [level=1] [ref=f2e3]
+    - paragraph [ref=f2e4]: 协议式单链路、用例池、批量运行、聚簇和 Check 审核视图。
+  - main [ref=f2e5]:
+    - generic [ref=f2e6]:
+      - generic [ref=f2e7]:
+        - link "返回 Live 请求" [ref=f2e8] [cursor=pointer]:
+          - /url: live.html
+        - button "统一单链路" [ref=f2e9] [cursor=pointer]
+        - button "加载最近结果" [ref=f2e10] [cursor=pointer]
+        - button "构建 Mock 用例池" [ref=f2e11] [cursor=pointer]
+        - button "加载 Mock 数据集" [ref=f2e12] [cursor=pointer]
+        - generic [ref=f2e13]:
+          - text: 并发数
+          - spinbutton "并发数" [ref=f2e14]: "4"
+        - button "批量运行" [ref=f2e15] [cursor=pointer]
+        - button "手动归因" [ref=f2e16] [cursor=pointer]
+        - button "分析项目配置" [ref=f2e17] [cursor=pointer]
+      - generic [ref=f2e18]:
+        - generic [ref=f2e19]:
+          - generic [ref=f2e20]: "0"
+          - text: 用例总数
+        - generic [ref=f2e21]:
+          - generic [ref=f2e22]: "0"
+          - text: 已选择
+        - generic [ref=f2e23]:
+          - generic [ref=f2e24]: "0"
+          - text: Fulfilled
+        - generic [ref=f2e25]:
+          - generic [ref=f2e26]: "0"
+          - text: Not Fulfilled
+        - generic [ref=f2e27]:
+          - generic [ref=f2e28]: "0"
+          - text: Clusters
+    - generic [ref=f2e29]:
+      - complementary [ref=f2e30]:
+        - generic [ref=f2e31]:
+          - heading "运行输入" [level=2] [ref=f2e32]
+          - generic [ref=f2e33]: Project
+          - combobox [ref=f2e34]:
+            - option "QA"
+            - option "client_search"
+            - option "deerflow"
+            - option "marketting-planning"
+            - option "marketting-planning-intent"
+            - option "policy_search" [selected]
+          - generic [ref=f2e35]: 单链路 Input JSON
+          - textbox [ref=f2e36]: "\"{}\""
+          - generic [ref=f2e37]: User Intent（可选）
+          - textbox "可留空；填写后会传给 judge agent。" [ref=f2e38]
+          - generic [ref=f2e39]: 上传/导入用例 JSON
+          - button "Choose File" [ref=f2e40]
+          - textbox [ref=f2e41]: "[]"
+          - generic [ref=f2e42]:
+            - button "导入候选区" [ref=f2e43] [cursor=pointer]
+            - button "生成已选 JSON" [ref=f2e44] [cursor=pointer]
+            - button "清空" [ref=f2e45] [cursor=pointer]
+          - paragraph [ref=f2e46]: 参考 8011 页面后，这里把“上传/生成/选择/批量运行”集中成候选区；所有数据先转成通用 case 协议，再交给后端统一 batch 链路执行。
+        - generic [ref=f2e47]:
+          - heading "用例池库" [level=2] [ref=f2e48]
+          - generic [ref=f2e49]: 保存名称
+          - textbox "例如：生存金专项用例池" [ref=f2e50]
+          - generic [ref=f2e51]:
+            - button "保存当前候选区" [ref=f2e52] [cursor=pointer]
+            - button "刷新列表" [ref=f2e53] [cursor=pointer]
+          - paragraph [ref=f2e54]: 已完成的一批用例可以保存成命名用例池；之后可加载另一批继续分析，互不覆盖。
+          - generic [ref=f2e56]:
+            - generic [ref=f2e57]: 未命名用例池 2026/6/23 07:29:32
+            - generic [ref=f2e58]: 20 条 · 2026-06-22T23:29:32Z
+            - generic [ref=f2e59]:
+              - button "加载" [ref=f2e60] [cursor=pointer]
+              - button "删除" [ref=f2e61] [cursor=pointer]
+        - generic [ref=f2e62]:
+          - heading "聚簇概览" [level=2] [ref=f2e63]
+          - generic [ref=f2e64]: 尚未批量运行。
+      - generic [ref=f2e65]:
+        - generic [ref=f2e66]:
+          - generic [ref=f2e67]:
+            - generic [ref=f2e68]:
+              - heading "用例池候选区" [level=2] [ref=f2e69]
+              - generic [ref=f2e70]: 候选区共 0 条 · 当前筛选命中 0 条
+            - generic [ref=f2e71]:
+              - button "选中当前筛选" [ref=f2e72] [cursor=pointer]
+              - button "全选全部" [ref=f2e73] [cursor=pointer]
+              - button "取消全选" [ref=f2e74] [cursor=pointer]
+              - combobox [ref=f2e75]:
+                - option "全部场景" [selected]
+              - combobox [ref=f2e76]:
+                - option "全部达成状态" [selected]
+                - option "fulfilled"
+                - option "not_fulfilled"
+                - option "not_evaluable"
+                - option "其他（未判定）"
+              - combobox [ref=f2e77]:
+                - option "全部运行状态" [selected]
+                - option "未运行"
+                - option "运行中"
+                - option "已跑过"
+                - option "已完成"
+                - option "失败"
+              - button "导出当前筛选 (.xlsx)" [ref=f2e78] [cursor=pointer]
+          - generic [ref=f2e79]:
+            - text: 批量运行中
+            - generic [ref=f2e81]: 页面已加载轻量摘要；如需查看最近单链路结果，请点击“加载最近结果”。
+          - table [ref=f2e84]:
+            - rowgroup [ref=f2e85]:
+              - row "选择 ID 来源 执行模式 Scenario Input / Live Request Output / 被评估输出 Reference 状态 Score / Judge 归因摘要 Trace" [ref=f2e86]:
+                - columnheader "选择" [ref=f2e87]
+                - columnheader "ID" [ref=f2e88]
+                - columnheader "来源" [ref=f2e89]
+                - columnheader "执行模式" [ref=f2e90]
+                - columnheader "Scenario" [ref=f2e91]
+                - columnheader "Input / Live Request" [ref=f2e92]
+                - columnheader "Output / 被评估输出" [ref=f2e93]
+                - columnheader "Reference" [ref=f2e94]
+                - columnheader "状态" [ref=f2e95]
+                - columnheader "Score / Judge" [ref=f2e96]
+                - columnheader "归因摘要" [ref=f2e97]
+                - columnheader "Trace" [ref=f2e98]
+            - rowgroup [ref=f2e99]:
+              - row "候选区为空，可构建 Mock 用例池或导入自定义数据集。" [ref=f2e136]:
+                - cell "候选区为空，可构建 Mock 用例池或导入自定义数据集。" [ref=f2e137]
+          - generic [ref=f2e102]:
+            - generic [ref=f2e103]: 共 0 条 · 每页 100 条
+            - generic [ref=f2e104]:
+              - button "上一页" [disabled] [ref=f2e105]
+              - generic [ref=f2e106]: 第 1 / 1 页
+              - button "下一页" [disabled] [ref=f2e107]
+        - generic [ref=f2e108]:
+          - generic [ref=f2e109]:
+            - heading "RunTrace" [level=2] [ref=f2e110]
+            - generic [ref=f2e111]: 尚未加载。
+          - generic [ref=f2e112]:
+            - heading "Reference" [level=2] [ref=f2e113]
+            - generic [ref=f2e114]: 尚未加载。
+          - generic [ref=f2e115]:
+            - heading "Judge" [level=2] [ref=f2e116]
+            - generic [ref=f2e117]: 尚未加载。
+          - generic [ref=f2e118]:
+            - heading "Attribute" [level=2] [ref=f2e119]
+            - generic [ref=f2e120]: 尚未加载。
+          - generic [ref=f2e121]:
+            - heading "Cluster" [level=2] [ref=f2e122]
+            - generic [ref=f2e123]: 尚未加载。
+          - generic [ref=f2e124]:
+            - heading "Check Agent 审核" [level=2] [ref=f2e125]
+            - generic [ref=f2e126]: 尚未加载。
+          - generic [ref=f2e127]:
+            - heading "Frontend ViewModel" [level=2] [ref=f2e128]
+            - generic [ref=f2e129]: 尚未加载。
+          - generic [ref=f2e130]:
+            - heading "Project Analysis" [level=2] [ref=f2e131]
+            - generic [ref=f2e132]: 尚未加载。
+          - generic [ref=f2e133]:
+            - heading "Batch / Case Pool Raw" [level=2] [ref=f2e134]
+            - generic [ref=f2e135]: 尚未加载。

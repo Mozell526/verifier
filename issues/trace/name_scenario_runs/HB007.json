@@ -1,0 +1,191 @@
+{
+  "id": "HB007",
+  "query": "马文博",
+  "role": "true_bare_name",
+  "expected_status": "fulfilled",
+  "source": "set_b",
+  "live_error": null,
+  "judge_error": null,
+  "live": {
+    "trace_id": "client_search:HB007:1786796486047",
+    "fields": [
+      "searchClientName"
+    ],
+    "values": [
+      "马文博"
+    ],
+    "robot_text": "客户姓名为马文博的客户",
+    "matched_patterns": "疑似姓名候选、姓名-模糊匹配",
+    "intent_summary": "客户姓名为马文博的客户",
+    "conditions": [
+      {
+        "field": "searchClientName",
+        "operator": "MATCH",
+        "value": "马文博",
+        "match_mode": null
+      }
+    ],
+    "extracted": {
+      "code": 0,
+      "msg": "操作成功",
+      "robot_text": "客户姓名为马文博的客户",
+      "end_flag": 1,
+      "trace_id": null,
+      "query": "马文博",
+      "query_logic": "AND",
+      "conditions": [
+        {
+          "field": "searchClientName",
+          "operator": "MATCH",
+          "value": "马文博",
+          "match_mode": null
+        }
+      ],
+      "matched_level": 2,
+      "matched_patterns": "疑似姓名候选、姓名-模糊匹配",
+      "rewritten_query": "马文博",
+      "intent_summary": "客户姓名为马文博的客户",
+      "confidence": 0.95,
+      "cost_times": 53.0
+    }
+  },
+  "judge_status": "fulfilled",
+  "judge_reasoning": "用户输入是独立的三字中文姓名，实际将其原样映射至客户本人姓名字段并使用支持的MATCH操作符；逻辑为AND且无额外条件，满足解析语义交付。",
+  "judge": {
+    "trace_id": "client_search:HB007:1786796486047",
+    "project_id": "client_search",
+    "business_expectations": [
+      {
+        "expectation_id": "按客户本人姓名检索目标客户",
+        "blocking": true,
+        "downstream_consumer": "下游客户搜索",
+        "user_intent": "查找客户本人姓名为马文博的客户",
+        "expected_outcome": "形成仅按客户本人姓名马文博筛选的可执行客户搜索条件",
+        "required_capabilities": [
+          "find-target-customers",
+          "search-intent-preservation",
+          "downstream-query-consumability",
+          "客户本人姓名字段",
+          "姓名值原样保留",
+          "AND逻辑"
+        ],
+        "acceptance_criteria": [
+          "条件字段语义为客户本人姓名",
+          "姓名值为马文博且未被改写或扩展",
+          "条件使用下游支持的姓名匹配操作符",
+          "未增加用户未表达的其他筛选条件"
+        ],
+        "boundary": {
+          "judge_scope": "parser_condition_semantics_only",
+          "result_set_verified": false
+        },
+        "priority": "核心交付",
+        "evidence_refs": []
+      }
+    ],
+    "fulfillment_assessments": [
+      {
+        "expectation_id": "按客户本人姓名检索目标客户",
+        "status": "fulfilled",
+        "score": 1.0,
+        "expected_evidence": [
+          "用户输入为独立的三字中文姓名“马文博”",
+          "预期是按客户本人姓名筛选，逻辑为AND"
+        ],
+        "actual_evidence": [
+          "实际条件为searchClientName MATCH 马文博",
+          "searchClientName定义为客户本人的人名字段且支持MATCH",
+          "未发现额外条件，条件数量为1且query_logic为AND"
+        ],
+        "downstream_impact": "条件语义完整可交付下游；本次未验证实际客户结果集。",
+        "confidence": null,
+        "evidence_refs": [],
+        "authority_tool_call_ids": []
+      }
+    ],
+    "overall_fulfillment": {
+      "status": "fulfilled",
+      "assessment_count": 1,
+      "blocking_expectations": [
+        "按客户本人姓名检索目标客户"
+      ]
+    },
+    "expected": {
+      "code": 0,
+      "msg": "操作成功",
+      "query": "马文博",
+      "conditions": [
+        {
+          "field": "searchClientName",
+          "operator": "MATCH",
+          "value": "马文博",
+          "match_mode": null
+        }
+      ],
+      "robot_text": "客户姓名为马文博的客户",
+      "query_logic": "AND",
+      "rewritten_query": "马文博"
+    },
+    "actual": {
+      "code": 0,
+      "msg": "操作成功",
+      "robot_text": "客户姓名为马文博的客户",
+      "end_flag": 1,
+      "trace_id": null,
+      "query": "马文博",
+      "query_logic": "AND",
+      "conditions": [
+        {
+          "field": "searchClientName",
+          "operator": "MATCH",
+          "value": "马文博",
+          "match_mode": null
+        }
+      ],
+      "matched_level": 2,
+      "matched_patterns": "疑似姓名候选、姓名-模糊匹配",
+      "rewritten_query": "马文博",
+      "intent_summary": "客户姓名为马文博的客户",
+      "confidence": 0.95,
+      "cost_times": 53.0
+    },
+    "missing": [],
+    "wrong": [],
+    "extra": [],
+    "evidence": [
+      {
+        "query": "马文博"
+      },
+      {
+        "actual_conditions": [
+          {
+            "field": "searchClientName",
+            "operator": "MATCH",
+            "value": "马文博",
+            "match_mode": null
+          }
+        ]
+      },
+      {
+        "result_set_verified": false,
+        "judge_scope": "parser_condition_semantics_only"
+      },
+      {
+        "source": "client_search.condition_compare",
+        "wrong": [],
+        "missing": [],
+        "extra": []
+      }
+    ],
+    "reasoning_summary": "用户输入是独立的三字中文姓名，实际将其原样映射至客户本人姓名字段并使用支持的MATCH操作符；逻辑为AND且无额外条件，满足解析语义交付。",
+    "summary": {
+      "reason": "fulfilled · 1 blocking expectations all met · 用户输入是独立的三字中文姓名，实际将其原样映射至客户本人姓名字段并使用支持的MATCH操作符；逻辑为AND且无额外条件，满足解析语义交付。",
+      "primary_failure_dimensions": [],
+      "reason_source": "aggregated_fulfillment",
+      "fulfillment_status": "fulfilled",
+      "assessment_count": 1,
+      "blocking_count": 1,
+      "is_formal_attribution": true
+    }
+  }
+}

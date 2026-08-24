@@ -1,0 +1,98 @@
+{
+  "cases_sha256": "bf9e77ee33b34d912316db83007134ae9cd708987be936cfbb03020ac51844d4",
+  "frozen_current_sha256": "e5c6d1c082ce7417b4d0fc27fe73bcc6f0506dcfcb6c02b9990b24254380c1ad",
+  "iterations": [
+    {
+      "decision": "regressed",
+      "draft_fingerprint": "51c252d7c0c27fa6fed5bc962c5c8ed1bf1c47bd350166113f7451591d072a2e",
+      "evidence": [
+        {
+          "artifact": {
+            "location": "draft/.state/judge/iterations/001-run.json",
+            "location_scope": "project_package",
+            "sha256": "94357ef140a07f2058d97b9fcfbf163ce72e5310632194064dafc049fabd68da"
+          }
+        },
+        {
+          "artifact": {
+            "location": "draft/.state/judge/iterations/001-role-review.json",
+            "location_scope": "project_package",
+            "sha256": "1beceaa1cccf3f1a2efe7bb91416e5c5633b8585dea302af597b6e0f657d7ec7"
+          }
+        }
+      ],
+      "iteration": 1,
+      "reason": "30条对比中088/093暴露字段定义Tool丢失显式is_supported=false；已定位为Draft Key-Index Load到minimal definition的投影缺陷，先修复后重跑。",
+      "route": "solidify",
+      "run_report": {
+        "location": "draft/.state/judge/iterations/001-run.json",
+        "location_scope": "project_package",
+        "sha256": "94357ef140a07f2058d97b9fcfbf163ce72e5310632194064dafc049fabd68da"
+      }
+    },
+    {
+      "decision": "regressed",
+      "draft_fingerprint": "1770b035f1f5f53a8ce07346cc83a7c72b8f88e18ca8e5ac4eba70aef89a4e71",
+      "evidence": [
+        {
+          "artifact": {
+            "location": "draft/.state/judge/iterations/002-run.json",
+            "location_scope": "project_package",
+            "sha256": "6e8f37d4cdeb15ced08d1d4174e78986556577f89eae159556df05c131fadec9"
+          }
+        },
+        {
+          "artifact": {
+            "location": "draft/.state/judge/iterations/002-role-review.json",
+            "location_scope": "project_package",
+            "sha256": "ba35d7990f50cca39d416124ed96e2554e31a2e4312d8832abc7787010f00679"
+          }
+        }
+      ],
+      "iteration": 2,
+      "reason": "第二轮字段 Tool 修复生效，但 source-badcase-088 在 Authority 已明确 customerReview is_supported=false、当前无法执行盘客搜索后仍判 not_fulfilled；Candidate Judge 把“字段存在于 manifest”误当“能力可交付”。同时冻结输入跨轮状态存在明显漂移，尚不能证明稳定改善。先修正 unsupported/Authority 消费并加门禁，再重跑。",
+      "route": "solidify",
+      "run_report": {
+        "location": "draft/.state/judge/iterations/002-run.json",
+        "location_scope": "project_package",
+        "sha256": "6e8f37d4cdeb15ced08d1d4174e78986556577f89eae159556df05c131fadec9"
+      }
+    },
+    {
+      "decision": "blocked",
+      "draft_fingerprint": "b5cf7837b33d50abeb1353ad98821cf743f5fcf592a75cd635b517a21dfb5500",
+      "evidence": [
+        {
+          "artifact": {
+            "location": "draft/.state/judge/iterations/003-run.json",
+            "location_scope": "project_package",
+            "sha256": "4eb89fe6ff304bbe7938cab637fd2d401fc4ad5b9c0f00f65174a45bb1952007"
+          }
+        },
+        {
+          "artifact": {
+            "location": "draft/.state/judge/iterations/003-role-review.json",
+            "location_scope": "project_package",
+            "sha256": "abc5c7aac51919830597f96ecb0d0494f0d4d078a23d45c7034b260241f72524"
+          }
+        }
+      ],
+      "iteration": 3,
+      "reason": "第三轮在 DeepSeek endpoint preflight 阶段因受限沙箱 DNS/网络不可达失败，未执行任何 case；这是基础设施失败，不代表 Draft 业务退化。切换到已授权网络后重跑。",
+      "route": "blocked",
+      "run_report": {
+        "location": "draft/.state/judge/iterations/003-run.json",
+        "location_scope": "project_package",
+        "sha256": "4eb89fe6ff304bbe7938cab637fd2d401fc4ad5b9c0f00f65174a45bb1952007"
+      }
+    }
+  ],
+  "max_iterations": 5,
+  "objective": "优化 client_search Draft Judge：以最新 Investigation Authority 材料和 Key-Index Search→Load 作为运行时导航，准确输出 fulfilled/not_fulfilled/not_evaluable；不把 SearchHit 当 Evidence，不静默全量加载，逐轮根据冻结 Current/Draft 结果探索改进。",
+  "project_id": "client_search",
+  "review": "在冻结 30 条 client_search badcase 上逐条比较 Current/Draft：业务判定不得退化；Authority 绑定、字段资料 Search→Load、unresolved 原因和所需证据必须可审计；embedding 实验未形成 shortlist 时不得冒充已选中能力；整体必须有可证明改善才可建议选中。",
+  "role": "judge",
+  "schema_version": 2,
+  "source_revision": "b4ffbb6245158be3b54d3e00c35214d1dd76b66f",
+  "status": "blocked"
+}

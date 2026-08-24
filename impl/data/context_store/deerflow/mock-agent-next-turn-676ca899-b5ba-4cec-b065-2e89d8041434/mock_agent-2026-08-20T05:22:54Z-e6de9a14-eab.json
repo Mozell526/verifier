@@ -1,0 +1,270 @@
+{
+  "caller": "mock_agent",
+  "created_at": "2026-08-20T05:22:54Z",
+  "elapsed_ms": 8723,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "draft"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "a44a88735f8ebe9339ec120efe78c453ff271e7198c45584b7ba83e2c4fcb31b",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [],
+      "lineage": {
+        "call_id": "",
+        "case_id": "",
+        "trace_id": "mock-agent-next-turn-676ca899-b5ba-4cec-b065-2e89d8041434"
+      },
+      "messages": [
+        {
+          "char_count": 987,
+          "content_sha256": "09c6e73d9f64cb1d57c7c1706b4a8190c2cc28d7496b98667b34075826149dde",
+          "role": "system"
+        },
+        {
+          "char_count": 2082,
+          "content_sha256": "eae6af2621e56bf4307283d0eac74b03f1ee0aa0cd4d850a0d25c1204698fd0f",
+          "role": "user"
+        }
+      ],
+      "mode": "draft",
+      "output_contract": {
+        "field_names": [
+          "query",
+          "turn_index"
+        ],
+        "identity": "impl.core.schema.mock.MockNextTurnOutput",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "84733bd57590216fd8397cd31d76b3e32ad8a9b2e9e7a1680b52bfb1261ea3ab",
+        "sha256": "84733bd57590216fd8397cd31d76b3e32ad8a9b2e9e7a1680b52bfb1261ea3ab"
+      },
+      "project_id": "deerflow",
+      "prompt_char_count": 3069,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 2082,
+        "occurred": false
+      },
+      "role": "mock",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "mock"
+          ],
+          "allowed_stages": [
+            "next_turn"
+          ],
+          "char_count": 297,
+          "content_sha256": "21321923ea5b6862082d0b4cfe46ee90a95013654486f32df570cfef38153188",
+          "order": 0,
+          "role": "mock",
+          "segment_id": "compiled-system",
+          "source": "impl/core/mock_agent.py#next_turn",
+          "stage": "next_turn"
+        },
+        {
+          "allowed_roles": [
+            "mock"
+          ],
+          "allowed_stages": [
+            "next_turn"
+          ],
+          "char_count": 2082,
+          "content_sha256": "eae6af2621e56bf4307283d0eac74b03f1ee0aa0cd4d850a0d25c1204698fd0f",
+          "order": 1,
+          "role": "mock",
+          "segment_id": "case-user-payload",
+          "source": "trace://mock/next_turn",
+          "stage": "next_turn"
+        }
+      ],
+      "stage": "next_turn",
+      "tool_plan": []
+    }
+  },
+  "llm_model": "deepseek-v4-flash-0731",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "你扮演真实用户，根据上一轮系统的回复，生成下一轮要说的话。场景：open_world_user。要求：1. 基于 user_context 的用户画像/背景，保持用户角色一致（语气、诉求、知识水平）。2. 基于 user_intent 的核心目标，在每轮 query 里体现目标推进（不要偏题）。3. 基于上轮 live 反馈里缺失的字段或系统的澄清提示，自然地补充；不要重复已说内容。只围绕用户目标、已有对话和上一轮可见业务结果自然推进。保持普通业务用户的表达方式，保留尚未确定的信息，不替用户补造新的事实。上一轮只完成部分目标时，继续追问或补充合适的业务视角；用户未选择的视角不要强行加入。\n\n## 输出约束：mock_agent 下一轮生成\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"query\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    },\n    \"turn_index\": {\n      \"type\": \"integer\"\n    }\n  },\n  \"additionalProperties\": false,\n  \"required\": [\n    \"query\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['query']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n",
+      "created_at": 1787203366,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "3118a2a7-5cca-487c-86db-b6c0c94b5275",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"case\": {\"scenario\": \"open_world_user\"}, \"user_intent\": \"比较上月与本月NBEV数据，并咨询应选择哪个观察视角。\", \"user_context\": {}, \"previous_turns\": [{\"turn_index\": 1, \"live_request\": {\"input\": {\"messages\": [{\"role\": \"user\", \"content\": \"嗯，我想比较一下上个月和这个月的NBEV情况，但我有点拿不准，应该看队伍维度还是产品维度？还是说两个都要看？你能帮我分析一下吗？\"}]}, \"config\": {\"configurable\": {}}}, \"extract_output\": {\"reply_text\": \"这是一个很好的问题！让我帮你分析一下：\\n\\n## 队伍维度 vs 产品维度\\n\\n**队伍维度**看的是：业务员的人均产能、活动率、留存率等，反映**队伍的销售能力**\\n\\n**产品维度**看的是：各险种的保费收入、结构占比、利润率等，反映**产品的销售情况**\\n\\n## 建议：两个维度都看\\n\\n实际上，**两个维度都很重要**，因为：\\n\\n1. **队伍是根源** — 如果队伍活动率下降或人效下滑，即使产品再好，NBEV也会受影响\\n2. **产品是载体** — 产品结构是否优化（趸交→期交、高价值产品占比）直接影响NBEV质量\\n3. **结合起来分析** — 你能看出是\\\"人\\\"的问题还是\\\"产品\\\"的问题，或者两者都有影响\\n\\n---\\n\\n我可以帮你调用 **万能营销画像** 功能，同时查看**队伍**和**产品**两个维度的数据对比，这样你能全面了解上个月vs这个月的NBEV变化情况。\\n\\n需要我帮你查询吗？\", \"tool_calls\": [], \"stage\": \"intent\", \"nbev_tool_count\": 0, \"scripts_called\": [], \"session_summary\": {\"thread_id\": \"6187443a-bf3a-4245-aca3-e346d35e708b\", \"expected_dimensions\": [], \"accumulated_dimensions\": [], \"missing_dimensions\": [], \"evidence_declared\": true, \"evidence_status\": \"declared\"}, \"fallback\": {\"used\": false, \"allowed\": false, \"reason\": \"\"}, \"errors\": []}, \"status\": \"succeeded\", \"error\": null}], \"live_feedback\": {\"stage\": \"intent\", \"missing_fields\": [], \"extracted_output\": {\"reply_text\": \"这是一个很好的问题！让我帮你分析一下：\\n\\n## 队伍维度 vs 产品维度\\n\\n**队伍维度**看的是：业务员的人均产能、活动率、留存率等，反映**队伍的销售能力**\\n\\n**产品维度**看的是：各险种的保费收入、结构占比、利润率等，反映**产品的销售情况**\\n\\n## 建议：两个维度都看\\n\\n实际上，**两个维度都很重要**，因为：\\n\\n1. **队伍是根源** — 如果队伍活动率下降或人效下滑，即使产品再好，NBEV也会受影响\\n2. **产品是载体** — 产品结构是否优化（趸交→期交、高价值产品占比）直接影响NBEV质量\\n3. **结合起来分析** — 你能看出是\\\"人\\\"的问题还是\\\"产品\\\"的问题，或者两者都有影响\\n\\n---\\n\\n我可以帮你调用 **万能营销画像** 功能，同时查看**队伍**和**产品**两个维度的数据对比，这样你能全面了解上个月vs这个月的NBEV变化情况。\\n\\n需要我帮你查询吗？\", \"tool_calls\": [], \"stage\": \"intent\", \"nbev_tool_count\": 0, \"scripts_called\": [], \"session_summary\": {\"thread_id\": \"6187443a-bf3a-4245-aca3-e346d35e708b\", \"expected_dimensions\": [], \"accumulated_dimensions\": [], \"missing_dimensions\": [], \"evidence_declared\": true, \"evidence_status\": \"declared\"}, \"fallback\": {\"used\": false, \"allowed\": false, \"reason\": \"\"}, \"errors\": []}}}",
+      "created_at": 1787203366,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "e75d84a6-12fe-47c4-8b84-ee6ac8290aa5",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"query\": \"好的，那就两个维度都看吧，帮我查一下上个月和这个月的NBEV数据对比。\", \"turn_index\": 2}",
+      "created_at": 1787203366,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "bb230fac-539d-4e72-9487-42dc7d79f20c",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 1369,
+        "output_tokens": 227,
+        "provider_metrics": null,
+        "reasoning_tokens": 190,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 1596
+      },
+      "name": null,
+      "provider_data": {
+        "id": "9f14c760-26af-4742-9b13-c61de9e19c09",
+        "model_extra": {
+          "request_id": "9f14c760-26af-4742-9b13-c61de9e19c09"
+        }
+      },
+      "reasoning_content": "The user asked about comparing last month's and this month's NBEV data, and was unsure whether to look at the team dimension or product dimension. The system responded with a detailed analysis suggesting both dimensions are important and offered to query the data using the \"万能营销画像\" function.\n\nNow I need to generate the next user turn. The user should naturally respond to the system's suggestion. Since the system asked \"需要我帮你查询吗？\" (Do you need me to help you query?), the user should respond affirmatively and perhaps provide more specific details about what they want to see.\n\nThe user's intent is to compare last month vs this month NBEV data and get advice on which perspective to choose. The system has already advised looking at both dimensions. Now the user should agree and ask the system to proceed with the query.\n\nLet me craft a natural response from a regular business user who agrees with the suggestion and wants to proceed.",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "deerflow",
+  "prompt_size": 3134,
+  "record_id": "e6de9a14-eaba-4bff-91c2-31fb5fe3e118",
+  "response": {
+    "content": "{\"query\": \"好的，那就两个维度都看吧，帮我查一下上个月和这个月的NBEV数据对比。\", \"turn_index\": 2}",
+    "metrics": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 1369,
+      "output_tokens": 227,
+      "reasoning_tokens": 190,
+      "total_tokens": 1596
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 8723,
+          "endpoint": "fallback1",
+          "model": "deepseek-v4-flash-0731",
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "selected_endpoint": "fallback1",
+      "selected_model": "deepseek-v4-flash-0731",
+      "stage": ""
+    }
+  },
+  "trace_id": "mock-agent-next-turn-676ca899-b5ba-4cec-b065-2e89d8041434"
+}

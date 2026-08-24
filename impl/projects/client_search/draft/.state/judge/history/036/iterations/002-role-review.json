@@ -1,0 +1,188 @@
+{
+  "contract_coverage": [
+    {
+      "evidence": [
+        "solidify.json#mappings",
+        "iterations/001-run.json#rows"
+      ],
+      "source_id": "authority-claim-index"
+    },
+    {
+      "evidence": [
+        "solidify.json#mappings",
+        "iterations/001-run.json#rows"
+      ],
+      "source_id": "authority-coverage-gaps"
+    },
+    {
+      "evidence": [
+        "solidify.json#mappings",
+        "iterations/001-run.json#rows"
+      ],
+      "source_id": "authority-investigation-report"
+    },
+    {
+      "evidence": [
+        "solidify.json#mappings",
+        "iterations/001-run.json#rows"
+      ],
+      "source_id": "authority-search-load"
+    },
+    {
+      "evidence": [
+        "solidify.json#mappings",
+        "iterations/001-run.json#rows"
+      ],
+      "source_id": "dimension:downstream-query-consumability"
+    },
+    {
+      "evidence": [
+        "solidify.json#mappings",
+        "iterations/001-run.json#rows"
+      ],
+      "source_id": "dimension:search-intent-preservation"
+    },
+    {
+      "evidence": [
+        "solidify.json#mappings",
+        "iterations/001-run.json#rows"
+      ],
+      "source_id": "expectation:find-target-customers"
+    },
+    {
+      "evidence": [
+        "solidify.json#mappings",
+        "iterations/001-run.json#rows"
+      ],
+      "source_id": "live_boundary"
+    }
+  ],
+  "criteria": [
+    {
+      "criterion_id": "expectation_support",
+      "evidence": [
+        "iterations/002-run.json#rows"
+      ],
+      "finding": "本轮未发现该项协议性问题。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "atomic_pre_actual_expectations",
+      "evidence": [
+        "iterations/002-run.json#rows"
+      ],
+      "finding": "本轮未发现该项协议性问题。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "pre_actual_blocking",
+      "evidence": [
+        "iterations/002-run.json#rows"
+      ],
+      "finding": "本轮未发现该项协议性问题。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "dimension_coverage",
+      "evidence": [
+        "iterations/002-run.json#rows"
+      ],
+      "finding": "本轮未发现该项协议性问题。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "fulfilled_external_evidence",
+      "evidence": [
+        "iterations/002-run.json#rows"
+      ],
+      "finding": "本轮未发现该项协议性问题。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "not_fulfilled_live_boundary",
+      "evidence": [
+        "iterations/002-run.json#rows"
+      ],
+      "finding": "source-badcase-088 已由 Authority resolved 为 customerReview is_supported=false、当前不能执行盘客搜索，但 Draft 仍把核心交付判为 not_fulfilled；这违反能力边界外/能力未开放应保守 not_evaluable 的三态规则。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "not_evaluable_evidence_gap",
+      "evidence": [
+        "iterations/002-run.json#rows"
+      ],
+      "finding": "source-badcase-088 的外部能力事实已经解析且明确不可执行，Draft 却未将核心交付收敛为 not_evaluable；同类 source-badcase-093 已正确判 not_evaluable，行为不一致。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "missing_output_no_escape",
+      "evidence": [
+        "iterations/002-run.json#rows"
+      ],
+      "finding": "本轮未发现该项协议性问题。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "external_constraint_non_attribution",
+      "evidence": [
+        "iterations/002-run.json#rows"
+      ],
+      "finding": "本轮未发现该项协议性问题。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "authority_anchor_scope",
+      "evidence": [
+        "iterations/002-run.json#rows"
+      ],
+      "finding": "Authority 调用本身成功且依据正确，但 source-badcase-088 的 assessment 没有正确消费 resolved statement，说明问题位于 Candidate Judge 的 Authority 结果落实，而非调查资料缺失。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "authority_unresolved_conservatism",
+      "evidence": [
+        "iterations/002-run.json#rows"
+      ],
+      "finding": "本轮未发现该项协议性问题。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "no_runtime_authority_investigation",
+      "evidence": [
+        "iterations/002-run.json#rows"
+      ],
+      "finding": "本轮未发现该项协议性问题。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "no_internal_or_unseen_leakage",
+      "evidence": [
+        "iterations/002-run.json#rows"
+      ],
+      "finding": "本轮未发现该项协议性问题。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "relative_improvement_no_regression",
+      "evidence": [
+        "iterations/002-run.json#rows"
+      ],
+      "finding": "第二轮修复了 093 的字段支持投影，但 088 仍出现确定性协议退化；同时同一冻结输入在两轮间 Current 有 008/028/143/148 四条状态漂移、Draft 有六条漂移，尚不能证明稳定的无退化改善。",
+      "status": "fail"
+    }
+  ],
+  "decision": "regressed",
+  "iteration": 2,
+  "project_id": "client_search",
+  "role": "judge",
+  "route": "solidify",
+  "run_report": {
+    "location": "draft/.state/judge/iterations/002-run.json",
+    "location_scope": "project_package",
+    "sha256": "6e8f37d4cdeb15ced08d1d4174e78986556577f89eae159556df05c131fadec9"
+  },
+  "run_report_sha256": "6e8f37d4cdeb15ced08d1d4174e78986556577f89eae159556df05c131fadec9",
+  "schema_version": 1,
+  "solidify_receipt_sha256": "b35a80c649beaa9b7e2ef3c3a771b12897b5b0a3198199eab1cbaf137a4dda9f",
+  "summary": "第二轮证明字段 Tool 已保留 customerReview/licensePlateNo 的显式 is_supported=false，093 已收敛为 not_evaluable；但 088 在 Authority 明确解析为“职责内、当前能力缺失”后仍被 Candidate Judge 判为 not_fulfilled，说明 unsupported 边界规则仍错误地把 in-manifest 字段等同于可交付能力。另有明显跨轮状态漂移，当前不能建议 promotion。下一步应只优化 Draft Judge 对 explicit is_supported=false 与 Authority resolved 结果的消费，并增加确定性门禁后重跑冻结 30 条。"
+}

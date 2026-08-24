@@ -1,0 +1,312 @@
+{
+  "caller": "judge",
+  "created_at": "2026-08-13T12:39:16Z",
+  "elapsed_ms": 221770,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "production"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "da80b0d02ad572631e38b8b461b17b9cd3e48521027891f41eb8a45b08a3b7a9",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [],
+      "lineage": {
+        "call_id": "",
+        "case_id": "policy-search-rich-0203",
+        "trace_id": "policy_search:policy-search-rich-0203:1786624534713"
+      },
+      "messages": [
+        {
+          "char_count": 7368,
+          "content_sha256": "f5559e2831ea15fd5d0a75f202e64faec2eaf6fc95f6497abac519065bb1f636",
+          "role": "system"
+        },
+        {
+          "char_count": 6482,
+          "content_sha256": "a17af7ae7d483e18c5e1ba016db1b7b385e5858524caf6537c12c2c8890f8d93",
+          "role": "user"
+        }
+      ],
+      "mode": "production",
+      "output_contract": {
+        "field_names": [
+          "acceptance_criteria",
+          "actual",
+          "actual_evidence",
+          "applicable_product_expectation_ids",
+          "authority_tool_call_ids",
+          "blocking",
+          "boundary",
+          "business_expectations",
+          "code",
+          "downstream_consumer",
+          "downstream_impact",
+          "error_type",
+          "evidence",
+          "evidence_ref",
+          "expectation_id",
+          "expected",
+          "expected_evidence",
+          "expected_outcome",
+          "extra",
+          "filter",
+          "fulfillment_assessments",
+          "incomplete",
+          "kind",
+          "message",
+          "missing",
+          "msg",
+          "priority",
+          "query",
+          "raw",
+          "reasoning_summary",
+          "required_capabilities",
+          "score",
+          "status",
+          "user_intent",
+          "wrong"
+        ],
+        "identity": "impl.core.schema.judge.JudgeLLMOutput",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "1ebd986c8c695abe1e8329086ca3fa881a0eaa83fe0e670d24af6af6d4fad2f0",
+        "sha256": "1ebd986c8c695abe1e8329086ca3fa881a0eaa83fe0e670d24af6af6d4fad2f0"
+      },
+      "project_id": "policy_search",
+      "prompt_char_count": 13850,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 6482,
+        "occurred": false
+      },
+      "role": "judge",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 1725,
+          "content_sha256": "5727bfa7858a8ce05122cd632b62736542f3792c880caa51ab16c7257d1f754b",
+          "order": 0,
+          "role": "judge",
+          "segment_id": "compiled-system",
+          "source": "impl/core/judge.py#judge_trace",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 6482,
+          "content_sha256": "a17af7ae7d483e18c5e1ba016db1b7b385e5858524caf6537c12c2c8890f8d93",
+          "order": 1,
+          "role": "judge",
+          "segment_id": "case-user-payload",
+          "source": "trace://judge-evidence-view",
+          "stage": "judge"
+        }
+      ],
+      "stage": "judge",
+      "tool_plan": []
+    }
+  },
+  "llm_model": "deepseek-v4-flash-0731",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "你是通用评估系统的 judge agent。\n\n## 核心原则\n只基于当前 RunTrace、项目评判标准和动态检索的知识库内容判断，不继承历史 case。\n首要职责：理解用户/下游消费者的真实业务意图 → 派生 business_expectations → 基于完整执行链路（每轮 output、最终 output、交互过程和停止事实）判断 expectations 的 fulfillment。\n\n## expectation 拆分原则\nbusiness_expectations 的粒度直接决定判断精度。每个 expectation 必须是原子、独立可评价的判断单元：证据充分时判 fulfilled 或 not_fulfilled；确需评价但当前证据不足时按协议判 not_evaluable。\n- 一个 expectation 只描述一个可独立验证的结果维度\n- 多维度意图必须拆成多个 expectation\n- 每个 expectation 必须有明确的 acceptance_criteria\n- 每个 expectation 必须在比较 actual 前确定 blocking：只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true\n- fulfillment_assessments 只判断对应 expectation 的 status 和证据，不得重新定义 blocking\n- expectation_id 必须是描述性的中文短语，禁止使用 E1/E2/exp_01 等占位符 ID\n- reasoning_summary 必须是中文写成的判断依据\n\n## 输出词表\n`fulfillment_assessments[*].status` 必须从以下 3 个值中选择：\n  - fulfilled：该 expectation 完全满足\n  - not_fulfilled：该 expectation 未满足\n  - not_evaluable：当前无法评估\n禁用 failed/passed/incorrect/wrong/met/unmet/partially_fulfilled/partial/success/fail/ok/unknown 等同义词。\n`fulfillment_assessments[*].expected_evidence` 与 `actual_evidence` **必须是数组**（JSON array / list），即使只有一条证据也要用 `[...]` 包裹，不可直接用字符串或对象。\n\n不要输出 overall_fulfillment；公共层会在项目契约补充完成后根据 blocking expectations 确定性派生整体状态。\n\n## 评估规范\n\n\n## 评估边界\n\n\n## 判断标准\n\n\n\n\n你评价的是保单筛选语义是否被完整、可执行且安全地表达。先判断服务依赖是否成功，再比较 query 与 filter。忽略 node_id 命名差异；允许逻辑等价的树。字段、操作符、值、角色、AND/OR/NOT 作用域、日期边界和条件完整性都必须正确。SUCCESS 必须有完整 filter；歧义、条件缺失或越界场景应 UNSUPPORTED 且不得返回部分 filter。业务实现、prompt 和配置是当前能力证据，不是不可质疑的自证。\n## 工具使用原则\n所有工具的用途、调用时机和参数含义以 Agno tool schema 为准；user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息。\n\n## 禁止事项\n- 不要把 reference answer 当作默认主目标（除非 case 明确指定）\n- 不要把 HTTP 状态、run_status、attribute/cluster 结论当作满足依据\n- 不要归因内部代码、配置或 prompt 原因（属于 attribute agent）\n- 分析文字必须使用中文，包括 reasoning_summary 等所有文本字段。\n\n\n## 输出约束：judge 判定输出（自产 reference + fulfillment 判定）\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"business_expectations\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeBusinessExpectationOutput\"\n      },\n      \"minItems\": 1\n    },\n    \"applicable_product_expectation_ids\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"fulfillment_assessments\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeFulfillmentAssessmentOutput\"\n      }\n    },\n    \"expected\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"code\": {\n          \"type\": \"integer\"\n        },\n        \"msg\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"query\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"filter\": {\n          \"type\": [\n            \"object\",\n            \"null\"\n          ]\n        },\n        \"message\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"code\",\n        \"msg\",\n        \"status\",\n        \"query\",\n        \"filter\",\n        \"message\"\n      ]\n    },\n    \"missing\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"wrong\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"extra\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"evidence\": {\n      \"type\": \"array\",\n      \"items\": {}\n    },\n    \"reasoning_summary\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    }\n  },\n  \"additionalProperties\": false,\n  \"$defs\": {\n    \"JudgeBusinessExpectationOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"blocking\": {\n          \"type\": \"boolean\"\n        },\n        \"downstream_consumer\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"user_intent\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected_outcome\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"required_capabilities\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"acceptance_criteria\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"boundary\": {\n          \"type\": \"object\"\n        },\n        \"priority\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"blocking\"\n      ]\n    },\n    \"JudgeFulfillmentAssessmentOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"score\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        },\n        \"expected_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"actual_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"downstream_impact\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"authority_tool_call_ids\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"status\"\n      ]\n    },\n    \"GapItem\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"kind\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"error_type\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected\": {},\n        \"actual\": {},\n        \"evidence_ref\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"raw\": {},\n        \"incomplete\": {\n          \"type\": \"boolean\"\n        }\n      },\n      \"additionalProperties\": false\n    }\n  },\n  \"required\": [\n    \"expected\",\n    \"business_expectations\",\n    \"reasoning_summary\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['business_expectations', 'expected', 'reasoning_summary']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n\n### 嵌套字段子结构约束\n以下字段内部的子结构也必须严格遵守，不可随意编造字段名或类型：\n- **`expected`** 字段 (项目 policy_search 的 expected/live output 结构) 必须符合以下结构：\n  ```json\n  {\n    \"type\": \"object\",\n    \"properties\": {\n      \"code\": {\n        \"type\": \"integer\"\n      },\n      \"msg\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"status\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"query\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"filter\": {\n        \"type\": [\n          \"object\",\n          \"null\"\n        ]\n      },\n      \"message\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"additionalProperties\": false,\n    \"required\": [\n      \"code\",\n      \"msg\",\n      \"status\",\n      \"query\",\n      \"filter\",\n      \"message\"\n    ]\n  }\n  ```\n",
+      "created_at": 1786624661,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "8fadcbfb-6464-4afc-b436-660d7d7da37f",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"user_intent\": \"筛选符合“保单周年日在未来15天的清单”所表达条件的保单\", \"run_trace\": {\"trace_id\": \"policy_search:policy-search-rich-0203:1786624534713\", \"project_id\": \"policy_search\", \"case_id\": \"policy-search-rich-0203\", \"intent_input\": {\"session_id\": \"policy-search-rich-0203\", \"trace_id\": \"policy-search-rich-0203\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"麻烦帮我筛一下，保单周年日在未来15天的清单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"normalized_request\": {\"session_id\": \"policy-search-rich-0203\", \"trace_id\": \"policy-search-rich-0203\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"麻烦帮我筛一下，保单周年日在未来15天的清单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"final_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"麻烦帮我筛一下，保单周年日在未来15天的清单\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"pol_annual_day\", \"operator\": \"BETWEEN\", \"range\": {\"lower\": \"2026-08-07\", \"upper\": \"2026-08-22\", \"include_lower\": true, \"include_upper\": false}}, \"message\": \"解析成功\"}, \"final_output_turn\": 1, \"turns\": [{\"turn_index\": 1, \"request\": {\"session_id\": \"policy-search-rich-0203\", \"trace_id\": \"policy-search-rich-0203\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"麻烦帮我筛一下，保单周年日在未来15天的清单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"extracted_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"麻烦帮我筛一下，保单周年日在未来15天的清单\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"pol_annual_day\", \"operator\": \"BETWEEN\", \"range\": {\"lower\": \"2026-08-07\", \"upper\": \"2026-08-22\", \"include_lower\": true, \"include_upper\": false}}, \"message\": \"解析成功\"}, \"call_status\": \"succeeded\", \"runtime_ms\": 3, \"error\": null, \"fallbacks\": [], \"validation\": [], \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"application_boundary\": {\"dependency_status\": \"available\", \"allow_fallback\": false, \"excluded_evidence\": [], \"notes\": \"parser returned an executable filter\"}, \"project_fields\": {\"parse_status\": \"SUCCESS\", \"filter_root_type\": \"PREDICATE\"}}], \"conversation_transcript\": [{\"role\": \"user\", \"content\": \"麻烦帮我筛一下，保单周年日在未来15天的清单\", \"query\": \"麻烦帮我筛一下，保单周年日在未来15天的清单\"}, {\"role\": \"assistant\", \"content\": \"解析成功\", \"stage\": null}], \"conversation_summary\": {\"turn_count\": 1, \"final_output_turn\": 1, \"completion_status\": \"completed\", \"stop_reason\": \"goal_satisfied\", \"interaction_controller_status\": \"ok\", \"interaction_controller_error\": \"\"}, \"stop_reason\": \"goal_satisfied\", \"completion_status\": \"completed\", \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"evidence_refs\": [], \"raw_response_evidence\": null, \"evidence_completeness\": {\"complete\": true, \"missing_evidence\": []}, \"application_boundary\": {\"dependency_status\": \"available\", \"allow_fallback\": false, \"excluded_evidence\": [], \"notes\": \"parser returned an executable filter\"}, \"reference_contract\": {}, \"scenario\": \"time_boundary\", \"status\": \"ok\", \"error\": null}, \"query\": \"麻烦帮我筛一下，保单周年日在未来15天的清单\", \"actual_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"麻烦帮我筛一下，保单周年日在未来15天的清单\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"pol_annual_day\", \"operator\": \"BETWEEN\", \"range\": {\"lower\": \"2026-08-07\", \"upper\": \"2026-08-22\", \"include_lower\": true, \"include_upper\": false}}, \"message\": \"解析成功\"}, \"turn_records\": [{\"turn_index\": 1, \"query\": \"麻烦帮我筛一下，保单周年日在未来15天的清单\", \"status\": \"SUCCESS\", \"message\": \"解析成功\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"pol_annual_day\", \"operator\": \"BETWEEN\", \"range\": {\"lower\": \"2026-08-07\", \"upper\": \"2026-08-22\", \"include_lower\": true, \"include_upper\": false}}, \"contexts\": []}], \"interactive_scenario\": false, \"reference_contract\": {}, \"business_evidence_paths\": {\"api_contract\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索算法解析接口文档（智能体对接稿）.md\", \"filter_contract\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索查询语法树协议（首期精简版）.md\", \"technical_design\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索算法解析技术方案（当前实现版）.md\", \"business_config\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/configs/insurance_search_business_config_prd.json\", \"runtime_config\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/configs/insurance_search_runtime_config_prd.json\", \"golden_manifest\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/data/golden_dataset/manifest.json\"}, \"evaluation_dimensions\": [\"field_selection\", \"operator_and_value\", \"logical_scope\", \"time_boundary\", \"condition_completeness\", \"safe_failure\"]}",
+      "created_at": 1786624661,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "ae1bd138-7433-4061-a841-daaf6db92953",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\n  \"expected\": {\n    \"code\": 0,\n    \"msg\": \"success\",\n    \"status\": \"SUCCESS\",\n    \"query\": \"麻烦帮我筛一下，保单周年日在未来15天的清单\",\n    \"filter\": {\n      \"type\": \"PREDICATE\",\n      \"field\": \"pol_annual_day\",\n      \"operator\": \"BETWEEN\",\n      \"range\": {\n        \"lower\": \"2026-08-07\",\n        \"upper\": \"2026-08-22\",\n        \"include_lower\": true,\n        \"include_upper\": false\n      }\n    },\n    \"message\": \"解析成功\"\n  },\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"服务依赖可用并返回可执行filter\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"下游保单检索执行器\",\n      \"user_intent\": \"用户要求解析“保单周年日在未来15天”的筛选条件并获得可执行结果\",\n      \"expected_outcome\": \"解析服务依赖可用，返回status=SUCCESS且filter为完整PREDICATE结构\",\n      \"required_capabilities\": [\"状态码与消息返回\", \"结构化filter输出\"],\n      \"acceptance_criteria\": [\"final_output.status为SUCCESS\", \"filter为合法PREDICATE且非空\", \"dependency_status为available\"],\n      \"boundary\": {\"dependency_status\": \"available\", \"allow_fallback\": false},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"保单周年日字段识别正确\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"下游保单检索执行器\",\n      \"user_intent\": \"识别出筛选字段为保单周年日而非其他日期字段\",\n      \"expected_outcome\": \"filter.field正确映射为pol_annual_day\",\n      \"required_capabilities\": [\"字段映射pol_annual_day\", \"时间日期类字段识别\"],\n      \"acceptance_criteria\": [\"filter.field == pol_annual_day\"],\n      \"boundary\": {},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"未来15天日期窗口计算正确\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"下游保单检索执行器\",\n      \"user_intent\": \"以2026-08-06 10:30为基准确定未来15个自然日的日期范围\",\n      \"expected_outcome\": \"日期范围覆盖2026-08-07至2026-08-21共15个自然日\",\n      \"required_capabilities\": [\"currentTime时间串接\", \"未来N天日期窗口计算\", \"BETWEEN范围构造\"],\n      \"acceptance_criteria\": [\"范围覆盖天数恰好为15天\", \"起始日为2026-08-07\", \"结束日为2026-08-21\"],\n      \"boundary\": {\"基准时间\": \"2026-08-06 10:30:00\"},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"时间边界包含语义正确\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"下游保单检索执行器\",\n      \"user_intent\": \"确保边界日期归属正确：首日包含、恰好超出第15天的日期被排除\",\n      \"expected_outcome\": \"BETWEEN操作符以include_lower=true、include_upper=false表达左闭右开区间[2026-08-07, 2026-08-22)\",\n      \"required_capabilities\": [\"BETWEEN边界语义\", \"include_lower/include_upper控制\"],\n      \"acceptance_criteria\": [\"include_lower为true\", \"include_upper为false\", \"upper等于lower加15天\"],\n      \"boundary\": {},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"筛选条件表达完整\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"下游保单检索执行器\",\n      \"user_intent\": \"完整表达“保单周年日在未来15天”这一单一条件，不缺失任何要素\",\n      \"expected_outcome\": \"输出单一完整PREDICATE条件，field/operator/range齐全，无部分或空filter\",\n      \"required_capabilities\": [\"条件完整性表达\", \"PREDICATE节点构造\"],\n      \"acceptance_criteria\": [\"filter.type为PREDICATE\", \"field/operator/range任一要素均不缺失\", \"无未表达或遗漏的筛选条件\"],\n      \"boundary\": {},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"边界场景安全失败策略正确\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"下游保单检索执行器\",\n      \"user_intent\": \"对日期窗口类场景，在语义可明确时不返回部分filter，在歧义时按安全策略处理\",\n      \"expected_outcome\": \"本case语义明确，直接返回SUCCESS及完整filter，不使用UNSUPPORTED，也不截断条件\",\n      \"required_capabilities\": [\"安全失败判定\", \"UNSUPPORTED路由\"],\n      \"acceptance_criteria\": [\"语义明确时status为SUCCESS\", \"未出现部分filter\", \"未误报UNSUPPORTED\"],\n      \"boundary\": {\"scenario\": \"time_boundary\"},\n      \"priority\": \"P1\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"服务依赖可用并返回可执行filter\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\"dependency_status=available\", \"status=SUCCESS\", \"filter为完整PREDICATE\"],\n      \"actual_evidence\": [\"application_boundary.dependency_status=available\", \"final_output.status=SUCCESS\", \"filter.type=PREDICATE且field/operator/range齐全\", \"execution_trace中validate_request与validate_output均succeeded\"],\n      \"downstream_impact\": \"下游可直接执行filter，无需兜底或人工干预\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"保单周年日字段识别正确\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\"filter.field为pol_annual_day\"],\n      \"actual_evidence\": [\"filter.field=pol_annual_day，与用户表述“保单周年日”语义一致\"],\n      \"downstream_impact\": \"下游在正确的字段上执行范围匹配，不会误查其他日期字段\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"未来15天日期窗口计算正确\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\"日期窗口覆盖2026-08-07至2026-08-21共15个自然日\"],\n      \"actual_evidence\": [\"range=[2026-08-07, 2026-08-22)，包含8月7日至8月21日共15个自然日，与基准时间2026-08-06 10:30:00推算一致\"],\n      \"downstream_impact\": \"下游将正确命中未来15天内周年日的保单集合\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"时间边界包含语义正确\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\"include_lower=true且include_upper=false，upper为lower加15天\"],\n      \"actual_evidence\": [\"include_lower=true包含2026-08-07\", \"include_upper=false排除2026-08-22，恰好保留15天，无一天偏差\"],\n      \"downstream_impact\": \"边界日期命中与排除精确，不产生多命中或漏命中\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"筛选条件表达完整\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\"单一完整PREDICATE节点，field/operator/range齐全\"],\n      \"actual_evidence\": [\"filter为完整PREDICATE，field=pol_annual_day、operator=BETWEEN、range完整，无其他遗漏条件\"],\n      \"downstream_impact\": \"下游可无损执行用户全部筛选意图\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"边界场景安全失败策略正确\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\"语义明确场景返回SUCCESS而非UNSUPPORTED\", \"未返回部分filter\"],\n      \"actual_evidence\": [\"本case语义明确，status=SUCCESS并返回完整filter，符合安全失败策略，未误报UNSUPPORTED\"],\n      \"downstream_impact\": \"用户获得完整可执行结果，流程无阻断\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"missing\": [],\n  \"wrong\": [],\n  \"extra\": [],\n  \"evidence\": [],\n  \"reasoning_summary\": \"用户查询“保单周年日在未来15天”是典型的时间边界筛选场景，基准时间为2026-08-06 10:30:00。系统返回SUCCESS，filter为pol_annual_day BETWEEN [2026-08-07, 2026-08-22)，即包含8月7日至8月21日共15个自然日。“未来15天”按业务常规从次日开始起算，起始日为8月7日，第15天为8月21日；上界取8月22日且include_upper=false，恰好排除第16天，边界数学正确。字段映射、BETWEEN操作符、边界包含关系、条件完整性均符合用户意图，且本场景语义无歧义，无需走UNSUPPORTED安全失败路径。据此6项business expectations全部判定fulfilled，missing/wrong/extra均为空。\"\n}",
+      "created_at": 1786624661,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "1b2f3511-236c-4838-908c-e72699ccd66d",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 2304,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 4434,
+        "output_tokens": 10947,
+        "provider_metrics": null,
+        "reasoning_tokens": 8771,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 15381
+      },
+      "name": null,
+      "provider_data": {
+        "id": "24fbb269-7389-4c32-8ca0-7a7ae934cab9",
+        "model_extra": {
+          "cost": "0"
+        }
+      },
+      "reasoning_content": "我需要仔细分析这个case。这是一个保单筛选语义解析的评估任务。\n\n用户意图：筛选符合“保单周年日在未来15天的清单”所表达条件的保单。\n\n查询语句：“麻烦帮我筛一下，保单周年日在未来15天的清单”\n当前时间：2026-08-06 10:30:00\n\n实际输出：\n- code: 0\n- status: SUCCESS\n- filter: PREDICATE, field=pol_annual_day, operator=BETWEEN, range lower=2026-08-07, upper=2026-08-22, include_lower=true, include_upper=false\n\n让我思考一下“保单周年日在未来15天”应该怎么理解。\n\n当前时间：2026-08-06 10:30:00\n“未来15天”通常指从当前时间开始往后的15天。\n\n如果从2026-08-06开始算未来15天，那么：\n- 如果包含今天：8月6日到8月20日（15天包含今天的话，未来15天中今天是第1天）\n- 如果不包含今天：8月7日到8月21日（未来15天，从明天开始算15天）\n\n实际上“未来15天”常见的理解是从明天开始到第15天，即：\n- 2026-08-07 到 2026-08-21（15天：8/7, 8/8, ..., 8/21，共15天）\n\n或者从今天开始算15天：\n- 2026-08-06 到 2026-08-20（15天）\n\n实际输出是 lower=2026-08-07, upper=2026-08-22, include_upper=false。\n\n让我计算一下：8月7日到8月22日，不包含8月22日，即 8/7, 8/8, ..., 8/21，共15天。所以这个范围是 [8/7, 8/22)，包含8/7到8/21共15天。\n\n等一下，8月7日到8月21日是15天（21-7+1=15）。所以 [2026-08-07, 2026-08-22) 包含8/7到8/21共15天。\n\n所以实际输出的含义是：保单周年日在8月7日到8月21日之间（含8月7日，不含8月22日），共15天。\n\n这是否正确？\n\n从2026-08-06 10:30:00开始，“未来15天”应该是指从明天（8月7日）开始算起15天内，即8月7日到8月21日。这个理解是合理的，因为“未来15天”通常指从明天起的15天。\n\n不过，有些理解可能是从今天开始算未来15天，即到今天24:00之前是14天多，严格来说从8月6日10:30到8月21日10:30是15天。让我思考：\n\n“保单周年日在未来15天” - 保单周年日是日期，不是具体时间。所以应该理解为未来15个自然日。\n\n从2026-08-06开始：\n- 未来第1天：8月7日\n- 未来第15天：8月21日\n\n所以范围是8月7日到8月21日，共15天。实际输出的 [8/7, 8/22) 正好包含这15天。\n\n另一种理解：包含今天的话，今天是第1天，未来15天是8月6日到8月20日。但通常说“未来15天”不包含今天，因为“未来”是相对于现在而言的，今天是当前时间，不属于未来。\n\n再有一种理解：以当前时刻为准，未来15天是 2026-08-06 10:30 到 2026-08-21 10:30，包含的日期是 8/6, 8/7, ..., 8/21，即16个日期（因为8/6还剩下半天，8/21只有半天）。但这不太符合常见表达。\n\n实际上，在保险业务中，“保单周年日在未来15天”通常指的是从明天（或今天）起15天内包含的日期。考虑到当前时间是8月6日10:30，如果查询“未来15天的保单周年日”，业务上通常指未来15个自然日。\n\n我认为 [8/7, 8/22) 即8月7日到8月21日的解释是合理的：明天的日期开始，共15天。\n\n但是，另一种常见理解是：未来15天包含今天，即从8月6日到8月20日。在这种理解下，实际输出就少了8月6日这一天，且多了8月21日（实际输出包含8月21日，而如果含今天则是8/6-8/20）。\n\n让我重新思考。在保险/金融业务中，“未来N天”通常如何界定？比如“保单在未来30天内到期”，通常从当天开始算。但因为当前时间是8月6日10:30，距离8月6日结束还有13.5小时，所以“未来15天”作为一个日期范围，可以有多种定义。\n\n关键的判断是：这是否是一个明确的业务歧义？如果存在歧义，系统应该返回UNSUPPORTED还是选择一种理解？\n\n根据指导原则：“歧义、条件缺失或越界场景应 UNSUPPORTED 且不得返回部分 filter”。\n\nhmm，但是“未来15天”这个表达本身在中文中已经相当标准化，通常指从明天起的15天。在保险业务中，更常见的定义可能是：\n- “未来15天” = 从今天00:00（或当前时间）到第15天24:00\n\n让我从另一个角度思考：保单周年日是一个日期（月日），保单周年日在未来15天，即保单周年日在未来15天内。从2026-08-06起未来15天：\n\n常见释义A（从明天起15天）：8/7 - 8/21（含）\n常见释义B（从今天起15天，含今天）：8/6 - 8/20（含）\n常见释义C（从今天起15天，不含今天，即从今天24:00起算）：8/7 - 8/21（含）—— 与A相同\n\n实际输出：[8/7, 8/22) = 8/7 - 8/21（含15天）\n\n所以实际输出对应释义A/C。\n\n我认为释义A是最常见的“未来15天”的理解。从明天开始计算未来15天，确实是8月7日到8月21日。\n\n让我核对一下：8月有31天。8月7日到8月21日，21-7+1=15天。是的。\n\n当前时间是8月6日10:30，“未来15天”从明天8月7日开始，到8月21日结束，共15天。这个范围是对的。\n\n关于 include_upper=false 的意义：upper=2026-08-22 且不包含，即最大值是8月21日。这保证了恰好15天。如果 include_upper=true 且 upper=2026-08-21，同样表示8月7日到8月21日。所以这个表达是等价的。\n\n不过，这里有个细节需要注意：保单周年日是月份+日期（月日），例如某保单周年日是8月15日。日期范围 [2026-08-07, 2026-08-22) 表示周年日在8月7日（含）到8月22日（不含）之间。这似乎没错。\n\n但还有一个需要考虑的问题：字段是 pol_annual_day（保单周年日），值通常是月日（如 MM-DD）。filter中使用的是2026年的日期，但没有说明如何处理跨年情况。例如如果未来15天跨过12月31日到1月，那么周年日比较需要考虑1月1日-1月15日的情况。但本case不涉及跨年（8月），所以没问题。\n\n现在，让我看看业务文档来确认能力清单。虽然题目中提到了 business_evidence_paths，但我不能直接读取文件，只能根据运行痕迹和已知信息判断。\n\n根据提示：“user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息”。但这里没有提供完整能力清单。我需要依据保单搜索领域的一般知识和运行痕迹来判断。\n\n让我构建business_expectations：\n\n1. 服务依赖成功：解析服务可执行，返回合法输出（blocking）\n2. 字段选择正确：识别“保单周年日”对应 pol_annual_day 字段（blocking）\n3. 时间窗口语义正确：“未来15天”应转换为从明天起的15个自然日（blocking）\n4. 边界条件正确：包含下限、不包含上限，确保日期数学正确（blocking）\n5. 查询条件完整性：单个条件，条件完整无缺失（blocking）\n6. 安全失败：无明显歧义不应 UNSUPPORTED（非blocking，或blocking？）\n\n让我细化这些expectations：\n\nE1: 服务依赖可用 - 解析服务能够成功执行并返回结构化结果。blocking=true\nE2: 字段识别 - “保单周年日”被解析为 pol_annual_day 字段。blocking=true\nE3: 时间窗口计算 - “未来15天”从2026-08-06计算得到正确的15天日期范围。blocking=true\nE4: 边界操作符 - BETWEEN 的 include_lower/include_upper 语义正确表达“未来15天”。blocking=true\nE5: 条件完整性 - 输出包含完整 filter，且没有缺失条件。blocking=true\n\n关于时间窗口，让我再次验证：\n当前时间 2026-08-06 10:30:00\n未来15天：8月7日、8月8日、8月9日、8月10日、8月11日、8月12日、8月13日、8月14日、8月15日、8月16日、8月17日、8月18日、8月19日、8月20日、8月21日 —— 15天\n\n实际输出 [2026-08-07, 2026-08-22) → 8月7日 00:00:00 ≤ 周年日 < 8月22日 00:00:00 → 8月7日到8月21日，15天。✅\n\n日期数学：8月7日 + 14天 = 8月21日；8月22日 - 1天 = 8月21日。所以上界8月22日（不含）使得8月21日被包含，共15天。✅\n\n现在考虑是否有歧义。有一种观点认为“未来15天”可能包含今天8月6日（即8/6-8/20）。但这种理解相对较少见。更常见的“未来15天”是从明天开始。在众多保险业务场景中，“未来N天”一般指从次日开始（当日已过部分不能算“未来”）。此外，当前时间是8月6日10:30，8月6日这一天已经过去将近一半，说“保单周年日在未来15天”不太可能指8月6日。\n\n我觉得实际输出是合理的、可执行的。SUCCESS + 完整filter是合理的。\n\n不过，我需要更仔细地检查。假设有一个保单周年日是8月6日（今天），它的周年日在“未来15天”内吗？如果按“未来15天 = 明天起的15天”，8月6日不算。如果保单周年日是8月6日，那是今天，不是未来。所以不算是对的。\n\n如果保单周年日是8月21日，它在范围内（第15天）。如果保单周年日是8月22日，它在范围内吗？8月22日是从8月7日起的第16天，不在15天范围内。实际输出排除8月22日。✅\n\n所以整体来看，实际输出是合理的。\n\n现在评估每个expectation：\n\nE1 服务依赖：execution_trace 显示 live_schema.validate_request 和 validate_output 均 succeeded，final_output 有完整 filter。application_boundary dependency_status=available。→ fulfilled\n\nE2 字段识别：filter.field = \"pol_annual_day\"，正确对应“保单周年日”。→ fulfilled\n\nE3 时间窗口计算：当前时间2026-08-06 10:30，未来15天 = 2026-08-07 ~ 2026-08-21。filter range [2026-08-07, 2026-08-22) 覆盖8/7-8/21共15天。→ fulfilled\n\nE4 边界操作符：include_lower=true（包含8月7日），include_upper=false（不含8月22日），BETWEEN语义正确。→ fulfilled\n\nE5 条件完整性：完整PREDICATE树，无缺失。→ fulfilled\n\n还有安全失败方面：该case没有歧义到需要UNSUPPORTED的程度，SUCCESS是合适的。\n\n现在我需要输出expected字段（自己派生的reference）：\n- code: 0\n- msg: \"success\"\n- status: \"SUCCESS\"\n- query: \"麻烦帮我筛一下，保单周年日在未来15天的清单\"\n- filter: {\"type\": \"PREDICATE\", \"field\": \"pol_annual_day\", \"operator\": \"BETWEEN\", \"range\": {\"lower\": \"2026-08-07\", \"upper\": \"2026-08-22\", \"include_lower\": true, \"include_upper\": false}}\n- message: \"解析成功\"\n\n等等，我需要仔细思考一下：我的expected filter是否应该与实际完全一致？还是我允许逻辑等价但形式不同的树？\n\n指导原则说：“忽略 node_id 命名差异；允许逻辑等价的树”。所以我应该比较语义而非形式。\n\n我的expected表示：pol_annual_day BETWEEN [2026-08-07, 2026-08-22)\n\n与实际的 filter 完全一致。所以没有gap。\n\n关于missing/wrong/extra：都应该是空数组。\n\nreasoning_summary：中文说明判断依据。\n\n现在让我定义business_expectations的细节：\n\n1. expectation_id: \"服务依赖可用并返回可执行filter\"\n   - blocking: true\n   - downstream_consumer: \"下游保单检索执行器\"\n   - user_intent: \"用户要求按保单周年日在未来15天进行筛选\"\n   - expected_outcome: \"解析服务可用，返回状态SUCCESS且filter为非空可执行结构\"\n   - required_capabilities: [\"结构化filter输出\", \"状态码返回\"]\n   - acceptance_criteria: [\"final_output.status为SUCCESS\", \"filter字段存在且结构合法\"]\n   - boundary: {\"dependency_status\": \"available\"}\n   - priority: \"P0\"\n\n2. expectation_id: \"保单周年日字段识别正确\"\n   - blocking: true\n   - downstream_consumer: \"下游保单检索执行器\"\n   - user_intent: \"识别出筛选字段是保单周年日\"\n   - expected_outcome: \"filter使用pol_annual_day字段\"\n   - required_capabilities: [\"pol_annual_day字段映射\"]\n   - acceptance_criteria: [\"filter.field == pol_annual_day\"]\n   - priority: \"P0\"\n\n3. expectation_id: \"未来15天日期窗口计算正确\"\n   - blocking: true\n   - downstream_consumer: \"下游保单检索执行器\"\n   - user_intent: \"以2026-08-06为基准计算未来15天的日期范围\"\n   - expected_outcome: \"范围覆盖2026-08-07至2026-08-21共15个自然日\"\n   - required_capabilities: [\"当前时间串接\", \"日期窗口计算\"]\n   - acceptance_criteria: [\"range覆盖的日期集合等于从2026-08-07起的15个自然日\"]\n   - priority: \"P0\"\n\n4. expectation_id: \"时间边界包含关系正确\"\n   - blocking: true\n   - downstream_consumer: \"下游保单检索执行器\"\n   - user_intent: \"确保边界日期被正确包含或排除\"\n   - expected_outcome: \"下限日期被包含，恰好第16天的日期被排除\"\n   - required_capabilities: [\"BETWEEN操作符及边界语义\"]\n   - acceptance_criteria: [\"include_lower=true\", \"include_upper=false且upper为第16天\"]\n   - priority: \"P0\"\n\n5. expectation_id: \"查询条件完整无缺失或部分返回\"\n   - blocking: true\n   - downstream_consumer: \"下游保单检索执行器\"\n   - user_intent: \"完整表达筛选条件，不返回部分filter\"\n   - expected_outcome: \"输出单一完整PREDICATE条件，无缺失字段\"\n   - required_capabilities: [\"条件完整性表达\"]\n   - acceptance_criteria: [\"filter为合法PREDICATE且无空条件\", \"无歧义导致UNSUPPORTED场景\"]\n   - priority: \"P0\"\n\n6. 另一个考量：安全失败（safe_failure）。此case的场景标签是 time_boundary，评估维度包括 safe_failure。需要判断系统是否正确处理边界场景。这里的边界场景是“未来15天”的日期边界。系统正确处理了边界（8/7含，8/22不含）。没有歧义到需要UNSUPPORTED。所以这是一个非blocking的expectation或可以并入其他expectation。\n\n我认为5个blocking expectations足够了。也许再加一个非blocking的关于安全失败的expectation：\nexpecation_id: \"日期边界场景安全处理\"\n- blocking: false（非缺失核心，因为即使边界有小的偏差，如果整体语义正确……不对，边界偏差会导致错误命中，应该是blocking的）\n\n嗯，边界处理其实合并到E4了。安全失败维度考察的是：歧义时不应返回部分filter。这个case没有歧义，返回了完整filter。所以安全失败是满足的。\n\n让我把安全失败作为独立expectation：\nexpectation_id: \"歧义场景安全失败（不返回部分filter）\"\n- blocking: true（如果系统在歧义时返回部分filter，会阻断核心目的）\n- 不过实际上，在这个case中，语义是否歧义呢？我认为“未来15天”的标准理解是从明天起15天，没有显著歧义。所以系统返回SUCCESS是安全的。\n\n让我考虑是否有任何理由认为这个case应该 UNSUPPORTED。指导原则说：“歧义、条件缺失或越界场景应 UNSUPPORTED 且不得返回部分 filter”。\n\n“未来15天”是否歧义？在中文语境中，“未来15天”最自然理解为从明天开始的15天（因为今天已经部分过去）。但也可以理解为从今天0点/当前时刻起的15天。让我看具体差异：\n- 从明天起：8/7-8/21（15天）\n- 从当前时刻起：8/6 10:30 - 8/21 10:30（包含日期8/6-8/21，即16个日历日，因为首尾日期都部分包含）\n\n如果按“从当前时刻起的15×24小时”理解，8/6的周年日（已过10:30的部分）…… 保单周年日是一个日期，不是时刻。所以“从当前时刻起15天”按日期理解是8/6到8/21，16个日期。\n\n这确实存在边界模糊。但业务上，“未来15天”通常指未来15个自然日，从明天开始起算（今天是“今天”，不是“未来”）。所以 [8/7, 8/22) 是合理且通常的选择。\n\n作为judge，我认为不应过度解读歧义。实际输出表达了合理的、可执行的语义，符合用户意图。SUCCESS是合适的。\n\n现在，fulfillment_assessments 需要对应 business_expectations 的每个 expectation。\n\n让我组织输出：\n\nexpected 字段（自产reference）：\n```json\n{\n  \"code\": 0,\n  \"msg\": \"success\",\n  \"status\": \"SUCCESS\",\n  \"query\": \"麻烦帮我筛一下，保单周年日在未来15天的清单\",\n  \"filter\": {\n    \"type\": \"PREDICATE\",\n    \"node_id\": \"n0\",\n    \"field\": \"pol_annual_day\",\n    \"operator\": \"BETWEEN\",\n    \"range\": {\n      \"lower\": \"2026-08-07\",\n      \"upper\": \"2026-08-22\",\n      \"include_lower\": true,\n      \"include_upper\": false\n    }\n  },\n  \"message\": \"解析成功\"\n}\n```\n\n等等，我应该确保expected不包含node_id吗？schema允许 filter 是object，没有具体限制node_id。不过expected的filter应该是什么结构？我作为judge派生reference时，可以包含node_id（忽略node_id差异）或不包含。为了简洁，我可以给出不含node_id的filter，但为了对齐实际输出，也可以包含。我选择包含，因为预期输出就是如此。不，让我想想。expected 是 judge 自产的 reference。如果忽略node_id，那么 expected filter 可以不含node_id。但 schema 的 filter 类型是 object 或 null，没有强制内部结构。我给出一个逻辑等价的filter即可。为了清晰，我给出与实际相同的结构（包含node_id也可以，因为node_id是输出格式的一部分）。\n\n实际上，我觉得expected应该是一个“标准答案”的样子。我会提供：\n```json\n{\n  \"type\": \"PREDICATE\",\n  \"field\": \"pol_annual_day\",\n  \"operator\": \"BETWEEN\",\n  \"range\": {\n    \"lower\": \"2026-08-07\",\n    \"upper\": \"2026-08-22\",\n    \"include_lower\": true,\n    \"include_upper\": false\n  }\n}\n```\n去掉node_id，因为node_id是内部标识。\n\nbusiness_expectations：\n我决定使用以下6个expectations（都是blocking）：\n\n1. 服务依赖可用且返回成功状态\n2. 保单周年日字段识别正确\n3. 未来15天日期窗口计算正确\n4. 时间边界包含语义正确\n5. 筛选条件表达完整\n6. 无歧义场景下安全返回完整filter（safe_failure）\n\n让我写每个的详细字段。\n\n然后fulfillment_assessments对应这些expectation ids。\n\napplicable_product_expectation_ids：这个项目只有一个产品场景（policy_search_parse），没有明确的多产品区分。我可以放一个空数组？不行，schema说 minItems 没定义，但 types 是 array of string。空数组会怎样？检查一下强约束：“以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['business_expectations', 'expected', 'reasoning_summary']”。applicable_product_expectation_ids 不在非空列表中，所以可以为空数组。但为了更合理，我可以放入与产品相关的 id。本项目是政策搜索解析，没有明确产品id。我放 []。\n\n嗯，不过或许放 [\"policy_search_parse\"] 更好？applicable_product_expectation_ids 是“适用的产品期望ID”。如果没有定义这样的ID，空数组即可。我放 []。\n\n缺省情况下，fulfillment_assessments 也有 required 只有 expectation_id 和 status，其他字段可选。我会提供完整字段。\n\nauthority_tool_call_ids：没有实际的工具调用（这是解析服务，不是agent工具调用）。可以放空数组 []。\n\ndownstream_impact：填写中文描述。\n\nexpected_evidence 和 actual_evidence 必须是数组。\n\n让我写：\n\nbusiness_expectations:\n\n1. \n```json\n{\n  \"expectation_id\": \"服务依赖可用并返回可执行filter\",\n  \"blocking\": true,\n  \"downstream_consumer\": \"下游保单检索执行器\",\n  \"user_intent\": \"用户要求解析‘保单周年日在未来15天’的筛选条件并得到可执行结果\",\n  \"expected_outcome\": \"解析服务dependency可用，返回status=SUCCESS且filter为完整的PREDICATE结构\",\n  \"required_capabilities\": [\"状态码与消息返回\", \"结构化filter输出\"],\n  \"acceptance_criteria\": [\"final_output.status为SUCCESS\", \"filter为合法PREDICATE且非空\", \"dependency_status为available\"],\n  \"boundary\": {\"dependency_status\": \"available\", \"allow_fallback\": false},\n  \"priority\": \"P0\"\n}\n```\n\n2.\n```json\n{\n  \"expectation_id\": \"保单周年日字段识别正确\",\n  \"blocking\": true,\n  \"downstream_consumer\": \"下游保单检索执行器\",\n  \"user_intent\": \"识别出筛选字段为保单周年日而不是其他日期字段\",\n  \"expected_outcome\": \"filter.field正确映射为pol_annual_day\",\n  \"required_capabilities\": [\"字段名映射pol_annual_day\"],\n  \"acceptance_criteria\": [\"filter.field == pol_annual_day\"],\n  \"boundary\": {},\n  \"priority\": \"P0\"\n}\n```\n\n3.\n```json\n{\n  \"expectation_id\": \"未来15天日期窗口计算正确\",\n  \"blocking\": true,\n  \"downstream_consumer\": \"下游保单检索执行器\",\n  \"user_intent\": \"以2026-08-06 10:30为基准确定未来15个自然日的日期范围\",\n  \"expected_outcome\": \"诞生日范围覆盖2026-08-07至2026-08-21共15个自然日\",\n  \"required_capabilities\": [\"currentTime串接\", \"日期窗口计算\", \"BETWEEN范围构造\"],\n  \"acceptance_criteria\": [\"范围覆盖天数恰好为15天\", \"起始日为2026-08-07\", \"结束日为2026-08-21\"],\n  \"boundary\": {\"基准时间\": \"2026-08-06 10:30:00\"},\n  \"priority\": \"P0\"\n}\n```\n\n4.\n```json\n{\n  \"expectation_id\": \"时间边界包含语义正确\",\n  \"blocking\": true,\n  \"downstream_consumer\": \"下游保单检索执行器\",\n  \"user_intent\": \"确保边界日期归属正确：首日包含、恰好超出第15天的日期排除\",\n  \"expected_outcome\": \"BETWEEN操作符以include_lower=true、include_upper=false表达[\\\"2026-08-07\\\", \\\"2026-08-22\\\")区间\",\n  \"required_capabilities\": [\"BETWEEN边界语义\", \"include_lower/include_upper\"],\n  \"acceptance_criteria\": [\"include_lower为true\", \"include_upper为false\", \"upper等于下界+15天\"],\n  \"boundary\": {},\n  \"priority\": \"P0\"\n}\n```\n\n5.\n```json\n{\n  \"expectation_id\": \"筛选条件表达完整\",\n  \"blocking\": true,\n  \"downstream_consumer\": \"下游保单检索执行器\",\n  \"user_intent\": \"完整表达‘保单周年日在未来15天’这一单一条件，不缺失任何部分\",\n  \"expected_outcome\": \"输出单一完整PREDICATE条件，字段/操作符/范围齐全，无部分或空filter\",\n  \"required_capabilities\": [\"条件完整性\", \"PREDICATE节点构造\"],\n  \"acceptance_criteria\": [\"filter.type为PREDICATE\", \"filter不缺失field/operator/range任一要素\", \"无其他未表达条件\"],\n  \"boundary\": {},\n  \"priority\": \"P0\"\n}\n```\n\n6.\n```json\n{\n  \"expectation_id\": \"边界场景安全失败策略正确\",\n  \"blocking\": true,\n  \"downstream_consumer\": \"下游保单检索执行器\",\n  \"user_intent\": \"对日期窗口类场景，在语义可明确时不返回部分结果，在歧义时按安全策略处理\",\n  \"expected_outcome\": \"本case语义明确，直接返回SUCCESS及完整filter，不使用UNSUPPORTED也不截断条件\",\n  \"required_capabilities\": [\"安全失败判定\", \"UNSUPPORTED路由\"],\n  \"acceptance_criteria\": [\"语义明确时status为SUCCESS\", \"未出现部分filter\", \"未误报UNSUPPORTED\"],\n  \"boundary\": {\"scenario\": \"time_boundary\"},\n  \"priority\": \"P1\"\n}\n```\n\nhmm，blocking 是 true 还是 false？安全失败维度，如果系统在歧义时返回了部分filter，会误导下游。但本case没有歧义。我将blocking设为false？让我考虑一下。\n\n指导原则：“只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true”。\n\nE6安全失败策略正确：如果缺失（即系统错误地返回部分filter），会破坏安全底线，但本case不存在。不过从契约角度看，safe_failure是项目强契约（评估维度包含safe_failure）。所以设true也合理。\n\n不过，E6与E5有重叠。E5覆盖条件完整性（不返回部分filter），E6覆盖歧义策略。我认为E6可以设blocking=false，因为它更多的是对既有行为的补充确认。但如果它的fulfillment失败（例如误报UNSUPPORTED），那会阻断用户目的（用户得不到filter）。从“缺失后会不会阻断核心目的”看，如果safe_failure行为错误（不该UNSUPPORTED时UNSUPPORTED），会阻断目的。所以blocking=true也合理。\n\n我决定E6 blocking=true，因为安全失败是项目的强契约之一（评估维度明确包含safe_failure）。\n\n实际上，让我简化。6个expectations中有5个P0 blocking，1个P1 blocking。让我都设blocking=true？还是E6单独考虑。\n\n让我重新审视E6的必要性。评估维度：[\"field_selection\", \"operator_and_value\", \"logical_scope\", \"time_boundary\", \"condition_completeness\", \"safe_failure\"]。\n- field_selection → E2\n- operator_and_value → E4（操作符和值）\n- logical_scope → E5（单一条件，无逻辑组合）\n- time_boundary → E3、E4\n- condition_completeness → E5\n- safe_failure → E6\n\n所以6个expectations覆盖所有评估维度。E6作为safe_failure的载体是合理的。\n\n现在写fulfillment_assessments：\n\n1. \n```json\n{\n  \"expectation_id\": \"服务依赖可用并返回可执行filter\",\n  \"status\": \"fulfilled\",\n  \"score\": 1.0,\n  \"expected_evidence\": [\"dependency_status=available\", \"status=SUCCESS\", \"filter为完整PREDICATE\"],\n  \"actual_evidence\": [\"application_boundary.dependency_status=available\", \"final_output.status=SUCCESS\", \"filter.type=PREDICATE且包含field/operator/range\", \"execution_trace中validate_request与validate_output均succeeded\"],\n  \"downstream_impact\": \"下游可直接执行filter，无需兜底\",\n  \"authority_tool_call_ids\": []\n}\n```\n\n2.\n```json\n{\n  \"expectation_id\": \"保单周年日字段识别正确\",\n  \"status\": \"fulfilled\",\n  \"score\": 1.0,\n  \"expected_evidence\": [\"filter.field为pol_annual_day\"],\n  \"actual_evidence\": [\"filter.field=pol_annual_day，与‘保单周年日’语义一致\"],\n  \"downstream_impact\": \"下游在正确的字段上执行范围匹配\",\n  \"authority_tool_call_ids\": []\n}\n```\n\n3.\n```json\n{\n  \"expectation_id\": \"未来15天日期窗口计算正确\",\n  \"status\": \"fulfilled\",\n  \"score\": 1.0,\n  \"expected_evidence\": [\"日期窗口覆盖2026-08-07至2026-08-21共15天\"],\n  \"actual_evidence\": [\"range=[2026-08-07, 2026-08-22)，包含8/7-8/21共15个自然日，与基准时间2026-08-06 10:30:00推算一致\"],\n  \"downstream_impact\": \"下游将正确命中未来15天内周年日的保单\",\n  \"authority_tool_call_ids\": []\n}\n```\n\n4.\n```json\n{\n  \"expectation_id\": \"时间边界包含语义正确\",\n  \"status\": \"fulfilled\",\n  \"score\": 1.0,\n  \"expected_evidence\": [\"include_lower=true且include_upper=false，upper为下界+15天\"],\n  \"actual_evidence\": [\"include_lower=true包含2026-08-07\", \"include_upper=false排除2026-08-22，恰好保留15天\"],\n  \"downstream_impact\": \"边界日期命中/排除正确，无一天偏差\",\n  \"authority_tool_call_ids\": []\n}\n```\n\n5.\n```json\n{\n  \"expectation_id\": \"筛选条件表达完整\",\n  \"status\": \"fulfilled\",\n  \"score\": 1.0,\n  \"expected_evidence\": [\"单一完整PREDICATE节点，field/operator/range齐全\"],\n  \"actual_evidence\": [\"filter为完整PREDICATE，field=pol_annual_day、operator=BETWEEN、range完整，无其他未表达条件\"],\n  \"downstream_impact\": \"下游可无损执行用户全部筛选意图\",\n  \"authority_tool_call_ids\": []\n}\n```\n\n6.\n```json\n{\n  \"expectation_id\": \"边界场景安全失败策略正确\",\n  \"status\": \"fulfilled\",\n  \"score\": 1.0,\n  \"expected_evidence\": [\"语义明确场景返回SUCCESS而非UNSUPPORTED\", \"未返回部分filter\"],\n  \"actual_evidence\": [\"本case无歧义，status=SUCCESS且返回完整filter，符合安全失败策略\"],\n  \"downstream_impact\": \"用户得到完整可执行结果，无阻断\",\n  \"authority_tool_call_ids\": []\n}\n```\n\nmissing/wrong/extra 都为空数组。\n\napplicable_product_expectation_ids：[] 还是 [\"policy_search_parse\"]？由于没有明确的多产品期望框架，我放 []。但为空可能不是最佳。让我想想…… schema 没有强制非空。项目是 policy_search，case 是 policy-search-rich-0203。也许我应该放 [\"policy_search\"]？这不准确。放 []。\n\n等一下，我再检查输出约束：“以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['business_expectations', 'expected', 'reasoning_summary']”。applicable_product_expectation_ids 不在其中，所以空数组允许。我放 []。\n\nreasoning_summary：中文。\n\n写：\n“用户查询为‘保单周年日在未来15天’，当前时间2026-08-06 10:30:00。系统返回SUCCESS，filter为pol_annual_day BETWEEN [2026-08-07, 2026-08-22)，包含8/7至8/21共15个自然日。‘未来15天’按常见业务语义从次日(8/7)起算，恰为15天，边界上8/22被排除，日期数学正确；字段、操作符、边界和条件完整性均符合用户意图，无歧义需走UNSUPPORTED。整体6项expectation全部fulfilled，无missing/wrong/extra gap。”\n\n现在，仔细核对“未来15天”的理解。让我再想想是否应该认为这是歧义。\n\n在保险领域，“保单周年日在未来15天”通常指未来15天内保单周年日将到来。如果今天是8月6日，那么未来15天可以认为是8月7日到8月21日。这是最标准、最常见的理解。系统输出完全符合。\n\n另一种理解是从今天0点开始算15天：8月6日到8月20日。但当前时间是10:30，8月6日已经开始了，说“未来15天”一般不会算上已开始的今天。所以系统选择的8/7-8/21是更合理的。\n\n因此，SUCCESS + [8/7, 8/22) 是正确的。\n\n再考虑 include_upper=false 的问题：upper=2026-08-22 其实是“8月22日0点”，即不包含8月22日这一天。这样返回的是周年日在8月7日0点到8月21日24点之间的保单，即8/7、8/8、...、8/21。15天。✅\n\n如果系统用 upper=2026-08-21, include_upper=true，也是等价的。两种表达逻辑等价。实际用的是 [8/7, 8/22)，同样正确。\n\n好，我现在确定判断：全部 fulfilled。\n\n现在写最终JSON。注意：\n- 首字符 {，末字符 }\n- 不输出markdown\n- JSON中不能有未转义的双引号（实际JSON中键值对需要双引号，这是JSON语法的一部分，没问题；约束指的是字符串值内部引用用户原词时不要用未转义的英文引号。我用中文引号或直接不用引号）。\n- reasoning_summary 中引用“保单周年日在未来15天”时用中文引号或不用引号。避免在字符串中直接出现英文引号。在JSON字符串中出现英文双引号必须转义。我使用中文引号“”。\n\n让我构造完整的JSON。\n\n我需要包含 required: expected, business_expectations, reasoning_summary。以及可以包含 applicable_product_expectation_ids, fulfillment_assessments, missing, wrong, extra, evidence。\n\n我提供全部字段。\n\nexpected:\n```json\n\"expected\": {\n  \"code\": 0,\n  \"msg\": \"success\",\n  \"status\": \"SUCCESS\",\n  \"query\": \"麻烦帮我筛一下，保单周年日在未来15天的清单\",\n  \"filter\": {\n    \"type\": \"PREDICATE\",\n    \"field\": \"pol_annual_day\",\n    \"operator\": \"BETWEEN\",\n    \"range\": {\n      \"lower\": \"2026-08-07\",\n      \"upper\": \"2026-08-22\",\n      \"include_lower\": true,\n      \"include_upper\": false\n    }\n  },\n  \"message\": \"解析成功\"\n}\n```\n\nbusiness_expectations: 6个。\n\nfulfillment_assessments: 6个。\n\nmissing: [], wrong: [], extra: [], evidence: []。\n\n最后输出。\n\n让我再检查一遍 business_expectations 的 required 字段：expectation_id, blocking。其余可选。我提供全部。\n\nboundary 可以是空对象 {}。schema 允许 object。\n\n好，构造最终输出。\n\n还有一个细节：输出约束要求“最终回答必须只包含一个 JSON object；不要输出 Markdown”。我会输出纯JSON。\n\n让我确保无 trailing 问题，JSON合法。\n\n我将编写完整JSON：\n\n{\n  \"expected\": {...},\n  \"business_expectations\": [...],\n  \"applicable_product_expectation_ids\": [],\n  \"fulfillment_assessments\": [...],\n  \"missing\": [],\n  \"wrong\": [],\n  \"extra\": [],\n  \"evidence\": [],\n  \"reasoning_summary\": \"...\"\n}\n\n检查 schema：applicable_product_expectation_ids 是 array of string，minLength 1 for items。空数组允许（没有minItems约束）。\n\nfulfillment_assessments 数组中的每个对象 required 只有 expectation_id 和 status。\n\n好。\n\n现在关于 score：schema 允许 number 或 null。我填 1.0。\n\n关于 authority_tool_call_ids：空数组。schema: array of string。OK。\n\n最后检查 reason 中不要出现英文双引号未转义。我使用中文标点。\n\n写 reasoning_summary：\n“用户查询‘保单周年日在未来15天’是一个典型的时间边界筛选场景，基准时间为2026-08-06 10:30:00。系统解析结果为SUCCESS，filter为pol_annual_day BETWEEN [2026-08-07, 2026-08-22)，即包含8月7日至8月21日共15个自然日。‘未来15天’按业务常规从次日开始起算，起始日为8月7日，第15天为8月21日；上界取8月22日且include_upper=false，恰好排除第16天，边界数学正确。字段映射、BETWEEN操作符、边界包含关系、条件完整性均符合用户意图，且本场景语义无歧义，无需走UNSUPPORTED安全失败路径。据此6项business expectations全部判定fulfilled，missing/wrong/extra均为空。”\n\n好。\n\n再检查一下 E3 的 expected_outcome：“未来15个自然日”。等等，E3 expected_outcome 中我写“诞生日范围覆盖2026-08-07至2026-08-21共15个自然日” —— “诞生日”是笔误，应为“日期范围”。修正。\n\n让我最终定稿。",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "policy_search",
+  "prompt_size": 20000,
+  "record_id": "df833e24-57b5-4810-8a53-3d42ea143d73",
+  "response": {
+    "content": "{\n  \"expected\": {\n    \"code\": 0,\n    \"msg\": \"success\",\n    \"status\": \"SUCCESS\",\n    \"query\": \"麻烦帮我筛一下，保单周年日在未来15天的清单\",\n    \"filter\": {\n      \"type\": \"PREDICATE\",\n      \"field\": \"pol_annual_day\",\n      \"operator\": \"BETWEEN\",\n      \"range\": {\n        \"lower\": \"2026-08-07\",\n        \"upper\": \"2026-08-22\",\n        \"include_lower\": true,\n        \"include_upper\": false\n      }\n    },\n    \"message\": \"解析成功\"\n  },\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"服务依赖可用并返回可执行filter\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"下游保单检索执行器\",\n      \"user_intent\": \"用户要求解析“保单周年日在未来15天”的筛选条件并获得可执行结果\",\n      \"expected_outcome\": \"解析服务依赖可用，返回status=SUCCESS且filter为完整PREDICATE结构\",\n      \"required_capabilities\": [\"状态码与消息返回\", \"结构化filter输出\"],\n      \"acceptance_criteria\": [\"final_output.status为SUCCESS\", \"filter为合法PREDICATE且非空\", \"dependency_status为available\"],\n      \"boundary\": {\"dependency_status\": \"available\", \"allow_fallback\": false},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"保单周年日字段识别正确\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"下游保单检索执行器\",\n      \"user_intent\": \"识别出筛选字段为保单周年日而非其他日期字段\",\n      \"expected_outcome\": \"filter.field正确映射为pol_annual_day\",\n      \"required_capabilities\": [\"字段映射pol_annual_day\", \"时间日期类字段识别\"],\n      \"acceptance_criteria\": [\"filter.field == pol_annual_day\"],\n      \"boundary\": {},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"未来15天日期窗口计算正确\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"下游保单检索执行器\",\n      \"user_intent\": \"以2026-08-06 10:30为基准确定未来15个自然日的日期范围\",\n      \"expected_outcome\": \"日期范围覆盖2026-08-07至2026-08-21共15个自然日\",\n      \"required_capabilities\": [\"currentTime时间串接\", \"未来N天日期窗口计算\", \"BETWEEN范围构造\"],\n      \"acceptance_criteria\": [\"范围覆盖天数恰好为15天\", \"起始日为2026-08-07\", \"结束日为2026-08-21\"],\n      \"boundary\": {\"基准时间\": \"2026-08-06 10:30:00\"},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"时间边界包含语义正确\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"下游保单检索执行器\",\n      \"user_intent\": \"确保边界日期归属正确：首日包含、恰好超出第15天的日期被排除\",\n      \"expected_outcome\": \"BETWEEN操作符以include_lower=true、include_upper=false表达左闭右开区间[2026-08-07, 2026-08-22)\",\n      \"required_capabilities\": [\"BETWEEN边界语义\", \"include_lower/include_upper控制\"],\n      \"acceptance_criteria\": [\"include_lower为true\", \"include_upper为false\", \"upper等于lower加15天\"],\n      \"boundary\": {},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"筛选条件表达完整\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"下游保单检索执行器\",\n      \"user_intent\": \"完整表达“保单周年日在未来15天”这一单一条件，不缺失任何要素\",\n      \"expected_outcome\": \"输出单一完整PREDICATE条件，field/operator/range齐全，无部分或空filter\",\n      \"required_capabilities\": [\"条件完整性表达\", \"PREDICATE节点构造\"],\n      \"acceptance_criteria\": [\"filter.type为PREDICATE\", \"field/operator/range任一要素均不缺失\", \"无未表达或遗漏的筛选条件\"],\n      \"boundary\": {},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"边界场景安全失败策略正确\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"下游保单检索执行器\",\n      \"user_intent\": \"对日期窗口类场景，在语义可明确时不返回部分filter，在歧义时按安全策略处理\",\n      \"expected_outcome\": \"本case语义明确，直接返回SUCCESS及完整filter，不使用UNSUPPORTED，也不截断条件\",\n      \"required_capabilities\": [\"安全失败判定\", \"UNSUPPORTED路由\"],\n      \"acceptance_criteria\": [\"语义明确时status为SUCCESS\", \"未出现部分filter\", \"未误报UNSUPPORTED\"],\n      \"boundary\": {\"scenario\": \"time_boundary\"},\n      \"priority\": \"P1\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"服务依赖可用并返回可执行filter\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\"dependency_status=available\", \"status=SUCCESS\", \"filter为完整PREDICATE\"],\n      \"actual_evidence\": [\"application_boundary.dependency_status=available\", \"final_output.status=SUCCESS\", \"filter.type=PREDICATE且field/operator/range齐全\", \"execution_trace中validate_request与validate_output均succeeded\"],\n      \"downstream_impact\": \"下游可直接执行filter，无需兜底或人工干预\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"保单周年日字段识别正确\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\"filter.field为pol_annual_day\"],\n      \"actual_evidence\": [\"filter.field=pol_annual_day，与用户表述“保单周年日”语义一致\"],\n      \"downstream_impact\": \"下游在正确的字段上执行范围匹配，不会误查其他日期字段\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"未来15天日期窗口计算正确\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\"日期窗口覆盖2026-08-07至2026-08-21共15个自然日\"],\n      \"actual_evidence\": [\"range=[2026-08-07, 2026-08-22)，包含8月7日至8月21日共15个自然日，与基准时间2026-08-06 10:30:00推算一致\"],\n      \"downstream_impact\": \"下游将正确命中未来15天内周年日的保单集合\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"时间边界包含语义正确\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\"include_lower=true且include_upper=false，upper为lower加15天\"],\n      \"actual_evidence\": [\"include_lower=true包含2026-08-07\", \"include_upper=false排除2026-08-22，恰好保留15天，无一天偏差\"],\n      \"downstream_impact\": \"边界日期命中与排除精确，不产生多命中或漏命中\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"筛选条件表达完整\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\"单一完整PREDICATE节点，field/operator/range齐全\"],\n      \"actual_evidence\": [\"filter为完整PREDICATE，field=pol_annual_day、operator=BETWEEN、range完整，无其他遗漏条件\"],\n      \"downstream_impact\": \"下游可无损执行用户全部筛选意图\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"边界场景安全失败策略正确\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\"语义明确场景返回SUCCESS而非UNSUPPORTED\", \"未返回部分filter\"],\n      \"actual_evidence\": [\"本case语义明确，status=SUCCESS并返回完整filter，符合安全失败策略，未误报UNSUPPORTED\"],\n      \"downstream_impact\": \"用户获得完整可执行结果，流程无阻断\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"missing\": [],\n  \"wrong\": [],\n  \"extra\": [],\n  \"evidence\": [],\n  \"reasoning_summary\": \"用户查询“保单周年日在未来15天”是典型的时间边界筛选场景，基准时间为2026-08-06 10:30:00。系统返回SUCCESS，filter为pol_annual_day BETWEEN [2026-08-07, 2026-08-22)，即包含8月7日至8月21日共15个自然日。“未来15天”按业务常规从次日开始起算，起始日为8月7日，第15天为8月21日；上界取8月22日且include_upper=false，恰好排除第16天，边界数学正确。字段映射、BETWEEN操作符、边界包含关系、条件完整性均符合用户意图，且本场景语义无歧义，无需走UNSUPPORTED安全失败路径。据此6项business expectations全部判定fulfilled，missing/wrong/extra均为空。\"\n}",
+    "metrics": {
+      "cache_read_tokens": 2304,
+      "cache_write_tokens": 0,
+      "input_tokens": 4434,
+      "output_tokens": 10947,
+      "reasoning_tokens": 8771,
+      "total_tokens": 15381
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 127102,
+          "endpoint": "primary",
+          "error": "Unknown model error",
+          "error_type": "RuntimeError",
+          "model": "gpt-5.6-luna",
+          "status": "failed"
+        },
+        {
+          "attempt": 2,
+          "elapsed_ms": 94660,
+          "endpoint": "fallback1",
+          "model": "deepseek-v4-flash-0731",
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "selected_endpoint": "fallback1",
+      "selected_model": "deepseek-v4-flash-0731",
+      "stage": ""
+    }
+  },
+  "trace_id": "policy_search:policy-search-rich-0203:1786624534713"
+}

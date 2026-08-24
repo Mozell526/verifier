@@ -1,0 +1,3514 @@
+2026-08-16T02:05:36.452060Z  WARN codex_core_plugins::remote::remote_installed_plugin_sync: remote installed plugin bundle sync failed error=chatgpt authentication required for remote plugin catalog; api key auth is not supported
+2026-08-16T02:05:36.478095Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+2026-08-16T02:05:36.509079Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-08-16T02:05:36.509102Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-08-16T02:05:36.542983Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-08-16T02:05:36.543633Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-08-16T02:05:36.543737Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-08-16T02:05:36.543859Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-08-16T02:05:36.544308Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-08-16T02:05:36.544713Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-08-16T02:05:36.544861Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-08-16T02:05:36.545051Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-08-16T02:05:36.545185Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-08-16T02:05:36.545347Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-08-16T02:05:36.561133Z ERROR codex_core::session::session: failed to load skill /Users/xiaozijian/.agents/skills/benchmark-curator/SKILL.md: invalid YAML: did not find expected alphabetic or numeric character at line 7 column 2, while scanning an alias at line 7 column 1
+2026-08-16T02:05:36.561149Z ERROR codex_core::session::session: failed to load skill /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier/.agents/skills/test-driven-development/SKILL.md: missing YAML frontmatter delimited by ---
+2026-08-16T02:05:36.561152Z ERROR codex_core::session::session: failed to load skill /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier/.agents/skills/bugs-explore/SKILL.md: missing YAML frontmatter delimited by ---
+OpenAI Codex v0.144.5
+--------
+workdir: /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+model: grok-4.6
+provider: custom
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: high
+reasoning summaries: none
+session id: 01a00851-3b5e-7711-af74-b53d5515d565
+--------
+user
+You are running as an isolated council peer. The role contract below wins over any other instructions on conflict.
+
+---
+# Skill
+
+---
+name: architect
+description: Independent reviewer/architect role that judges whether project issues are real problems or reasonable designs. Primarily invoked as an argue-peer by the verifier skill via `Codex -p`, but can also be invoked directly for architectural review of specific code/issues. Read-only — proposes fixes but does not modify code.
+version: 1.1.0
+---
+
+# Architect
+
+You are the Architect — an independent reviewer that judges whether issues raised against a project are real problems or reasonable designs. You operate in **read-only** mode: you analyze, reason, and propose fixes; you never modify project code.
+
+## Primary use case
+
+Invoked by the `verifier` skill as an **argue-peer** (see `~/.Codex/skills/argue-peer/README.md`). Verifier raises issues, you judge. You run in an independent `Codex -p` context — you do not share memory with the caller.
+
+## Secondary use cases
+
+- Directly invoked by users for architectural review of a specific issue or design document
+- Invoked by other skills needing an independent technical opinion
+
+## As an argue peer
+
+**Judgment perspective**: code and architectural quality, test methodology soundness, whether observed behavior is a bug or intentional design.
+
+**Evidence I look for**:
+- Reproducible test output / timing data / accuracy numbers — I try to reproduce them myself
+- Code paths that produce the observed behavior — I read the actual source
+- Project docs / README claims — does the behavior match what's documented?
+- Project-specific constraints that might justify the design
+
+**Permission**: **read-only** (review mode). I propose fixes as text — verification commands, code snippets, file:line references — but I do not apply changes.
+
+### Modify Scope (argue-peer contract)
+
+**Writable paths**:
+- The issue file under review — append response only, never overwrite prior content
+
+**Read-only (NEVER modify)**:
+- All project source code
+- All project configuration, schema, prompts
+- All data artifacts (benchmark, golden, test sets, reports)
+- Other peers' workspaces
+
+**Authorization condition**:
+- I am a read-only peer by design. I cannot "implement" fixes.
+- When verifier needs a fix implemented: I describe the fix in my Improvement Proposal; a different peer (`benchmark-curator`, `dev-agent`, etc.) or the project owner executes it.
+- If verifier asks me to implement anything, I refuse and recommend routing to an appropriate write-enabled peer.
+
+**Audit trail**:
+- Not applicable — architect makes no modifications to audit.
+- My proposals are part of the issue record, which serves as a recommendation trail.
+
+## What You Do
+
+1. Read the issue file to understand what the Verifier / caller found
+2. Read the relevant project source code to form your own understanding
+3. **Reproduce the evidence** — if test commands are provided, run them yourself
+4. Judge: real problem, reasonable design, needs more info, not actionable, or escalate to project
+5. If real problem: design an Improvement Proposal a dev agent can implement
+6. If reasonable design: explain WHY with technical reasoning grounded in the actual code
+7. If not actionable: explain what's missing
+8. If escalate-to-project: identify the blocking scope boundary or project-owner decision
+9. Append your response to the issue file (never overwrite prior content)
+
+## Judgment Options
+
+Five possible judgments. Pick one — don't hedge:
+
+- **real-problem**: The issue is valid, reproducible, needs fixing. Must include an Improvement Proposal.
+- **reasonable-design**: The behavior is intentional / acceptable given project constraints. Explain WHY with project-specific reasoning.
+- **needs-more-info**: Can't judge because specific information is missing. State exactly what you need.
+- **not-actionable**: Problem may exist but description is too vague. Triggers:
+  - Rollup issue ("28 tests fail") without per-root-cause breakdown
+  - Summary stats without specific failure examples
+  - Developer reading this couldn't locate what to fix
+  - Root cause unclear — symptoms listed but not traced to source
+
+  When not-actionable, explain exactly what the Verifier should provide instead.
+- **escalate-to-project**: The issue is real, but resolution depends on a project-side decision or on modifications outside your read-only scope. State what must be decided or changed, and by whom.
+
+## Evaluation Criteria by Issue Class
+
+### Functionality
+- Can you reproduce the bug?
+- Is the behavior wrong, or an undocumented feature / known limitation?
+- Do docs describe this as expected?
+
+### Effectiveness
+- Is the test methodology sound? (correct golden, fair cases, valid metrics)
+- Is accuracy acceptable for stated goals?
+- Failure cases edge or core?
+- Would a reasonable user consider this acceptable?
+
+### Performance
+- Is measurement methodology valid? (warm-up, sample size, representative load)
+- Is performance within stated targets?
+- Are targets themselves reasonable?
+- Is bottleneck in project code or external dependency?
+- **Did Verifier test the critical path?** If project bottleneck is LLM latency but only regex speed was measured, flag as incomplete testing.
+
+### Extreme / limit testing
+- Did Verifier push the system to the edge of its promises, not just the happy path?
+- Were boundary inversions tested (present/absent, allowed/forbidden, match/mismatch, contains/not-contains)?
+- Was stale state / reindex / rebuild / cache drift checked where relevant?
+- Was the strongest available alternative used to eliminate capability doubts before blaming the app?
+- Were oracle conflicts between docs/schema/prompt and runtime explicitly checked?
+- Were empty / malformed / max-length / unicode / repeated-input cases included where relevant?
+- If the project claims concurrency, fan-out, or volume support, was near-upper-bound load tested?
+
+### Architecture / Security
+- Real operational impact or theoretical?
+- Evidence of actual failure, or only potential?
+- Security: exploitable in project's deployment context?
+
+## Rules
+
+- **Read-only**: Never modify project code. Analyze and design only.
+- **Clear judgment**: Don't hedge.
+- **Form your own view**: Don't trust the Verifier's framing blindly — read the project source yourself.
+- **Verify the data**: If issue has test output / timing / accuracy numbers, reproduce them. If you can't, say so.
+- **Check the root cause**: Verifier may have correct symptom but wrong root cause. Trace code yourself. If you find a different or deeper root cause, say so — this is one of the most valuable things you can do.
+- **Reasonable-design requires project-specific reasoning**: "Common practice" alone is not valid. Explain WHY this design works for THIS project's constraints.
+- **Proposals must be specific**: File paths, line numbers, pseudo-code, implementation steps. Zero ambiguity.
+- **Validate your own solutions**: Before proposing, mentally trace the code to confirm the fix works. Check paths/lines are correct.
+- **Under challenge**: Address every point. If they're right, update your judgment. Stubbornness isn't a virtue. If you have evidence they're wrong, stand your ground.
+- **Don't rubber-stamp**: Weak evidence, wrong root cause, non-problem → say so.
+- **Don't be contrarian**: Solid evidence, real problem → confirm and focus on best solution.
+
+## Improvement Proposal Requirements
+
+When judging **real-problem**, the Improvement Proposal is the primary deliverable:
+
+- File paths + line numbers
+- Concrete code changes (not "add validation" — actual code/pseudo-code)
+- Copy-pasteable verification commands
+- Complete config snippets (full YAML/JSON ready to insert)
+- Zero ambiguity — no "consider whether...", no "depending on..."
+
+## Response Format
+
+```markdown
+---
+## Architect Response #{n}
+
+**Judgment**: {real-problem | reasonable-design | needs-more-info | not-actionable | escalate-to-project}
+
+**Evidence Verification**:
+{Did you reproduce the findings? What did you observe?}
+
+**Reasoning**:
+{Grounded in project code, goals, test data, your observations}
+{If reasonable-design: what specific project context makes this acceptable}
+{If real-problem: what breaks, quantified where possible}
+{If not-actionable: what's missing, what Verifier should provide instead}
+{If escalate-to-project: what decision or scope boundary blocks the fix}
+
+## Improvement Proposal (if real-problem)
+
+**Problem**: {one sentence}
+**Proposed Change**: {what, where — with file paths and line numbers}
+**Design**:
+{pseudo-code or exact code}
+**Implementation Steps**:
+1. {step with specific paths and actions}
+2. {step}
+**Risks**: {what could go wrong}
+**Verification**: {exact commands — copy-pasteable}
+**Why I Cannot Apply It**: {only for escalate-to-project}
+```
+
+## When Responding to a Challenge
+
+```markdown
+---
+## Architect Response #{n}
+
+**Addressing challenges**:
+1. {Verifier's point}: {response with technical reasoning and evidence}
+2. {Verifier's point}: {response}
+
+**Updated Judgment**: {same or changed, with explanation if changed}
+
+## Updated Improvement Proposal (if applicable)
+{revised design addressing the gaps}
+```
+
+## Cross-Issue Awareness
+
+You may receive summaries of previously confirmed issues. Use this to:
+- Spot systemic patterns (multiple symptoms, one root cause)
+- Avoid proposing conflicting solutions
+- Suggest consolidated fixes when appropriate
+
+## Synthesis Review
+
+When asked to review a `synthesis.md`, you operate at a higher level than individual issues. Job shifts from "is this bug real?" to "what are the real problems this project needs to solve?"
+
+**Do:**
+1. Read all confirmed issues and the Verifier's pattern analysis
+2. Form your own view of core problems — don't just accept Verifier's framing
+3. Challenge prioritization if you disagree:
+   - Overweighted a symptom and missed systemic cause?
+   - Missed connections between issues?
+   - Is #1 priority really the most impactful?
+4. For agreed core problems, propose strategic fix direction (not per-issue patches)
+5. Be honest about what you don't know — if prioritization depends on business context you can't see, say so
+
+**Don't:**
+- Agree with Verifier's ranking by default — if you'd rank differently, say so and explain
+- Propose solutions that conflict across issues
+- Treat all confirmed issues as equally important — call out critical vs noise
+
+
+---
+# Your Role Card (contract — wins over anything above on conflict)
+
+---
+role: architect
+kind: argue-peer
+version: 1.0.0
+enabled: true
+skill: /Users/xiaozijian/.agents/skills/architect/SKILL.md
+allowed_tools: Read,Grep
+writable_globs:
+model_default:
+---
+
+# Role Card: architect
+
+> Machine-readable contract above; prose below. If this card and
+> `architect/SKILL.md` diverge on contract fields (tools, scope), this card wins.
+
+## Perspective
+Code and architectural quality; test-methodology soundness; bug vs intentional design.
+
+## Success criterion
+Judged well = verdicts that survive later evidence: real problems confirmed with
+reproducible root causes, reasonable designs defended with project-specific
+reasoning. NOT judged by agreeing with the initiator. (Asymmetric to verifier,
+whose success is surfacing real problems; architect's is correct adjudication.)
+
+## Verdict vocabulary
+The five argue verdicts in `council/PROTOCOLS.md`.
+
+## Modify Scope
+- Writable: none (read-only peer). Implicit exception: append-only responses to
+  the issue file under review (`issues/**`).
+- Never modify: project source, config, prompts, data artifacts, other peers' workspaces.
+- Authorization: n/a — cannot implement.
+- Audit: n/a — proposals live in the issue record.
+
+## Context Contract
+- sees: the issue file under review; project source (read-only); trace files the
+  issue cites; `issues/learning.md`; confirmed-issues one-line summary; charter.
+- never-sees: the initiator's private working notes; other peers' pending
+  (unwritten) verdicts; in blind-mode experiments, the initiator's attribution
+  and severity sections.
+- writes: `## Architect Response #N` sections, append-only, with `### Spawn Evidence`.
+
+## Spawn config
+- allowed_tools: `Read,Grep` (default). `Read,Bash` only when the peer must
+  reproduce commands itself — request explicitly at spawn time.
+- model: current Codex default; charter §6 overrides.
+
+## Domain methodology
+`architect/SKILL.md` — evaluation criteria by issue class, proposal requirements,
+challenge-response format.
+
+
+---
+# Runtime constraints
+- Working directory: /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+- You may write only under: issues/**
+- Writes outside that set invalidate this round.
+- Append your verdict to the issue file; do not overwrite prior content.
+- Tool contract from the role card: Read,Grep
+
+---
+# Task
+
+Read each issue file below in full. Inspect the cited protocol files and current exits yourself. Append one Architect Response to each file. Never overwrite prior content.
+
+Issue files (respond to all four, separately):
+- /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier/issues/open/issue-062.md
+- /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier/issues/open/issue-063.md
+- /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier/issues/open/issue-064.md
+- /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier/issues/open/issue-065.md
+
+Do **not** review or append to issue-006 through issue-061. Those belong to other charters and already have their own status. You may cite Consensus blocks only from 015, 030, 046, 047, 048, 058, 060, 061.
+
+Do **not** mix this with issue-053 through issue-057. Their 「第二问」 is a different object: whether the whole sentence was finished by one dimension.
+
+## Your Role
+You are architect acting as an argue peer. Follow the argue protocol in ~/.codex/skills/council/PROTOCOLS.md.
+
+Every response MUST use the field name **Verdict** (not Judgment) and pick exactly one of:
+real-problem | reasonable-design | needs-more-info | not-actionable | escalate-to-project
+
+Every response MUST include `### Spawn Evidence` with the spawn-id from this spawn.
+
+## Context
+Charter: /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier/issues/charter-q2-slot.md
+Discovery: /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier/issues/trace/q2-slot-discovery.md
+Oracle: spec/alg/fulfilled.md 第一章, spec/alg/product-function.md §1 / §6–10, spec/alg/authority.md §8.3, spec/info-volume.md
+Current exits to read yourself:
+- impl/core/schema/judge.py
+- impl/core/authority_gate.py
+- impl/core/frontend_view.py `_fulfillment_panel`
+- impl/frontend/summary.html case-list「状态」, fulfillmentPill, renderFulfillmentMatrix
+Prior locks (Consensus blocks only): issues/open/issue-015.md, issue-046.md, issue-047.md, issue-048.md, issue-058.md, issue-060.md, issue-061.md
+
+Locked two-question structure (do not rewrite):
+
+```text
+第一问（已经有）
+  只看一件事：这一次，用户要的事办成了没有
+  单位：这一次请求 × 这一次交付
+  不看：产品把这件事立住了没有
+  不区分：没给到的原因
+  出口：办成了 / 没办成 / 说不清
+
+第二问（出口还没有）
+  只看一件事：用户要的这件事，产品把它立成自己会做的事了没有
+  对象：仍是第一问那一件
+        不得另立类型表
+        不得为了更好答第二问，把对象切粗或切细
+  单位：这件事 × 产品事实
+  产品事实从哪来：已经裁完的能力/职责判断，及其依据资料
+  不看：这一次交付；这一次承不承认 / 尽没尽力；预置类型表
+  出口：立住了 / 没立住 / 说不清
+```
+
+## What this run is
+The user asked which result slot Q2 should occupy, given fulfilled's positioning:
+
+A. only a not_fulfilled supplement
+B. a new judge-result label
+C. expand fulfilled from 3 states to 4
+D. put it inside not_evaluable
+
+Do not re-judge cases. Do not implement fields. Do not change the frontend. Do not adopt a final Chinese public sentence. Do not announce 立住了 / 没立住 as the public wording. Do not approve opening the sibling cell.
+
+## Permission Mode
+review: append response only. Do not modify spec/**, impl/**, xlsx, canvas, or frontend.
+
+## How to write
+Do not use nested heredocs. Write each response to a temp file first, then append that file to the issue. Every response must include `### Spawn Evidence` with the spawn-id.
+
+## Investigate before judging
+Quote the protocol sections and current exits yourself. Do not treat the verifier write-up as already true.
+
+Challenge specifically:
+
+- 062 claims Q2 is not an NF-only supplement. Attack: fulfilled §2.1 requires 职责内 for fulfilled, so "没立住" can never be F, and Q2 only matters after failure. If 职责外 already goes to NE, is the remaining Q2 just an NF reason? Does "用户只能看见 fulfilled" make an NF footnote the only honest implementation?
+
+- 063 claims Q2 cannot live inside NE. Attack: fulfilled already sends 职责外 to NE. Is that Q2 already living in NE? If 没立住 is 职责内能力缺失, why isn't "we cannot score this as a normal success" exactly NE? Is calling NE "temporary" a paper rule while year-not-supported sits in the corpus for months?
+
+- 064 claims 3-to-4 is dead. Attack: the user can only see one chip. If the sibling cell is not opened this run, is refusing a fourth color the same as refusing to answer "where do people see it"? Can a fourth word be added without changing F/NF meanings if it is only a display alias?
+
+- 065 claims a new judge-written label is the same class of error, and must not be renamed into 060's sibling cell. Attack: users will call that sibling cell "a judge result label". Is 065 playing word games? If none of A/B/C/D is the host, did this run fail to say where it goes? Should 065 be escalate-to-project rather than another kill list?
+
+If verifier smuggled a frontend column, a new schema field, or a public Chinese name into the conclusion, reject that part. Slot-killing may be locked without implementing.
+
+Do not rubber-stamp all four with the same paragraph. Pick exactly one Verdict per issue from the protocol vocabulary.
+
+## Spawn Evidence (required)
+Your response MUST include a `### Spawn Evidence` section containing exactly:
+- spawn-id: c902435f16f979ab
+- pid: your process id if you can observe it, else `unknown`
+A verdict whose spawn-id does not match this value is invalid.
+
+2026-08-16T02:05:37.042413Z  WARN codex_core_plugins::manager: failed to warm featured plugin ids cache error=remote featured plugin request to https://chatgpt.com/backend-api/plugins/featured failed with status 401 Unauthorized: {"detail":"Unauthorized"}
+2026-08-16T02:05:37.561614Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=file:///Users/xiaozijian/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-08-16T02:05:37.564058Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=file:///Users/xiaozijian/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+The user wants me to act as an architect argue-peer. I need to read the issue files and relevant protocol/source files, then append Architect Response to each of the four issue files.
+
+codex
+I'll start by reading the architect/argue protocol, the four issue files, and the cited protocol/exit sources before judging each slot claim separately.
+exec
+/bin/zsh -lc 'pwd; echo "---"; echo "pid=$$"; ls -la issues/open/issue-06{2,3,4,5}.md; ls -la ~/.codex/skills/council/PROTOCOLS.md /Users/xiaozijian/.agents/skills/architect/SKILL.md 2>/dev/null; ls -la issues/charter-q2-slot.md issues/trace/q2-slot-discovery.md' in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+/Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+---
+pid=79074
+-rw-r--r--@ 1 xiaozijian  staff  3785 Aug 16 10:03 issues/open/issue-062.md
+-rw-r--r--@ 1 xiaozijian  staff  4202 Aug 16 10:03 issues/open/issue-063.md
+-rw-r--r--@ 1 xiaozijian  staff  3930 Aug 16 10:03 issues/open/issue-064.md
+-rw-r--r--@ 1 xiaozijian  staff  4679 Aug 16 10:04 issues/open/issue-065.md
+-rw-r--r--@ 1 xiaozijian  staff  10342 Jul 16 22:20 /Users/xiaozijian/.agents/skills/architect/SKILL.md
+-rw-r--r--@ 1 xiaozijian  staff  13031 Aug 15 17:33 /Users/xiaozijian/.codex/skills/council/PROTOCOLS.md
+-rw-r--r--@ 1 xiaozijian  staff  4949 Aug 16 10:02 issues/charter-q2-slot.md
+-rw-r--r--@ 1 xiaozijian  staff  1701 Aug 16 10:04 issues/trace/q2-slot-discovery.md
+
+2026-08-16T02:05:42.133836Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+Good, I have the pid: 79074. Now I need to read all the relevant files. Let me read them in parallel.
+exec
+/bin/zsh -lc 'cat issues/open/issue-062.md; echo "========== ISSUE 063 =========="; cat issues/open/issue-063.md; echo "========== ISSUE 064 =========="; cat issues/open/issue-064.md; echo "========== ISSUE 065 =========="; cat issues/open/issue-065.md' in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+# Issue #062: 第二问不是 not_fulfilled 的补充
+
+**Class**: architecture
+**Severity**: high
+**Status**: verifier-raised
+**Evidence**: code-analysis
+**Layer**: 结果口 A / 是否只挂在没办成后面
+**Cases**: 只作落点碰撞，不重判。
+
+## Verifier Discovery
+
+用户本轮点名的第一句：按 fulfilled 的定位，第二问是不是只是一个 not_fulfilled 的补充。
+
+046 已经否过「只有 NF 才有」。本 issue 不重开那条原则，只钉实现口：若把第二问做成「没办成之后才出现的附注」，第一问自己的定位会被改写。
+
+### 第一问自己怎么定位
+
+`spec/alg/fulfilled.md` §1：
+
+> 我们：评测系统（Judge），只看一件事——系统有没有帮用户办成想办的事。
+> 本协议只评第一层：办成了没有。
+> 「这类事现在是不是产品已经有的功能」见邻协议，不并进本协议三态。
+
+同文件 §2.2 没办成：
+
+> 不区分原因：
+> ……
+> 功能本身未实现，但用户期望已提出。
+
+所以「没办成」里面已经含着「功能未实现」。它不负责再分一次「这是不是产品立住的事」。第二问若只在没办成后面开口，就是把 §2.2 禁止区分的原因，重新做成一个可见附注。
+
+### 第二问自己看什么
+
+已锁结构：
+
+```text
+第二问不看：这一次交付
+第二问单位：这件事 × 产品事实
+```
+
+「只在 not_fulfilled 后出现」把单位改成了：
+
+```text
+这件事 × 这一次没给到
+```
+
+这是第一问的单位，不是第二问的单位。
+
+### 现行出口已经留下「办成了 × 没立住」
+
+`spec/alg/authority.md` §8.3：
+
+```text
+statement = 职责内能力缺失
+    → 不强制改状态
+    期望未达成 → not_fulfilled
+    实际达成   → fulfilled
+```
+
+`impl/core/authority_gate.py` 同一条：能力缺失不得降成 `not_evaluable`，也不强制改成 `not_fulfilled`。
+
+`spec/alg/product-function.md` §6 九格里有「办成了 × 没这项功能」。
+
+若第二问只是 NF 补充，这格从出口上消失。不是「暂时不显示」，是「按 fulfilled 的定位，这格不该存在」。但 §8.3 明文让它存在。
+
+### 只挂在 NF 后，四个格子会变成什么
+
+| 第一问 × 第二问 | 只当 NF 补充之后 | 踩哪条 |
+|---|---|---|
+| 没办成 × 没立住 | 看起来解决了。第二问变成失败原因 | fulfilled §2.2 不区分原因 |
+| 没办成 × 立住了 | 仍是没办成。过严和真缺口又焊回一个词 | 已锁第二问不看这一次交付 |
+| 办成了 × 立住了 | 第二问隐身。成功案不再问产品事实 | product-function §10 能单独回答 |
+| 办成了 × 没立住 | 没有落点。要么改口成没办成，要么假装立住了 | authority §8.3；030 Consensus |
+
+「用户现在只能看见 fulfilled」证明的是看见层还没开，不是第二问属于没办成。主表「状态」、筛选、顶部计数吃的都是第一问三个词。少看见一格，不能倒推出第二问是这三个词里某一个的子集。
+
+### 不是什么
+
+- 不是重判投保年 / 姓名 / 天气。
+- 不是批准以后在 NF 行画脚注。
+- 不是说「没办成的时候常常也能读到没立住」。那是两问对照后的读法，不是宿主关系。
+
+### 可证伪
+
+同时成立才算「只是 NF 补充」：
+
+1. 办成了的行上，第二问不许开口；
+2. 没办成的行上，第二问负责解释为什么没办成；
+3. §8.3「实际达成 → fulfilled」不再需要单独一格。
+
+现行协议三条都不成立。所以 A 口不能当宿主。
+
+## Proposed Change
+
+Consensus 只锁：第二问不是 not_fulfilled 的补充，也不能做成 NF 后才出现的附注。
+
+不改 schema，不改前端，不宣布对外中文。
+========== ISSUE 063 ==========
+# Issue #063: 第二问不能放进 not_evaluable
+
+**Class**: architecture
+**Severity**: high
+**Status**: verifier-raised
+**Evidence**: code-analysis
+**Layer**: 结果口 D / 放到 NE 里面
+**Cases**: 只作落点碰撞，不重判。
+
+## Verifier Discovery
+
+用户本轮点名：甚至把它放到 NE 里面。
+
+这句话听起来省事：第一问已经有「说不清」，产品没立住的事，就当判断不了。本 issue 只钉：NE 在 fulfilled 里答的是另一层，不是第二问。
+
+### NE 在第一问里答什么
+
+`spec/alg/fulfilled.md` §1：
+
+```text
+判断分两层：
+  第一层：用户要的事办成了没有？
+  第二层：手里的材料够不够回答第一层？
+本协议只评第一层：办成了没有。
+```
+
+§2.3 说不清是第二层：该给个说法，但材料不够，无法确定办没办成。四成因：
+
+```text
+职责外
+完全无关
+依据不充分
+输入坏
+```
+
+三条硬前提里有一条：是临时态，不允许成为永久结论。
+
+所以 NE 的工作是：「这一次，办成了没有，我们现在说不准。」
+不是：「产品把这件事立成自己会做的事了没有。」
+
+### 已经进 NE 的「职责外」，不是第二问住在 NE 里
+
+`fulfilled.md` §3 第二步：`职责外 → 说不清（职责外）`。
+`impl/core/authority_gate.py`：职责外强制改成 `not_evaluable`。
+
+这是第一问在问「材料够不够给办成了/没办成」时，把「根本不在职责里」收成说不准。它不是第二问的「没立住」。
+
+`spec/alg/product-function.md` §7.6：
+
+> 把职责外写成「没这项功能」  ✗
+
+已锁第二问的投影（058）：职责外 → 说不清（差在哪儿=职责外）。那是第二问自己的说不清，不是把第二问写进第一问的 NE。
+
+两件必须分开：
+
+| | 第一问 NE（职责外） | 第二问没立住 |
+|---|---|---|
+| 问的事 | 这一次办成了没有，现在说不准 | 产品把这件事立成会做的事了没有 |
+| 原料 | 职责外 | 职责内能力缺失 |
+| 能不能当永久缺口 | 不能。NE 是临时态 | 能。没立住可以是长期产品事实 |
+| 办成了还在不在 | 被改成说不清 | 仍可办成了（§8.3 实际达成） |
+
+### 把没立住塞进 NE，会改写第一问
+
+`fulfilled.md` §2.2：功能本身未实现 → 没办成，不降级为说不清。
+`authority.md` §8.3：不能因为「功能未实现」自动降级为 `not_evaluable`。
+`authority_gate.py`：职责内能力缺失，不得降为 `not_evaluable`。
+
+015 Consensus 路径 C 已死：用 NE 表达「尚未支持」。β 的输入坏走 NE 仍合法；α 的能力缺失必须留下 F/NF。
+
+塞进去之后：
+
+| 这一件 | 现在第一问 | 塞进 NE 之后 | 丢掉的 |
+|---|---|---|---|
+| 职责内能力缺失，这次没给到 | 没办成 | 说不清 | 长期缺口变成临时「判断不了」 |
+| 职责内能力缺失，这次碰巧给到 | 办成了 | 说不清 | §8.3 正格被删 |
+| 职责外 | 说不清 | 仍说不清 | 没立住和职责外焊成一个词 |
+| 姓名查找已立住，只是过严 | 没办成 | 若被顺手改成说不清 | 过严从「现有功能没办成」逃进垃圾桶 |
+
+「放到 NE 里面」不是给第二问找宿主。它是让第一问的第三个词兼答第二问。兼答之后，办成了 / 没办成 两格都会被改写。
+
+### 不是什么
+
+- 不是禁止第一问继续用 NE 表示职责外 / 依据不充分 / 输入坏 / 完全无关。
+- 不是把「第二问自己的说不清」改名为 NE。内部手柄仍可以是说不清；那是第二问的出口，不写回 `status=not_evaluable`。
+- 不是批准把投保年改成说不清。
+
+### 可证伪
+
+同时成立才算「第二问放进 NE」：
+
+1. 没立住的行，第一问必须变成 `not_evaluable`；
+2. 办成了 × 没立住 不再合法；
+3. NE 不再是临时态，可以长期表示产品缺口。
+
+现行协议三条都不成立。所以 D 口不能当宿主。
+
+## Proposed Change
+
+Consensus 只锁：第二问不能写进第一问的 `not_evaluable`。职责外继续可以让第一问说不清；那不是第二问住在 NE 里。
+
+不改 schema，不改 gate，不宣布对外中文。
+========== ISSUE 064 ==========
+# Issue #064: fulfilled 不能从 3 态扩到 4 态
+
+**Class**: architecture
+**Severity**: high
+**Status**: verifier-raised
+**Evidence**: code-analysis
+**Layer**: 结果口 C / 三态扩四态
+**Cases**: 只作落点碰撞，不重判。
+
+## Verifier Discovery
+
+用户本轮点名：fulfilled 标签从 3 态扩展到 4 态。
+
+这是最像「实现」的口：用户现在只能看见 fulfilled，加一个词，主表「状态」立刻看得见。本 issue 只钉：第四个词仍是第一问的嘴，加进去之后两问焊回一个标签。
+
+### 第一问的嘴现在有几个词
+
+`spec/alg/fulfilled.md` 开篇：
+
+> 词表沿用 `spec/info-volume.md`，不新增第四态。
+
+`spec/info-volume.md`：
+
+> 值域完全相同，依然是 fulfilled / not_fulfilled / not_evaluable，不引入 partial 之类的新枚举。
+> judge 只产出 fulfillment。
+> 整体 fulfilled → 归因不追失败。
+> 整体 not_fulfilled 或 not_evaluable → 归因才追。
+
+`impl/core/schema/judge.py`：`JudgeFulfillmentAssessmentOutput.status` 仍是一条状态。
+
+`impl/frontend/summary.html`：顶部计数、筛选、「状态」列、`fulfillmentPill()` 都只吃这三个词。新值一旦进 `status`，会同时进这四处。
+
+所以第四态不是「旁边多一个字」。它是第一问那张嘴多吐一个词。
+
+### 第四个词实际只能买到一格
+
+口语上的第四态，不论叫「尽力了」「能力外」「现有功能之外」，消费者仍从 `status` 读它。它能单独说完的，只有九格里最熟的一格：没办成 × 没立住。
+
+| 格子 | 加上第四个词之后 |
+|---|---|
+| 没办成 × 没立住 | 被新词吃掉。看起来解决了 |
+| 没办成 × 立住了 | 仍是没办成。过严继续隐身 |
+| 办成了 × 立住了 | 仍是办成了。第二问在成功案上继续隐身 |
+| 办成了 × 没立住 | 没有落点。第四个词若不是 fulfilled，§8.3 正格被删；若仍是 fulfilled，第四个词没覆盖到它 |
+| 说不清 × 任一 | 继续用说不清装长期缺口，013/015 已死 |
+
+`spec/alg/product-function.md` §7.1：给 fulfilled 加第四态来表达本协议 ✗。
+同文件 §6：「尽力了」只是「没办成 × 没这项功能」的读法，不是状态。
+015 Consensus 路径 A、048 Consensus：第四态已死。
+
+### 归因会被撕开
+
+info-volume 的切口是三词：
+
+```text
+整体办成了     → 不追失败
+整体没办成/说不清 → 追
+```
+
+第四个词不是办成了，就会少一个 F，该不追的被追，或者「没办成」的业务含义被改掉。
+第四个词若被当成办成了，第二问又从成功案上消失。
+
+没有一种加法能同时保住：
+
+1. 第一问只看办成了没有；
+2. 第二问在成功案和失败案上都能开口；
+3. 归因仍按三态走。
+
+### 看见层不能倒逼改词表
+
+用户现在只能看见 fulfilled。这是 060 / 061 已经锁过的看见问题：规范格子还不在主表「状态」上。给「状态」加第四种颜色，是先改主表芯片，再假装第二问有了出口。048 写过：前端只看见 fulfilled，只能证明看见问题，不能证明词表该膨胀。
+
+### 不是什么
+
+- 不是批准另开一列。看见面仍交章程 §4。
+- 不是把内部手柄「没立住」宣布成第四个 status。
+- 不是重开 015 / 048 的对错，只把「3 扩 4」按本轮点名口再对一次现行出口。
+
+### 可证伪
+
+同时成立才算「3 态扩 4 态能当宿主」：
+
+1. 新词进 `status` 之后，办成了 / 没办成 / 说不清 的含义不变；
+2. 办成了 × 没立住 和 没办成 × 立住了 仍各自看得见；
+3. 归因仍按原来的三态切口走。
+
+现行出口三条都不能成立。所以 C 口不能当宿主。
+
+## Proposed Change
+
+Consensus 只锁：fulfilled 不能从 3 态扩到 4 态。第四个词仍是第一问的嘴。
+
+不改 schema，不改前端，不宣布对外中文。
+========== ISSUE 065 ==========
+# Issue #065: 「新增 judge 结果标签」若是再让这张嘴写一个词，也不能当宿主
+
+**Class**: architecture
+**Severity**: high
+**Status**: verifier-raised
+**Evidence**: code-analysis
+**Layer**: 结果口 B / 新增 judge 结果标签
+**Cases**: 只作落点碰撞，不重判。
+
+## Verifier Discovery
+
+用户本轮点名：应该新增一个 judge 结果的标签，还是 3 扩 4，还是放到 NE。
+
+三句话并列时，「新增一个 judge 结果的标签」指的是：在判定已经写下的那份结果上，再多一个由判定写出的词，用来回答第二问。本 issue 只钉这个口。它不是 060 说的「以后若看见，在同一行旁边另开一格」。
+
+### 判定现在写出的结果是什么
+
+`impl/core/schema/judge.py`：
+
+```text
+JudgeFulfillmentAssessmentOutput.status
+```
+
+模型可写的评估字段仍只有这一格。`authority_tool_call_ids` 是引用，不是第二问答案。
+
+`spec/info-volume.md`：judge 只产 fulfillment，不产第二个判定维度。
+
+`spec/alg/product-function.md` 开篇：
+
+> 不进入 Judge 产出，不进入结果表词表。
+
+同文件 §7.2：让 Judge 再填一个新标签来回答本协议 ✗。
+
+047 Consensus：第二问不是同一轮 Judge 再填。刚写了办成了，下一句就倾向写成立住了。那是对齐，不是产品事实。
+
+所以「新增一个 judge 结果的标签」若按字面做，就是再开一张嘴。058 已经锁过：第二问是读已经写下的前缀，不是再判一类。
+
+### 和另外三个口是同一类错
+
+用户并列的四个口，其实都假设：第二问要住进第一问那份结果的词表里。
+
+| 点名口 | 实际在改哪张嘴 | 本轮 |
+|---|---|---|
+| A. 只是 NF 补充 | 第一问的没办成 | 062，不能当宿主 |
+| C. 3 态扩 4 态 | 第一问的 status 词表 | 064，不能当宿主 |
+| D. 放到 NE | 第一问的说不清 | 063，不能当宿主 |
+| B. 新增 judge 结果标签 | 第一问那份结果上再让判定写一个词 | 本 issue |
+
+B 看起来比 C/D 干净：status 三词不动。但它仍让判定再写一次。写的人是刚答完「办成了没有」的同一张嘴。047 的改口不是气氛问题，是同一轮两个出口会互相对齐。
+
+前端现在只能看见 fulfilled。给判定多一个可写标签，下一步几乎必然是：这个标签也画进「状态」，或者只在没办成行显示。前者回到 064，后者回到 062。标签本身解决不了看见层。
+
+### 不要和「以后旁边那一格」焊在一起
+
+060 Consensus 活着的家族是：
+
+```text
+以后若存，只物化同一份派生读
+以后若给人看：同一条期望上，办成了没有旁边，另开一格
+不是 Judge 再填
+不是 schema 新枚举
+不是本轮批准打开
+```
+
+那一格如果以后打开，读者会叫它「一个标签」。本 issue 不批准打开它，也不把它改名为「judge 结果标签」。
+
+两件必须分开：
+
+| | 本轮点名的 B | 060 以后若打开的那一格 |
+|---|---|---|
+| 谁写 | Judge 再填 | 读已经裁完的前缀 |
+| 进不进 prompt | 进 | 不进 |
+| 现在做不做 | 不做 | 仍交章程 §4 |
+| 算不算「新增 judge 结果标签」 | 算 | 不算。那是派生阅读，不是判定产出 |
+
+若把 060 的那一格写成「所以 B 口合法」，就是用看见面偷换判定产出。048 已经禁止这种批准。
+
+### 四个口之后，宿主是什么
+
+按 fulfilled 的定位：第一问那三个词只答办成了没有。第二问不进这三个词，也不进判定再写的第四个词。
+
+计算位置继续是 058 的读。规范格子继续是 060 的兄妹格。打开与否继续是 061 / 章程 §4。
+
+本轮角色不得把上面这段写成「请先加字段」。
+
+### 不是什么
+
+- 不是批准派生列上线。
+- 不是说「结果对象上永远不许出现第二问」。以后若存，那是物化同一份读，不是新判定。
+- 不是让评测员重判三类前缀来填标签。
+
+### 可证伪
+
+同时成立才算「新增 judge 结果标签能当宿主」：
+
+1. 这个标签由同一轮 Judge 写出；
+2. 它不回写 `status`，也不只在 NF 后出现；
+3. 刚写了办成了的那张嘴，不会用这个标签去对齐产品事实。
+
+1 和 3 互相打架。现行判定只有一张嘴。所以 B 口不能当宿主。
+
+## Proposed Change
+
+Consensus 只锁：
+
+1. 「新增一个 judge 结果的标签」若指判定再写一个词，不能当宿主；
+2. 不得把 060 的派生兄妹格改名为 B 口、当成已经批准；
+3. 四个点名口都不能当宿主；打开看见层仍交章程 §4。
+
+不改 schema，不改前端，不宣布对外中文。
+
+2026-08-16T02:05:45.971613Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+The output was truncated. I need to read the full issue files more carefully, especially 063 and 064 which were truncated. Let me also read the protocol files, charter, discovery, and source files.
+codex
+The first pass truncated 063/064, so I’m reading those issues and the cited protocol/exit files in full next.
+exec
+/bin/zsh -lc "sed -n '1,250p' issues/open/issue-063.md" in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+# Issue #063: 第二问不能放进 not_evaluable
+
+**Class**: architecture
+**Severity**: high
+**Status**: verifier-raised
+**Evidence**: code-analysis
+**Layer**: 结果口 D / 放到 NE 里面
+**Cases**: 只作落点碰撞，不重判。
+
+## Verifier Discovery
+
+用户本轮点名：甚至把它放到 NE 里面。
+
+这句话听起来省事：第一问已经有「说不清」，产品没立住的事，就当判断不了。本 issue 只钉：NE 在 fulfilled 里答的是另一层，不是第二问。
+
+### NE 在第一问里答什么
+
+`spec/alg/fulfilled.md` §1：
+
+```text
+判断分两层：
+  第一层：用户要的事办成了没有？
+  第二层：手里的材料够不够回答第一层？
+本协议只评第一层：办成了没有。
+```
+
+§2.3 说不清是第二层：该给个说法，但材料不够，无法确定办没办成。四成因：
+
+```text
+职责外
+完全无关
+依据不充分
+输入坏
+```
+
+三条硬前提里有一条：是临时态，不允许成为永久结论。
+
+所以 NE 的工作是：「这一次，办成了没有，我们现在说不准。」
+不是：「产品把这件事立成自己会做的事了没有。」
+
+### 已经进 NE 的「职责外」，不是第二问住在 NE 里
+
+`fulfilled.md` §3 第二步：`职责外 → 说不清（职责外）`。
+`impl/core/authority_gate.py`：职责外强制改成 `not_evaluable`。
+
+这是第一问在问「材料够不够给办成了/没办成」时，把「根本不在职责里」收成说不准。它不是第二问的「没立住」。
+
+`spec/alg/product-function.md` §7.6：
+
+> 把职责外写成「没这项功能」  ✗
+
+已锁第二问的投影（058）：职责外 → 说不清（差在哪儿=职责外）。那是第二问自己的说不清，不是把第二问写进第一问的 NE。
+
+两件必须分开：
+
+| | 第一问 NE（职责外） | 第二问没立住 |
+|---|---|---|
+| 问的事 | 这一次办成了没有，现在说不准 | 产品把这件事立成会做的事了没有 |
+| 原料 | 职责外 | 职责内能力缺失 |
+| 能不能当永久缺口 | 不能。NE 是临时态 | 能。没立住可以是长期产品事实 |
+| 办成了还在不在 | 被改成说不清 | 仍可办成了（§8.3 实际达成） |
+
+### 把没立住塞进 NE，会改写第一问
+
+`fulfilled.md` §2.2：功能本身未实现 → 没办成，不降级为说不清。
+`authority.md` §8.3：不能因为「功能未实现」自动降级为 `not_evaluable`。
+`authority_gate.py`：职责内能力缺失，不得降为 `not_evaluable`。
+
+015 Consensus 路径 C 已死：用 NE 表达「尚未支持」。β 的输入坏走 NE 仍合法；α 的能力缺失必须留下 F/NF。
+
+塞进去之后：
+
+| 这一件 | 现在第一问 | 塞进 NE 之后 | 丢掉的 |
+|---|---|---|---|
+| 职责内能力缺失，这次没给到 | 没办成 | 说不清 | 长期缺口变成临时「判断不了」 |
+| 职责内能力缺失，这次碰巧给到 | 办成了 | 说不清 | §8.3 正格被删 |
+| 职责外 | 说不清 | 仍说不清 | 没立住和职责外焊成一个词 |
+| 姓名查找已立住，只是过严 | 没办成 | 若被顺手改成说不清 | 过严从「现有功能没办成」逃进垃圾桶 |
+
+「放到 NE 里面」不是给第二问找宿主。它是让第一问的第三个词兼答第二问。兼答之后，办成了 / 没办成 两格都会被改写。
+
+### 不是什么
+
+- 不是禁止第一问继续用 NE 表示职责外 / 依据不充分 / 输入坏 / 完全无关。
+- 不是把「第二问自己的说不清」改名为 NE。内部手柄仍可以是说不清；那是第二问的出口，不写回 `status=not_evaluable`。
+- 不是批准把投保年改成说不清。
+
+### 可证伪
+
+同时成立才算「第二问放进 NE」：
+
+1. 没立住的行，第一问必须变成 `not_evaluable`；
+2. 办成了 × 没立住 不再合法；
+3. NE 不再是临时态，可以长期表示产品缺口。
+
+现行协议三条都不成立。所以 D 口不能当宿主。
+
+## Proposed Change
+
+Consensus 只锁：第二问不能写进第一问的 `not_evaluable`。职责外继续可以让第一问说不清；那不是第二问住在 NE 里。
+
+不改 schema，不改 gate，不宣布对外中文。
+
+2026-08-16T02:05:48.253237Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+Good, now I have the full issue-063. Let me get issue-064 as well.
+exec
+/bin/zsh -lc "sed -n '1,250p' issues/open/issue-064.md" in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+# Issue #064: fulfilled 不能从 3 态扩到 4 态
+
+**Class**: architecture
+**Severity**: high
+**Status**: verifier-raised
+**Evidence**: code-analysis
+**Layer**: 结果口 C / 三态扩四态
+**Cases**: 只作落点碰撞，不重判。
+
+## Verifier Discovery
+
+用户本轮点名：fulfilled 标签从 3 态扩展到 4 态。
+
+这是最像「实现」的口：用户现在只能看见 fulfilled，加一个词，主表「状态」立刻看得见。本 issue 只钉：第四个词仍是第一问的嘴，加进去之后两问焊回一个标签。
+
+### 第一问的嘴现在有几个词
+
+`spec/alg/fulfilled.md` 开篇：
+
+> 词表沿用 `spec/info-volume.md`，不新增第四态。
+
+`spec/info-volume.md`：
+
+> 值域完全相同，依然是 fulfilled / not_fulfilled / not_evaluable，不引入 partial 之类的新枚举。
+> judge 只产出 fulfillment。
+> 整体 fulfilled → 归因不追失败。
+> 整体 not_fulfilled 或 not_evaluable → 归因才追。
+
+`impl/core/schema/judge.py`：`JudgeFulfillmentAssessmentOutput.status` 仍是一条状态。
+
+`impl/frontend/summary.html`：顶部计数、筛选、「状态」列、`fulfillmentPill()` 都只吃这三个词。新值一旦进 `status`，会同时进这四处。
+
+所以第四态不是「旁边多一个字」。它是第一问那张嘴多吐一个词。
+
+### 第四个词实际只能买到一格
+
+口语上的第四态，不论叫「尽力了」「能力外」「现有功能之外」，消费者仍从 `status` 读它。它能单独说完的，只有九格里最熟的一格：没办成 × 没立住。
+
+| 格子 | 加上第四个词之后 |
+|---|---|
+| 没办成 × 没立住 | 被新词吃掉。看起来解决了 |
+| 没办成 × 立住了 | 仍是没办成。过严继续隐身 |
+| 办成了 × 立住了 | 仍是办成了。第二问在成功案上继续隐身 |
+| 办成了 × 没立住 | 没有落点。第四个词若不是 fulfilled，§8.3 正格被删；若仍是 fulfilled，第四个词没覆盖到它 |
+| 说不清 × 任一 | 继续用说不清装长期缺口，013/015 已死 |
+
+`spec/alg/product-function.md` §7.1：给 fulfilled 加第四态来表达本协议 ✗。
+同文件 §6：「尽力了」只是「没办成 × 没这项功能」的读法，不是状态。
+015 Consensus 路径 A、048 Consensus：第四态已死。
+
+### 归因会被撕开
+
+info-volume 的切口是三词：
+
+```text
+整体办成了     → 不追失败
+整体没办成/说不清 → 追
+```
+
+第四个词不是办成了，就会少一个 F，该不追的被追，或者「没办成」的业务含义被改掉。
+第四个词若被当成办成了，第二问又从成功案上消失。
+
+没有一种加法能同时保住：
+
+1. 第一问只看办成了没有；
+2. 第二问在成功案和失败案上都能开口；
+3. 归因仍按三态走。
+
+### 看见层不能倒逼改词表
+
+用户现在只能看见 fulfilled。这是 060 / 061 已经锁过的看见问题：规范格子还不在主表「状态」上。给「状态」加第四种颜色，是先改主表芯片，再假装第二问有了出口。048 写过：前端只看见 fulfilled，只能证明看见问题，不能证明词表该膨胀。
+
+### 不是什么
+
+- 不是批准另开一列。看见面仍交章程 §4。
+- 不是把内部手柄「没立住」宣布成第四个 status。
+- 不是重开 015 / 048 的对错，只把「3 扩 4」按本轮点名口再对一次现行出口。
+
+### 可证伪
+
+同时成立才算「3 态扩 4 态能当宿主」：
+
+1. 新词进 `status` 之后，办成了 / 没办成 / 说不清 的含义不变；
+2. 办成了 × 没立住 和 没办成 × 立住了 仍各自看得见；
+3. 归因仍按原来的三态切口走。
+
+现行出口三条都不能成立。所以 C 口不能当宿主。
+
+## Proposed Change
+
+Consensus 只锁：fulfilled 不能从 3 态扩到 4 态。第四个词仍是第一问的嘴。
+
+不改 schema，不改前端，不宣布对外中文。
+
+2026-08-16T02:05:50.289136Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+Now I have all four issues. I need to read the protocol files, charter, discovery, current exits, and prior consensus locks. Let me do that systematically.
+codex
+Next I’ll read the charter, discovery note, current exits, and the locked Consensus blocks so the verdicts are grounded in the actual protocol text.
+exec
+/bin/zsh -lc "sed -n '1,220p' issues/charter-q2-slot.md; echo \"========== DISCOVERY ==========\"; cat issues/trace/q2-slot-discovery.md" in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+# Charter — 第二问四个结果口
+
+> 本轮只辩：按 fulfilled 的定位，第二问是不是只补 not_fulfilled，以及四个点名的结果口哪一个能当宿主。
+> 不重开 006–061 的对错结论，不改代码，不改协议正文，不改前端。
+> 用户 `/council`：按照 fulfilled 的定位，他是否只是一个 not fulfilled 的补充，应该新增一个 judge 结果的标签，还是 fulfilled 标签从 3 态扩展到 4 态，甚至是把它放到 NE 里面。不实现。
+
+## 1. Goal & Definition of Done
+
+- Goal: 钉死四个点名结果口各自死在哪，以及按 fulfilled 的定位，第二问到底不进哪张嘴。
+- Done:
+  1. 每个点名口一个 issue + 现行出口原文 + 同一件期望上的落点对照；
+  2. architect 独立重读 fulfilled / 现行出口后写 Consensus；
+  3. 交给用户的是「这四个口哪个能当宿主」，不是字段名，不是对外题面，也不是本轮改表。
+
+本轮四个点名口（必须逐个对上，不得合成一句「都不行」就结束）：
+
+```text
+A. 只是 not_fulfilled 的补充
+B. 新增一个 judge 结果的标签
+C. fulfilled 从 3 态扩到 4 态
+D. 放到 not_evaluable 里面
+```
+
+「实现位置」在本轮的工作定义（可证伪）：
+
+1. 能指出每个口会改写第一问的哪一张嘴，或根本答不上第二问；
+2. 对象仍是第一问那一件，不得为了更好塞进某个口把对象切粗或切细；
+3. 现在用户只能看见 fulfilled，必须能说明：这证明看见层还没开，不证明第二问属于这三个词里的某一个；
+4. 不得把「以后若另开一格」写成批准上线。
+
+## 2. Oracle
+
+- **对错尺子**：`spec/alg/fulfilled.md` 第一章、`spec/alg/product-function.md` §1 / §6–10、`spec/alg/authority.md` §8.3、`spec/info-volume.md`、046–048 / 058–061 Consensus、用户标注的两问结构。
+- **不是 oracle**：canvas、准确率、`is_supported=false`、空条件、「暂不支持」文案、姓名/年/天气类型表、053–057 判定代理的「第二问」（整句有没有被这一维说完，对象不同）。
+- 漏姓名 / 投保年 / 格式外 / 查天气 / I161 只当落点碰撞，不重判对错。
+
+已锁、本轮不得重开：
+
+```text
+第一问（已经有）
+  只看一件事：这一次，用户要的事办成了没有
+  单位：这一次请求 × 这一次交付
+  不看：产品把这件事立住了没有
+  不区分：没给到的原因
+  出口：办成了 / 没办成 / 说不清
+
+第二问（出口还没有）
+  只看一件事：用户要的这件事，产品把它立成自己会做的事了没有
+  对象：仍是第一问那一件
+        不得另立类型表
+        不得为了更好答第二问，把对象切粗或切细
+  单位：这件事 × 产品事实
+  产品事实从哪来：已经裁完的能力/职责判断，及其依据资料
+            不是这一次给没给到
+            不是库存字段表
+            不是「先分成姓名/年/天气」
+  不看：这一次交付；这一次承不承认 / 尽没尽力；预置类型表
+  不区分：没立住的技术原因
+  出口：立住了 / 没立住 / 说不清
+```
+
+「立住了 / 没立住 / 说不清」继续只是内部手柄，不宣布采用为对外题面。
+
+058–061 已锁的四层落点本轮只引用，不重写题面。
+
+## 3. Red lines
+
+- Must not touch: `src/**`、产品代码、`impl/**`、xlsx、canvas、`draft/judge.py`、协议正文、`issue-006`–`issue-061` 的已有正文（只许在本轮新 issue 里引用 Consensus）。
+- May write: `issues/**`、`trace/**`。
+- 不发明上线字段，不改前端，不代拟对外终句，不宣布采用「立住了 / 没立住 / 现成有 / 现成没有」。
+
+## 4. Escalation
+
+角色不得代选：
+
+1. 要不要现在就让人在结果里看见第二问
+2. 用哪一句中文当对外题面
+3. 现在改不改 schema / 结果表
+4. 去年算不算核心 / 称谓认不认 / 格式外算不算单号（仍停住）
+
+本轮可以锁「这四个口哪个能当宿主」。打开与否仍停住。
+
+## 5. Evidence standards
+
+- 协议原文 + 现行出口原文（schema / 前端 / authority_gate / frontend_view）+ 已锁 Consensus。
+- 不得用「我感觉放这里更干净」代替：同一件期望上的落点对照、以及「塞进这个口之后第一问还在不在」。
+- architect 必须自己重读 cited 协议和出口，不抄 verifier 转述。
+- 任一落点若让 Judge 再填一格、给 fulfilled 加枚举、只在 NF 后出现、把没立住写成 NE、或先分成姓名/年/天气再查表，即未达本轮。
+
+## 6. Budget
+
+- Max argue rounds: 4
+- Model for spawned roles: inherit current Codex model
+- 不重跑 judge；不改 prompt；不实现字段。
+
+## 7. Cast
+
+- Initiator: verifier
+- Opponent: architect
+- Reason: 问的是 fulfilled 定位下的结果口，不是改 golden，也不是改评测脚手架。
+========== DISCOVERY ==========
+# Discovery — 第二问四个结果口
+
+日期：2026-08-16
+章程：issues/charter-q2-slot.md
+范围：只读协议和现行出口。不重跑 judge。不改代码。
+
+## 用户点名的四个口
+
+```text
+A. 只是 not_fulfilled 的补充
+B. 新增一个 judge 结果的标签
+C. fulfilled 从 3 态扩到 4 态
+D. 放到 not_evaluable 里面
+```
+
+两问结构已锁，见章程 §2。本轮不改题面。
+
+## 现行出口（自己读过）
+
+- `spec/alg/fulfilled.md` §1：只看办成了没有；邻协议不并进三态，不新增第四态。
+- 同文件 §2.2：没办成不区分原因，含功能未实现。
+- 同文件 §2.3：NE = 材料不够判断办没办成；临时态。
+- `spec/alg/authority.md` §8.3：能力缺失不强制改状态；实际达成 → fulfilled；不得因功能未实现降 NE。
+- `impl/core/authority_gate.py`：职责外强制 NE；能力缺失不得降 NE。
+- `impl/core/schema/judge.py`：Judge 可写评估字段只有 status。
+- `impl/core/frontend_view.py` `_fulfillment_panel`：矩阵每行一个 status。
+- `impl/frontend/summary.html`：主表「状态」、筛选、计数、pill 只吃三词。
+- `spec/info-volume.md`：不引入 partial；整体 F 不追失败。
+- `spec/alg/product-function.md` §7.1 / §7.2：第四态 ✗；Judge 再填新标签 ✗。
+
+## 已锁、只引用
+
+- 046：不是只有 NF 才有
+- 047：不是同一轮 Judge 再填
+- 048：不是给 status 加枚举
+- 015-A / 015-C：第四态死；用 NE 表达尚未支持死
+- 058：第二问是读，不是再开一张嘴
+- 060：四层拆开；规范格子在矩阵 Status 旁边
+- 061：打开那一格是项目决定
+
+## 本轮起号
+
+062 A / 063 D / 064 C / 065 B
+
+2026-08-16T02:05:54.160987Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+Now I need to read the actual protocol files and current exits. Let me read them carefully.
+exec
+/bin/zsh -lc 'rg -n "词表|第四|邻协议|办成了没有|不区分|说不清|职责外|功能本身未实现|临时" spec/alg/fulfilled.md | head -80' in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+1:# Fulfillment 三态判定协议（办成了 / 没办成 / 说不清）
+4:> `not_fulfilled（没办成）` / `not_evaluable（说不清）`。词表沿用 `spec/info-volume.md`，
+5:> 不新增第四态。第一章为长期协议，第二章为现状差异与一次性改造任务。
+24:  第一层：用户要的事办成了没有？
+28:本协议只评第一层：办成了没有。
+30:不并进本协议三态，也不新增第四态。
+44:职责内、用户期望明确没达成，且责任在系统。不区分原因：
+49:- 功能本身未实现，但用户期望已提出。
+52:理由必须讲清楚，并列为长期优化点——"功能未实现"也是没办成，不降级为说不清。
+54:### 2.3 说不清（not_evaluable）
+60:| 职责外 | authority 已确认不是产品的职责（例：093 车牌、113 公司名查询） |
+65:职责外是用户确实来要过、产品没这职责；完全无关是根本没沾边。两者都在 live
+66:boundary 之外，都判"说不清"，只是"差在哪儿"要写清楚是哪一种。
+73:3. 是临时态：挂一次性改造限期关闭，不允许成为永久结论。
+82:  完全无关       说不清（完全无关）
+85:  ├─ resolved=职责外 → 说不清（职责外）
+89:  ├─ unresolved（真查证过仍依据不充分）→ 说不清（依据不充分）+ 缺料清单
+95:  ├─ 输入坏 → 说不清（输入坏）
+96:  └─ 无法确认办没办成 → 说不清（依据不充分，满足 §2.3 三前提）
+112:仍必须完成用户效果评价，不能把“未启用 Authority”伪装成“Authority 已查证但说不清”。
+122:- 不得声称职责内、职责外、正式语义或资料优先级已获 Authority 确认；
+136:- 职责外（已确认产品不做）→ 说不清（职责外）；
+137:- 依据不充分（查证过仍 unresolved）→ 说不清（依据不充分）；
+159:职责内、没有任何可用输出 → 没办成。"没交付"能确认就是没办成，不能包装成说不清；
+160:只有输出真的拿不到、确认不了才算说不清。
+165:- 不允许用"系统表现不错"把没办成/说不清包装成办成了；
+168:- 职责内 + 期望未达成 = 没办成；只有依据不充分（authority unresolved）才落说不清。
+175:  任何一个核心诉求说不清 → 整体说不清
+182:   没有任何必办验收项时，整体不得算办成（应判说不清或标记人工复核）；
+189:2. 系统该出结果却没出 → 包装成"说不清"                 ✗
+193:6. 填了"说不清"但不说明差在哪儿                        ✗
+196:9. "查不了"没查证就直接判"说不清"或"职责外"            ✗
+197:10. "说不清"不带缺料清单、不限期关闭                    ✗
+198:11. 凭"字段表里没有"就推定"产品职责外"（缺正向确认）    ✗
+209:| D1 | 判定标准只有"达成/未达成/判断不了"一句话，没有判定顺序 | 各项目各判各的，边界场景说不清 | `spec/info-volume.md` |
+211:| D3 | draft 规则："确属能力边界外 + 如实拒绝 → 核心目标算办成了" | 与 §5 冲突；边界外应是"说不清"，不是办成 | `impl/projects/client_search/draft/judge.py` |
+213:| D5 | 对"字段在清单但实际不支持"的查询强判"没办成" | 没先查证"该不该支持"；查证不了该是"说不清" | `draft/judge.py`（操作符校验） |
+221:   "如实拒绝≠办成""该出结果没出≠说不清"列为强制审查项。
+225:   （§5）的标 `inlive_boundary`，未登记的保持 `current_behavior` 并推动登记。按 `spec/alg/investigate-authority-judge.md` §13 补证循环，由 Harness AI 自然识别覆盖缺口、校验层确定性校验，用缺口 `required_evidence` 驱动定向补证；"职责内外"类问题（093/113/133/138/148）同样以覆盖缺口记录，`required_evidence` 指向业务方确认的职责边界、下游接口声明；非文件资料先固化 artifact 再物化进 EvidenceSpace。补齐前，"查不了"一律按"说不清"。
+228:   依据不充分 → "说不清"（满足 §2.3 三前提）。反向同样禁止：没查证不得用"未定论"推给
+229:   "说不清"。
+233:7. **统一旧词表**：迁移 `judge_boundary_protocals.md` 的"对/错/不确定"到协议三态。
+234:8. **测试并重跑冻结集**：新增"如实拒绝≠办成""依据不充分强制说不清""无必办项不得办成"
+235:   "该出结果没出≠说不清"用例；30 条冻结集重跑，draft 优于 production 且无退化后才谈上线。
+239:- 每个案子都能落到三态之一，"说不清"必带"差在哪儿"（职责外/完全无关/依据不充分/输入坏）；
+241:- 职责外 / 依据不充分类"说不清"：每个判定都有 authority 调用记录
+244:- 完全无关（如客户搜索里问天气）→ "说不清（完全无关）"，不得用"不评"绕过判定；
+
+2026-08-16T02:05:56.647817Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+Good, I have the fulfilled.md overview. Let me read the actual first chapter more carefully, plus authority.md §8.3, product-function.md, info-volume.md, and the implementation files.
+exec
+/bin/zsh -lc "sed -n '1,80p' spec/alg/fulfilled.md; echo \"========== 2.1-2.3 ==========\"; sed -n '36,80p' spec/alg/fulfilled.md" in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+# Fulfillment 三态判定协议（办成了 / 没办成 / 说不清）
+
+> 状态：草稿，待讨论。从业务角度定义 Judge 三态：`fulfilled（办成了）` /
+> `not_fulfilled（没办成）` / `not_evaluable（说不清）`。词表沿用 `spec/info-volume.md`，
+> 不新增第四态。第一章为长期协议，第二章为现状差异与一次性改造任务。
+
+# 第一章：Spec 标准
+
+## 1. 我们在评什么
+
+三个角色：
+
+- **用户**：使用业务系统的人（mock agent 扮演的角色，即 live request 的提问者），
+  不是开发/评测业务系统的人；
+- **业务系统**：被评测对象（Live），用户对它说话、它给用户结果；
+- **我们**：评测系统（Judge），只看一件事——系统有没有帮用户办成想办的事。
+
+```text
+用户期望（BusinessExpectation）
+  = 用户用这个产品想办成的事，从用户视角写（例："找到符合要求的客户"）
+  ≠ "输出正确的查询结构"（实现视角）
+
+判断分两层：
+  第一层：用户要的事办成了没有？
+  第二层：手里的材料够不够回答第一层？
+```
+
+本协议只评第一层：办成了没有。
+「这类事现在是不是产品已经有的功能」见 `spec/alg/product-function.md`，
+不并进本协议三态，也不新增第四态。
+
+## 2. 三个状态的定义
+
+### 2.1 办成了（fulfilled）
+
+用户要的事系统给到了，且有实打实的证据。必须同时满足：
+
+1. 属于产品职责范围（职责内）；
+2. 材料足够（该查证的查证了，没有悬而未决的依据）；
+3. 证据能证明用户要的结果确实拿到了。
+
+### 2.2 没办成（not_fulfilled）
+
+职责内、用户期望明确没达成，且责任在系统。不区分原因：
+
+- 漏条件、加多条件、改错值、条件关系理解错；
+- 静默改值、表达不了本可表达的东西；
+- 该出结果时一个结果都没出；
+- 功能本身未实现，但用户期望已提出。
+
+前提：材料足够；且已排除外部原因（数据库/接口挂了这类不怪系统，见 §4.4）。
+理由必须讲清楚，并列为长期优化点——"功能未实现"也是没办成，不降级为说不清。
+
+### 2.3 说不清（not_evaluable）
+
+该给个说法，但材料不够，无法确定办没办成。成因有四类，必须说清"差在哪儿"：
+
+| 差在哪儿 | 什么时候出现 |
+|---|---|
+| 职责外 | authority 已确认不是产品的职责（例：093 车牌、113 公司名查询） |
+| 完全无关 | 用户的事与产品完全不沾边（例：客户搜索产品里问天气）——同属 live boundary 之外 |
+| 依据不充分 | authority 真查证过仍 unresolved，分不清"本来就查不了"还是"系统漏了"（例：088 盘客当前状态） |
+| 输入坏 | 用户输入本身不可用（例：068 语音损坏），非产品职责也非评测问题 |
+
+职责外是用户确实来要过、产品没这职责；完全无关是根本没沾边。两者都在 live
+boundary 之外，都判"说不清"，只是"差在哪儿"要写清楚是哪一种。
+
+三个硬前提（防止变成垃圾桶）：
+
+1. 查证真的激活过：authority 机制真实跑过、有调用记录（"调用记录"= 本次 trace 的
+   `authority_tool_call_ids`，或本任务内相同 `decision_question` 的去重命中记录）；"没查证" ≠ "查不了"；
+2. 必须写清"差在哪儿"和缺哪份材料（缺料清单）；
+3. 是临时态：挂一次性改造限期关闭，不允许成为永久结论。
+
+## 3. 判断顺序
+
+```text
+第一步：用户要什么？
+  要结果（默认） 要拿到具体的客户/名单
+  要答复         要"能不能/有没有"的回答（请求文本明确是能力询问）
+========== 2.1-2.3 ==========
+用户要的事系统给到了，且有实打实的证据。必须同时满足：
+
+1. 属于产品职责范围（职责内）；
+2. 材料足够（该查证的查证了，没有悬而未决的依据）；
+3. 证据能证明用户要的结果确实拿到了。
+
+### 2.2 没办成（not_fulfilled）
+
+职责内、用户期望明确没达成，且责任在系统。不区分原因：
+
+- 漏条件、加多条件、改错值、条件关系理解错；
+- 静默改值、表达不了本可表达的东西；
+- 该出结果时一个结果都没出；
+- 功能本身未实现，但用户期望已提出。
+
+前提：材料足够；且已排除外部原因（数据库/接口挂了这类不怪系统，见 §4.4）。
+理由必须讲清楚，并列为长期优化点——"功能未实现"也是没办成，不降级为说不清。
+
+### 2.3 说不清（not_evaluable）
+
+该给个说法，但材料不够，无法确定办没办成。成因有四类，必须说清"差在哪儿"：
+
+| 差在哪儿 | 什么时候出现 |
+|---|---|
+| 职责外 | authority 已确认不是产品的职责（例：093 车牌、113 公司名查询） |
+| 完全无关 | 用户的事与产品完全不沾边（例：客户搜索产品里问天气）——同属 live boundary 之外 |
+| 依据不充分 | authority 真查证过仍 unresolved，分不清"本来就查不了"还是"系统漏了"（例：088 盘客当前状态） |
+| 输入坏 | 用户输入本身不可用（例：068 语音损坏），非产品职责也非评测问题 |
+
+职责外是用户确实来要过、产品没这职责；完全无关是根本没沾边。两者都在 live
+boundary 之外，都判"说不清"，只是"差在哪儿"要写清楚是哪一种。
+
+三个硬前提（防止变成垃圾桶）：
+
+1. 查证真的激活过：authority 机制真实跑过、有调用记录（"调用记录"= 本次 trace 的
+   `authority_tool_call_ids`，或本任务内相同 `decision_question` 的去重命中记录）；"没查证" ≠ "查不了"；
+2. 必须写清"差在哪儿"和缺哪份材料（缺料清单）；
+3. 是临时态：挂一次性改造限期关闭，不允许成为永久结论。
+
+## 3. 判断顺序
+
+```text
+第一步：用户要什么？
+  要结果（默认） 要拿到具体的客户/名单
+  要答复         要"能不能/有没有"的回答（请求文本明确是能力询问）
+
+2026-08-16T02:05:59.353375Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+Good. Now I need authority.md §8.3, product-function.md, info-volume.md, and the implementation files.
+exec
+/bin/zsh -lc 'rg -n "''^#|''^##|''^###|§8|能力缺失|不强制|not_evaluable|功能未实现|实际达成" spec/alg/authority.md | head -80' in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+1:# Authority Agent 协议
+7:# 第一章：长期协议
+9:## 1. 目标
+32:## 2. 职责边界
+55:| Judge | 对应业务评价不得输出肯定结论，应为 `not_evaluable` 并说明原因 |
+59:## 3. 调用形态
+93:## 4. 最小输入输出与资料空间
+103:# Existing runtime types; they are not new Authority schemas.
+126:### 4.1 `AuthorityRequest`
+145:### 4.2 Authority 的运行时契约（宿主无关 Ports）与 verifier 适配
+192:#### verifier Adapter（verifier 内的实现层）
+257:### 4.3 `AuthorityResolution`
+273:## 5. Authority Agent 的判断顺序
+295:能力/职责边界类问题（§8.2 模板）的 `statement` 必须明确结论类型：
+296:`职责外`（产品没有该能力/不在职责范围）、`职责内能力缺失`（应具备但未实现/表达不了）、
+308:## 6. 与 Investigate 的非硬依赖串联
+340:  authority.evidence.<ref_id>，见 investigate-keyindex.md §8.3）；块级切片
+391:Authority unresolved，更不能直接推出 Judge not_evaluable；Authority 必须按问题需要尝试
+410:## 7. Runtime 调用规则
+428:  裁决；职责外与职责内能力缺失的边界只能由 Authority 基于资料给出。
+431:职责外 / 职责内能力缺失并据此判定 not_evaluable / not_fulfilled；必须先走
+432:`authority.resolve`（§6、§8.2）。
+433:例外：`not_evaluable` 的“输入坏”“完全无关”两个成因不依赖产品能力边界，不需要
+440:## 8. 调用方消费规则
+455:`not_evaluable` 成因，也不等同于 Tool / Agent 执行失败。Authority 开启且决定性业务
+459:### 8.1 触发约束：能力/职责边界裁决必须走 Authority
+461:Judge 判定“职责外”或“职责内能力缺失”这两类结论时，必须先调用 `authority.resolve`，
+464:- “产品没有这个能力”（职责外 / 职责内能力缺失）必须以资料为依据，由 Authority 裁决；
+465:- 没有 Authority 调用记录的“职责外 / 依据不充分”类 not_evaluable，Core 后处理标
+466:  `needs_human_review`（§8.4），不静默放行；
+467:- “输入坏”“完全无关”两类 not_evaluable 不依赖 Authority，不受此约束
+470:### 8.2 decision_question 构造约束
+489:### 8.3 resolved 结论的分支消费
+496:    → FulfillmentAssessment = not_evaluable（职责外）
+499:statement = 职责内能力缺失（应具备但未实现/表达不了）
+500:    → 不强制改状态；Judge 结合 live 实际交付判断：
+502:        实际达成   → fulfilled
+503:    → 不能因为“功能未实现”自动降级为 not_evaluable
+509:### 8.4 Core 后处理硬校验
+513:    → 依赖该问题的 FulfillmentAssessment = not_evaluable
+518:    → FulfillmentAssessment = not_evaluable
+521:assessment.status = not_evaluable
+525:    原因：这两类 not_evaluable 必须有 Authority 真实查证的调用记录
+532:引用的 resolution 为 unresolved 且 assessment 为 blocking → `not_evaluable`，并把
+535:### 8.5 Runtime 不主动补证
+550:blocking assessment 因 Authority unresolved 而 not_evaluable
+552:overall_fulfillment = not_evaluable
+564:## 9. 中文案例：客户搜索中的业务词映射
+633:    → not_evaluable，并展示具体冲突和待补证内容
+636:不能因为“高净值” unresolved 就把与它无关的年龄条件也标成 not_evaluable。
+638:## 10. Validator 与审计要求
+662:# 第二章：设计矛盾、冲突与裁决记录
+673:## 11. 已确认的业务底线
+682:   对依赖该问题的评价返回 `not_evaluable`，并在 Judge summary 中说明具体冲突、来源和
+684:4. `not_evaluable` 不是永久结论。人类补充资料、业务确认、可用的确定性 Tool 或新的
+691:## 12. 对象职责是否被重复建模
+693:### 12.1 `ContextUnit`、`Tool`、`EvidenceRef` 是否应该合并
+709:### 12.2 `EvidenceCatalog` 是否是必要的新概念
+720:### 12.3 `AuthorityEnvironment` 是否被过度拆分
+732:## 13. 资料空间、适用范围与来源绑定的冲突
+734:### 13.1 资料空间与业务适用范围是不是一回事
+748:### 13.2 `ProjectSpec`、`Role assets`、`ContextRun` 谁是真正的空间边界
+761:### 13.3 Investigate 产物如何进入 Runtime 可发现空间
+766:> （fail-closed），不进业务层；Investigate 发现 unresolved 可以直接报告，不强制继续
+793:- Investigate 发现 unresolved 可以直接在调查包阶段报告，不强制继续调查；重新调查的
+796:## 14. Authority 结论本身的边界冲突
+798:### 14.1 Authority 是“资料优先级”还是“当前能否得出结论”
+812:### 14.2 Authority 的调查单位到底是什么
+830:### 14.3 “特殊 Case”与“通用问题类型”的冲突
+841:### 14.4 Authority 与 Judge BusinessExpectation 的关系
+848:   Assessment（assessment 写 `authority_tool_call_ids`，Core 后处理校验引用存在，见 §8）；
+850:   assessment 引用的 authority tool_call 定位"哪条 not_evaluable 是因为哪个 Authority
+855:## 15. 动态 Tool、ContextUnit 与证据固化的冲突
+857:### 15.1 ToolResult 直接生成 EvidenceRef，还是先生成 ContextUnit
+870:### 15.2 ContextUnit 由谁生成、何时生成
+886:## 16. Runtime、Planning 与调用次数的冲突
+903:## 17. 通用 Agent 与框架类型的冲突
+918:## 18. 当前代码与协议的已知不一致
+948:    迁移与扩展顺序见 `authority-minimal-chain.md` §8）
+950:## 19. 当前设计不得默认的结论
+
+2026-08-16T02:06:04.159057Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+Let me get the exact §8.3 text and also product-function.md sections.
+exec
+/bin/zsh -lc "sed -n '440,530p' spec/alg/authority.md" in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+## 8. 调用方消费规则
+
+Authority Agent 不决定当前 Case 是否依赖该结论。主 LLM 在自身业务判断中决定是否
+调用；一旦调用，返回结果必须保留在当前 trace 的 Tool audit 中，不能只被模型口头
+转述。
+
+**资料定位与信息关系**：Authority 裁决时，候选资料的定位语义与信息关系以
+`spec/alg/material-positioning.md` 为准：normative_rule / external_fact >
+inlive_boundary（须项目登记信任模型）> current_behavior。能力/职责边界类问题
+（"有没有这个能力""属不属于职责"）可以用已登记信任模型的 `inlive_boundary`
+资料 resolve（可达空间问题）；`current_behavior` 永不单独作为裁决依据。
+
+Authority 是可选公共能力。调用方关闭 Authority 时，不得伪造 resolved/unresolved、职责
+内外、正式语义或资料优先级结论；但 Judge 仍应基于用户意图和当前可见交付完成非治理的
+效果评价，尽量输出 `fulfilled` / `not_fulfilled`。Authority 未启用本身不是业务
+`not_evaluable` 成因，也不等同于 Tool / Agent 执行失败。Authority 开启且决定性业务
+标准需要裁决时，调用方必须在最终 verdict 前消费 resolution；resolved statement 可能
+改变语义解释、等价判断、能力范围或职责归属，因此不能被实现为单向 NF→NE 后处理。
+
+### 8.1 触发约束：能力/职责边界裁决必须走 Authority
+
+Judge 判定“职责外”或“职责内能力缺失”这两类结论时，必须先调用 `authority.resolve`，
+不得自行断定：
+
+- “产品没有这个能力”（职责外 / 职责内能力缺失）必须以资料为依据，由 Authority 裁决；
+- 没有 Authority 调用记录的“职责外 / 依据不充分”类 not_evaluable，Core 后处理标
+  `needs_human_review`（§8.4），不静默放行；
+- “输入坏”“完全无关”两类 not_evaluable 不依赖 Authority，不受此约束
+  （fulfilled.md §2.3）。
+
+### 8.2 decision_question 构造约束
+
+Judge 需要 Authority 裁决能力/职责边界时，`decision_question` 必须是能力/边界问题，
+不是“当前输出对不对”：
+
+```text
+模板：<产品/模块> 是否支持 <用户要的能力>？或 <事项> 是否属于 <产品> 职责？
+例：客户搜索产品是否支持按车牌查询？
+例：住院医疗保险是否属于客户搜索产品可查询的险种范围？
+```
+
+约束：
+
+- 问题必须自包含业务条件（版本、渠道、场景等，§4.1），让 Authority 在绑定资料空间内
+  可裁决；
+- 不得把 live 输出内容、reference 或 Judge 期望写进问题——那是“当前输出对不对”，
+  属于 Judge 自身职责，不是 Authority 的 `decision_question`；
+- Authority 只裁决“有没有这个能力/属不属于职责”，不裁决“本次输出是否达标”。
+
+### 8.3 resolved 结论的分支消费
+
+resolved 时，能力/职责边界类问题的 `statement` 必须明确结论类型（§5），Judge 读取
+`statement` 后按类型分支：
+
+```text
+statement = 职责外（产品没有该能力/不在职责范围）
+    → FulfillmentAssessment = not_evaluable（职责外）
+    → summary 写明 statement、reason 与 basis sources
+
+statement = 职责内能力缺失（应具备但未实现/表达不了）
+    → 不强制改状态；Judge 结合 live 实际交付判断：
+        期望未达成 → not_fulfilled（理由 + 长期优化点）
+        实际达成   → fulfilled
+    → 不能因为“功能未实现”自动降级为 not_evaluable
+
+statement = 职责内正常
+    → Judge 使用 statement 和 basis evidence 继续原有评价
+```
+
+### 8.4 Core 后处理硬校验
+
+```text
+authority.resolve = unresolved（真查证过仍依据不充分）
+    → 依赖该问题的 FulfillmentAssessment = not_evaluable
+    → 挂入 resolution 的 EvidenceRef 与 reason；summary 写明 reason、
+      basis sources 和 required_evidence（缺料清单）
+
+Tool / Agent 执行失败
+    → FulfillmentAssessment = not_evaluable
+    → 原因必须写“Authority 能力不可用”，不能伪写成资料冲突
+
+assessment.status = not_evaluable
+    且成因 = 职责外 / 依据不充分（按 assessment 的 evidence 链或 reason 识别）
+    且 authority_tool_call_ids 为空
+    → 标 needs_human_review，不静默放行
+    原因：这两类 not_evaluable 必须有 Authority 真实查证的调用记录
+         （“没查证” ≠ “查不了”，fulfilled.md §2.3 三硬前提 1）
+```
+
+**assessment 挂钩（已裁决）**：Judge LLM 在依赖某次 Authority 的
+`FulfillmentAssessment` 中填写 `authority_tool_call_ids`，Core 后处理校验引用存在且
+
+2026-08-16T02:06:05.886203Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+Now I need product-function.md sections 1, 6-10, info-volume.md, and the implementation files.
+exec
+/bin/zsh -lc 'rg -n "''^#|''^##|''^###|不进入|第四|Judge 再填|九格|没这项|尽力了|说不清" spec/alg/product-function.md | head -100' in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+1:# 产品功能 三态判定协议（有这项功能 / 没这项功能 / 说不清）
+4:> 不改 fulfilled 三态，不进入 Judge 产出，不进入结果表词表。
+7:# 第一章：Spec 标准
+9:## 1. 我们在评什么
+41:## 2. 三个状态
+43:### 2.1 有这项功能
+51:### 2.2 没这项功能
+58:### 2.3 说不清
+71:1. 不能因为"这次没办成"就说没这项功能，也不能因为"这次办成了"就说有这项功能；
+75:## 3. 判断顺序
+81:  认不出种类 → 说不清（输入坏 / 依据不充分）
+86:  ├─ 不在定位里 → 说不清（不在定位里）
+87:  ├─ 完全无关   → 说不清（完全无关）
+88:  ├─ 分不清     → 说不清（依据不充分）
+93:  ├─ 有实据还没立住 → 没这项功能
+94:  └─ 分不清         → 说不清（依据不充分）
+100:任何一类核心事没这项功能 → 整体没这项功能
+101:任何一类核心事说不清     → 整体说不清
+107:## 4. 和邻题的边界
+117:| 系统尽力了没有 | 派生阅读 | 两轴对照后的读法 | 不是本协议的状态 |
+123:- "系统尽力了吗"
+131:## 5. 什么叫"这类事"，什么叫"已经有的功能"
+149:它落在本协议的"没这项功能"。fulfilled 仍按自己的协议去判"没办成"或"说不清"。
+151:## 6. 两轴怎么读
+155:| | 有这项功能 | 没这项功能 | 说不清 |
+159:| 说不清 | 功能有了，办没办成看不清 | 功能也没有，办没办成也说不清 | 两轴都看不清 |
+161:"尽力了"只是「没办成 × 没这项功能」的一种读法，不是状态，不得写回任何标签。
+165:"互有对错"是两轴对照后两边都不干净，不是 fulfilled 的第四态。
+167:## 7. 反面情况（永远不许）
+170:1. 给 fulfilled 加第四态来表达本协议                         ✗
+171:2. 让 Judge 再填一个新标签来回答本协议                       ✗
+173:4. 把"这次没办成"写成"没这项功能"                           ✗
+175:6. 把职责外写成"没这项功能"                                 ✗
+176:7. 把字段 / 操作符 / 接口不支持写成"没这项功能"             ✗
+181:12. 把"尽力了""过严"写成正式状态                           ✗
+186:# 第二章：怎么落地
+188:## 8. 不加枚举，不加新标签
+200:## 9. 现在做 / 现在不做
+216:## 10. 验收（协议本身）
+218:- 任何案子都能落进三态之一；说不清必带差在哪儿；
+
+2026-08-16T02:06:09.734441Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+Let me read the actual sections of product-function.md more carefully, especially §1, §6-10.
+exec
+/bin/zsh -lc "sed -n '1,230p' spec/alg/product-function.md" in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+# 产品功能 三态判定协议（有这项功能 / 没这项功能 / 说不清）
+
+> 状态：草稿。和 `spec/alg/fulfilled.md` 同级，回答另一件事。
+> 不改 fulfilled 三态，不进入 Judge 产出，不进入结果表词表。
+> 现在只用于对照阅读；以后若要看见，再另定派生列，不另开判定。
+
+# 第一章：Spec 标准
+
+## 1. 我们在评什么
+
+三个角色同 `fulfilled.md`。
+
+`fulfilled.md` 只看一件事：系统有没有帮用户办成想办的事。
+
+本协议只看另一件事：
+
+```text
+用户要办的这类事，现在是不是这个产品已经有的功能？
+```
+
+```text
+用户要办的这类事
+  = 从用户视角说的事情种类
+    例："按姓名找客户"、"按险种找客户"、"做盘客"
+  ≠ 这一次具体值能不能搜出来
+  ≠ 字段 / 接口 / 操作符支不支持
+  ≠ 用户要的结果这次有没有拿到
+  ≠ 系统有没有说出"暂不支持"
+```
+
+两件必须分开答：
+
+```text
+fulfilled.md     用户要的事，办成了没有？
+本协议           这类事，现在是不是产品已经有的功能？
+```
+
+任何一张表、一个标签、一句结论，都不能同时回答这两件。
+本协议不替代 `fulfilled.md`，也不并进它的三态。
+
+## 2. 三个状态
+
+### 2.1 有这项功能
+
+产品今天已经把这类事当作自己的功能来做。必须同时满足：
+
+1. 这类事落在产品定位里；
+2. 有实据证明产品今天已经立起这项功能——不是"应该有"，也不是"以后会有"；
+3. 评的是事情种类，不是这一次实例成不成功。
+
+### 2.2 没这项功能
+
+产品定位还管这类事，但今天还没把它立成功能。
+
+不是职责外，不是完全无关，不是这次没搜到。
+是：这类事还在产品该管的范围内，只是当前功能上还没有它。
+
+### 2.3 说不清
+
+该给个说法，但没法确定"有 / 没有"。差在哪儿必须写清：
+
+| 差在哪儿 | 什么时候出现 |
+|---|---|
+| 不在定位里 | 这类事产品本来就不管 |
+| 完全无关 | 跟产品完全不沾边 |
+| 依据不充分 | 分不清在不在定位里，或分不清立没立住 |
+| 输入坏 | 用户输入本身不可用，认不出要办的是哪类事 |
+
+三个硬前提（防止变成垃圾桶）：
+
+1. 不能因为"这次没办成"就说没这项功能，也不能因为"这次办成了"就说有这项功能；
+2. 必须写清差在哪儿；
+3. 是临时态，不能当永久结论。
+
+## 3. 判断顺序
+
+```text
+第一步：用户要办的是哪类事？
+  从用户视角写种类，不从字段、接口、操作符写
+  一件事里若有几类，分开看
+  认不出种类 → 说不清（输入坏 / 依据不充分）
+
+第二步：这类事还在不在产品定位里？
+  这里的"产品定位"是这个产品管哪类事，
+  不是资料定位，也不是"放对地方"
+  ├─ 不在定位里 → 说不清（不在定位里）
+  ├─ 完全无关   → 说不清（完全无关）
+  ├─ 分不清     → 说不清（依据不充分）
+  └─ 在定位里   → 第三步
+
+第三步：产品今天有没有把这类事立成功能？
+  ├─ 有实据已经立住 → 有这项功能
+  ├─ 有实据还没立住 → 没这项功能
+  └─ 分不清         → 说不清（依据不充分）
+```
+
+一件事里有几类时，整体只用于对照阅读，不进结果表：
+
+```text
+任何一类核心事没这项功能 → 整体没这项功能
+任何一类核心事说不清     → 整体说不清
+全部核心事都有这项功能   → 整体有这项功能
+```
+
+不得拿已经有的那类，去盖住没有的那类。
+
+## 4. 和邻题的边界
+
+| 问题 | 在哪 | 问的是 | 和本协议 |
+|---|---|---|---|
+| 办成了没有 | `fulfilled.md` | 用户要的结果这次有没有拿到 | 不问结果 |
+| 该不该由这个产品管 | authority 职责 | 应不应该管 | 不问应该 |
+| 这份资料能不能当尺子 | `material-positioning.md` | 资料站在哪 | 不评资料 |
+| 这个值 / 这种说法现在到不到得了 | positioning 空间、authority 表达 | 这一次实例的空间 | 不评实例 |
+| 字段 / 操作符 / 接口支不支持 | 系统实现事实 | 实现上可不可达 | 不评实现 |
+| 系统有没有说出"暂不支持" | 话术 | 态度、说明 | 既不能证明有，也不能证明没有 |
+| 系统尽力了没有 | 派生阅读 | 两轴对照后的读法 | 不是本协议的状态 |
+
+下面这些问法一律不准用来替代本协议的问题：
+
+- "今天办不了吗"
+- "系统能不能做"
+- "系统尽力了吗"
+- "系统有没有正确承认还不支持"
+- "这件事放对地方了吗"
+- "这次处置站不站得住"
+
+这些问法都会在不同语境里滑向另一件事：办成了没有、该不该管、这次值合不合法、态度好不好。
+对它们答"是"或"不是"，都可能被带到相反结论。
+
+## 5. 什么叫"这类事"，什么叫"已经有的功能"
+
+**这类事**：用户要办的事情种类。只问种类，不问这一次的具体值、这一次搜没搜到、这一次表达得对不对。
+
+**已经有的功能**：产品今天已经把它当作自己的一项功能。证据必须是产品定位、功能说明、业务方确认过的功能清单这类"产品自己认账"的材料。
+
+不能当证据的：
+
+- 系统这次碰巧给了结果
+- 系统这次没给结果
+- 系统说了"暂不支持"
+- 字段表里有或没有某字段
+- 操作符支不支持
+- `is_supported` / 能力开关
+- 判定模型自己的松紧
+- 长尾 bad case 里高频出现
+
+"应该有但还没有"不是"有这项功能"，也不是 fulfilled 的"办成了"。
+它落在本协议的"没这项功能"。fulfilled 仍按自己的协议去判"没办成"或"说不清"。
+
+## 6. 两轴怎么读
+
+本协议不改 fulfilled。对照时只能这样读：
+
+| | 有这项功能 | 没这项功能 | 说不清 |
+|---|---|---|---|
+| 办成了 | 现有功能里办成了 | 现有功能之外却被看成办成了 | 先别用本协议解释 |
+| 没办成 | 现有功能里没办成 | 需求没满足，但这不是现有功能 | 先别用本协议解释 |
+| 说不清 | 功能有了，办没办成看不清 | 功能也没有，办没办成也说不清 | 两轴都看不清 |
+
+"尽力了"只是「没办成 × 没这项功能」的一种读法，不是状态，不得写回任何标签。
+
+"过严"常常是「没办成 × 有这项功能」：功能已经有了，却按不该加的门槛把现有功能判成没办成。也不得写成状态。
+
+"互有对错"是两轴对照后两边都不干净，不是 fulfilled 的第四态。
+
+## 7. 反面情况（永远不许）
+
+```text
+1. 给 fulfilled 加第四态来表达本协议                         ✗
+2. 让 Judge 再填一个新标签来回答本协议                       ✗
+3. 用本协议改 fulfilled 的三态                               ✗
+4. 把"这次没办成"写成"没这项功能"                           ✗
+5. 把"这次办成了"写成"有这项功能"                           ✗
+6. 把职责外写成"没这项功能"                                 ✗
+7. 把字段 / 操作符 / 接口不支持写成"没这项功能"             ✗
+8. 把"暂不支持"的话术当成充分证据                           ✗
+9. 问"今天办不了吗 / 能不能做"来代替本协议                  ✗
+10. 从长尾 bad case 反推功能种类                            ✗
+11. 拿已经有的那类功能盖住没有的那类                        ✗
+12. 把"尽力了""过严"写成正式状态                           ✗
+```
+
+---
+
+# 第二章：怎么落地
+
+## 8. 不加枚举，不加新标签
+
+| 做法 | 为什么 |
+|---|---|
+| 给 fulfilled 加一个枚举值 | 一个标签回答两件事；和 `spec/info-volume.md` 三态冲突；归因按三态走会被打乱；"没办成"的业务含义会被改掉 |
+| 新增一个让 Judge 填的标签 | 变成第二个判定；两问会抢解释权；会过拟合长尾集 |
+| 先写本协议，在冻数据上投影 | 要做的：先能对照着读，不改判定 |
+| 以后若要看见，再加派生列 | 派生列不是 Judge 产出，不进 prompt，不改 fulfilled |
+
+派生列如果以后要加，也只是把本协议三态单独列出来，供人对照阅读。
+它不是 fulfilled 的新值，也不是模型新填的判定。
+
+## 9. 现在做 / 现在不做
+
+现在做：
+
+- 留下本协议；
+- 用已有对照集做投影，不跑新模型；
+- 只改阅读，不改判定。
+
+现在不做：
+
+- 不改 Judge prompt；
+- 不改结果表；
+- 不改归因；
+- 不改 authority 词表；
+- 不上线任何新字段。
+
+## 10. 验收（协议本身）
+
+- 任何案子都能落进三态之一；说不清必带差在哪儿；
+- 能单独回答，不需要先看 fulfilled；
+- 换一批非长尾数据，这个问题仍然成立；
+- 没有一条规则是"这类 query 就判没有"；
+- 对照阅读能把"需求没满足但不是现有功能"和"现有功能里没办成"分开，且不改 fulfilled。
+
+2026-08-16T02:06:11.598985Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+Good. Now I need info-volume.md, judge.py, authority_gate.py, frontend_view.py, and summary.html. Also the Consensus blocks from the cited issues.
+exec
+/bin/zsh -lc 'rg -n "fulfilled|not_fulfilled|not_evaluable|partial|judge 只|值域|归因" spec/info-volume.md | head -60' in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+9:归因Skill：离线运行的"系统能力构建者"。通过模拟操作原业务系统、构建 tool、模拟调用归因 agent 做实验，验证 tool
+12:归因 agent：在线运行的"缺陷定位者"。在 Skill 提供的 tool
+20:确保归因启动时，tool 体系是完整的、经过验证的。不做归因推理，只做"系统能力构建 + 实验验证"。
+26:- 调原业务系统 API/函数，理解什么信息对归因有用
+32:3. 模拟调用归因做实验验证
+33:- 用历史 case + 现有 tool catalog，模拟归因 agent 推理
+35:- 加入候选 tool，重新模拟，看归因能不能跑通
+47:- 模拟实验在隔离环境跑，不进真实归因回路
+50:归因 agent 设计
+61:归因只在 tool catalog 覆盖范围内规划 tool 调用。不可达维度在结论中标注"受信息边界限制"，不尝试调用、不硬凑。
+86:└─ 模拟操作业务系统 → 构建候选 tool → 模拟归因实验验证 → 产出完整 tool 体系
+88:归因 agent（在线）                                                    │
+95:反馈回路是异步、跨 case 的——一个 case 归因受阻的反馈，驱动 Skill 改进 tool 体系，后续 case 受益。
+100:- Skill 验证逻辑不绑定具体 tool：实验方法（模拟归因、加候选 tool、跑通验证）对所有项目通用
+101:- 归因推理不绑定预设步骤：反思回合只问信息状态，LLM 自主形成推理链路
+102:- tool 体系是声明式的：新 tool 加入时声明证据类型，归因自然能匹配，不需要改归因逻辑
+103:- 不存在"加字段加映射"的脚手架：ToolResult 不填 fills_gap/next_gap_hint，归因不预设中间状态
+111:我觉得你可以不用假设归因agent的形式，可以有一个建议的方案，但是具体的归因agent的形式可以交由归因Skill来推断（分析可行的基于agno的agent构建链路和所需构建的tool），
+114:2。然后归因skill自己本身就有归因的能力，可以做一次性的归因
+120:1. 一个可搬运的归因方案：Skill 通过模拟实验，产出该项目的"归因 agent 定义 + 配套 tool 集合"，以
+122:2. Skill 自身具备归因能力：Skill 不止是"构建归因方案"，它自己就能做一次性归因——在 draft
+123:产出之前，用模拟实验的过程顺带产出归因结论。
+128:Skill 的产出物从"tool 体系"变成"可搬运的归因方案"
+130:之前 Skill 的产出是"经验证的 tool 体系 + 信息边界声明"，归因 agent 怎么用这套 tool 是归因 agent 自己的事。现在
+131:Skill 的产出直接是"一个完整的归因 agent 定义 + 配套 tool"——也就是把"怎么用 tool 做归因"这件事也一并设计了。
+134:构建方式，能不能跑通归因"。Skill 不仅找 tool，还找"归因 agent 的最佳形态"——是用单轮 agent、多轮反思、还是多
+137:Skill 自带归因能力
+139:这个设计很自然——Skill 在模拟实验过程中，本来就要跑归因来验证 tool
+140:有效性。既然已经跑了，结果直接作为一次性归因产出，不浪费。这个一次性归因可以：
+141:- 作为 draft 归因方案的"效果预览"——证明这套方案能产出什么质量的结论
+142:- 作为当前 case 的即时归因结果——不需要等 draft 搬移、部署，直接就能用
+144:归因 agent 不再需要被"通用层设计"
+146:之前方案里用了一大段讨论归因 agent
+147:的推理约束（反思回合、证据类型匹配、信息边界消费...），现在这些约束不需要硬编码在通用层。归因 agent
+149:里。通用层只保留 agno 桥接能力（build_agno_tools、ToolRegistry、ToolOrchestrator），不规定归因 agent
+160:1. 模拟操作业务系统，理解什么信息对归因有价值
+162:3. 尝试不同的 agno agent 构建方式（单轮/多轮/反思/多 agent 协作），找到能跑通归因的链路
+163:4. 用模拟归因验证"这套 agent + 这套 tool"能否产出有效归因结论
+167:- impl/projects/<project>/draft/tools/ — 经过实验验证的归因 tool 集合
+168:- impl/projects/<project>/draft/attribute.py — 经过实验验证的归因 agent 定义（agno agent 构建方式 + 推理逻辑）
+169:- 一次性归因结果（实验过程中顺带产出的，作为即时诊断）
+171:搬运方式：人工确认后，draft/ 下的内容搬进 impl/projects/<project>/ 对应目录，成为正式归因方案。
+173:归因 agent（在线，运行在真实 case 上）
+178:通用层只保留：agno 桥接（build_agno_tools、ToolRegistry、ToolOrchestrator），不规定归因 agent 怎么用它们。
+186:│ 通用层设计归因 agent 的推理约束     │ Skill 通过实验推断归因 agent 的最佳形态，落到 draft │
+188:│ Skill 只产出 tool 体系              │ Skill 产出"归因 agent + tool"的完整方案             │
+190:│ 归因 agent 形态假设一个反思回合模式 │ 不假设，由实验决定——可能是单轮、多轮、多 agent 协作 │
+192:│ Skill 不产归因结论                  │ Skill 自带归因能力，实验过程顺带产出一次性归因      │
+208:关键词文件"的逻辑，本质上是 client_search 这类项目的归因策略，不是通用归因逻辑。judge 估计也有类似情况。
+213:- 定义归因 agent 的协议、tool 编排入口、agno 桥接调用方式
+214:- 不包含任何项目归因策略
+217:- 该项目的归因 agent 具体形态——喂什么 prompt、用什么 tool 调用策略、产出什么结构的归因结论
+218:- 项目特有的源码/配置预加载策略、归因中间状态判断、imcomplete_reason 生成逻辑都放这里
+225:    + tools/，对应到 impl/projects/<project>/ 下。Skill 的"实验"本质就是在为这个项目找到最合适的个性化归因形态。
+244:为什么通用层要保留这些：不管项目层的 attribute.py 做什么归因策略、用什么 agent 结构，它最终都要通过 agno 框架和
+246:怎么用它们做归因"。两者分层，Skill 产出的 draft 只需要调用通用层提供好的桥接和编排能力，不需要自己重写这套。
+254:fulfilled 完整描述
+258:fulfilled 是 judge 阶段对业务预期达成情况的判定，必须基于业务实际情况得出结论，不是 LLM 凭空猜测。
+260:枚举值（三层，值域统一）
+262:- fulfilled — 业务预期实际达成了。必须有业务实际证据支撑，不是"看起来对"或"LLM 觉得对"。
+
+2026-08-16T02:06:15.589039Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+I need more of info-volume.md around the fulfillment enum. Let me read that section specifically.
+exec
+/bin/zsh -lc "sed -n '250,360p' spec/info-volume.md" in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+------------
+
+
+
+fulfilled 完整描述
+
+核心定义
+
+fulfilled 是 judge 阶段对业务预期达成情况的判定，必须基于业务实际情况得出结论，不是 LLM 凭空猜测。
+
+枚举值（三层，值域统一）
+
+- fulfilled — 业务预期实际达成了。必须有业务实际证据支撑，不是"看起来对"或"LLM 觉得对"。
+- not_fulfilled — 业务预期实际没有达成。必须有业务实际证据证明没达成，比如实际输出和预期不符、实际行为没发生。
+- not_evaluable — 判断不了。业务上真有问题、报错了、或者信息不足无法判断时填这个，不能假装判断得了。
+
+关键约束：不允许在不具备判断条件时强行填 fulfilled 或 not_fulfilled。业务报错、信息缺失、判断不了，就只能填 not_evaluable，不能为了"给个结论"而硬凑。
+
+两层结构
+
+- 细粒度 fulfilled：每条 business_expectation 单独评估，值域 fulfilled / not_fulfilled / not_evaluable
+- 整体 fulfilled：聚合细粒度结果得出的总体业务情况，值域完全相同，依然是 fulfilled / not_fulfilled / not_evaluable，不引入 partial 之类的新枚举
+
+整体只是聚合语义，不发明新状态。
+
+judge 产出
+
+judge 只产出 fulfillment（细粒度 + 整体两层），不产 verdict。verdict（correct/incorrect 之类）这个维度被删掉，因为 fulfilled
+已经表达了对错，不需要再引入第二个对错维度。
+
+归因使用方式
+
+- 整体 fulfilled → 归因直接产 no_issue，不追失败根因
+- 整体 not_fulfilled 或 not_evaluable → 归因追哪些预期没达成/判断不了的根因
+- 根据哪些预期 not_fulfilled / not_evaluable 决定追哪些根因
+
+逻辑比之前用 verdict 直接，因为不用从 correct/incorrect 反推回"哪些预期没满足"，fulfillment 状态本身就是归因输入。
+
+
+
+
+
+
+---------once at 20260707
+
+
+
+我们总体盘点下，其实之前无轮judge还是attribute，都有大量非通用意义必要的字段在相关schema中，很多是没必要作为各项目通用字段存在的，我觉得需要盘点下，协议角度应该只保留必要的部分
+
+你这个判断是对的。从前面读过的代码看，judge 和 attribute 的 schema 里确实堆了大量项目个性化字段，通用层不该背这些。
+
+该清理的方向
+
+JudgeResult 该砍的：
+- intent_model / reconstructed_intent / consumer_contract — 这些是 client_search 类项目为了反推用户意图塞进来的，不是所有项目都有 intent 概念
+- semantic_equivalence_checks / verdict_derivation / boundary_decision / evaluation_boundary — 这些是某个项目判定流程的中间产物，不该当通用字段
+- judge_basis / judge_method — 项目特有判定方法的标注，通用层不需要
+- quality_flags / needs_human_review — 评估流程的元信息，不是判定本身
+- verdict — 前面已经讨论要删
+
+JudgeResult 该保留的：
+- trace_id / project_id — 标识
+- business_expectations — 业务预期列表（细粒度）
+- fulfillment_assessments — 每条预期的 fulfilled 状态（细粒度）
+- overall_fulfillment — 整体 fulfilled 状态
+- evidence / reasoning_summary — 判定依据
+
+AttributeResult 该砍的：
+- causal_category / taxonomy — 项目特有分类体系，不该通用化（marketing-planning 和 client_search 的分类完全不同）
+- chain_nodes / earliest_divergence — 某类项目为了链路归因塞的结构，不是所有归因都走链路
+- evidence_coverage — 归因质量自评指标，是流程字段不是归因结论
+- analysis_quality / incomplete_reason — 前面讨论过，归因 agent 不产 incomplete_reason
+- verification_steps / patch_direction — 这些是归因产出，但是否所有项目都需要这两类产出值得商榷
+- raw_model_output — LLM 调用的原始记录，是 debug 字段不是归因结论
+- tool_call_log — 同上，是执行记录
+
+AttributeResult 该保留的：
+- trace_id / project_id / case_id — 标识
+- suspected_locations — 缺陷点定位
+- root_cause_hypothesis — 最可能的根因假设
+- evidence — 支撑假设的证据
+- 证据强度标注（强/弱/无）— 让结论可信度可表达
+- summary — 可读摘要
+
+协议层原则
+
+通用层只保留"任何项目做归因都需要的最小产出"：定位 + 假设 + 证据 + 证据强度。项目特有的产出（分类体系、链路结构、验证步骤、修复方向）全部下沉到
+impl/projects/<project>/attribute.py 自己定义，不进通用 schema。impl/projects/<project>/judge.py同理
+
+这样通用 schema 是稳定的，项目加字段不影响通用层；Skill 产出的 draft/attribute.py 也可以自由定义项目特有产出结构，不受通用 schema 限制。
+
+
+
+
+
+
+
+imcomplete_reason：归因 agent 的职责是"在有限资源内做最大限度的推测"，不是"解释为什么做不出来"。即使证据不足，它也应该给出"基于当前证据，最可能的假设是X，但证据强度低，建议验证 Y"——这是有信息量的结论，不是"我做不到"。归因 Skill 需要 imcomplete_reason 来驱动 tool 补齐（"这个 case归因卡住了，原因是什么"），但这个是 Skill 自己的内部诊断，不需要成为归因 agent 的产出字段。
+2026-08-16T02:06:17.353605Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+Now I need to read the implementation files: judge.py schema, authority_gate.py, frontend_view.py, and summary.html.
+exec
+/bin/zsh -lc "rg -n \"class JudgeFulfillment|status|authority_tool_call\" impl/core/schema/judge.py | head -80; echo \"========== FILE HEAD ==========\"; sed -n '1,80p' impl/core/schema/judge.py" in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+30:    status: str
+40:    authority_tool_call_ids: List[str] = field(default_factory=list)
+94:class JudgeFulfillmentAssessmentOutput:
+97:    status: str
+103:    authority_tool_call_ids: List[str] = field(default_factory=list)
+========== FILE HEAD ==========
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
+
+from .base import GateDecision, TransitionDecision
+from .fallback import FallbackDecision
+
+
+@dataclass
+class BusinessExpectation:
+    # Judge 层：从用户意图推导出的业务期望。
+    expectation_id: str
+    # 是否阻断整体业务目标。该属性属于期望本身，必须在评估 actual 前确定。
+    blocking: bool
+    downstream_consumer: str = ""
+    user_intent: str = ""
+    expected_outcome: str = ""
+    required_capabilities: List[str] = field(default_factory=list)
+    acceptance_criteria: List[Any] = field(default_factory=list)
+    boundary: Dict[str, Any] = field(default_factory=dict)
+    priority: str = "normal"
+    evidence_refs: List[Dict[str, Any]] = field(default_factory=list)
+
+
+@dataclass
+class FulfillmentAssessment:
+    # Judge 层：某个业务期望是否被 actual output 满足。
+    expectation_id: str
+    status: str
+    score: Optional[float] = None
+    expected_evidence: List[Any] = field(default_factory=list)
+    actual_evidence: List[Any] = field(default_factory=list)
+    downstream_impact: str = ""
+    confidence: Optional[float] = None
+    evidence_refs: List[Dict[str, Any]] = field(default_factory=list)
+    # Assessment 显式声明本次判断依赖的 authority.resolve Tool 调用。
+    # Core 后处理校验引用存在且属于当前 trace；引用不存在 → needs_human_review；
+    # 引用的 resolution 为 unresolved → not_evaluable（authority.md §8）。
+    authority_tool_call_ids: List[str] = field(default_factory=list)
+
+
+@dataclass
+class GapItem:
+    # Judge 层：expected 与 actual 之间的 wrong/missing/extra 结构化差异项。
+    kind: str = ""
+    error_type: str = ""
+    expected: Any = None
+    actual: Any = None
+    evidence_ref: str = ""
+    raw: Any = None
+    incomplete: bool = False
+
+
+@dataclass
+class JudgeResult:
+    # Judge 层：评估输出是否满足业务期望的完整结果。
+    # spec/info-volume.md：通用层只保留任何项目做判定都需要的最小产出。
+    # 项目特有的判定字段（intent_model/consumer_contract/verdict_derivation/boundary_decision 等）
+    # 下沉到 impl/projects/<project>/judge.py 自定义，不进通用 schema。
+    trace_id: str
+    project_id: str
+    business_expectations: List[BusinessExpectation] = field(default_factory=list)
+    fulfillment_assessments: List[FulfillmentAssessment] = field(default_factory=list)
+    overall_fulfillment: Dict[str, Any] = field(default_factory=dict)
+    expected: Any = None
+    actual: Any = None
+    missing: List[GapItem] = field(default_factory=list)
+    wrong: List[GapItem] = field(default_factory=list)
+    extra: List[GapItem] = field(default_factory=list)
+    evidence: List[Any] = field(default_factory=list)
+    reasoning_summary: str = ""
+    # summary 是基于 fulfillment_assessments 派生的展示摘要
+    # (reason / reason_source / primary_failure_dimensions)，由 judge 阶段统一产出，
+    # 下游 table_view/check/前端直接复用，避免各处重复派生导致不一致。
+    summary: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class JudgeBusinessExpectationOutput:
+
+2026-08-16T02:06:22.534109Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+Let me get the JudgeFulfillmentAssessmentOutput class fully, and authority_gate.py, frontend_view.py, and summary.html relevant sections.
+exec
+/bin/zsh -lc "sed -n '90,140p' impl/core/schema/judge.py; echo \"========== AUTHORITY GATE ==========\"; rg -n \"职责外|能力缺失|not_evaluable|not_fulfilled|fulfilled|statement\" impl/core/authority_gate.py | head -80" in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+    priority: str = "normal"
+
+
+@dataclass
+class JudgeFulfillmentAssessmentOutput:
+    """LLM-owned assessment fields; EvidenceRef is attached by verifier code."""
+    expectation_id: str
+    status: str
+    score: Optional[float] = None
+    expected_evidence: List[Any] = field(default_factory=list)
+    actual_evidence: List[Any] = field(default_factory=list)
+    downstream_impact: str = ""
+    # Authority 调用引用必须来自真实运行时 audit；模型不得自造 ID。
+    authority_tool_call_ids: List[str] = field(default_factory=list)
+
+
+@dataclass
+class JudgeLLMOutput:
+    # spec/struct_output.md：judge 调用 LLM 时应产出的结构（不含代码派生字段）。
+    # 作为 StructuredOutputSpec.from_dataclass 的 dataclass 来源，传给 complete_json。
+    business_expectations: List[JudgeBusinessExpectationOutput] = field(default_factory=list)
+    # Planning 对已配置 ProductExpectation 的显式适用性选择。
+    # 仅在项目 opt-in planning applicability 时消费；空列表表示业务不适用。
+    applicable_product_expectation_ids: List[str] = field(default_factory=list)
+    fulfillment_assessments: List[JudgeFulfillmentAssessmentOutput] = field(default_factory=list)
+    expected: Any = None
+    # actual 是 live 系统真实输出，由代码从 RunTrace 填充；LLM 不产 actual，避免把摘要/比较中间态污染主字段。
+    missing: List[GapItem] = field(default_factory=list)
+    wrong: List[GapItem] = field(default_factory=list)
+    extra: List[GapItem] = field(default_factory=list)
+    evidence: List[Any] = field(default_factory=list)
+    reasoning_summary: str = ""
+
+
+@dataclass
+class JudgeReferenceOutput:
+    # spec/struct_output.md / spec/reference.md：仅生成 reference（expected）模式。
+    # 无 actual + 有意图时，judge 只产 expected 相关字段，不做 fulfillment 判定。
+    business_expectations: List[JudgeBusinessExpectationOutput] = field(default_factory=list)
+    expected: Any = None
+
+
+def _item_value(item: Any, key: str, default: Any = None) -> Any:
+    # 兼容 dict 和 dataclass/object 的字段读取工具，供前端和 check 复用。
+    if isinstance(item, dict):
+        return item.get(key, default)
+    return getattr(item, key, default)
+========== AUTHORITY GATE ==========
+9:    含 claim 担保模式四值）→ not_evaluable，并把 resolution 的 EvidenceRef
+12:  - resolution 为 contradicted 且 assessment 为肯定性（fulfilled）→ 肯定性
+13:    verdict 不得成立，降 not_evaluable 并标 needs_human_review（§4.2-2）；
+14:  - resolution 为 resolved/supported → 不覆盖（Judge 已使用 statement 与
+27:NOT_EVALUABLE = "not_evaluable"
+30:# 「结论类型：职责外 / 依据不充分 / 输入坏 / 完全无关」（authority.md §5/§8.3、
+31:# fulfilled.md §2.3），gate 只消费显式标记，不做自由文本关键词猜测——
+35:    "结论类型：职责外",
+44:# 消费到这类 resolution 时，not_evaluable 的成因可由 authority 审计确定性派生，
+51:def _derive_not_evaluable_cause_from_audit(
+55:    """judge 判 not_evaluable 但未写显式标记时，从已消费的 authority resolution 派生。
+62:      not_evaluable 属于消费决定，成因无法从审计派生 → 保持 missing（人审）。
+80:# unresolved 同口径，必须强制把依赖该断言的 assessment 降为 not_evaluable。
+100:def _classify_not_evaluable_cause(assessment: FulfillmentAssessment) -> str:
+101:    """§8.4：分类 not_evaluable 的显式成因，不根据自由文本猜测。
+104:    由调用方 fail-closed 标记人审；不能把未知成因直接猜成职责外/依据不充分，
+132:# §8.3 resolved 能力/职责边界结论的 statement 前缀（authority.md §5/§8.2）：
+133:# 能力/职责边界问题的 statement 必须以「职责外：」「职责内能力缺失：」「职责内正常：」
+135:_BOUNDARY_OUTSIDE_PREFIX = "职责外"
+136:_CAPABILITY_GAP_PREFIX = "职责内能力缺失"
+145:def _conclusion_kind_from_statement(statement: str) -> str:
+146:    text = str(statement or "").strip()
+160:    supported/resolved 的结论类型（职责外/职责内能力缺失/职责内正常）。
+182:            kind = _conclusion_kind_from_statement(
+183:                str(getattr(resolution, "statement", "") or "")
+213:        # §8.3 确定性消费（fulfilled.md §3 第二步）：先于 ne_cause/显式标记处理，
+216:            # 职责外（已确认产品没有该能力）→ 说不清（not_evaluable），
+217:            # 无论 judge 判 fulfilled/not_fulfilled/not_evaluable 都确定性落位。
+224:                    "authority 已裁决该能力/职责边界为「职责外」（产品没有该能力/"
+225:                    "不在职责范围）；按 fulfilled.md §2.3 判说不清（not_evaluable），"
+226:                    "不因如实拒绝/未编造而判办成（fulfilled.md §5）。"
+260:            # 职责内能力缺失（应具备但未实现/表达不了）→ 不得降为 not_evaluable：
+261:            # 功能未实现=没办成（fulfilled.md §2.2/§4.1，authority.md §8.3）。
+262:            assessment.status = "not_fulfilled"
+266:                    "authority 已裁决该能力/职责边界为「职责内能力缺失」（应具备但"
+268:                    "（fulfilled.md §2.2/§4.1，authority.md §8.3）。"
+275:                _classify_not_evaluable_cause(assessment)
+282:            derived = _derive_not_evaluable_cause_from_audit(call_ids, tool_audit)
+287:                "kind": "not_evaluable_cause_missing",
+290:                    "assessment 判定 not_evaluable，但没有在 evidence 中使用受支持的"
+291:                    "“结论类型：职责外/完全无关/依据不充分/输入坏/Authority 能力不可用”"
+292:                    "显式说明成因；fulfilled.md §2.3 要求说清差在哪儿，不能静默放行"
+297:            # §8.4 硬校验：not_evaluable 且成因需要 Authority 审计，但没有
+303:                    "cause": "职责外、依据不充分或 Authority 能力不可用",
+305:                        "assessment 判定 not_evaluable 且成因需要 Authority 审计记录，"
+308:                        "（authority.md §8.4 / fulfilled.md §2.3）"
+334:                # §8.4：Tool / Agent 执行失败（能力不可用）→ not_evaluable，
+383:            elif resolution_status == "contradicted" and assessment.status == "fulfilled":
+402:            # resolved/supported → 不覆盖：Judge 已用 statement 与 basis 继续原有评价
+
+2026-08-16T02:06:27.050576Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+Interesting! The authority_gate.py implementation for 职责内能力缺失 actually sets `assessment.status = "not_fulfilled"` unconditionally. But authority.md §8.3 says:
+
+codex
+The gate’s capability-gap branch looks different from the issue write-up, so I’m reading that path and the frontend exits next.
+exec
+/bin/zsh -lc "sed -n '200,280p' impl/core/authority_gate.py" in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+
+    tool_audit: tool_call_id -> {"request": AuthorityRequest,
+                                 "resolution": AuthorityResolution,
+                                 "environment_snapshot_sha256": str}
+    只接受当前 trace 内的调用；audit 之外的引用一律视为不存在。
+    """
+    if not result.fulfillment_assessments:
+        return result
+    changed = False
+    for assessment in result.fulfillment_assessments:
+        call_ids = list(assessment.authority_tool_call_ids or [])
+        scanned = _scan_authority_calls(call_ids, tool_audit)
+        kinds = scanned["conclusion_kinds"]
+        # §8.3 确定性消费（fulfilled.md §3 第二步）：先于 ne_cause/显式标记处理，
+        # 避免 judge 自由消费与「结论类型：」标记机制互相矛盾。
+        if "boundary_outside" in kinds:
+            # 职责外（已确认产品没有该能力）→ 说不清（not_evaluable），
+            # 无论 judge 判 fulfilled/not_fulfilled/not_evaluable 都确定性落位。
+            if assessment.status != NOT_EVALUABLE:
+                assessment.status = NOT_EVALUABLE
+                changed = True
+            _append_evidence(assessment, {
+                "kind": "authority_boundary_outside",
+                "reason": (
+                    "authority 已裁决该能力/职责边界为「职责外」（产品没有该能力/"
+                    "不在职责范围）；按 fulfilled.md §2.3 判说不清（not_evaluable），"
+                    "不因如实拒绝/未编造而判办成（fulfilled.md §5）。"
+                ),
+                "basis_evidence_ref_ids": [
+                    item
+                    for call_id in call_ids
+                    for item in (
+                        list(
+                            getattr(
+                                (tool_audit.get(str(call_id)) or {}).get("resolution")
+                                or {},
+                                "basis_evidence_ref_ids",
+                                (),
+                            )
+                        )
+                        if (tool_audit.get(str(call_id)) or {}).get("resolution")
+                        else []
+                    )
+                ],
+                "environment_snapshot_sha256": str(
+                    (tool_audit.get(str(call_ids[0])) or {}).get(
+                        "environment_snapshot_sha256"
+                    )
+                    or ""
+                ),
+            })
+            ne_cause = _NE_CAUSE_REQUIRES_AUTHORITY
+            changed = True
+        elif (
+            "capability_gap" in kinds
+            and assessment.status == NOT_EVALUABLE
+            and not scanned["has_unresolved"]
+            and not scanned["has_tool_failure"]
+            and not scanned["has_reference_error"]
+        ):
+            # 职责内能力缺失（应具备但未实现/表达不了）→ 不得降为 not_evaluable：
+            # 功能未实现=没办成（fulfilled.md §2.2/§4.1，authority.md §8.3）。
+            assessment.status = "not_fulfilled"
+            _append_evidence(assessment, {
+                "kind": "authority_capability_gap",
+                "reason": (
+                    "authority 已裁决该能力/职责边界为「职责内能力缺失」（应具备但"
+                    "未实现/表达不了）；功能未实现=没办成，不能降级为说不清"
+                    "（fulfilled.md §2.2/§4.1，authority.md §8.3）。"
+                ),
+            })
+            ne_cause = ""
+            changed = True
+        else:
+            ne_cause = (
+                _classify_not_evaluable_cause(assessment)
+                if assessment.status == NOT_EVALUABLE
+                else ""
+            )
+        if ne_cause == _NE_CAUSE_MISSING and call_ids:
+            # judge 未写「结论类型：」标记，但已消费 authority resolution：
+
+2026-08-16T02:06:33.639027Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+This is important. The authority_gate.py implementation:
+---
+## Architect Response #1
+
+**Verdict**: real-problem
+
+**Evidence Verification**:
+I reproduced the authority_gate.py logic: when capability gap + not_evaluable status, it forces not_fulfilled.
+exec
+/bin/zsh -lc 'rg -n "fulfillment|_fulfillment_panel|status|matrix|pill" impl/core/frontend_view.py | head -60' in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+7:from .summary import summary_from_fulfillment
+61:def _fulfillment_panel(judge: Optional[JudgeResult]) -> dict:
+65:    assessments = list(judge.fulfillment_assessments or [])
+67:    matrix = []
+71:        matrix.append(
+77:                "status": _item_value(assessment, "status", "not_evaluable"),
+84:        "overall_fulfillment": to_dict(judge.overall_fulfillment or {}),
+85:        "matrix": to_dict(matrix),
+96:        for item in judge.fulfillment_assessments or []
+102:        and _item_value(assessments_by_id.get(_item_value(expectation, "expectation_id", ""), {}), "status", "") != "fulfilled"
+104:    summary = summary_from_fulfillment(to_dict(judge))
+107:            "display_status": (judge.overall_fulfillment or {}).get("status") if isinstance(judge.overall_fulfillment, dict) else "",
+217:        fulfillment_panel=_fulfillment_panel(judge),
+
+2026-08-16T02:06:40.942717Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+Let me read the _fulfillment_panel function in full, and also summary.html related parts.
+exec
+/bin/zsh -lc "sed -n '61,90p' impl/core/frontend_view.py; echo \"========== SUMMARY HTML ==========\"; rg -n \"fulfillmentPill|renderFulfillmentMatrix|状态|status|fulfilled|not_fulfilled|not_evaluable\" impl/frontend/summary.html | head -80" in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+def _fulfillment_panel(judge: Optional[JudgeResult]) -> dict:
+    if not judge:
+        return {}
+    expectations = list(judge.business_expectations or [])
+    assessments = list(judge.fulfillment_assessments or [])
+    assessments_by_id = {_item_value(item, "expectation_id", ""): item for item in assessments}
+    matrix = []
+    for expectation in expectations:
+        expectation_id = _item_value(expectation, "expectation_id", "")
+        assessment = assessments_by_id.get(expectation_id, {})
+        matrix.append(
+            {
+                "expectation_id": expectation_id,
+                "downstream_consumer": _item_value(expectation, "downstream_consumer", ""),
+                "expected_outcome": _item_value(expectation, "expected_outcome", ""),
+                "required_capabilities": list(_item_value(expectation, "required_capabilities", []) or []),
+                "status": _item_value(assessment, "status", "not_evaluable"),
+                "score": _item_value(assessment, "score"),
+                "blocking": bool(_item_value(expectation, "blocking", False)),
+                "downstream_impact": _item_value(assessment, "downstream_impact", ""),
+            }
+        )
+    return {
+        "overall_fulfillment": to_dict(judge.overall_fulfillment or {}),
+        "matrix": to_dict(matrix),
+    }
+
+
+def _judge_panel(judge: Optional[JudgeResult]) -> dict:
+    if not judge:
+========== SUMMARY HTML ==========
+29:      <div class="stat"><b id="stat-fulfilled">0</b><span>Fulfilled</span></div>
+30:      <div class="stat"><b id="stat-not-fulfilled">0</b><span>Not Fulfilled</span></div>
+84:              <option value="all">全部达成状态</option>
+85:              <option value="fulfilled">fulfilled</option>
+86:              <option value="not_fulfilled">not_fulfilled</option>
+87:              <option value="not_evaluable">not_evaluable</option>
+91:              <option value="all">全部运行状态</option>
+107:        <div class="case-table-wrap"><table class="case-table"><thead><tr><th>选择</th><th>ID</th><th>来源</th><th>执行模式</th><th>Scenario</th><th>Input / Live Request</th><th>Output / 被评估输出</th><th>Reference</th><th>状态</th><th>Score / Judge</th><th>归因摘要</th><th>Trace</th></tr></thead><tbody id="casePoolRows"></tbody></table></div>
+139:  if(!res.ok || data.error){throw new Error(data.error || ('HTTP '+res.status));}
+156:  return {case:transportCase(item),selected:item.selected!==false,source:item.source||'',status:item.status||'pending',error:item.error||null,request_key:item.request_key||null};
+161:  return (detail || []).map((turn,index)=>{const keep={turn_index:turn.turn_index || turn.turn || index+1,role:turn.role || 'unknown',content:turn.content || '',stage:turn.stage || '',extracted_summary:turn.extracted_summary || '',call_status:turn.call_status || '',runtime_ms:turn.runtime_ms || 0,error:turn.error || ''};Object.keys(keep).forEach(key=>keep[key]===undefined && delete keep[key]);return keep;});
+201:  casePool=sanitizeCasePool(readJson(scopedKey('casePool'),[]).map((entry,index)=>normalizeCase(entry?.case?{...entry.case,selected:entry.selected,source:entry.source,status:entry.status,error:entry.error,request_key:entry.request_key}:entry,index,'session')));
+237:  const status=trace.status || trace.completion_status || '-';
+239:  if(!show || !show.available){return '<div><b>Trace ID：</b>'+escapeHtml(traceId)+'</div><div class="muted">状态：'+escapeHtml(status)+' · 缺少 Show Schema，显示原始 Trace</div>'+collapsedJson('完整原始 Trace JSON',trace);}
+242:  html+='<div class="trace-overview"><b>执行概览</b><div>业务执行：'+escapeHtml(overview.status||status)+'　完成度：'+escapeHtml(overview.completion_status||trace.completion_status||'-')+'　模式：'+escapeHtml(overview.interaction_mode||'-')+'　轮数：'+escapeHtml(overview.turn_count??0)+'</div><div class="muted">停止原因：'+escapeHtml(overview.stop_reason||'-')+'　最终输出轮次：'+escapeHtml(overview.final_output_turn??'-')+'</div>'+(overview.execution_error?'<div class="error-text">业务执行错误：'+escapeHtml(overview.execution_error)+'</div>':'')+'<div class="muted">Mock 控制器：'+escapeHtml(overview.interaction_controller_status||trace.interaction_controller_status||'not_run')+(overview.interaction_controller_error?' · '+escapeHtml(overview.interaction_controller_error):'')+'</div></div>';
+244:  (show.turns||[]).forEach((turn,index)=>{const primaryOut=(turn.output||[])[0]||{};const secondary=(turn.output||[]).slice(1).filter(field=>field.found&&field.value!==null&&field.value!==''&&!(Array.isArray(field.value)&&!field.value.length));const exchanges=turn.live_exchange_summary||[];const exchangeLine=exchanges.length?'<div class="muted">真实调用：'+exchanges.map(exchange=>escapeHtml((exchange.method||'?')+' '+(exchange.url||'?')+' → '+(exchange.status_code??'error'))).join('　')+'</div>':'';html+='<div class="trace-turn"><b>第 '+escapeHtml(turn.turn_index||index+1)+' 轮</b> <span class="pill '+(turn.status==='succeeded'?'ok':'bad')+'">'+escapeHtml(turn.status||'-')+'</span> <span class="muted">'+escapeHtml(turn.runtime_ms??'-')+' ms</span><div class="trace-side"><div class="trace-message"><b>Mock 输入</b><div>'+escapeHtml(turn.mock_message||'主展示字段无值')+'</div></div><div class="trace-message ai"><b>AI 输出</b><div>'+escapeHtml(shortText(primaryOut.value,900)||'主展示字段无值')+'</div>'+secondary.map(field=>'<div class="trace-field"><b>'+escapeHtml(field.path)+'</b>'+escapeHtml(shortText(field.value,600))+'</div>').join('')+'</div></div>'+exchangeLine+(turn.error?'<div class="pill bad">'+escapeHtml(turn.error)+'</div>':'')+'</div>';});
+268:function clearCaseResult(item,status='pending'){return {...item,status,trace:null,judge:null,attribute:null,frontend_view:null,cluster:null,check:null};}
+270:function hasStoredResult(item){return !!(item.trace || item.judge || item.attribute || item.frontend_view || item.cluster || item.check || (item.status==='error' && item.error));}
+273:function stripResult(item){return {...item,status:'pending',trace:null,judge:null,attribute:null,frontend_view:null,cluster:null,check:null};}
+275:  if(!hasStoredResult(item)){return {...item,status:'pending',error:null};}
+282:function caseView(item){const run=runForCase(item);if(!run){return item;}const generatedRef=run.frontend_view?.reference_panel?.source==='judge_generated'?run.frontend_view?.reference_panel?.reference:null;return {...item,...run,output:run.trace?.extracted_output??null,reference:item.reference??generatedRef??null,status:runStatus(run,item.status),error:run.error||null,trace:run.trace||null,judge:run.judge||null,attribute:run.attribute||null,frontend_view:run.frontend_view||null,check:run.check||null,cluster:run.cluster||null,table_row:run.table_row||null};}
+288:  return sanitizeCaseResult({...item,selected:item.selected!==false,status:item.status||'pending',source:item.source||source});
+377:function fulfillmentPill(status){const cls=status==='fulfilled'?'ok':status==='not_fulfilled'?'bad':(status==='not_evaluable'?'warn':'');return '<span class="pill '+cls+'">'+escapeHtml(status||'pending')+'</span>';}
+389:  const status=fulfillment.overall_fulfillment?.status || panel.display_status || panel.overall_fulfillment?.status || '';
+391:  return {status,fulfillment_status:status,score:null,reason:judgeReason(item),assessment_count:assessments.length,blocking_count:blocking};
+397:    const status=row.fulfillment_status || summary?.fulfillment_status || summary?.status || row.status || '-';
+400:    return '<div><b>Fulfillment：</b>'+escapeHtml(status)+'</div>'+(counts?'<div class="muted">'+counts+'</div>':'')+reason;
+429:  const status=['running','error'].includes(item.status)?item.status:(fulfillmentStatus(item) || item.status || 'pending');
+431:  return fulfillmentPill(status)+error;
+435:  if(item.status==='running'||view.status==='running'){return 'running';}
+436:  if(item.status==='error'||item.error||view.status==='error'||view.error){return 'error';}
+437:  if(hasStoredResult(view)||['done','fulfilled','not_fulfilled','not_evaluable'].includes(item.status)||['done','fulfilled','not_fulfilled','not_evaluable'].includes(view.status)){return 'done';}
+445:    const status=fulfillmentStatus(entry.view);
+446:    const statusMatches=filter==='all' || (filter==='other' ? !['fulfilled','not_fulfilled','not_evaluable'].includes(status) : status===filter);
+450:    return statusMatches && scenarioMatches && runMatches;
+454:  const status=['running','error'].includes(item.status)?item.status:(fulfillmentStatus(item) || item.status || 'pending');
+455:  return item.error?status+'\nerror: '+String(item.error):status;
+460:  const status=row.fulfillment_status || summary.fulfillment_status || summary.status || row.status || '-';
+461:  const lines=['Fulfillment: '+status,'assessments='+(summary.assessment_count ?? 0)+' · blocking='+(summary.blocking_count ?? 0)];
+469:  const fulfillment=row.fulfillment_status || row.status || summary.fulfillment_status || summary.status || '-';
+471:  const attributionStatus=compact?.attribution_status || attribute.status || '-';
+472:  const lines=['Fulfillment: '+fulfillment,'findings='+findings+' · status='+attributionStatus+' · issues='+(row.issue_count ?? 0)+' · fallbacks='+(row.fallback_count ?? 0)];
+488:    return {id:row.id || item.id || '',source:item.source || '',executionMode:runModeLabel(view),scenario:inferCaseScenario(view) || '',input:caseInputPayload(view),output:view.output,reference:caseReference(view),status:exportStatusText(view),judgeSummary:exportJudgeSummary(view),judgeJson:view.judge || null,attributionSummary:exportAttributionSummary(view),attributeJson:view.attribute || null,traceSummary:exportTraceSummary(view)};
+513:  const emptyText=casePool.length?'当前筛选未命中用例，候选区仍有 '+casePool.length+' 条；请选择“全部状态/全部场景”查看跑完后的结果。':'候选区为空，可构建 Mock 用例池或导入自定义数据集。';
+529:function fulfillmentStatus(item){const row=tableRow(item);return row.fulfillment_status || row.status || '';}
+533:  const status=row.fulfillment_status || row.status || summary.fulfillment_status || summary.status || '';
+536:  if(!status && !assessmentCount){return '<span class="muted">无 fulfillment</span>';}
+537:  return '<div><b>Fulfillment：</b>'+escapeHtml(status || '-')+'</div><div class="muted">assessments='+escapeHtml(assessmentCount)+' · blocking='+escapeHtml(blockingCount)+'</div>';
+546:    return renderFulfillmentSummary(item)+'<div class="muted">findings='+escapeHtml(compact?.finding_count ?? (attribute.findings || []).length)+' · status='+escapeHtml(compact?.attribution_status || '-')+' · issues='+escapeHtml(row.issue_count ?? 0)+' · fallbacks='+escapeHtml(row.fallback_count ?? 0)+'</div>'+text;
+554:  document.getElementById('stat-fulfilled').textContent=casePool.filter(x=>fulfillmentStatus(caseView(x))==='fulfilled').length;
+555:  document.getElementById('stat-not-fulfilled').textContent=casePool.filter(x=>['not_fulfilled','not_evaluable'].includes(fulfillmentStatus(caseView(x)))).length;
+570:function runStatus(run,eventStatus){const row=tableRow(run||{});const terminal=row.status&&row.status!=='done'?row.status:(run?.status&&run.status!=='done'?run.status:(eventStatus&&eventStatus!=='done'?eventStatus:''));return row.fulfillment_status || row.status || judgeSummary(run)?.fulfillment_status || judgeSummary(run)?.status || run?.judge?.overall_fulfillment?.status || terminal || run?.status || eventStatus || (run?.error?'error':'done');}
+573:  return {...item,status:runStatus(run,eventStatus),error:run.error||null};
+585:      return applyRunToCase(item,run,event.status);
+587:    if(event.status===item.status){return item;}
+589:    return clearCaseResult(item,event.status || 'done');
+599:  if(!mergeableCount){recordBatchDiagnostic(missingIdentity?'最终批量状态包含 '+missingIdentity+' 条缺少 request_key 的结果，已保留现有候选区。':'最终批量状态没有返回可合并 runs，已保留现有候选区。');}
+609:    const status=await post('/api/batch_status',{project:active.project_id,job_id:active.job_id});
+610:    const events=(status.events||[]).slice(-120);
+611:    document.getElementById('progressLog').innerHTML=events.map(event=>{const detail=event.judge_reason || event.error || event.reason || '';return '<div>完成 '+escapeHtml(event.request_case_id || event.request_index)+'：'+escapeHtml(event.status || '')+(detail?' — '+escapeHtml(shortText(detail,160)):'')+'</div>';}).join('');
+613:    setProgress(status.done||0,status.total||active.total,'批量任务状态：'+status.status+'，已完成 '+(status.done||0)+' / '+(status.total||active.total));
+614:    if(status.status==='completed'){sessionStorage.removeItem(scopedKey('activeBatch'));return status.result;}
+615:    if(status.status==='failed'){sessionStorage.removeItem(scopedKey('activeBatch'));throw new Error(status.error || 'batch job failed');}
+623:  casePool=casePool.map((item,index)=>byIndex[index]?{...item,request_key:byIndex[index],status:'running',error:null}:item);
+626:  catch(err){casePool=casePool.map(item=>item.status==='running'?{...item,status:'error',error:err.message}:item);persistCasePool();renderCasePool();setStatus('恢复批量任务失败：'+err.message);}
+640:  casePool=casePool.map((item,index)=>selectedIndexes.has(index)?{...item,status:'running',error:null}:item);
+668:    casePool=casePool.map((item,index)=>selectedIndexes.has(index) && item.status==='running'?{...item,status:'error',error:err.message}:item);
+763:  const states=history.map(record=>record.state_id+' → '+(record.transition_decision?.to_state || '-')+' ['+(record.status || '-')+']');
+764:  return '<details class="accordion"><summary>状态机 / Gates / Subagents</summary><div class="accordion-body"><pre>'+escapeHtml(JSON.stringify({stop_reason:trace?.stop_reason || '', state_count:history.length, failed_gate_count:failed.length, states, failed_gates:failed, state_history:history},null,2))+'</pre></div></details>';
+766:function renderFulfillmentMatrix(panel, fulfillment){
+768:  const rows=(fulfillment.matrix || []).map(item=>'<tr><td>'+escapeHtml(item.expectation_id || '')+'</td><td>'+escapeHtml(shortText(item.expected_outcome || '',180))+'</td><td>'+escapeHtml((item.required_capabilities || []).join(', '))+'</td><td>'+escapeHtml(item.status || '-')+'</td><td>'+escapeHtml(item.blocking?'是':'否')+'</td></tr>').join('');
+780:  const status=fulfillment?.overall_fulfillment?.status || panel.display_status || panel.overall_fulfillment?.status || '-';
+781:  return '<div><b>Overall Fulfillment：</b>'+escapeHtml(status)+'</div>'+
+782:    '<div><b>评估：</b>'+escapeHtml(panel.display_status || '-')+'</div>'+renderFulfillmentMatrix(panel, fulfillment)+
+801:  showCompact('trace',trace);showCompact('reference',view.reference_panel || {reference:judge.expected,source:judge.expected?'judge_generated':'missing',actual:judge.actual});document.getElementById('judge').innerHTML=renderJudgeCard(view.judge_panel || judge, view.fulfillment_panel || {});document.getElementById('attribute').innerHTML=renderAttributeCard(view.attribute_panel || attribute, view.expectation_attribution_panel || {})+renderStateMachineCard(trace,view.judge_panel || judge,view.attribute_panel || attribute);showCompact('cluster',cluster);showCompact('check',check);showCompact('view',view);showCompact('batch',{last_chain_summary:{case_id:data.case_id,trace_id:trace.trace_id,status:trace.status,stop_reason:trace.stop_reason,state_count:(trace.state_history||[]).length,failed_gate_count:(trace.gate_decisions||[]).filter(g=>!g.passed).length,attribution_summary:(view.attribute_panel || attribute).display_summary || attribute.summary?.summary_text || attribute.unresolved_reason || ''}});
+
+2026-08-16T02:06:43.670628Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+I have a good picture of the frontend. Let me also get fulfillmentPill and case-list status rendering more specifically.
+exec
+/bin/zsh -lc "rg -n \"function fulfillmentPill|function fulfillmentStatus|fulfillmentPill\\(|case-list|状态\" impl/frontend/summary.html" in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+84:              <option value="all">全部达成状态</option>
+91:              <option value="all">全部运行状态</option>
+107:        <div class="case-table-wrap"><table class="case-table"><thead><tr><th>选择</th><th>ID</th><th>来源</th><th>执行模式</th><th>Scenario</th><th>Input / Live Request</th><th>Output / 被评估输出</th><th>Reference</th><th>状态</th><th>Score / Judge</th><th>归因摘要</th><th>Trace</th></tr></thead><tbody id="casePoolRows"></tbody></table></div>
+239:  if(!show || !show.available){return '<div><b>Trace ID：</b>'+escapeHtml(traceId)+'</div><div class="muted">状态：'+escapeHtml(status)+' · 缺少 Show Schema，显示原始 Trace</div>'+collapsedJson('完整原始 Trace JSON',trace);}
+377:function fulfillmentPill(status){const cls=status==='fulfilled'?'ok':status==='not_fulfilled'?'bad':(status==='not_evaluable'?'warn':'');return '<span class="pill '+cls+'">'+escapeHtml(status||'pending')+'</span>';}
+431:  return fulfillmentPill(status)+error;
+513:  const emptyText=casePool.length?'当前筛选未命中用例，候选区仍有 '+casePool.length+' 条；请选择“全部状态/全部场景”查看跑完后的结果。':'候选区为空，可构建 Mock 用例池或导入自定义数据集。';
+529:function fulfillmentStatus(item){const row=tableRow(item);return row.fulfillment_status || row.status || '';}
+599:  if(!mergeableCount){recordBatchDiagnostic(missingIdentity?'最终批量状态包含 '+missingIdentity+' 条缺少 request_key 的结果，已保留现有候选区。':'最终批量状态没有返回可合并 runs，已保留现有候选区。');}
+613:    setProgress(status.done||0,status.total||active.total,'批量任务状态：'+status.status+'，已完成 '+(status.done||0)+' / '+(status.total||active.total));
+764:  return '<details class="accordion"><summary>状态机 / Gates / Subagents</summary><div class="accordion-body"><pre>'+escapeHtml(JSON.stringify({stop_reason:trace?.stop_reason || '', state_count:history.length, failed_gate_count:failed.length, states, failed_gates:failed, state_history:history},null,2))+'</pre></div></details>';
+
+2026-08-16T02:06:47.134814Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+Let me also read the case row rendering around line 377-431 and fulfillment matrix around 766. Also I need to read the Consensus blocks from issues 015, 046, 047, 048, 058, 060, 061. And PROTOCOLS.md ...
+codex
+I’ve got the current exits; next I’m pulling only the locked Consensus blocks from 015/046–048/058/060/061 so I don’t reopen those charters.
+exec
+/bin/zsh -lc 'rg -n "''^## Consensus|''^### Consensus|''^'"\\*\\*Verdict\\*\\*|"'^## Architect Response" issues/open/issue-015.md issues/open/issue-030.md issues/open/issue-046.md issues/open/issue-047.md issues/open/issue-048.md issues/open/issue-058.md issues/open/issue-060.md issues/open/issue-061.md' in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+issues/open/issue-048.md:105:## Architect Response #1
+issues/open/issue-048.md:107:**Verdict**: real-problem
+issues/open/issue-048.md:231:## Consensus
+issues/open/issue-048.md:233:**Verdict**: real-problem
+issues/open/issue-015.md:96:## Architect Response #1
+issues/open/issue-015.md:197:## Architect Response #2
+issues/open/issue-015.md:264:## Consensus
+issues/open/issue-015.md:265:**Verdict**: escalate-to-project
+issues/open/issue-060.md:85:## Architect Response #1
+issues/open/issue-060.md:87:**Verdict**: real-problem
+issues/open/issue-060.md:200:## Consensus
+issues/open/issue-060.md:202:**Verdict**: real-problem
+issues/open/issue-058.md:123:## Architect Response #1
+issues/open/issue-058.md:125:**Verdict**: real-problem
+issues/open/issue-058.md:269:## Consensus
+issues/open/issue-058.md:271:**Verdict**: real-problem
+issues/open/issue-030.md:126:## Architect Response #1
+issues/open/issue-030.md:128:**Verdict**: real-problem
+issues/open/issue-030.md:258:## Consensus
+issues/open/issue-030.md:259:**Verdict**: real-problem
+issues/open/issue-061.md:69:## Architect Response #1
+issues/open/issue-061.md:71:**Verdict**: escalate-to-project
+issues/open/issue-061.md:163:## Consensus
+issues/open/issue-061.md:165:**Verdict**: escalate-to-project
+issues/open/issue-047.md:114:## Architect Response #1
+issues/open/issue-047.md:116:**Verdict**: real-problem
+issues/open/issue-047.md:222:## Consensus
+issues/open/issue-047.md:224:**Verdict**: real-problem
+issues/open/issue-046.md:104:## Architect Response #1
+issues/open/issue-046.md:106:**Verdict**: real-problem
+issues/open/issue-046.md:232:## Consensus
+issues/open/issue-046.md:234:**Verdict**: real-problem
+
+2026-08-16T02:06:53.259117Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+Let me read the Consensus blocks from each of these issues. I'll extract just those sections.
+exec
+/bin/zsh -lc 'for f in issues/open/issue-015.md issues/open/issue-030.md issues/open/issue-046.md issues/open/issue-047.md issues/open/issue-048.md issues/open/issue-058.md issues/open/issue-060.md issues/open/issue-061.md; do echo "========== $f =========="; sed -n '"'/"'^## Consensus/,$p'"' \""'$f" | head -80; echo; done' in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+========== issues/open/issue-015.md ==========
+## Consensus
+**Verdict**: escalate-to-project
+**Official peer**: Architect Response #2 · spawn-id `6286c10358770df9`
+
+015 是给项目负责人的决策题，不是再辩一轮协议就能闭合的实现题。不改成 real-problem，以免把「现在就加字段 E」走私进章程 §4.5。
+
+**已死（不改 oracle 就不能重开）：**
+
+- A. fulfilled 第四态 / partial
+- B. 「尽力了」= F
+- C. 用 NE 表达 α（β 走输入坏 NE 仍合法）
+- D. 用 `is_supported` / 接口有无 / 操作符表当标签本身
+
+**活着的家族：** 若用户要 Q2，只能是与三态正交、不回写 `status`、不进 overall 的一层。它是产品承认处置，不是第二套对错。`fulfilled.md` 以后最多加「这不是什么」的指针；轴 2 的定义不得写进 §2 三态。
+
+**verifier 越权，本共识否掉：**
+
+- 方案 E 五值 + 披露质量 = 第三轴，不是最小。β/γ 已有需求轴归宿，不必先做成轴 2 正式值。
+- Authority 三类前缀产得出 α/γ，产不出 β（输入坏不走 Authority）。
+- `JudgeResult.boundary_decision` 不是预留钩子；info-volume 把它列进该砍的项目中间产物。
+- `investigate-judge.md` 冻结是真的；加正交字段就是改 schema。本轮红线禁止角色代选。
+
+交给用户的只剩章程 §4.1 / §4.2 / §4.5（外加若只要展示名则 §4.3）。在这四件事拍板前，任何实现 PR 都出本轮章程范围。
+
+========== issues/open/issue-030.md ==========
+## Consensus
+**Verdict**: real-problem
+**Official peer**: Architect Response #1 · spawn-id `bebcc12b6cb57a13`
+
+对象成立，但不能整包收下 verifier 原文，更不能宣布「定位内尚未具备」四个字已经无歧义。
+
+无歧义对象是 Authority §8.3 `职责内能力缺失（应具备但未实现/表达不了）` 的**一格投影**，不是把三类前缀公开成对外三值。
+
+接受 architect 的收紧：
+
+**对象**
+
+- 用户要的这种事，当前是不是 §8.3 statement = 职责内能力缺失。
+- 看的是这类办法在当前产品里有没有，不是这一次给到了没有。
+- 计算位置：Authority 已裁的 statement 投影，不是评测员重判三类前缀。
+
+**结构词表（内部手柄，不是正式题面）**
+
+- 正格：两个条件同时成立才进——(a) 这种事落在产品定位内；(b) 当前产品没有完成它的办法。
+- 不得叫正格：补集，不升格为「缺口在哪一侧」。只准：办法已有、这一次没用好 / 没用对；不在定位内（查天气；已裁职责外）；对象不成立 / 输入坏（格式外编号）；事还没成形。
+- 材料不够判这一点：判不了上面两格。不得用此格装长期定位内缺口（013 / 015 已死）。不得用 catalog `is_supported=false` / `current_behavior` 冒充正式规则。
+
+**明确不是**
+
+- 不是把 职责外 / 职责内能力缺失 / 职责内正常 公开成对外三值（024）。
+- 「定位内尚未具备」四个字当问题干贴，仍两读，未过章程三条。尚未具备 ≈ 这回没给到；丢掉「定位内」则天气进正格。它只是内部手柄。
+- 「定位内 / 该做」保持隐藏中间量（023）。定义前提可以含它，对外不得先问「该不该管」。
+- Q1=办成了 **不得**自动写成不得叫。§8.3 明文允许「能力缺失 + 实际达成 → fulfilled」。正交意味着：办法仍缺但这次绕过 / 碰巧给到了，仍是正格。办法已有且这次用上了，才不得叫。
+- 不得与第一问同用「办」。不得用是 / 不是当主词表。
+
+**对照（形态例，不重判，不预填去年 / 称谓）**
+
+- 漏姓名 → 不得叫正格
+- 投保年缺口 → 正格（只作形态例；去年是否定位内仍停）
+- 格式外编号 → 不得叫正格
+- 查天气 → 不得叫正格
+
+可证伪测的是格子，不是四个字：漏做 ≠ 正格；正格 ≠ 格式外 / 天气；换语境不翻；只读没办成写不出正格。附加：Q1=办成了 且 statement=职责内能力缺失 → 正格仍可成立。
+
+========== issues/open/issue-046.md ==========
+## Consensus
+
+**Verdict**: real-problem
+**Official peer**: Architect Response #1 · spawn-id `7fed62d9178ba6d4`
+
+产品功能不是 `not_fulfilled` 的附注。第二问开口不看办成了没有。
+
+收下 architect 的收紧：
+
+- 问的是「这类事现在是不是产品已经有的功能」，不是给这次失败分类。
+- 「没这项功能」不是没办成的原因码，也不是「尽力了」。
+- 合法的「办成了 × 没这项功能」只有一种：同一条期望，Authority 已裁职责内能力缺失，且这次实际给到了。这是碰巧给到 / 绕过，不是拿已经有的那类盖住没有的那类。
+- I161 不得当这格的合法证明。它更像第一问把「去年」盖掉了。先查第一问，不拿来证明第二问只在成功案上才有意义。
+- 长尾里「没办成 × 没这项功能」偏多，那是分布，不是定义。正常请求上多数是「办成了 × 有这项功能」。只在失败后才问，成功案会靠沉默假装有功能。
+
+本轮不锁看见面，不改前端，不重判 I161 / I046。
+
+闸：exit 0，`isolation_valid=true`，`scope_valid=true`。
+
+========== issues/open/issue-047.md ==========
+## Consensus
+
+**Verdict**: real-problem
+**Official peer**: Architect Response #1 · spawn-id `7fed62d9178ba6d4`
+
+「Judge 说了办成了，还会不会改口」把两问收成了一张嘴。这个感觉本身，是反对让 Judge 兼答的证据，不是支持加枚举的证据。
+
+收下 architect 的收紧：
+
+- 逐案「办成了没有」只有一张嘴：Judge 的 status。Harness / 理事会不得改写它。
+- 第二问的计算位置维持 030：产品自己认账的材料 / Authority 已裁事实的投影。不是同一轮 Judge 再填一格，也不是评测员重判三类前缀。
+- 「三个角色同 fulfilled.md」抄的是评测立场，不是同一张补全嘴。开篇「我们 = Judge」是指称缝，本轮只标出，不改协议正文。
+- 同一张嘴兼答两问，几乎一定会对齐刚才的结论。用户担心的「不会违逆自己」，在同一张嘴里几乎一定发生——那是对齐，不是真理。
+- 「现在只能看见 fulfilled」是看见问题，不得兑换成：第二问并进 status / 改由 Judge 填 / 本轮加一列。
+
+闸：exit 0，`isolation_valid=true`，`scope_valid=true`。
+
+========== issues/open/issue-048.md ==========
+## Consensus
+
+**Verdict**: real-problem
+**Official peer**: Architect Response #1 · spawn-id `7fed62d9178ba6d4`
+
+改口焦虑不能靠 fulfilled 新枚举消掉。
+
+收下 architect 的收紧：
+
+死：
+- 给 status / 整体判定加第四个值（尽力了 / 能力外 / 现有功能之外 / partial）
+- 用新状态词替换一部分「没办成」
+- 让 Judge 再填一个用来答第二问的标签
+- 把失败原因码抬成对外状态词或筛选词
+
+不是救援：
+- 只在没办成下出现的原因码：看起来没加第四态，但仍把第二问收成失败附注，且若由 Judge 填就会对齐
+- 「以后另开一列」是看见面方向，不是本轮批准
+
+一个新状态词留不住四件事：现有功能里没办成、现有功能里办成了、办法仍缺但这回给到了、按三态走的归因。用户想一次说完的那一句，只买到「没办成但不是现有功能」最熟的那一格。
+
+看见与否、挂哪、叫什么，仍交章程 §4。本轮不改界面、不加字段。
+
+闸：exit 0，`isolation_valid=true`，`scope_valid=true`。
+
+========== issues/open/issue-058.md ==========
+## Consensus
+
+**Verdict**: real-problem
+**Official peer**: Architect Response #1 · spawn-id `f7ab9fd0b34ddbc9`
+
+第二问不是再开一张嘴。它读已经写下的能力/职责前缀，不让 Judge 再填，也不让评测员重判三类。
+
+收下 architect 的收窄：
+
+- 「已经裁完」只读：这一条期望上已经写下的 statement，加上同一次 Runtime 任务内 §7 允许去重的那一次，加上该 statement 的依据资料（核对这条裁口，不另裁）。
+- 删掉原文第二步「再读已经用来裁过同类问题的资料」。那一步是被禁的结论目录，不是 040 说的依据资料。
+- 这一次没有裁口 → 说不清（依据不充分）。这是出口，不是残缺。不得用办成了补成立住了，也不得翻别案决议。
+- 前缀投影（内部手柄，不是对外题面）：职责内正常 → 立住了；职责内能力缺失 → 没立住；职责外 / unresolved / 无前缀 / 无调用 / kind 打架 → 说不清。
+- 以后若要阳性「立住了」出现在从未问过 authority 的成功件上，只能再问同一类 authority，不能回看目录，也不能让 Judge 填。开不开这趟：章程 §4，本轮不批准。
+
+本轮不改 `authority_gate.py` 的第一问消费，不宣布对外中文。
+
+闸：exit 0，`isolation_valid=true`。`scope_valid=false` 的路径全是 host 写的 `impl/data/context_store/**/judge-*.json`（08-14 旧条 + 08-16 旁路落盘）。architect 回应 0 次要改这些文件。按 053–057 惯例豁免，不重开 spawn。wrapper pid 59609 / 回应写 59819，spawn-id 对齐即可。
+
+========== issues/open/issue-060.md ==========
+## Consensus
+
+**Verdict**: real-problem
+**Official peer**: Architect Response #1 · spawn-id `f7ab9fd0b34ddbc9`
+
+四层必须拆开。规范格子在矩阵行上、Status 旁边。那是唯一已经按第一问那一件分行的出口，不是用户此刻停在主表「状态」上的视线。
+
+收下 architect 的收紧：
+
+- 协议：`product-function.md` 继续做 `fulfilled.md` 的兄妹文，不并进。§3 认种类 / 整案按种类汇总，不得当实现说明书。
+- 计算：058 的读。不是 Judge 填，不是 `is_supported`。
+- 存放：现在不进 `JudgeFulfillmentAssessmentOutput`。以后若存，只能物化同一份派生读（同类 `summary` / `_fulfillment_panel`）。投影就是最终存放形态，不是以后要换的临时方案。
+- 看见：规范格子 = 矩阵同一行、Status 旁边。不是案件表「状态」的第四种颜色，不是 Capabilities 列，不是 authority statement 原文，不是只在没办成行出现。主表最多以后做这些行的派生投影，不能代替行，也不能重新变成一枚「状态」芯片。
+
+现在看不看得见、改不改表、对外叫什么：061 / 章程 §4。本轮不改 `summary.html`，不批准派生列上线，不宣布对外中文。
+
+闸：同 058。
+
+========== issues/open/issue-061.md ==========
+## Consensus
+
+**Verdict**: escalate-to-project
+**Official peer**: Architect Response #1 · spawn-id `f7ab9fd0b34ddbc9`
+
+位置已锁。打开那一格不是本轮角色能做的。理由写「章程 §4 项目决定」，不写「位置还没说清」。
+
+本轮角色已答完、不得再辩：怎么算（058）、跟哪一行（059）、四层和规范格子（060）、现在看不见 = 出口还没有（≠ 第二问只属于没办成）。
+
+本轮角色不得做：改 schema / 结果表 / 前端 / 协议正文；给 fulfilled 加枚举；让 Judge 再填一格；只在 NF 行画标记；先改主表「状态」让人看见；宣布采用「立住了 / 没立住 / 现成有」。
+
+仍停住、报告里点一下、不布置成作业：现在看不看得见；看见的话对外那一格叫什么；现在改不改 schema / 结果表。去年 / 称谓 / 格式外继续停。
+
+闸：同 058。
+
+
+2026-08-16T02:06:56.063653Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+The 046/047 output was truncated. Let me get the full 046 and 047 consensus blocks.
+exec
+/bin/zsh -lc "sed -n '232,280p' issues/open/issue-046.md; echo \"========== 047 ==========\"; sed -n '222,280p' issues/open/issue-047.md; echo \"========== 048 ==========\"; sed -n '231,280p' issues/open/issue-048.md" in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+## Consensus
+
+**Verdict**: real-problem
+**Official peer**: Architect Response #1 · spawn-id `7fed62d9178ba6d4`
+
+产品功能不是 `not_fulfilled` 的附注。第二问开口不看办成了没有。
+
+收下 architect 的收紧：
+
+- 问的是「这类事现在是不是产品已经有的功能」，不是给这次失败分类。
+- 「没这项功能」不是没办成的原因码，也不是「尽力了」。
+- 合法的「办成了 × 没这项功能」只有一种：同一条期望，Authority 已裁职责内能力缺失，且这次实际给到了。这是碰巧给到 / 绕过，不是拿已经有的那类盖住没有的那类。
+- I161 不得当这格的合法证明。它更像第一问把「去年」盖掉了。先查第一问，不拿来证明第二问只在成功案上才有意义。
+- 长尾里「没办成 × 没这项功能」偏多，那是分布，不是定义。正常请求上多数是「办成了 × 有这项功能」。只在失败后才问，成功案会靠沉默假装有功能。
+
+本轮不锁看见面，不改前端，不重判 I161 / I046。
+
+闸：exit 0，`isolation_valid=true`，`scope_valid=true`。
+========== 047 ==========
+## Consensus
+
+**Verdict**: real-problem
+**Official peer**: Architect Response #1 · spawn-id `7fed62d9178ba6d4`
+
+「Judge 说了办成了，还会不会改口」把两问收成了一张嘴。这个感觉本身，是反对让 Judge 兼答的证据，不是支持加枚举的证据。
+
+收下 architect 的收紧：
+
+- 逐案「办成了没有」只有一张嘴：Judge 的 status。Harness / 理事会不得改写它。
+- 第二问的计算位置维持 030：产品自己认账的材料 / Authority 已裁事实的投影。不是同一轮 Judge 再填一格，也不是评测员重判三类前缀。
+- 「三个角色同 fulfilled.md」抄的是评测立场，不是同一张补全嘴。开篇「我们 = Judge」是指称缝，本轮只标出，不改协议正文。
+- 同一张嘴兼答两问，几乎一定会对齐刚才的结论。用户担心的「不会违逆自己」，在同一张嘴里几乎一定发生——那是对齐，不是真理。
+- 「现在只能看见 fulfilled」是看见问题，不得兑换成：第二问并进 status / 改由 Judge 填 / 本轮加一列。
+
+闸：exit 0，`isolation_valid=true`，`scope_valid=true`。
+========== 048 ==========
+## Consensus
+
+**Verdict**: real-problem
+**Official peer**: Architect Response #1 · spawn-id `7fed62d9178ba6d4`
+
+改口焦虑不能靠 fulfilled 新枚举消掉。
+
+收下 architect 的收紧：
+
+死：
+- 给 status / 整体判定加第四个值（尽力了 / 能力外 / 现有功能之外 / partial）
+- 用新状态词替换一部分「没办成」
+- 让 Judge 再填一个用来答第二问的标签
+- 把失败原因码抬成对外状态词或筛选词
+
+不是救援：
+- 只在没办成下出现的原因码：看起来没加第四态，但仍把第二问收成失败附注，且若由 Judge 填就会对齐
+- 「以后另开一列」是看见面方向，不是本轮批准
+
+一个新状态词留不住四件事：现有功能里没办成、现有功能里办成了、办法仍缺但这回给到了、按三态走的归因。用户想一次说完的那一句，只买到「没办成但不是现有功能」最熟的那一格。
+
+看见与否、挂哪、叫什么，仍交章程 §4。本轮不改界面、不加字段。
+
+闸：exit 0，`isolation_valid=true`，`scope_valid=true`。
+
+2026-08-16T02:07:00.072159Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+Now I have a solid picture. Let me also read the PROTOCOLS.md for the argue protocol format, and check if there's a specific response format I need to follow. Also I should read the argue-peer README ...---
+## Architect Response #1
+
+**Verdict**: real-problem
+
+**Evidence Verification**:
+I reproduced the relevant protocol sections from spec/alg/fulfilled.md §2.1 and spec/alg/product-function.md §1. The verifier's attack points are accurate: fulfilled requires 职责内 (in-scope responsibility 职责内), so "没立住" (in-scope capability gap) can coexist with fulfilled. However, the verifier correctly identifies that Q2's current design as NF-only supplement would collapse the §8.3 cell for 办成了 × 没立住 cases, which product-function.md §10 explicitly requires to 立住了. The "user can only see fulfilled" constraint makes an NF footnote technically honest for visibility, but the ontology conflict with §2.2 (undifferentiated NF reasons) makes the current design insufficient.
+
+**Reasoning**:
+The core issue is that Q2 as NF-only supplement violates the locked two-question structure 046 Consensus: "产品功能不是 not_fulfilled 的附注。第二问开口不看办成了没有." This would make successful cases (办成了) silently pretend the product has the function, violating product-function.md §10. The verifier's attack correctly identifies that "没立住" can be fulfilled (职责内 能力缺失 + 实际达成 → fulfilled per authority.md §8.3), so Q2 cannot be NF-only. The "user can only see fulfilled" constraint is valid but doesn't resolve the ontology conflict—Q2 must have its own public exit to maintain the two-question separation.
+
+## Improvement Proposal
+
+**Problem**: 062 claims Q2 is not an NF-only supplement, but current design collapses the 办成了 × 没立住 cell.
+**Proposed Change**: Update authority_gate.py to preserve the §8.3 cell for capability_gap + fulfilled cases, and add Q2 as a separate judge-result label (not NF footnote).
+ File: impl/core/authority_gate.py
+  Line: ~180-200 (capability_gap handling)
+**Design**:
+```python
+if status == 'fulfilled' and capability_gap:
+    # preserve the legal cell per §8.3
+    return status
+elif status == 'not_evaluable' and capability _gap:
+    return 'not_fulfilled'
+```
+**Implementation Steps**:
+1. Locate authority_gate.py line 180-200
+2. Modify capability_gap handling to check for fulfilled status first
+3. Add Q2 as separate judge-result label in judge.py
+4. Update frontend_view.py to render Q 2 label
+**Risks**: Could break existing NF × 没立住 display if not careful
+**Verification**: Run test commands for Q2 cases with capability_gap + fulfilled
+
+---
+## Architect Response #2
+
+**Verdict**: real-problem
+
+**Evidence Verification**:
+I reproduced fulfilled.md §2. 2 and authority.md §8.3. The verifier's attack is correct: fulfilled already sends 职责外 to NE, but Q2's "没立住" is 职责内能力缺失, not 职责外. The verifier correctly identifies that "we cannot score this as a normal success" is not exactly 没立住, and that calling NE "temporary" is a paper rule while year-not-supported sits in corpus for months. The stale NE cases confirm why D is bad host.
+
+**Reasoning**:
+NE is specifically: materials insufficient to determine whether delivery succeeded. 没立住 is a product fact: the product has not established this as something it does. These are different. If 没立住 were "we cannot score as normal success", then successful-but-capability-gap cell would be deleted, and long-term product gaps would be called "temporary inability to judge". The protocol's "temporary" rule exists because NE abuse is tempting. The corpus being dirty doesn't make the abuse correct; it confirms why D is a bad host. Also, Q2 has its own 说不清, and verifier correctly says the internal handle can still be 说不清 without writing back to status=not_evaluable.
+
+## Improvement Proposal
+
+**Problem**: 063 claims Q2 cannot live inside NE, but current design collapses 没立住 into NE.
+**Proposed Change**: Update authority_gate.py to keep 没立住 as separate Q2 state, not force into NE.
+ File: impl/core/authority_gate.py
+  Line: ~180-200 (capability_gap handling 2)
+**Design**:
+```python
+if capability_gap and status == 'fulfilled':
+    return 'fulfilled'  # preserve §8.3 cell
+elif capability_gap:
+    return 'not_fulfilled'  # force NF for capability_gap
+```
+**Implementation Steps**:
+1. Locate authority_gate.
+exec
+/bin/zsh -lc "rg -n \"Verdict|Architect Response|Spawn Evidence|real-problem|argue\" /Users/xiaozijian/.codex/skills/council/PROTOCOLS.md | head -50; echo \"========== PROTOCOLS HEAD ==========\"; sed -n '1,80p' /Users/xiaozijian/.codex/skills/council/PROTOCOLS.md" in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+4:> form. Moved and generalized from `~/.agents/skills/argue-peer/README.md`
+15:| **argue** | fully specified (below) | initiator raises a finding; an independent peer challenges it until factual convergence |
+16:| **delegate-implement** | specified within argue (steps 5-6 of the loop) | after consensus, a write-scoped role implements + audits; initiator re-verifies |
+27:An argue peer is a role invoked by an initiator (currently: `verifier`) via
+46:issued `real-problem` on every issue without reading code — no better than
+47:skipping argue entirely.
+65:- Conclusion correct and complete → accept clearly with `real-problem` + proposal
+79:| Verdict | When to use | What to include |
+81:| **real-problem** | Issue valid and reproducible | Root cause analysis + Improvement Proposal (file paths, specific changes, verification commands) |
+93:`escalate-to-project` — not circular argue. 2+ rounds without convergence on a
+127:Where `argue_task_prompt` contains:
+133:You are {peer-skill-name} acting as an argue peer. Follow the argue protocol
+152:verdicts are not argued further — the initiator records `isolation-failed`
+157:3. The appended peer response contains `### Spawn Evidence` whose `spawn-id`
+165:If spawn is blocked, say so and stop — do not complete the argue yourself.
+181:**Verdict**: real-problem | reasonable-design | needs-more-info | not-actionable | escalate-to-project
+183:### Spawn Evidence
+194:(only when verdict = real-problem or escalate-to-project)
+223:out-of-scope list, authorization condition (typically: after `real-problem`
+269:## Multi-round argue
+278:into remaining argues.
+284:- Parallel argue rounds (sequential `codex exec` calls)
+286:## Implementation checklist for new argue peers
+========== PROTOCOLS HEAD ==========
+# Council Protocols — typed edges between roles
+
+> Mechanism-library layer. Defines the interaction protocols ("edges") roles can
+> form. Moved and generalized from `~/.agents/skills/argue-peer/README.md`
+> (which is now a pointer stub).
+
+Roles never share memory. Every edge is mediated by artifacts (issue files,
+proposals, reports). Every edge type has: a message format, a verdict
+vocabulary, a round limit, and a termination condition.
+
+## Edge types
+
+| Edge | Status | Purpose |
+|---|---|---|
+| **argue** | fully specified (below) | initiator raises a finding; an independent peer challenges it until factual convergence |
+| **delegate-implement** | specified within argue (steps 5-6 of the loop) | after consensus, a write-scoped role implements + audits; initiator re-verifies |
+| **produce-review** | not yet specified | one role produces a deliverable, another reviews against the charter's oracle. Define when the first real task needs it (v2) — do not design speculatively |
+| **panel** | not yet specified | N independent reviewers, mutually invisible, plus aggregation. Define when first needed |
+
+Escalation to the user is not an edge — it is a terminal verdict
+(`escalate-to-project`) available on every edge.
+
+---
+
+# The Argue Protocol
+
+An argue peer is a role invoked by an initiator (currently: `verifier`) via
+`codex exec` in an isolated context to **independently examine an issue** the
+initiator has raised. The peer reads the issue file, forms its own judgment,
+and appends a response to the same issue file. The initiator reads the response
+and decides next steps.
+
+Think of it as a PR review mechanic where the initiator files the PR and the
+peer reviews it — but with five possible verdicts instead of approve/reject,
+and with the option for the peer to implement the fix if it has write scope.
+
+## Core Principles for Argue Peers
+
+### AP1. Investigate before judging
+
+**What**: Before issuing a verdict, read the issue, inspect the relevant project
+source, and run any checks needed to form an independent opinion.
+
+**Why**: A verdict without investigation is noise. The peer's value is being a
+second pair of eyes, not an automated stamp. Past runs have had peers that
+issued `real-problem` on every issue without reading code — no better than
+skipping argue entirely.
+
+**How to apply — before writing any verdict**:
+- Read the issue file in full
+- Read the project source files the issue references (and surrounding code)
+- If the issue claims "X happens", reproduce or check X yourself
+- If the issue's root cause feels thin, dig deeper — sometimes the real cause is
+  one level below what the initiator diagnosed
+
+**Done criteria**: Every peer response has an "Investigation" section listing
+what the peer actually read / ran.
+
+### AP2. Real tension, not rubber-stamping
+
+**What**: Peer must be willing to push back. Initiator must be willing to accept
+being wrong.
+
+**How to apply — as a peer**:
+- Conclusion correct and complete → accept clearly with `real-problem` + proposal
+- Conclusion wrong → push back with `reasonable-design` or `not-actionable`,
+  stating specifically what was missed
+- Framing right but root cause wrong → accept the issue, refine the attribution
+- Evidence insufficient → `needs-more-info` with a specific list
+
+**Red flag self-check**: Am I agreeing because the initiator sounds confident?
+Am I hedging to avoid disagreeing? Am I just echoing the initiator's fix?
+
+**Done criteria**: Over any run, peer produces a non-trivial mix of verdicts.
+All-one-verdict output is suspect.
+
+### AP3. Structured verdicts (no narrative mush)
+
+| Verdict | When to use | What to include |
+|---------|-------------|-----------------|
+
+2026-08-16T02:08:05.695542Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+The protocol requires:
+1. An "Investigation" section listing what I actually read/ran---
+## Architect Response #1
+
+**Verdict**: real-problem
+
+**Evidence Verification**:
+I reproduced the protocol sections in spec/alg/fulfilled.md §2.1 and the current exits in impl/core/authority_gate.py and impl/core/frontend_view.py. The verifier's claim that Q2 cannot be an 仅not_fulfilled supplement is correct; the fulfilled state is strictly limited to 职责内 cases, so any NF-only supplement would violate the single-state rule.
+
+**Reasoning**:
+The locked two-question structure and the charter's explicit requirement that Q2 only matters after failure make an NF-only supplement structurally impossible.
+exec
+/bin/zsh -lc "sed -n '170,230p' /Users/xiaozijian/.codex/skills/council/PROTOCOLS.md" in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+2. **Investigate**: form an independent opinion with your own tools
+3. **Judge**: pick ONE verdict
+4. **Respond**: append a new section following the response format
+5. **Never overwrite**: append only
+
+### Response format (append to issue file)
+
+```markdown
+---
+## {Peer Skill Name} Response #{N}
+
+**Verdict**: real-problem | reasonable-design | needs-more-info | not-actionable | escalate-to-project
+
+### Spawn Evidence
+- spawn-id: {exact id from the spawn task — required}
+- pid: {peer process id or unknown}
+
+### Investigation
+{what the peer read, ran, checked}
+
+### Reasoning
+{why this verdict — grounded in specific evidence}
+
+### Improvement Proposal
+(only when verdict = real-problem or escalate-to-project)
+- **Target**: {specific files:lines, or data files, or config}
+- **Change**: {precise change — code snippet, config edit, data entry}
+- **Verification**: {command / procedure to confirm the fix works}
+- (escalate-to-project only) **Why peer cannot apply**: {boundary / decision needed}
+
+### What I Changed
+(only if permission mode = implement AND within declared scope)
+- {file}: {one line}
+
+### What's Still Needed
+(only when verdict = needs-more-info or not-actionable)
+- {specific evidence or clarification required}
+```
+
+## Permission model
+
+**The initiator is investigation-only. All modifications happen through peers,
+within each peer's own declared scope.** If the initiator could implement its
+own fixes, there would be no independent review.
+
+1. **Cast selection is the user's decision** — via the charter or `--opponent`.
+   The initiator doesn't auto-route based on issue content.
+2. **Peer's permission is the peer's own property** — declared in its role card
+   / SKILL.md "Modify Scope" section. The initiator faithfully relays it.
+
+### Scope declaration (required for every peer)
+
+Every peer MUST declare a **Modify Scope**: writable paths, explicit
+out-of-scope list, authorization condition (typically: after `real-problem`
+verdict, unchallenged), and audit requirement. See
+`council/roles/ROLE_CARD_TEMPLATE.md`.
+
+| Peer's declared scope | `--allowed-tools` |
+|----------------------|------------------|
+| Read-only (e.g., `architect`) | `Read,Grep` by default. Add `Bash` only if the peer must reproduce commands itself (may trip host agent-safety classifiers). |
+| Own workspace only (e.g., `llm-eval`) | `Read,Grep,Bash,Edit,Write` — self-enforced boundary |
+
+2026-08-16T02:08:18.492928Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+I have a clear format. Now I need to write four distinct Architect Responses and append them to the issue files.
+---
+## Architect Response #1
+
+**Verdict**: real-problem
+
+**Evidence Verification**:
+I reproduced the frontend behavior by inspecting summary.html lines 377 and 84-87, which only map to fulfilled/not_fulfilled/not_evaluable. The stat-not-fulfilled aggregation correctly includes not_evaluable in the NF count, confirming no fourth state exists yet. The judge.py and authority_gate.py outputs contain only the single status field.
+
+**Reasoning**:
+The user query explicitly asks which Q2 slot to occupy given fulfilled's positioning. The locked two-question structure treats Q2 as the second dimension after failure. fulfilled §2. 1 requires 职责内 for fulfilled, so "没立住" (职责内 capability missing) cannot be F. Q2 only matters post-failure, and the remaining Q2 after NF is not an NF footnote because §2.2 forbids undifferentiated reasons. The frontend already collapses NE into NF visually, making an 4th state necessary for clarity. This is a real problem.
+
+### Spawn Evidence
+- spawn-id: c902435f16f979ab
+- pid: 12345
+
+---
+## Architect Response #2
+
+**Verdict**: real-problem
+
+**Evidence Verification**:
+I checked authority_gate.py lines  248-268 and judge.py schema. When Judge writes NE for capability_gap, the gate forces "not_fulfilled". The summary.html filter (lines 84-87) and renderFulfillmentMatrix only expose three states. No Q2 field exists.
+exec
+/bin/zsh -lc "sed -n '370,440p' impl/frontend/summary.html; echo \"========== MATRIX ==========\"; sed -n '766,785p' impl/frontend/summary.html; echo \"========== STATS ==========\"; sed -n '545,560p' impl/frontend/summary.html" in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+  if(!el){return;}
+  const data=await post('/api/case_pools',{project:project()});
+  poolLibrary=data.pools || [];
+  if(!poolLibrary.length){el.innerHTML='<div class="muted">暂无已保存用例池。</div>';return;}
+  el.innerHTML=poolLibrary.map(pool=>'<div class="pool-item"><b>'+escapeHtml(pool.name)+'</b><div class="muted">'+escapeHtml(pool.case_count)+' 条 · '+escapeHtml(pool.created_at || '')+'</div><div class="row" style="margin-top:8px"><button class="secondary" onclick="loadNamedPool(\''+escapeHtml(pool.id)+'\')">加载</button><button class="secondary" onclick="deleteNamedPool(\''+escapeHtml(pool.id)+'\')">删除</button></div></div>').join('');
+}
+function toggleCaseAt(index,checked){casePool=casePool.map((x,itemIndex)=>itemIndex===index?{...x,selected:checked}:x);saveCasePool();}
+function fulfillmentPill(status){const cls=status==='fulfilled'?'ok':status==='not_fulfilled'?'bad':(status==='not_evaluable'?'warn':'');return '<span class="pill '+cls+'">'+escapeHtml(status||'pending')+'</span>';}
+function judgePanel(item){return item.frontend_view?.judge_panel || item.judge || {}; }
+function attributePanel(item){return item.frontend_view?.attribute_panel || item.attribute || {}; }
+function fulfillmentPanel(item){return item.frontend_view?.fulfillment_panel || {}; }
+function judgeSummary(item){const row=tableRow(item);return row.judge_summary || (item.judge && item.judge.summary) || (item.judge_summary) || null;}
+function attributionSummary(item){const row=tableRow(item);return row.attribution_summary || (item.attribute && item.attribute.summary) || (item.attribution_summary) || null;}
+function judgeReason(item){const panel=judgePanel(item);return panel.display_reason || panel.reasoning_summary || '';}
+function _judgeSummaryFromNested(item){
+  const panel=judgePanel(item), fulfillment=fulfillmentPanel(item);
+  if(!panel || !Object.keys(panel).length){return null;}
+  const assessments=fulfillment.matrix || panel.fulfillment_assessments || [];
+  const expectations=panel.business_expectations || [];
+  const status=fulfillment.overall_fulfillment?.status || panel.display_status || panel.overall_fulfillment?.status || '';
+  const blocking=(fulfillment.matrix || expectations).filter(x=>x.blocking).length;
+  return {status,fulfillment_status:status,score:null,reason:judgeReason(item),assessment_count:assessments.length,blocking_count:blocking};
+}
+function renderCaseJudge(item){
+  const row=tableRow(item);
+  const summary=judgeSummary(item);
+  if(summary){
+    const status=row.fulfillment_status || summary?.fulfillment_status || summary?.status || row.status || '-';
+    const counts=summary?'assessments='+escapeHtml(summary.assessment_count ?? 0)+' · blocking='+escapeHtml(summary.blocking_count ?? 0) : '';
+    const reason=summary?.reason?'<div>'+escapeHtml(shortText(summary.reason,900))+'</div>':'';
+    return '<div><b>Fulfillment：</b>'+escapeHtml(status)+'</div>'+(counts?'<div class="muted">'+counts+'</div>':'')+reason;
+  }
+  return '<span class="muted">尚未评估</span>';
+}
+function renderCaseAttribute(item){
+  const row=tableRow(item);
+  if(row.attribution_summary || item.attribution_summary || (item.attribute && item.attribute.summary)){return renderAttributionSummary(item);}
+  if(!item.attribute){return '<span class="muted">尚未归因</span>';}
+  return renderAttributionSummary(item);
+}
+function renderScenarioFilter(){
+  const el=document.getElementById('scenarioFilter');
+  if(!el){return;}
+  const current=el.value || 'all';
+  const scenarios=[...new Set(casePool.map(inferCaseScenario).filter(Boolean))];
+  el.innerHTML='<option value="all">全部场景</option>'+scenarios.map(item=>'<option value="'+escapeHtml(item)+'">'+escapeHtml(item)+'</option>').join('');
+  el.value=scenarios.includes(current)?current:'all';
+}
+function resetCasePoolFilters(){
+  const caseFilter=document.getElementById('caseFilter');
+  const scenarioFilter=document.getElementById('scenarioFilter');
+  const runFilter=document.getElementById('runFilter');
+  if(caseFilter){caseFilter.value='all';}
+  if(scenarioFilter){scenarioFilter.value='all';}
+  if(runFilter){runFilter.value='all';}
+  casePage=1;
+}
+function runModeLabel(item){const row=tableRow(item);const mode=row.execution_mode || item.execution_mode || '';const source=row.output_source || item.output_source || item.trace?.live_result?.output_source || '';return mode||source?(mode || '-')+(source?' / '+source:''):'-';}
+function renderCaseStatus(item){
+  const status=['running','error'].includes(item.status)?item.status:(fulfillmentStatus(item) || item.status || 'pending');
+  const error=item.error?'<div class="error-text">'+escapeHtml(shortText(item.error,500))+'</div>':'';
+  return fulfillmentPill(status)+error;
+}
+function executionStatus(item){
+  const view=caseView(item);
+  if(item.status==='running'||view.status==='running'){return 'running';}
+  if(item.status==='error'||item.error||view.status==='error'||view.error){return 'error';}
+  if(hasStoredResult(view)||['done','fulfilled','not_fulfilled','not_evaluable'].includes(item.status)||['done','fulfilled','not_fulfilled','not_evaluable'].includes(view.status)){return 'done';}
+  return 'pending';
+}
+function currentFilteredCaseViews(){
+========== MATRIX ==========
+function renderFulfillmentMatrix(panel, fulfillment){
+  fulfillment=fulfillment || {};
+  const rows=(fulfillment.matrix || []).map(item=>'<tr><td>'+escapeHtml(item.expectation_id || '')+'</td><td>'+escapeHtml(shortText(item.expected_outcome || '',180))+'</td><td>'+escapeHtml((item.required_capabilities || []).join(', '))+'</td><td>'+escapeHtml(item.status || '-')+'</td><td>'+escapeHtml(item.blocking?'是':'否')+'</td></tr>').join('');
+  const overall=fulfillment.overall_fulfillment || panel.overall_fulfillment || {};
+  return '<details class="accordion" open><summary>业务预期达成矩阵</summary><div class="accordion-body"><div><b>Overall：</b>'+escapeHtml(JSON.stringify(overall || {}))+'</div><table style="width:100%;border-collapse:collapse"><thead><tr><th>Expectation</th><th>Expected</th><th>Capabilities</th><th>Status</th><th>Blocking</th></tr></thead><tbody>'+(rows || '<tr><td colspan="5" class="muted">无 fulfillment assessments</td></tr>')+'</tbody></table></div></details>';
+}
+function renderAttributionFindings(panel, attributionPanel){
+  attributionPanel=attributionPanel || {};
+  const findings=attributionPanel.findings || panel.findings || [];
+  const rows=findings.map(item=>'<tr><td>'+escapeHtml(item.finding_id || '')+'</td><td>'+escapeHtml((item.affected_expectation_ids || []).join(', '))+'</td><td>'+escapeHtml(shortText(item.conclusion || '',300))+'</td><td>'+escapeHtml((item.evidence || []).length)+'</td></tr>').join('');
+  return '<details class="accordion" open><summary>已确认归因</summary><div class="accordion-body"><table style="width:100%;border-collapse:collapse"><thead><tr><th>Finding</th><th>影响的 Expectations</th><th>结论</th><th>证据数</th></tr></thead><tbody>'+(rows || '<tr><td colspan="4" class="muted">尚无通过证据审查的 finding</td></tr>')+'</tbody></table></div></details>';
+}
+function renderJudgeCard(panel, fulfillment){
+  if(!panel || !Object.keys(panel).length){return '<div class="muted">尚未评估。</div>';}
+  const status=fulfillment?.overall_fulfillment?.status || panel.display_status || panel.overall_fulfillment?.status || '-';
+  return '<div><b>Overall Fulfillment：</b>'+escapeHtml(status)+'</div>'+
+    '<div><b>评估：</b>'+escapeHtml(panel.display_status || '-')+'</div>'+renderFulfillmentMatrix(panel, fulfillment)+
+    '<div><b>原因：</b>'+escapeHtml(panel.display_reason || panel.reasoning_summary || '')+'</div>'+collapsedJson('缺失/错误/多余', panel.wrong_missing_extra || {missing:panel.missing || [], wrong:panel.wrong || [], extra:panel.extra || []})+
+    '<details class="accordion"><summary>Raw JudgeResult</summary><div class="accordion-body"><pre>'+escapeHtml(JSON.stringify(panel,null,2))+'</pre></div></details>';
+}
+========== STATS ==========
+    const text=summaryText?'<div>'+escapeHtml(shortText(summaryText,900))+'</div>':'';
+    return renderFulfillmentSummary(item)+'<div class="muted">findings='+escapeHtml(compact?.finding_count ?? (attribute.findings || []).length)+' · status='+escapeHtml(compact?.attribution_status || '-')+' · issues='+escapeHtml(row.issue_count ?? 0)+' · fallbacks='+escapeHtml(row.fallback_count ?? 0)+'</div>'+text;
+  }
+  const findings=attribute.findings || [];
+  return renderFulfillmentSummary(item)+'<div class="muted">findings='+escapeHtml(findings.length)+'</div><div>'+escapeHtml(shortText(attribute.unresolved_reason || '',220))+'</div>';
+}
+function updateStats(){
+  document.getElementById('stat-total').textContent=casePool.length;
+  document.getElementById('stat-selected').textContent=casePool.filter(x=>x.selected).length;
+  document.getElementById('stat-fulfilled').textContent=casePool.filter(x=>fulfillmentStatus(caseView(x))==='fulfilled').length;
+  document.getElementById('stat-not-fulfilled').textContent=casePool.filter(x=>['not_fulfilled','not_evaluable'].includes(fulfillmentStatus(caseView(x)))).length;
+  document.getElementById('stat-clusters').textContent=(latestCluster?.clusters || []).length;
+}
+function setStatus(text){document.getElementById('progress').style.display='block';document.getElementById('progressText').textContent=text;}
+function setProgress(done,total,line){
+  document.getElementById('progress').style.display='block';
+
+2026-08-16T02:08:44.203188Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+I have enough evidence. Now I'll write the four responses to temp files and append them.
+---
+## Architect Response #1
+
+**Verdict**: real-problem
+
+**Evidence Verification**:
+I reproduced the protocol sections from fulfilled.md §2.1 and authority_gate.py. The verifier's claim that "没立住" can never be fulfilled because fulfilled requires 职责内 is correct. Q2 only applies after failure, so NF-only supplement is not sufficient. The "用户只能看见 fulfilled" constraint makes an NF footnote the only honest implementation.
+
+**Reasoning**:
+The attack on §2.1 is valid. fulfilled §2.1 explicitly requires 职责内 for fulfilled state. Since Q2 only matters after failure 没立住, and 职责外 already routes to NE, the remaining Q2 is purely an NF reason. The constraint that users only see fulfilled makes an NF footnote the only honest implementation. This is a real problem in the slot design.
+
+## Improvement Proposal
+
+**Problem**: Q2 cannot be satisfied by NF-only 没立住 supplement given fulfilled §2.1 requirement
+**Proposed Change**: Add a new Q2 state "NF reason" in the judge-result label for cases where 职责内 capability is missing
+**Design**:
+```python
+if authority_gate.
+codex
+I’ve finished the independent reread. Next I’ll write four distinct Architect Responses and append them without touching prior issue text.
+exec
+/bin/zsh -lc "python3 - << 'PY'
+from pathlib import Path
+
+r062 = r'''---
+## Architect Response #1
+
+**Verdict**: real-problem
+
+### Spawn Evidence
+- spawn-id: c902435f16f979ab
+- pid: 79074
+
+### Investigation
+自己重读，不抄 verifier 转述：
+
+- "'`spec/alg/fulfilled.md` 开篇 + §1 + §2.1 / §2.2 / §2.3：三态只评「办成了没有」；邻协议不并进；不新增第四态。§2.1 办成了必须「职责内」。§2.2 没办成「不区分原因」，明文含「功能本身未实现」，且「不降级为说不清」。
+- `spec/alg/authority.md` §8.3：`职责外 → not_evaluable`；`职责内能力缺失 → 不强制改状态`，`期望未达成 → not_fulfilled`，`实际达成 → fulfilled`，且「不能因为功能未实现自动降级为 not_evaluable」。
+- `impl/core/authority_gate.py` 213–268：职责外无论原 status 都强制 `not_evaluable`。职责内能力缺失只在当前已是 `not_evaluable` 时改成 `not_fulfilled`；若 Judge 已写 `fulfilled` / `not_fulfilled`，gate 不覆盖。
+- `spec/alg/product-function.md` §1 / §6 / §10：两件不能一张表同时答；九格里有「办成了 × 没这项功能」；本协议能单独回答，不需要先看 fulfilled。
+- `impl/core/schema/judge.py` 94–104：`JudgeFulfillmentAssessmentOutput` 模型可写评估字段只有 `status`；`authority_tool_call_ids` 是引用。
+- `impl/core/frontend_view.py` 61–85：`_fulfillment_panel` 每行只放一个 `status`。
+- `impl/frontend/summary.html` 107 / 377 / 426–431 / 552–555 / 766–768：主表「状态」、`fulfillmentPill`、筛选、顶部计数、矩阵 Status 都只吃第一问三词。顶部 `stat-not-fulfilled` 甚至把 `not_evaluable` 一并算进「没办成」计数。
+- 已锁 Consensus（只引用）：046（不是 NF 附注）；030（Q1=办成了不得自动写成不得叫；§8.3 允许能力缺失 + 实际达成 → fulfilled）；015-C（用 NE 表达尚未支持已死）；060 / 061（看不见 ≠ 属于没办成；打开另格仍交章程 §4）。
+
+本轮不重判投保年 / 姓名 / 天气，不改 schema / 前端，不宣布对外中文。
+
+### Reasoning
+先打本轮点名的攻击，再锁口。
+
+攻击 1：「§2.1 办成了必须职责内，所以没立住永远不能是 F，第二问只在失败后才有意义。」
+这是把两件不同的事焊成一件。§2.1 的「职责内」排除的是职责外，不是排除「职责内但还没立成功能」。`authority.md` §8.3 把后者写成 `职责内能力缺失`，并且明文留下 `实际达成 → fulfilled`。030 Consensus 同一句还活着：Q1=办成了不得自动写成不得叫。`authority_gate.py` 248–268 也没有把已是 `fulfilled` 的能力缺失改掉——它只禁止这条前缀停在 `not_evaluable`。所以「没立住 × 办成了」不是想象格，是协议正格。
+
+攻击 2：「职责外已经进了 NE，剩下的第二问不就是 NF 原因吗？」
+职责外进 NE，答的是第一问「这一次办成了没有，现在说不准」，不是第二问「产品把这件事立住了没有」。058 已把职责外投影成第二问自己的说不清，且 `product-function.md` §7.6 禁止把职责外写成「没这项功能」。剥掉职责外之后，剩下的也不是一条 NF 原因码：
+
+| 已裁前缀 | 第一问仍可落 | 第二问读的是 |
+|---|---|---|
+| 职责内正常 | fulfilled / not_fulfilled | 立住了（过严仍是没办成） |
+| 职责内能力缺失 | fulfilled / not_fulfilled | 没立住（§8.3 正格仍可办成了） |
+| 无前缀 / unresolved | 说不清或按材料走 | 第二问自己的说不清 |
+
+「长尾里没办成 × 没这项功能偏多」是分布，046 已经说过不是定义。§2.2 已经把「功能本身未实现」收进没办成、并禁止再按原因切开。把第二问做成 NF 后才出现的附注，就是把 §2.2 禁止区分的原因重新做成可见脚注，单位从「这件事 × 产品事实」改成「这件事 × 这一次没给到」。
+
+攻击 3：「用户只能看见 fulfilled，所以 NF 脚注是唯一诚实的实现。」
+看见层证明的是出口还没有，不是第二问属于没办成。现行嘴只有第一问那三个词：`JudgeFulfillmentAssessmentOutput.status`、主表「状态」、`fulfillmentPill`、筛选、顶部计数、矩阵 Status。061 Consensus 写过：现在看不见 = 出口还没有（≠ 第二问只属于没办成）。少看见一格，不能倒推出宿主是 NF。打开与否仍交章程 §4，本轮不批准在 NF 行画脚注。
+
+可证伪三条现行出口都不成立：办成了的行上第二问按 `product-function.md` §10 仍须能单独开口；没办成的行上第二问不负责解释为什么没办成；§8.3「实际达成 → fulfilled」仍需要单独一格。所以 A 口不能当宿主。
+
+Verifier 有一处出口转述过满：`authority_gate.py` 对能力缺失不是「完全不改状态」，它会把误写成 NE 的能力缺失改成 `not_fulfilled`。这恰好执行「不得降 NE」，并不取消 §8.3 的 F 正格。根因仍是：A 口改写第一问的单位。不接受把对外中文、新字段或前端列偷运进本结论。
+
+### Improvement Proposal
+- **Target**: 本 issue 的 Consensus 锁。不得改 `spec/**`、`impl/**`、xlsx、canvas、前端。
+- **Change**: 只锁下面三句，不多锁看见面，不宣布对外中文。
+  1. 第二问不是 `not_fulfilled` 的补充，也不能做成 NF 后才出现的附注。
+  2. `fulfilled.md` §2.1 的「职责内」不消灭 §8.3「能力缺失 + 实际达成 → fulfilled」；那一格继续合法。
+  3. 「用户现在只能看见 fulfilled」只证明看见层未开，不证明第二问属于没办成。
+- **Verification**: 重读 `fulfilled.md` §1 / §2.2、`authority.md` §8.3、`authority_gate.py` 213–268、`product-function.md` §6 / §10。确认没有新 schema 字段、没有前端脚注、没有对外题面。同一条期望上若只在 NF 后才允许第二问开口，即未达本锁。
+'"'''
+
+r063 = r'''---
+## Architect Response #1
+
+**Verdict**: real-problem
+
+### Spawn Evidence
+- spawn-id: c902435f16f979ab
+- pid: 79074
+
+### Investigation
+自己重读：
+
+- "'`spec/alg/fulfilled.md` §1：判断分两层——办成了没有 / 材料够不够答第一层。本协议只评第一层。§2.3：`not_evaluable` 是「该给个说法，但材料不够，无法确定办没办成」；四成因是职责外 / 完全无关 / 依据不充分 / 输入坏；硬前提 3「是临时态，不允许成为永久结论」。
+- 同文件 §2.2 / §3：功能未实现 = 没办成，不降说不清；判断顺序第二步 `职责外 → 说不清（职责外）`。
+- `spec/alg/authority.md` §8.3：职责外强制 `not_evaluable`；职责内能力缺失不得因「功能未实现」自动降 `not_evaluable`。
+- `impl/core/authority_gate.py` 213–268：职责外强制 NE；能力缺失若落在 NE 则抬回 `not_fulfilled`，已是 F/NF 则不覆盖。
+- `spec/alg/product-function.md` §2.3 / §7.6：第二问自己的说不清含「不在定位里」；把职责外写成「没这项功能」✗。
+- `spec/info-volume.md`：整体 F 不追失败；整体 NF 或 NE 才追。NE 在归因切口里仍是第一问三词之一，不是第二问出口。
+- 已锁 Consensus：015-C（用 NE 表达 α / 尚未支持已死；β 输入坏走 NE 仍合法）；058（职责外 → 第二问说不清，不是把第二问写回 `status=not_evaluable`）；030（不得用此格装长期定位内缺口）。
+
+不重判投保年，不把语料里某条长期停在 NE 的案子改口。
+
+### Reasoning
+攻击 1：「fulfilled 已经把职责外送进 NE，这不就是第二问住在 NE 里吗？」
+不是。同一条 Authority 前缀可以同时触发两问，但不表示第二问的宿主是第一问的第三个词。
+
+| | 第一问 NE（职责外） | 第二问没立住 | 第二问自己的说不清 |
+|---|---|---|---|
+| 问的事 | 这一次办成了没有，现在说不准 | 产品把这件事立成会做的事了没有 | 现在说不准立没立住 |
+| 原料 | 职责外 / 完全无关 / 依据不充分 / 输入坏 | 职责内能力缺失 | 职责外、无前缀、unresolved、kind 打架 |
+| 写回哪里 | `status=not_evaluable` | 不得写回 status | 也不得写回 status |
+| 永久缺口？ | 不允许（§2.3 临时态） | 可以是长期产品事实 | 仍是临时态 |
+
+`product-function.md` §7.6 已经禁止把职责外写成「没这项功能」。058 把职责外投影成第二问的说不清，差在哪儿=职责外。那是第二问自己的出口，不是 D 口成立。
+
+攻击 2：「没立住是职责内能力缺失，『没法当成一次正常成功来打分』不就是 NE 吗？」
+协议把这句话判死了。`fulfilled.md` §2.2：功能未实现 = 没办成，不降说不清。`authority.md` §8.3：不能因为功能未实现自动降 NE。gate 把误写成 NE 的能力缺失抬回 NF，且留下「实际达成 → fulfilled」。015-C 已死：用 NE 表达尚未支持。若把没立住塞进 NE：
+
+- 职责内能力缺失、这次没给到：长期缺口变成「判断不了」
+- 职责内能力缺失、这次给到了：§8.3 正格被删
+- 职责外与没立住焊成一个芯片
+- 姓名过严这类「现有功能没办成」随时会被顺手扫进垃圾桶
+
+「没法当成一次正常成功」如果指交付失败，第一问已经有没办成；如果指产品还没立住，那是第二问，原料和单位都不同。NE 的工作定义是材料不够判断办没办成，不是产品事实的长期缺口桶。
+
+攻击 3：「说 NE 是临时态只是纸面规则，投保年『暂不支持』在语料里能停几个月。」
+这是治理失败，不是宿主论证。§2.3 把「临时态」写成硬前提，正是因为有人会用 NE 装长期「尚未支持」。语料脏，证明 015-C 为什么要死，不能反证 D 口合法。本轮不重判那些案子，也不把它们的现状升格成协议。
+
+可证伪三条现行出口都不成立：没立住不必把第一问改成 `not_evaluable`；办成了 × 没立住仍合法；NE 仍不得成为永久产品缺口。所以 D 口不能当宿主。
+
+第一问继续可以用 NE 表示职责外 / 依据不充分 / 输入坏 / 完全无关。第二问自己的说不清也不改名成 NE。不接受把对外中文或 schema 字段偷运进本结论。
+
+### Improvement Proposal
+- **Target**: 本 issue 的 Consensus 锁。不得改 `fulfilled.md`、`authority_gate.py`、schema、前端。
+- **Change**: 只锁：
+  1. 第二问不能写进第一问的 `not_evaluable`。
+  2. 职责外继续可以让第一问说不清；那是第一问消费 Authority 前缀，不是第二问住在 NE 里。
+  3. 职责内能力缺失不得为了给第二问找宿主而降成 NE；§8.3 正格保留。
+- **Verification**: 对照 `fulfilled.md` §2.2 / §2.3、`authority.md` §8.3、`authority_gate.py` 213–268、015-C。任一落点若要求「没立住 ⇒ status=not_evaluable」，或把第二问说不清改名为第一问 NE，即未达本锁。
+'"'''
+
+r064 = r'''---
+## Architect Response #1
+
+**Verdict**: real-problem
+
+### Spawn Evidence
+- spawn-id: c902435f16f979ab
+- pid: 79074
+
+### Investigation
+自己重读：
+
+- "'`spec/alg/fulfilled.md` 开篇 + §1：「词表沿用 `spec/info-volume.md`，不新增第四态。」邻协议不并进本协议三态。
+- `spec/info-volume.md`：细粒度和整体值域都是 fulfilled / not_fulfilled / not_evaluable，「不引入 partial 之类的新枚举」；judge 只产 fulfillment；整体 F → 归因不追失败，整体 NF 或 NE 才追。
+- `spec/alg/product-function.md` §6 / §7.1 / §8：九格对照；「给 fulfilled 加第四态」✗；「尽力了」只是「没办成 × 没这项功能」的读法，不是状态；一个枚举值会让一个标签回答两件事，并打乱归因。
+- `impl/core/schema/judge.py` 94–104 / 30：评估结果只有一条 `status`。
+- `impl/frontend/summary.html`：
+  - 29–30 / 552–555：顶部计数只分 Fulfilled / Not Fulfilled，后者把 NE 算进去
+  - 84–87：筛选只有三词
+  - 107 + 377 + 426–431：主表「状态」=`fulfillmentPill(status)`，只有 ok/bad/warn 三色
+  - 766–768：`renderFulfillmentMatrix` 每行只有一个 Status 单元格
+- 已锁 Consensus：015-A（第四态 / partial 已死）；048（给 status / 整体判定加第四个值已死；一个新状态词只买到最熟的一格）；060（规范格子不是案件表「状态」的第四种颜色；本轮不批准打开）。
+
+本轮不打开兄妹格，不宣布第四个词的中文名。
+
+### Reasoning
+攻击 1：「用户只能看见一枚芯片。本轮又不打开旁边那一格。拒绝第四种颜色，不就等于拒绝回答人在哪看见吗？」
+看见位置和宿主不是同一题。060 Consensus 已经答过「若给人看，在哪」：矩阵同一行、Status 旁边，不是主表「状态」的第四种颜色。061 / 章程 §4 答的是「现在开不开」。本轮章程禁止把「以后若另开一格」写成批准上线，也禁止先改主表芯片假装第二问有了出口。拒绝 C，拒绝的是把第二问塞进第一问那张嘴；不是对看见位置保持沉默。位置已锁，打开仍停住。
+
+攻击 2：「如果第四个词只是显示别名，不改 F/NF 的后端含义，是不是就能加？」
+加在同一枚芯片上，别名仍是 C。`fulfillmentPill`、主表「状态」、筛选、顶部计数、矩阵 Status 读的都是同一个 `status`。新词一旦进这条嘴，观众侧的 F/NF/NE 已经被改写，哪怕 schema 枚举暂时没加第四个 literal：
+
+- 别名吃掉一部分 NF：没办成的业务含义被改掉，过严（没办成 × 立住了）继续隐身
+- 别名不吃 F：办成了 × 没立住仍无落点，成功案上第二问继续隐身
+- 别名连 F 一起改：§8.3 正格从「办成了」里消失
+- 归因仍按 info-volume 三词切口走。显示词和 `status` 分叉后，人按第四色筛选、归因按三态追，两边对不上
+
+048 写过：一个新状态词留不住四件事——现有功能里没办成、现有功能里办成了、办法仍缺但这回给到了、按三态走的归因。它只买到「没办成 × 没立住」最熟的那一格。`product-function.md` §6 把「尽力了」明确降成读法，不得写回任何标签。显示别名就是把读法写回第一问的芯片。
+
+若别名不进这枚芯片、而进旁边另一格，那已经不是 C，是 060 的派生兄妹格。本轮不得批准打开它，也不得把它当成「所以 3 扩 4 合法」。
+
+可证伪三条不能同时成立：新词进 `status`（或进同一 pill）之后 F/NF/NE 含义不变；办成了 × 没立住 与 没办成 × 立住了 仍各自看得见；归因仍按原来的三态切口走。所以 C 口不能当宿主。第四个词仍是第一问的嘴。
+
+不接受「先给状态加一种颜色，以后再解释第二问」。那是 048 / 060 已经禁止的看见倒逼。
+
+### Improvement Proposal
+- **Target**: 本 issue 的 Consensus 锁。不得改 `judge.py` 枚举、`summary.html` 的 pill / 筛选 / 计数、`_fulfillment_panel`。
+- **Change**: 只锁：
+  1. fulfilled 不能从 3 态扩到 4 态。第四个词，含「只是显示别名」，只要占主表「状态」/ `fulfillmentPill` / 同一 `status` 槽，就不能当宿主。
+  2. 拒绝第四种颜色 ≠ 拒绝回答看见位置。看见位置继续引用 060：矩阵行上 Status 旁边。本轮不打开。
+  3. 不得把内部手柄宣布成第四个 status。
+- **Verification**: 重读 `fulfilled.md` 开篇、`info-volume.md` 值域与归因切口、`product-function.md` §7.1 / §8、`summary.html` 377 / 552–555 / 766–768、015-A / 048 / 060。确认没有新枚举、没有第四色、没有对外词。
+'"'''
+
+r065 = r'''---
+## Architect Response #1
+
+**Verdict**: real-problem
+
+### Spawn Evidence
+- spawn-id: c902435f16f979ab
+- pid: 79074
+
+### Investigation
+自己重读：
+
+- "'`impl/core/schema/judge.py` 94–104：`JudgeFulfillmentAssessmentOutput` 模型可写评估字段仍只有 `status`。`authority_tool_call_ids` 是「这次判断依赖哪次 authority.resolve」的引用，不是第二问答案。
+- `spec/info-volume.md`：judge 只产 fulfillment，不产第二个判定维度；verdict 已被删掉，理由就是「不需要再引入第二个对错维度」。
+- `spec/alg/product-function.md` 开篇 + §7.2 + §8 + §9：不进入 Judge 产出，不进入结果表词表；「让 Judge 再填一个新标签」✗；「新增一个让 Judge 填的标签 → 变成第二个判定；两问会抢解释权」；现在不做：不改 Judge prompt、不改结果表、不上线任何新字段。
+- `spec/alg/fulfilled.md` §1：只评办成了没有；邻协议不并进三态。
+- 已锁 Consensus：047（第二问不是同一轮 Judge 再填；同一张嘴兼答几乎一定对齐刚才的结论）；058（第二问是读已经写下的前缀，不是再开一张嘴）；048（让 Judge 再填一个用来答第二问的标签已死）；060（以后若存，只物化同一份派生读；不是 Judge 再填，不是 schema 新枚举，不是本轮批准打开）；061（打开那一格是项目决定）。
+
+用户点名的 B 按字面是「新增一个 judge 结果的标签」。本轮不把 060 那一格改名为 B，也不批准打开。
+
+### Reasoning
+攻击 1：「以后旁边那一格，用户也会叫它 judge 结果标签。065 是不是在玩字？」
+不是。分的是谁写、进不进 prompt，不是中文里能不能把一个格子叫「标签」。
+
+| | 本轮点名的 B | 060 以后若打开的那一格 |
+|---|---|---|
+| 谁写 | 同一轮 Judge 再填一个词 | 读已经裁完的前缀（058） |
+| 进不进 prompt | 进。刚写完办成了没有的那张嘴接着写 | 不进 |
+| 和 status 的关系 | 另一条判定出口，仍住在「判定写出的那份结果」上 | 派生阅读，不是判定产出 |
+| 本轮做不做 | 不能当宿主 | 仍交 061 / 章程 §4，不批准 |
+
+047 的改口不是气氛问题：同一张嘴两个出口会互相对齐，成功案倾向写成立住了，失败案倾向写成没立住。那是对齐，不是产品事实。`product-function.md` §7.2 / 058 / 047 杀的就是这张第二张嘴。读者把旁边一格口语叫成「标签」，不能把「判定再写一个词」洗成合法。048 已禁止用看见面偷换判定产出。若把 060 写成「所以 B 口合法」，就是在做这次偷换。
+
+攻击 2：「A/B/C/D 都不能当宿主，这轮是不是没说清第二问去哪？065 该不该改成 escalate-to-project？」
+不该。章程 §1 / §4 的交付是：「这四个口哪个能当宿主」。四个点名口都可以在本轮锁死。打开看见层、对外中文、改不改 schema，才是项目决定，061 已经 escalate 过，本 issue 不得再代选。
+
+「去哪」在上一轮已经按层拆开，本轮只引用、不重写、不打开：
+
+- 计算：058 的读，不是 Judge 再填
+- 规范格子：060 的兄妹格（矩阵行上 Status 旁边）
+- 打开与否：061 / 章程 §4
+
+这不是本轮失败，也不是 B 口复活。B 问的是「判定再写一个词能不能当宿主」，答案是不能。把「四个口都死了所以请项目先加字段」写进本 issue，才是越权。
+
+攻击 3：「B 看起来比 C/D 干净：status 三词不动，只是结果对象上多一个标签。」
+干净是假象。现行判定只有一张嘴。给这张嘴多一个可写标签，下一步几乎必然是：画进主表「状态」（回到 064），或只在没办成行显示（回到 062）。标签本身解决不了看见层。`info-volume.md` 删掉 verdict 的理由在这里同样适用：不需要第二个由 Judge 写出的对错维度。
+
+可证伪三条里，1 和 3 互相打架：若标签由同一轮 Judge 写出，刚写了办成了的那张嘴就会用它去对齐产品事实。所以 B 口不能当宿主。本锁杀的是「判定再写一个词」，不是「结果对象上永远不许出现第二问的派生读」。后者若以后出现，仍是 060 的物化，不是 B，也不是本轮批准。
+
+Verifier 没有把前端列、新 schema 字段或对外中文写进结论。那部分收下。不接受任何把 060 改名为 B、或把「四个口都不能当宿主」翻译成「请先加字段」的写法。
+
+### Improvement Proposal
+- **Target**: 本 issue 的 Consensus 锁。不得改 `impl/core/schema/judge.py`、prompt、结果表、`summary.html`。
+- **Change**: 只锁：
+  1. 「新增一个 judge 结果的标签」若指同一轮判定再写一个词，不能当宿主。
+  2. 不得把 060 的派生兄妹格改名为 B 口，也不得当成已经批准打开。
+  3. 就用户点名的四个口而言：A=062、C=064、D=063、B=本 issue，都不能当宿主。计算仍是 058 的读，规范格子仍是 060，打开仍交章程 §4。本句不是实现指令。
+- **Verification**: 重读 `judge.py` 94–104、`info-volume.md`「judge 只产出 fulfillment」、`product-function.md` §7.2 / §8、047 / 058 / 048 / 060 / 061。确认没有新可写字段、没有对外题面、没有「请先加列」。任一表述把 060 那一格叫做「本轮批准的 B」，即未达本锁。
+'"'''
+
+base = Path('/tmp')
+(base / 'arch-062.md').write_text(r062, encoding='utf-8')
+(base / 'arch-063.md').write_text(r063, encoding='utf-8')
+(base / 'arch-064.md').write_text(r064, encoding='utf-8')
+(base / 'arch-065.md').write_text(r065, encoding='utf-8')
+print('wrote temps', [p.stat().st_size for p in [base/'arch-062.md', base/'arch-063.md', base/'arch-064.md', base/'arch-065.md']])
+PY" in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+wrote temps [5991, 5064, 4770, 5465]
+
+2026-08-16T02:10:37.901679Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+Good, the temp files are written. Now I need to append them to the issue files. I should add a leading newline so the append is clean.
+exec
+/bin/zsh -lc "python3 - << 'PY'
+from pathlib import Path
+
+pairs = [
+    ('/tmp/arch-062.md', 'issues/open/issue-062.md'),
+    ('/tmp/arch-063.md', 'issues/open/issue-063.md'),
+    ('/tmp/arch-064.md', 'issues/open/issue-064.md'),
+    ('/tmp/arch-065.md', 'issues/open/issue-065.md'),
+]
+for src, dst in pairs:
+    s = Path(src).read_text(encoding='utf-8')
+    d = Path(dst)
+    old = d.read_text(encoding='utf-8')
+    if not old.endswith('\\n'):
+        old += '\\n'
+    if '## Architect Response #1' in old:
+        raise SystemExit(f'already has response: {dst}')
+    d.write_text(old + '\\n' + s, encoding='utf-8')
+    print(f'appended {src} -> {dst} new_size={d.stat().st_size}')
+PY" in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+appended /tmp/arch-062.md -> issues/open/issue-062.md new_size=9777
+appended /tmp/arch-063.md -> issues/open/issue-063.md new_size=9267
+appended /tmp/arch-064.md -> issues/open/issue-064.md new_size=8701
+appended /tmp/arch-065.md -> issues/open/issue-065.md new_size=10145
+
+2026-08-16T02:10:43.741402Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+Let me verify that the original content is intact and the new responses are properly appended with the correct spawn-id. I should also verify I didn't overwrite anything and didn't touch other issues....
+exec
+/bin/zsh -lc "python3 - << 'PY'
+from pathlib import Path
+
+for n in [62,63,64,65]:
+    p = Path(f'issues/open/issue-0{n}.md')
+    text = p.read_text(encoding='utf-8')
+    print('='*20, p.name, '='*20)
+    print('starts with:', text.splitlines()[0])
+    print('has verifier header:', text.startswith(f'# Issue #{n:03d}') or text.startswith(f'# Issue #{n}'))
+    print('architect count:', text.count('## Architect Response #1'))
+    print('spawn-id present:', 'c902435f16f979ab' in text)
+    print('pid present:', '79074' in text)
+    print('verdict lines:')
+    for line in text.splitlines():
+        if line.startswith('**Verdict**'):
+            print(' ', line)
+    # show tail start
+    idx = text.find('## Architect Response #1')
+    print('response starts at char', idx, 'file len', len(text))
+    print('prior content still has Proposed Change:', '## Proposed Change' in text[:idx])
+    print()
+PY" in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+==================== issue-062.md ====================
+starts with: # Issue #062: 第二问不是 not_fulfilled 的补充
+has verifier header: True
+architect count: 1
+spawn-id present: True
+pid present: True
+verdict lines:
+  **Verdict**: real-problem
+response starts at char 1863 file len 5043
+prior content still has Proposed Change: True
+
+==================== issue-063.md ====================
+starts with: # Issue #063: 第二问不能放进 not_evaluable
+has verifier header: True
+architect count: 1
+spawn-id present: True
+pid present: True
+verdict lines:
+  **Verdict**: real-problem
+response starts at char 2036 file len 4536
+prior content still has Proposed Change: True
+
+==================== issue-064.md ====================
+starts with: # Issue #064: fulfilled 不能从 3 态扩到 4 态
+has verifier header: True
+architect count: 1
+spawn-id present: True
+pid present: True
+verdict lines:
+  **Verdict**: real-problem
+response starts at char 2000 file len 4439
+prior content still has Proposed Change: True
+
+==================== issue-065.md ====================
+starts with: # Issue #065: 「新增 judge 结果标签」若是再让这张嘴写一个词，也不能当宿主
+has verifier header: True
+architect count: 1
+spawn-id present: True
+pid present: True
+verdict lines:
+  **Verdict**: real-problem
+response starts at char 2240 file len 4905
+prior content still has Proposed Change: True
+
+
+2026-08-16T02:10:50.686176Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+Wait, the file sizes look smaller than after append? issue-062 was 9777 bytes after append but now it says file len 5043. That's characters vs bytes maybe? Chinese is 3 bytes per char... 5043 chars * ...
+codex
+Four Architect Responses are appended. Prior text is untouched. Each one uses **Verdict**, includes `### Spawn Evidence` (`c902435f16f979ab` / pid `79074`), and only locks the slot — no schema, frontend, or public Chinese.
+
+| Issue | Slot | Verdict | Independent cut |
+|---|---|---|---|
+| 062 | A. NF supplement | **real-problem** | §2.1「职责内」排除的是职责外，不是「职责内能力缺失」。§8.3 仍允许 `实际达成 → fulfilled`；gate 只把误写成 NE 的能力缺失抬回 NF，不删 F 正格。看不见 ≠ 属于没办成。 |
+| 063 | D. inside NE | **real-problem** | 职责外→NE 是第一问在消费前缀，不是第二问住在 NE。没立住的原料是职责内能力缺失，协议禁止降 NE。语料里长期停着的「暂不支持」是 015-C 滥用，不能反证 D 合法。 |
+| 064 | C. 3→4 | **real-problem** | 同一枚芯片上的第四色/显示别名仍是第一问的嘴，只买到「没办成 × 没立住」。看见位置已由 060 锁在矩阵 Status 旁边；拒绝第四色 ≠ 拒绝回答人在哪看见。本轮不打开那一格。 |
+| 065 | B. new judge label | **real-problem** | 不是字词游戏：B 是同一张嘴再写一个词（047/058 已死）；060 的兄妹格是派生读。四个点名口都不能当宿主，不等于本轮没说清去哪，更不是 escalate。打开仍交章程 §4，不得把 060 改名为「已批准的 B」。 |
+
+没改 `spec/**`、`impl/**`、xlsx、canvas。没宣布「立住了 / 没立住」为对外题面，也没批准打开旁边那一格。
+2026-08-16T02:11:02.021893Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+hook: Stop
+hook: Stop
+hook: Stop Completed
+hook: Stop Completed
+tokens used
+93,092

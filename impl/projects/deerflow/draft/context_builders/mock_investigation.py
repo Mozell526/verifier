@@ -23,22 +23,31 @@ def build_context_unit_records(
         None,
     )
     if investigation is None:
-        raise ValueError("candidate DeerFlow Mock context requires mock_investigation")
+        raise FileNotFoundError("candidate DeerFlow Mock requires mock_investigation")
 
-    contract = Path(investigation["path"]) / "docs" / "user-goal-and-scenario-contract.md"
+    contract = (
+        Path(investigation["path"])
+        / "docs"
+        / "mock-investigation-contract.json"
+    )
     if not contract.is_file():
-        raise FileNotFoundError(f"deerflow Mock business contract is unavailable: {contract}")
+        raise FileNotFoundError(
+            f"DeerFlow Mock investigation contract is unavailable: {contract}"
+        )
     return [
         ContextUnitRecord(
-            id="project.deerflow.mock.business_contract",
-            name="DeerFlow potential user population boundary",
-            description="A broad user-population and hard knowledge-boundary contract for open-world Mock generation.",
+            id="project.deerflow.mock.investigation.contract",
+            name="DeerFlow Mock investigation contract",
+            description=(
+                "Business values, evaluation dimensions, demand spaces and hard "
+                "user-knowledge boundaries for candidate Mock generation."
+            ),
             content=None,
             content_ref=contract.resolve().as_uri(),
             project_id=spec.project_id,
             scope="project_static",
             roles=(role,),
-            unit_type="mock_business_contract",
+            unit_type="mock_investigation_contract",
             source_type="investigation_context_builder",
             tags={
                 "mode": "draft" if use_candidate else "production",

@@ -175,3 +175,30 @@ def test_build_agno_tools_rejects_missing_execute_function():
 
     with pytest.raises(ValueError, match="missing.execute"):
         build_agno_tools([tool])
+
+
+def test_build_agno_tools_keeps_logical_id_in_result_and_uses_runtime_name():
+    def execute(**kwargs):
+        return ToolResult(tool_id="investigation.search_index", outputs={"ok": True})
+
+    tool = VerifiableTool(
+        tool_id="investigation.search_index",
+        description="search investigation material",
+        execute_fn=execute,
+    )
+    [agno_tool] = build_agno_tools([tool])
+
+    assert agno_tool.name == "investigation_search_index"
+    assert agno_tool.entrypoint().tool_id == "investigation.search_index"
+
+
+def test_build_agno_tools_rejects_runtime_name_collisions():
+    def execute(**kwargs):
+        return ToolResult(tool_id="x")
+
+    tools = [
+        VerifiableTool(tool_id="a.b", description="one", execute_fn=execute),
+        VerifiableTool(tool_id="a_b", description="two", execute_fn=execute),
+    ]
+    with pytest.raises(ValueError, match="collision"):
+        build_agno_tools(tools)

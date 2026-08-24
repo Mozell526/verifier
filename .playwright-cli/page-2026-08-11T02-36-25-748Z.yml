@@ -1,0 +1,230 @@
+- generic [active] [ref=f2e1]:
+  - banner [ref=f2e2]:
+    - heading "归因总结" [level=1] [ref=f2e3]
+    - paragraph [ref=f2e4]: 协议式单链路、用例池、批量运行、聚簇和 Check 审核视图。
+  - main [ref=f2e5]:
+    - generic [ref=f2e6]:
+      - generic [ref=f2e7]:
+        - link "返回 Live 请求" [ref=f2e8] [cursor=pointer]:
+          - /url: live.html
+        - button "统一单链路" [ref=f2e9] [cursor=pointer]
+        - button "加载最近结果" [ref=f2e10] [cursor=pointer]
+        - button "构建 Mock 用例池" [ref=f2e11] [cursor=pointer]
+        - button "加载 Mock 数据集" [ref=f2e12] [cursor=pointer]
+        - generic [ref=f2e13]:
+          - text: 并发数
+          - spinbutton "并发数" [ref=f2e14]: "2"
+        - button "批量运行" [ref=f2e15] [cursor=pointer]
+        - button "手动归因" [ref=f2e16] [cursor=pointer]
+        - button "分析项目配置" [ref=f2e17] [cursor=pointer]
+      - generic [ref=f2e18]:
+        - generic [ref=f2e19]:
+          - generic [ref=f2e20]: "0"
+          - text: 用例总数
+        - generic [ref=f2e21]:
+          - generic [ref=f2e22]: "0"
+          - text: 已选择
+        - generic [ref=f2e23]:
+          - generic [ref=f2e24]: "0"
+          - text: Fulfilled
+        - generic [ref=f2e25]:
+          - generic [ref=f2e26]: "0"
+          - text: Not Fulfilled
+        - generic [ref=f2e27]:
+          - generic [ref=f2e28]: "0"
+          - text: Clusters
+    - generic [ref=f2e29]:
+      - complementary [ref=f2e30]:
+        - generic [ref=f2e31]:
+          - heading "运行输入" [level=2] [ref=f2e32]
+          - generic [ref=f2e33]: Project
+          - combobox [ref=f2e34]:
+            - option "QA"
+            - option "client_search" [selected]
+            - option "deerflow"
+            - option "marketting-planning"
+            - option "marketting-planning-intent"
+            - option "policy_search"
+          - generic [ref=f2e35]: 单链路 Input JSON
+          - textbox [ref=f2e36]: "{ \"query\": \"45岁女性保费10万以上\" }"
+          - generic [ref=f2e37]: User Intent（可选）
+          - textbox "可留空；填写后会传给 judge agent。" [ref=f2e38]
+          - generic [ref=f2e39]: 上传/导入用例 JSON
+          - button "Choose File" [ref=f2e40]
+          - textbox [ref=f2e41]: "[]"
+          - generic [ref=f2e42]:
+            - button "导入候选区" [ref=f2e43] [cursor=pointer]
+            - button "生成已选 JSON" [ref=f2e44] [cursor=pointer]
+            - button "清空" [ref=f2e45] [cursor=pointer]
+          - paragraph [ref=f2e46]: 参考 8011 页面后，这里把“上传/生成/选择/批量运行”集中成候选区；所有数据先转成通用 case 协议，再交给后端统一 batch 链路执行。
+        - generic [ref=f2e47]:
+          - heading "用例池库" [level=2] [ref=f2e48]
+          - generic [ref=f2e49]: 保存名称
+          - textbox "例如：生存金专项用例池" [ref=f2e50]
+          - generic [ref=f2e51]:
+            - button "保存当前候选区" [ref=f2e52] [cursor=pointer]
+            - button "刷新列表" [ref=f2e53] [cursor=pointer]
+          - paragraph [ref=f2e54]: 已完成的一批用例可以保存成命名用例池；之后可加载另一批继续分析，互不覆盖。
+          - generic [ref=f2e138]: 暂无已保存用例池。
+        - generic [ref=f2e62]:
+          - heading "聚簇概览" [level=2] [ref=f2e63]
+          - generic [ref=f2e64]: 尚未批量运行。
+      - generic [ref=f2e65]:
+        - generic [ref=f2e66]:
+          - generic [ref=f2e67]:
+            - generic [ref=f2e68]:
+              - heading "用例池候选区" [level=2] [ref=f2e69]
+              - generic [ref=f2e70]: 候选区共 0 条 · 当前筛选命中 0 条
+            - generic [ref=f2e71]:
+              - button "选中当前筛选" [ref=f2e72] [cursor=pointer]
+              - button "全选全部" [ref=f2e73] [cursor=pointer]
+              - button "取消全选" [ref=f2e74] [cursor=pointer]
+              - combobox [ref=f2e75]:
+                - option "全部场景" [selected]
+              - combobox [ref=f2e76]:
+                - option "全部达成状态" [selected]
+                - option "fulfilled"
+                - option "not_fulfilled"
+                - option "not_evaluable"
+                - option "其他（未判定）"
+              - combobox [ref=f2e77]:
+                - option "全部运行状态" [selected]
+                - option "未运行"
+                - option "运行中"
+                - option "已跑过"
+                - option "已完成"
+                - option "失败"
+              - button "导出当前筛选 (.xlsx)" [ref=f2e78] [cursor=pointer]
+          - generic [ref=f2e79]:
+            - text: 批量运行中
+            - generic [ref=f2e81]: 页面已加载轻量摘要；如需查看最近单链路结果，请点击“加载最近结果”。
+            - generic [ref=f2e82]:
+              - generic [ref=f2e289]: 完成 policy-search-atomic-condition-01：fulfilled — fulfilled · 5 blocking expectations all met · 用户意图为筛选保额不少于五十万元的保单，实际查询语句为“保额不低于50万的保单”，两者语义一致，均为保额大于等于 50 万元。服务依赖层面，application_boundary.dependency_status 为 ava…
+              - generic [ref=f2e290]: 完成 policy-search-time-boundary-01：fulfilled — fulfilled · 5 blocking expectations all met · 用例意图为筛选八月份生效的保单，query=“8月生效的保单”，currentTime=2026-08-06，可唯一确定目标时间为 2026 年 8 月。首先确认服务依赖：application_boundary.depende…
+              - generic [ref=f2e291]: 批量任务状态：completed，已完成 2 / 2
+              - generic [ref=f2e292]: 完成统一批量运行：2 / 2 条。
+          - table [ref=f2e84]:
+            - rowgroup [ref=f2e85]:
+              - row "选择 ID 来源 执行模式 Scenario Input / Live Request Output / 被评估输出 Reference 状态 Score / Judge 归因摘要 Trace" [ref=f2e86]:
+                - columnheader "选择" [ref=f2e87]
+                - columnheader "ID" [ref=f2e88]
+                - columnheader "来源" [ref=f2e89]
+                - columnheader "执行模式" [ref=f2e90]
+                - columnheader "Scenario" [ref=f2e91]
+                - columnheader "Input / Live Request" [ref=f2e92]
+                - columnheader "Output / 被评估输出" [ref=f2e93]
+                - columnheader "Reference" [ref=f2e94]
+                - columnheader "状态" [ref=f2e95]
+                - columnheader "Score / Judge" [ref=f2e96]
+                - columnheader "归因摘要" [ref=f2e97]
+                - columnheader "Trace" [ref=f2e98]
+            - rowgroup [ref=f2e99]:
+              - row "候选区为空，可构建 Mock 用例池或导入自定义数据集。" [ref=f2e441]:
+                - cell "候选区为空，可构建 Mock 用例池或导入自定义数据集。" [ref=f2e442]
+          - generic [ref=f2e102]:
+            - generic [ref=f2e103]: 共 0 条 · 每页 100 条
+            - generic [ref=f2e104]:
+              - button "上一页" [disabled] [ref=f2e105]
+              - generic [ref=f2e106]: 第 1 / 1 页
+              - button "下一页" [disabled] [ref=f2e107]
+        - generic [ref=f2e108]:
+          - generic [ref=f2e109]:
+            - heading "RunTrace" [level=2] [ref=f2e110]
+            - generic [ref=f2e111]: "{ \"trace_id\": \"policy_search:policy-search-time-boundary-01:1786415646533\", \"project_id\": \"policy_search\", \"case_id\": \"policy-search-time-boundary-01\", \"mock_intent\": { \"user_intent\": \"筛选八月份生效的保单\", \"query\": \"8月生效的保单\", \"system_understanding\": \"系统返回保单查询语法树\", \"scenario\": \"time_boundary\" }, \"input\": { \"session_id\": \"verifier-policy-time-01\", \"trace_id\": \"verifier-policy-time-01\", \"extra_input_params\": { \"policySearchParseArgs\": { \"query\": \"8月生效的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\" }, \"args\": {} } }, \"normalized_request\": { \"session_id\": \"verifier-policy-time-01\", \"trace_id\": \"verifier-policy-time-01\", \"extra_input_params\": { \"policySearchParseArgs\": { \"query\": \"8月生效的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\" }, \"args\": {} } }, \"extracted_output\": { \"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"8月生效的保单\", \"filter\": { \"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"pol_effective_date_term\", \"operator\": \"BETWEEN\", \"range\": { \"lower\": \"2026-08-01\", \"upper\": \"2026-09-01\", \"include_lower\": true, \"include_upper\": false } }, \"message\": \"解析成功\" }, \"execution_mode\": \"live\", \"output_source\": \"live_service\", \"scenario\": \"time_boundary\", \"application_boundary\": { \"dependency_status\": \"available\", \"allow_fallback\": false, \"notes\": \"parser returned an executable filter\" }, \"execution_trace\": [ { \"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": { \"project_id\": \"policy_search\" }, \"timestamp\": \"\", \"error\": \"\" }, { \"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": { \"project_id\": \"policy_search\" }, \"timestamp\": \"\", \"error\": \"\" } ], \"status\": \"ok\", \"error\": \"\", \"created_at\": \"2026-08-11T02:34:06.533307+00:00\", \"config_fingerprint\": \"25af47630ee8\", \"config_sources\": { \"public\": { \"fingerprint\": \"832a7868f453\", \"fields\": { \"attribute.compaction.attribute_result_chars\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.compaction.attribute_result_chars\", \"secret\": false }, \"attribute.compaction.judge_business_expectations_chars\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.compaction.judge_business_expectations_chars\", \"secret\": false }, \"attribute.compaction.judge_fulfillment_assessments_chars\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.compaction.judge_fulfillment_assessments_chars\", \"secret\": false }, \"attribute.compaction.judge_gap_chars\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.compaction.judge_gap_chars\", \"secret\": false }, \"attribute.compaction.judge_reasoning_chars\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.compaction.judge_reasoning_chars\", \"secret\": false }, \"attribute.compaction.list_item_limit\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.compaction.list_item_limit\", \"secret\": false }, \"attribute.compaction.project_context_chars\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.compaction.project_context_chars\", \"secret\": false }, \"attribute.compaction.trace_error_chars\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.compaction.trace_error_chars\", \"secret\": false }, \"attribute.compaction.trace_execution_chars\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.compaction.trace_execution_chars\", \"secret\": false }, \"attribute.compaction.trace_input_chars\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.compaction.trace_input_chars\", \"secret\": false }, \"attribute.compaction.trace_normalized_request_chars\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.compaction.trace_normalized_request_chars\", \"secret\": false }, \"attribute.compaction.trace_output_chars\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.compaction.trace_output_chars\", \"secret\": false }, \"attribute.finalization_prompt_char_budget\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.finalization_prompt_char_budget\", \"secret\": false }, \"attribute.investigation_error_chars\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.investigation_error_chars\", \"secret\": false }, \"attribute.review_prompt_char_budget\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.review_prompt_char_budget\", \"secret\": false }, \"attribute.tool_call_limit\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.tool_call_limit\", \"secret\": false }, \"browser.driver_path\": { \"kind\": \"yaml\", \"name\": \"config.yaml#browser.driver_path\", \"secret\": false }, \"context.candidate_limit\": { \"kind\": \"yaml\", \"name\": \"config.yaml#context.candidate_limit\", \"secret\": false }, \"context.content_char_budget\": { \"kind\": \"yaml\", \"name\": \"config.yaml#context.content_char_budget\", \"secret\": false }, \"context.data_root\": { \"kind\": \"yaml\", \"name\": \"config.yaml#context.data_root\", \"secret\": false }, \"context.load_limit\": { \"kind\": \"yaml\", \"name\": \"config.yaml#context.load_limit\", \"secret\": false }, \"context.max_records_per_project\": { \"kind\": \"yaml\", \"name\": \"config.yaml#context.max_records_per_project\", \"secret\": false }, \"context.query_limit\": { \"kind\": \"yaml\", \"name\": \"config.yaml#context.query_limit\", \"secret\": false }, \"context.store_root\": { \"kind\": \"yaml\", \"name\": \"config.yaml#context.store_root\", \"secret\": false }, \"context.top_k_per_query\": { \"kind\": \"yaml\", \"name\": \"config.yaml#context.top_k_per_query\", \"secret\": false }, \"embedding.api_key\": { \"kind\": \"dotenv\", \"name\": \"BAILIAN_API_KEY\", \"secret\": true }, \"embedding.dimensions\": { \"kind\": \"yaml\", \"name\": \"config.yaml#embedding.dimensions\", \"secret\": false }, \"embedding.enabled\": { \"kind\": \"yaml\", \"name\": \"config.yaml#embedding.enabled\", \"secret\": false }, \"embedding.model\": { \"kind\": \"yaml\", \"name\": \"config.yaml#embedding.model\", \"secret\": false }, \"embedding.provider\": { \"kind\": \"yaml\", \"name\": \"config.yaml#embedding.provider\", \"secret\": false }, \"embedding.retrieval_top_k\": { \"kind\": \"yaml\", \"name\": \"config.yaml#embedding.retrieval_top_k\", \"secret\": false }, \"embedding.trust_env_proxy\": { \"kind\": \"yaml\", \"name\": \"config.yaml#embedding.trust_env_proxy\", \"secret\": false }, \"execution.batch_concurrency_default\": { \"kind\": \"yaml\", \"name\": \"config.yaml#execution.batch_concurrency_default\", \"secret\": false }, \"execution.batch_concurrency_max\": { \"kind\": \"yaml\", \"name\": \"config.yaml#execution.batch_concurrency_max\", \"secret\": false }, \"execution.batch_event_history_limit\": { \"kind\": \"yaml\", \"name\": \"config.yaml#execution.batch_event_history_limit\", \"secret\": false }, \"execution.case_retry_attempts\": { \"kind\": \"yaml\", \"name\": \"config.yaml#execution.case_retry_attempts\", \"secret\": false }, \"judge.raw_response_max_chars\": { \"kind\": \"yaml\", \"name\": \"config.yaml#judge.raw_response_max_chars\", \"secret\": false }, \"llm.api_key\": { \"kind\": \"dotenv\", \"name\": \"DEEPSEEK_API_KEY\", \"secret\": true }, \"llm.base_url\": { \"kind\": \"dotenv\", \"name\": \"LLM_BASE_URL\", \"secret\": false }, \"llm.capabilities.context_window_tokens\": { \"kind\": \"yaml\", \"name\": \"config.yaml#llm.capabilities.context_window_tokens\", \"secret\": false }, \"llm.capabilities.json_mode\": { \"kind\": \"yaml\", \"name\": \"config.yaml#llm.capabilities.json_mode\", \"secret\": false }, \"llm.capabilities.tool_calls\": { \"kind\": \"yaml\", \"name\": \"config.yaml#llm.capabilities.tool_calls\", \"secret\": false }, \"llm.fallback_1.api_key\": { \"kind\": \"dotenv\", \"name\": \"LLM_FALLBACK_1_API_KEY\", \"secret\": true }, \"llm.fallback_1.base_url\": { \"kind\": \"dotenv\", \"name\": \"LLM_FALLBACK_1_BASE_URL\", \"secret\": false }, \"llm.fallback_1.model\": { \"kind\": \"dotenv\", \"name\": \"LLM_FALLBACK_1_MODEL\", \"secret\": false }, \"llm.fallback_2.api_key\": { \"kind\": \"dotenv\", \"name\": \"LLM_FALLBACK_2_API_KEY\", \"secret\": true }, \"llm.fallback_2.base_url\": { \"kind\": \"dotenv\", \"name\": \"LLM_FALLBACK_2_BASE_URL\", \"secret\": false }, \"llm.fallback_2.model\": { \"kind\": \"dotenv\", \"name\": \"LLM_FALLBACK_2_MODEL\", \"secret\": false }, \"llm.max_attempts\": { \"kind\": \"yaml\", \"name\": \"config.yaml#llm.max_attempts\", \"secret\": false }, \"llm.model\": { \"kind\": \"dotenv\", \"name\": \"LLM_MODEL\", \"secret\": false }, \"llm.protocol\": { \"kind\": \"yaml\", \"name\": \"config.yaml#llm.protocol\", \"secret\": false }, \"llm.provider\": { \"kind\": \"yaml\", \"name\": \"config.yaml#llm.provider\", \"secret\": false }, \"llm.reasoning_effort\": { \"kind\": \"yaml\", \"name\": \"config.yaml#llm.reasoning_effort\", \"secret\": false }, \"llm.request_timeout_seconds\": { \"kind\": \"yaml\", \"name\": \"config.yaml#llm.request_timeout_seconds\", \"secret\": false }, \"llm.retry_delay_seconds\": { \"kind\": \"yaml\", \"name\": \"config.yaml#llm.retry_delay_seconds\", \"secret\": false }, \"llm.role_policies.live_stub.model\": { \"kind\": \"yaml\", \"name\": \"config.yaml#llm.role_policies.live_stub.model\", \"secret\": false }, \"llm.role_policies.live_stub.reasoning_effort\": { \"kind\": \"yaml\", \"name\": \"config.yaml#llm.role_policies.live_stub.reasoning_effort\", \"secret\": false }, \"llm.temperature\": { \"kind\": \"yaml\", \"name\": \"config.yaml#llm.temperature\", \"secret\": false }, \"python.executable\": { \"kind\": \"process_env\", \"name\": \"PYTHON_EXECUTABLE\", \"secret\": false }, \"server.host\": { \"kind\": \"yaml\", \"name\": \"conf ... 已截断大体积 JSON，详情请查看后端结果或单条用例。"
+          - generic [ref=f2e112]:
+            - heading "Reference" [level=2] [ref=f2e113]
+            - generic [ref=f2e114]: "{ \"reference\": { \"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"8月生效的保单\", \"filter\": { \"type\": \"PREDICATE\", \"field\": \"pol_effective_date_term\", \"operator\": \"BETWEEN\", \"range\": { \"lower\": \"2026-08-01\", \"upper\": \"2026-09-01\", \"include_lower\": true, \"include_upper\": false } }, \"message\": \"解析成功\" }, \"source\": \"judge_generated\", \"actual\": { \"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"8月生效的保单\", \"filter\": { \"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"pol_effective_date_term\", \"operator\": \"BETWEEN\", \"range\": { \"lower\": \"2026-08-01\", \"upper\": \"2026-09-01\", \"include_lower\": true, \"include_upper\": false } }, \"message\": \"解析成功\" } }"
+          - generic [ref=f2e115]:
+            - heading "Judge" [level=2] [ref=f2e116]
+            - generic [ref=f2e117]:
+              - generic [ref=f2e367]: Overall Fulfillment：fulfilled
+              - generic [ref=f2e368]: 评估：fulfilled
+              - group [ref=f2e369]:
+                - generic "业务预期达成矩阵" [ref=f2e370] [cursor=pointer]
+                - generic [ref=f2e371]:
+                  - generic [ref=f2e372]: "Overall：{\"status\":\"fulfilled\",\"blocking_expectations\":[\"服务依赖可用且无回退\",\"生效日期字段选择正确\",\"八月份时间边界解析正确\",\"成功状态伴随完整筛选条件\",\"歧义与越界场景安全失败\"]}"
+                  - table [ref=f2e373]:
+                    - rowgroup [ref=f2e374]:
+                      - row "Expectation Expected Capabilities Status Blocking" [ref=f2e375]:
+                        - columnheader "Expectation" [ref=f2e376]
+                        - columnheader "Expected" [ref=f2e377]
+                        - columnheader "Capabilities" [ref=f2e378]
+                        - columnheader "Status" [ref=f2e379]
+                        - columnheader "Blocking" [ref=f2e380]
+                    - rowgroup [ref=f2e381]:
+                      - row "服务依赖可用且无回退 服务依赖状态为 available，不启用回退，解析结果来自真实解析链路 服务依赖状态检查, 回退策略控制 fulfilled 是" [ref=f2e382]:
+                        - cell "服务依赖可用且无回退" [ref=f2e383]
+                        - cell "服务依赖状态为 available，不启用回退，解析结果来自真实解析链路" [ref=f2e384]
+                        - cell "服务依赖状态检查, 回退策略控制" [ref=f2e385]
+                        - cell "fulfilled" [ref=f2e386]
+                        - cell "是" [ref=f2e387]
+                      - row "生效日期字段选择正确 filter 使用保单生效日期字段 pol_effective_date_term 字段语义识别, 保单生效日期字段映射 fulfilled 是" [ref=f2e388]:
+                        - cell "生效日期字段选择正确" [ref=f2e389]
+                        - cell "filter 使用保单生效日期字段 pol_effective_date_term" [ref=f2e390]
+                        - cell "字段语义识别, 保单生效日期字段映射" [ref=f2e391]
+                        - cell "fulfilled" [ref=f2e392]
+                        - cell "是" [ref=f2e393]
+                      - row "八月份时间边界解析正确 BETWEEN [2026-08-01, 2026-09-01)，含下界、不含上界，精确覆盖整个 8 月 月粒度时间区间解析, 半开区间边界表达 fulfilled 是" [ref=f2e394]:
+                        - cell "八月份时间边界解析正确" [ref=f2e395]
+                        - cell "BETWEEN [2026-08-01, 2026-09-01)，含下界、不含上界，精确覆盖整个 8 月" [ref=f2e396]
+                        - cell "月粒度时间区间解析, 半开区间边界表达" [ref=f2e397]
+                        - cell "fulfilled" [ref=f2e398]
+                        - cell "是" [ref=f2e399]
+                      - row "成功状态伴随完整筛选条件 status=SUCCESS 时 filter 为单个 PREDICATE，完整表达 8 月生效时间条件 条件完整性保障 fulfilled 是" [ref=f2e400]:
+                        - cell "成功状态伴随完整筛选条件" [ref=f2e401]
+                        - cell "status=SUCCESS 时 filter 为单个 PREDICATE，完整表达 8 月生效时间条件" [ref=f2e402]
+                        - cell "条件完整性保障" [ref=f2e403]
+                        - cell "fulfilled" [ref=f2e404]
+                        - cell "是" [ref=f2e405]
+                      - row "歧义与越界场景安全失败 本 case 查询条件明确无歧义，应正常返回 SUCCESS 与完整 filter 歧义检测, 安全失败策略 fulfilled 是" [ref=f2e406]:
+                        - cell "歧义与越界场景安全失败" [ref=f2e407]
+                        - cell "本 case 查询条件明确无歧义，应正常返回 SUCCESS 与完整 filter" [ref=f2e408]
+                        - cell "歧义检测, 安全失败策略" [ref=f2e409]
+                        - cell "fulfilled" [ref=f2e410]
+                        - cell "是" [ref=f2e411]
+                      - row "输出协议结构合法 code=0、msg=success、status=SUCCESS、query 保留原查询词、message 非空 协议序列化 fulfilled 否" [ref=f2e412]:
+                        - cell "输出协议结构合法" [ref=f2e413]
+                        - cell "code=0、msg=success、status=SUCCESS、query 保留原查询词、message 非空" [ref=f2e414]
+                        - cell "协议序列化" [ref=f2e415]
+                        - cell "fulfilled" [ref=f2e416]
+                        - cell "否" [ref=f2e417]
+              - generic [ref=f2e418]: 原因：fulfilled · 5 blocking expectations all met · 用例意图为筛选八月份生效的保单，query=“8月生效的保单”，currentTime=2026-08-06，可唯一确定目标时间为 2026 年 8 月。首先确认服务依赖：application_boundary.dependency_status=available、allow_fallback=false、turns[0].fallbacks 为空，依赖链路正常可用。其次核对 filter 语义：field 为 pol_effective_date_term（保单生效日期），operator 为 BETWEEN，range 为 [2026-08-01, 2026-09-01)（include_lower=true、include_upper=false），半开区间精确覆盖整个 2026 年 8 月且不包含 9 月 1 日当天记录，字段、操作符、取值、边界包含性均正确，整体为单个 PREDICATE 无逻辑组合需求，条件完整。再次核对失败模式：本查询无歧义、无越界，返回 SUCCESS 并附带完整 filter 符合安全失败策略，不存在返回部分 filter 的问题。最后核对输出协议：code=0、msg=success、status=SUCCESS、query 保留原词、message=解析成功，符合接口契约。对比期望结构未发现 missing/wrong/extra 差异，全部 6 项业务期望均判定为 fulfilled。
+              - group [ref=f2e419]:
+                - generic "缺失/错误/多余" [ref=f2e420] [cursor=pointer]
+              - group [ref=f2e421]:
+                - generic "Raw JudgeResult" [ref=f2e422] [cursor=pointer]
+          - generic [ref=f2e118]:
+            - heading "Attribute" [level=2] [ref=f2e119]
+            - generic [ref=f2e120]:
+              - generic [ref=f2e423]: 归因总结：attribution disabled by project configuration
+              - group [ref=f2e424]:
+                - generic "已确认归因" [ref=f2e425] [cursor=pointer]
+                - table [ref=f2e427]:
+                  - rowgroup [ref=f2e428]:
+                    - row "Finding 影响的 Expectations 结论 证据数" [ref=f2e429]:
+                      - columnheader "Finding" [ref=f2e430]
+                      - columnheader "影响的 Expectations" [ref=f2e431]
+                      - columnheader "结论" [ref=f2e432]
+                      - columnheader "证据数" [ref=f2e433]
+                  - rowgroup [ref=f2e434]:
+                    - row "尚无通过证据审查的 finding" [ref=f2e435]:
+                      - cell "尚无通过证据审查的 finding" [ref=f2e436]
+              - group [ref=f2e437]:
+                - generic "Raw AttributeResult" [ref=f2e438] [cursor=pointer]
+              - group [ref=f2e439]:
+                - generic "状态机 / Gates / Subagents" [ref=f2e440] [cursor=pointer]
+          - generic [ref=f2e121]:
+            - heading "Cluster" [level=2] [ref=f2e122]
+            - generic [ref=f2e123]: "{ \"project_id\": \"policy_search\", \"common_root_cause\": \"\", \"impact\": \"\", \"priority\": \"low\" }"
+          - generic [ref=f2e124]:
+            - heading "Check Agent 审核" [level=2] [ref=f2e125]
+            - generic [ref=f2e126]: "{ \"passed\": false, \"issues\": [ \"AttributeResult trace_id does not match RunTrace.\", \"AttributeResult case_id does not match RunTrace.\" ], \"consistency_gaps\": [ \"AttributeResult trace_id does not match RunTrace.\", \"AttributeResult case_id does not match RunTrace.\" ], \"verification_results\": [ \"Check categories passed current audit.\" ], \"recommended_fixes\": [ \"Ensure all steps use the same trace_id and latest run output.\" ] }"
+          - generic [ref=f2e127]:
+            - heading "Frontend ViewModel" [level=2] [ref=f2e128]
+            - generic [ref=f2e129]: "{ \"project_info\": { \"project_id\": \"policy_search\", \"name\": \"保单搜索解析\", \"description\": \"评估 Policy Search 将自然语言保单筛选意图转换为可执行查询语法树的正确性、完整性与安全失败能力\" }, \"run_trace_summary\": { \"trace_id\": \"policy_search:policy-search-time-boundary-01:1786415646533\", \"project_id\": \"policy_search\", \"case_id\": \"policy-search-time-boundary-01\", \"mock_intent\": { \"user_intent\": \"筛选八月份生效的保单\", \"query\": \"8月生效的保单\", \"system_understanding\": \"系统返回保单查询语法树\", \"scenario\": \"time_boundary\" }, \"input\": { \"session_id\": \"verifier-policy-time-01\", \"trace_id\": \"verifier-policy-time-01\", \"extra_input_params\": { \"policySearchParseArgs\": { \"query\": \"8月生效的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\" }, \"args\": {} } }, \"normalized_request\": { \"session_id\": \"verifier-policy-time-01\", \"trace_id\": \"verifier-policy-time-01\", \"extra_input_params\": { \"policySearchParseArgs\": { \"query\": \"8月生效的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\" }, \"args\": {} } }, \"raw_response\": [ { \"code\": 0, \"msg\": \"success\", \"data\": { \"end_flag\": 1, \"extra_output_params\": { \"policySearchParseResult\": { \"status\": \"SUCCESS\", \"query\": \"8月生效的保单\", \"filter\": { \"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"pol_effective_date_term\", \"operator\": \"BETWEEN\", \"range\": { \"lower\": \"2026-08-01\", \"upper\": \"2026-09-01\", \"include_lower\": true, \"include_upper\": false } }, \"message\": \"解析成功\" } } } } ], \"extracted_output\": { \"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"8月生效的保单\", \"filter\": { \"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"pol_effective_date_term\", \"operator\": \"BETWEEN\", \"range\": { \"lower\": \"2026-08-01\", \"upper\": \"2026-09-01\", \"include_lower\": true, \"include_upper\": false } }, \"message\": \"解析成功\" }, \"execution_mode\": \"live\", \"output_source\": \"live_service\", \"scenario\": \"time_boundary\", \"application_boundary\": { \"dependency_status\": \"available\", \"allow_fallback\": false, \"notes\": \"parser returned an executable filter\" }, \"execution_trace\": [ { \"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": { \"project_id\": \"policy_search\" }, \"timestamp\": \"\", \"error\": \"\" }, { \"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": { \"project_id\": \"policy_search\" }, \"timestamp\": \"\", \"error\": \"\" } ], \"status\": \"ok\", \"error\": \"\", \"created_at\": \"2026-08-11T02:34:06.533307+00:00\", \"config_fingerprint\": \"25af47630ee8\", \"config_sources\": { \"public\": { \"fingerprint\": \"832a7868f453\", \"fields\": { \"attribute.compaction.attribute_result_chars\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.compaction.attribute_result_chars\", \"secret\": false }, \"attribute.compaction.judge_business_expectations_chars\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.compaction.judge_business_expectations_chars\", \"secret\": false }, \"attribute.compaction.judge_fulfillment_assessments_chars\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.compaction.judge_fulfillment_assessments_chars\", \"secret\": false }, \"attribute.compaction.judge_gap_chars\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.compaction.judge_gap_chars\", \"secret\": false }, \"attribute.compaction.judge_reasoning_chars\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.compaction.judge_reasoning_chars\", \"secret\": false }, \"attribute.compaction.list_item_limit\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.compaction.list_item_limit\", \"secret\": false }, \"attribute.compaction.project_context_chars\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.compaction.project_context_chars\", \"secret\": false }, \"attribute.compaction.trace_error_chars\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.compaction.trace_error_chars\", \"secret\": false }, \"attribute.compaction.trace_execution_chars\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.compaction.trace_execution_chars\", \"secret\": false }, \"attribute.compaction.trace_input_chars\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.compaction.trace_input_chars\", \"secret\": false }, \"attribute.compaction.trace_normalized_request_chars\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.compaction.trace_normalized_request_chars\", \"secret\": false }, \"attribute.compaction.trace_output_chars\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.compaction.trace_output_chars\", \"secret\": false }, \"attribute.finalization_prompt_char_budget\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.finalization_prompt_char_budget\", \"secret\": false }, \"attribute.investigation_error_chars\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.investigation_error_chars\", \"secret\": false }, \"attribute.review_prompt_char_budget\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.review_prompt_char_budget\", \"secret\": false }, \"attribute.tool_call_limit\": { \"kind\": \"yaml\", \"name\": \"config.yaml#attribute.tool_call_limit\", \"secret\": false }, \"browser.driver_path\": { \"kind\": \"yaml\", \"name\": \"config.yaml#browser.driver_path\", \"secret\": false }, \"context.candidate_limit\": { \"kind\": \"yaml\", \"name\": \"config.yaml#context.candidate_limit\", \"secret\": false }, \"context.content_char_budget\": { \"kind\": \"yaml\", \"name\": \"config.yaml#context.content_char_budget\", \"secret\": false }, \"context.data_root\": { \"kind\": \"yaml\", \"name\": \"config.yaml#context.data_root\", \"secret\": false }, \"context.load_limit\": { \"kind\": \"yaml\", \"name\": \"config.yaml#context.load_limit\", \"secret\": false }, \"context.max_records_per_project\": { \"kind\": \"yaml\", \"name\": \"config.yaml#context.max_records_per_project\", \"secret\": false }, \"context.query_limit\": { \"kind\": \"yaml\", \"name\": \"config.yaml#context.query_limit\", \"secret\": false }, \"context.store_root\": { \"kind\": \"yaml\", \"name\": \"config.yaml#context.store_root\", \"secret\": false }, \"context.top_k_per_query\": { \"kind\": \"yaml\", \"name\": \"config.yaml#context.top_k_per_query\", \"secret\": false }, \"embedding.api_key\": { \"kind\": \"dotenv\", \"name\": \"BAILIAN_API_KEY\", \"secret\": true }, \"embedding.dimensions\": { \"kind\": \"yaml\", \"name\": \"config.yaml#embedding.dimensions\", \"secret\": false }, \"embedding.enabled\": { \"kind\": \"yaml\", \"name\": \"config.yaml#embedding.enabled\", \"secret\": false }, \"embedding.model\": { \"kind\": \"yaml\", \"name\": \"config.yaml#embedding.model\", \"secret\": false }, \"embedding.provider\": { \"kind\": \"yaml\", \"name\": \"config.yaml#embedding.provider\", \"secret\": false }, \"embedding.retrieval_top_k\": { \"kind\": \"yaml\", \"name\": \"config.yaml#embedding.retrieval_top_k\", \"secret\": false }, \"embedding.trust_env_proxy\": { \"kind\": \"yaml\", \"name\": \"config.yaml#embedding.trust_env_proxy\", \"secret\": false }, \"execution.batch_concurrency_default\": { \"kind\": \"yaml\", \"name\": \"config.yaml#execution.batch_concurrency_default\", \"secret\": false }, \"execution.batch_concurrency_max\": { \"kind\": \"yaml\", \"name\": \"config.yaml#execution.batch_concurrency_max\", \"secret\": false }, \"execution.batch_event_history_limit\": { \"kind\": \"yaml\", \"name\": \"config.yaml#execution.batch_event_history_limit\", \"secret\": false }, \"execution.case_retry_attempts\": { \"kind\": \"yaml\", \"name\": \"config.yaml#execution.case_retry_attempts\", \"secret\": false }, \"judge.raw_response_max_chars\": { \"kind\": \"yaml\", \"name\": \"config.yaml#judge.raw_response_max_chars\", \"secret\": false }, \"llm.api_key\": { \"kind\": \"dotenv\", \"name\": \"DEEPSEEK_API_KEY\", \"secret\": true }, \"llm.base_url\": { \"kind\": \"dotenv\", \"name\": \"LLM_BASE_URL\", \"secret\": false }, \"llm.capabilities.context_window_tokens\": { \"kind\": \"yaml\", \"name\": \"config.yaml#llm.capabilities.context_window_tokens\", \"secret\": false }, \"llm.capabilities.json_mode\": { \"kind\": \"yaml\", \"name\": \"config.yaml#llm.capabilities.json_mode\", \"secret\": false }, \"llm.capabilities.tool_calls\": { \"kind\": \"yaml\", \"name\": \"config.yaml#llm.capabilities.tool_calls\", \"secret\": false }, \"llm.fallback_1.api_key\": { \"kind\": \"dotenv\", \"name\": \"LLM_FALLBACK_1_API_KEY\", \"secret\": true }, \"llm.fallback_1.base_url\": { \"kind\": \"dotenv\", \"name\": \"LLM_FALLBACK_1_BASE_URL\", \"secret\": false }, \"llm.fallback_1.model\": { \"kind\": \"dotenv\", \"name\": \"LLM_FALLBACK_1_MODEL\", \"secret\": false }, \"llm.fallback_2.api_key\": { \"kind\": \"dotenv\", \"name\": \"LLM_FALLBACK_2_API_KEY\", \"secret\": true }, \"llm.fallback_2.base_url\": { \"kind\": \"dotenv\", \"name\": \"LLM_FALLBACK_2_BASE_URL\", \"secret\": false }, \"llm.fallback_2.model\": { \"kind\": \"dotenv\", \"name\": \"LLM_FALLBACK_2_MODEL\", \"secret\": false }, \"llm.max_attempts\": { \"kind\": \"yaml\", \"name\": \"config.yaml#llm.max_attempts\", \"secret\": fals ... 已截断大体积 JSON，详情请查看后端结果或单条用例。"
+          - generic [ref=f2e130]:
+            - heading "Project Analysis" [level=2] [ref=f2e131]
+            - generic [ref=f2e132]: 尚未加载。
+          - generic [ref=f2e133]:
+            - heading "Batch / Case Pool Raw" [level=2] [ref=f2e134]
+            - generic [ref=f2e135]: "{ \"case_pool_summary\": { \"total\": 3, \"selected\": 2 }, \"batch_summary\": { \"project_id\": \"policy_search\", \"total\": 2, \"cluster\": { \"project_id\": \"policy_search\", \"common_root_cause\": \"\", \"impact\": \"\", \"priority\": \"low\" }, \"check\": { \"passed\": false, \"issues\": [ \"AttributeResult trace_id does not match RunTrace.\", \"AttributeResult case_id does not match RunTrace.\" ], \"consistency_gaps\": [ \"AttributeResult trace_id does not match RunTrace.\", \"AttributeResult case_id does not match RunTrace.\" ], \"verification_results\": [ \"Check categories passed current audit.\" ], \"recommended_fixes\": [ \"Ensure all steps use the same trace_id and latest run output.\" ] } }, \"concurrency\": 2, \"job_id\": \"f4d3d200003e4c108804248083032bcd\" }"

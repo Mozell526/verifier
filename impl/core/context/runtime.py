@@ -5,7 +5,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from itertools import combinations
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 from .errors import (
     ContextAuthorizationError,
@@ -136,24 +136,30 @@ class ContextRuntime:
                 raise ContextRegistrationConflictError(
                     f"stable context id {record.id!r} already belongs to project {existing['record'].project_id!r}"
                 )
-
             needs_embedding = (
                 existing is None
                 or existing["description_hash"] != description_hash
                 or existing["embedding_model"] != model_id
                 or not self.vector_index.has_vector(record.id, model_id)
             )
-            vector = None
-            if needs_embedding:
-                embedded = self.embedding_provider.embed([_record_search_text(record)])
-                if len(embedded) != 1 or not embedded[0]:
-                    raise ContextValidationError("embedding provider returned an invalid vector batch")
-                vector = tuple(validate_embedding_vector(embedded[0]))
 
+        vector = None
+        if needs_embedding:
+            embedded = self.embedding_provider.embed([_record_search_text(record)])
+            if len(embedded) != 1 or not embedded[0]:
+                raise ContextValidationError("embedding provider returned an invalid vector batch")
+            vector = tuple(validate_embedding_vector(embedded[0]))
+
+        with self._registration_lock:
+            existing = self.registry.get(record.id)
+            if existing is not None and existing["record"].project_id != record.project_id:
+                raise ContextRegistrationConflictError(
+                    f"stable context id {record.id!r} already belongs to project {existing['record'].project_id!r}"
+                )
             if existing is None:
                 action = "created"
             elif _record_payload(existing["record"]) == _record_payload(record):
-                if needs_embedding:
+                if vector is not None:
                     action = "reindexed"
                 elif existing["source_hash"] == source_hash:
                     return {
@@ -208,12 +214,29 @@ class ContextRuntime:
         return {**counts, "items": items}
 
     def invalidate_context_unit(self, unit_id: str, *, status: str = "inactive") -> Mapping[str, Any]:
+        """Deactivate an existing unit without re-reading its source content.
+
+        Invalidation is metadata-only.  In particular, a stale ``content_ref`` may
+        point to a file that was deliberately removed from the current evidence
+        manifest; requiring that file to remain readable would make stale-record
+        cleanup impossible and leave obsolete evidence searchable.
+        """
         if str(status).strip() == "active":
             raise ContextValidationError("invalidation status cannot be active")
         existing = self.registry.get(str(unit_id))
         if existing is None:
             raise ContextNotFoundError(f"context unit not found: {unit_id}")
-        return self.register_context_unit(replace(existing["record"], status=status))
+        record = replace(existing["record"], status=status)
+        with self.registry.transaction() as transaction:
+            self.registry.upsert(
+                record,
+                source_hash=str(existing["source_hash"]),
+                description_hash=str(existing["description_hash"]),
+                embedding_model=str(existing["embedding_model"]),
+                transaction=transaction,
+            )
+            self.vector_index.update_filters(record, transaction=transaction)
+        return {"id": record.id, "action": "updated", "embedding_rebuilt": False}
 
     def start_run(
         self,
@@ -455,6 +478,28 @@ class ContextRun:
             "errors": [],
         }
 
+    def reset_trace(self) -> None:
+        """Reset per-call Search/Load trace state while keeping the shared policy.
+
+        One runtime may host several logical evidence runs (for example repeated
+        authority.resolve calls within one judge session).  Each logical run must
+        only see evidence it searched and loaded itself: basis validation and
+        context-coverage derivation read these accumulators, and stale state from
+        an earlier call would make a later call appear to have loaded evidence it
+        never touched in its own run.
+        """
+        self._candidate_refs_by_id = {}
+        self._candidate_ids_by_ref = {}
+        self._next_candidate_ref = 1
+        self._debug["search_queries"] = []
+        self._debug["query_candidate_coverage"] = {}
+        self._debug["candidate_ids"] = []
+        self._debug["candidate_refs"] = {}
+        self._debug["loaded_ids"] = []
+        self._debug["content_chars"] = {}
+        self._debug["content_hashes"] = {}
+        self._debug["errors"] = []
+
     @staticmethod
     def _is_infrastructure_error(exc: Exception) -> bool:
         """Separate dependency failures from model/request mistakes.
@@ -507,6 +552,34 @@ class ContextRun:
         self._debug["candidate_refs"][selection_ref] = unit_id
         return selection_ref
 
+    def selection_refs_for_context_units(self, unit_ids: Sequence[str]) -> Tuple[str, ...]:
+        """Return run-scoped load targets for exact authorized ContextUnits without loading them.
+
+        This is the deterministic address bridge used by navigation resolvers.  It
+        exposes only opaque run-scoped selection refs, never physical registry IDs,
+        and does not mark the units as loaded, evidence, or search candidates.
+        candidate_ids 只记录真实 search_context_units 命中的单元（CG-ENG-007：
+        context_coverage 的 has_candidate 必须可区分"搜索候选"与"导航寻址"；
+        导航 load_targets 是精确定位地址，不是搜索候选）。
+        """
+        refs: list[str] = []
+        seen: set[str] = set()
+        for raw_id in unit_ids:
+            unit_id = str(raw_id or "").strip()
+            if not unit_id or unit_id in seen:
+                continue
+            seen.add(unit_id)
+            entry = self._runtime.registry.get(unit_id)
+            if entry is None:
+                raise ContextNotFoundError(f"context unit not found: {unit_id!r}")
+            record = entry["record"]
+            if not self._policy.permits(record):
+                raise ContextAuthorizationError(
+                    f"context unit is not authorized for this run: {unit_id!r}"
+                )
+            refs.append(self._selection_ref_for_id(unit_id))
+        return tuple(refs)
+
     def selection_ref_for_loaded_context_unit(self, unit_id: str) -> str:
         """Return a run-scoped ref only for an exact ContextUnit already loaded."""
         exact_id = str(unit_id or "").strip()
@@ -517,6 +590,25 @@ class ContextRun:
         if self._runtime.registry.get(exact_id) is None:
             raise ContextNotFoundError(f"context unit not found after load: {exact_id!r}")
         return self._selection_ref_for_id(exact_id)
+
+    def materialized_unit_id_for_selection_ref(self, selection_ref: str) -> Optional[str]:
+        """Map a run-scoped selection_ref back to its materialized ContextUnit ID.
+
+        Only refs actually returned by this run's Search/Load are known; the mapped
+        unit must have been Loaded before it may be cited as evidence.
+        """
+        ref = str(selection_ref or "").strip()
+        if not ref:
+            return None
+        return self._candidate_ids_by_ref.get(ref)
+
+    def loaded_unit_ids(self) -> Tuple[str, ...]:
+        """Exact materialized ContextUnit IDs actually Loaded in this run."""
+        return tuple(self._debug["loaded_ids"])
+
+    def content_hash_for_loaded_unit(self, unit_id: str) -> Optional[str]:
+        """Content hash observed at Load time for a materialized unit (None if not Loaded)."""
+        return self._debug["content_hashes"].get(str(unit_id or "").strip())
 
     def search_context_units(
         self, queries: Sequence[str], top_k_per_query: Optional[int] = None

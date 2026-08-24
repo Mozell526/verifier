@@ -1,0 +1,287 @@
+{
+  "id": "I219",
+  "query": "贷款",
+  "role": "business_word_as_name",
+  "expected_status": "not_fulfilled",
+  "source": "set_a",
+  "live_error": null,
+  "judge_error": null,
+  "live": {
+    "trace_id": "client_search:I219:1786796873223",
+    "fields": [
+      "searchClientName"
+    ],
+    "values": [
+      "贷款"
+    ],
+    "robot_text": "客户姓名为贷款的客户",
+    "matched_patterns": "姓名-模糊匹配",
+    "intent_summary": "客户姓名为贷款的客户",
+    "conditions": [
+      {
+        "field": "searchClientName",
+        "operator": "MATCH",
+        "value": "贷款",
+        "match_mode": null
+      }
+    ],
+    "extracted": {
+      "code": 0,
+      "msg": "操作成功",
+      "robot_text": "客户姓名为贷款的客户",
+      "end_flag": 1,
+      "trace_id": null,
+      "query": "贷款",
+      "query_logic": "AND",
+      "conditions": [
+        {
+          "field": "searchClientName",
+          "operator": "MATCH",
+          "value": "贷款",
+          "match_mode": null
+        }
+      ],
+      "matched_level": 2,
+      "matched_patterns": "姓名-模糊匹配",
+      "rewritten_query": "贷款",
+      "intent_summary": "客户姓名为贷款的客户",
+      "confidence": 0.95,
+      "cost_times": 6.0
+    }
+  },
+  "judge_status": "not_fulfilled",
+  "judge_reasoning": "“贷款”缺乏独立姓名证据，且字段定义仅支持客户本人姓名；实际将其直接映射为姓名匹配，增加了未表达的姓名限制，未能可靠保留筛选意图。",
+  "judge": {
+    "trace_id": "client_search:I219:1786796873223",
+    "project_id": "client_search",
+    "business_expectations": [
+      {
+        "expectation_id": "贷款不被当作客户本人姓名",
+        "blocking": true,
+        "downstream_consumer": "客户搜索下游",
+        "user_intent": "将“贷款”作为客户筛选语义处理，而不是客户本人的姓名。",
+        "expected_outcome": "不得把“贷款”映射为searchClientName条件；若无可确认的贷款相关字段，应保持无条件或请求澄清。",
+        "required_capabilities": [
+          "识别业务词与人名的语义差异",
+          "避免生成未表达的客户姓名条件"
+        ],
+        "acceptance_criteria": [
+          "没有独立姓名证据时，不输出searchClientName=贷款",
+          "生成的条件不得把贷款相关客户集合错误收窄为姓名匹配客户"
+        ],
+        "boundary": {
+          "judge_scope": "parser_condition_semantics_only",
+          "result_set_verified": false
+        },
+        "priority": "核心",
+        "evidence_refs": []
+      },
+      {
+        "expectation_id": "贷款语义不确定时透明处理",
+        "blocking": false,
+        "downstream_consumer": "客户搜索产品用户",
+        "user_intent": "当“贷款”无法确认对应可搜索字段时，避免给出确定性的错误解释。",
+        "expected_outcome": "应明确说明无法确认筛选字段或请求补充语义，不应宣称其为客户姓名。",
+        "required_capabilities": [
+          "语义不确定性识别",
+          "透明说明限制"
+        ],
+        "acceptance_criteria": [
+          "输出不应声称“客户姓名为贷款”",
+          "无法形成可靠条件时应保留限制说明或澄清请求"
+        ],
+        "boundary": {
+          "judge_scope": "parser_condition_semantics_only"
+        },
+        "priority": "辅助",
+        "evidence_refs": []
+      }
+    ],
+    "fulfillment_assessments": [
+      {
+        "expectation_id": "贷款不被当作客户本人姓名",
+        "status": "not_fulfilled",
+        "score": 0,
+        "expected_evidence": [
+          "“贷款”没有独立姓名证据，不能确认是客户本人的人名",
+          "客户搜索字段searchClientName仅表示客户本人的人名"
+        ],
+        "actual_evidence": [
+          "实际条件为searchClientName MATCH 贷款",
+          "robot_text明确表述为“客户姓名为贷款的客户”",
+          "下游结果集未验证，result_set_verified=false"
+        ],
+        "downstream_impact": "会把贷款相关或待澄清的查询错误收窄为姓名匹配，无法保证保留用户真实筛选意图。",
+        "confidence": null,
+        "evidence_refs": [],
+        "authority_tool_call_ids": []
+      },
+      {
+        "expectation_id": "贷款语义不确定时透明处理",
+        "status": "not_fulfilled",
+        "score": 0,
+        "expected_evidence": [
+          "无法确认“贷款”是客户姓名时，应说明限制或请求澄清"
+        ],
+        "actual_evidence": [
+          "API直接生成客户姓名条件",
+          "未提供语义不确定性或字段不支持说明"
+        ],
+        "downstream_impact": "用户会误以为系统已正确理解贷款筛选意图。",
+        "confidence": null,
+        "evidence_refs": [],
+        "authority_tool_call_ids": []
+      }
+    ],
+    "overall_fulfillment": {
+      "status": "not_fulfilled",
+      "assessment_count": 2,
+      "blocking_expectations": [
+        "贷款不被当作客户本人姓名"
+      ]
+    },
+    "expected": {
+      "code": 0,
+      "msg": "未形成可确认的客户姓名筛选条件",
+      "query": "贷款",
+      "conditions": [],
+      "robot_text": null,
+      "query_logic": "AND",
+      "rewritten_query": "贷款"
+    },
+    "actual": {
+      "code": 0,
+      "msg": "操作成功",
+      "robot_text": "客户姓名为贷款的客户",
+      "end_flag": 1,
+      "trace_id": null,
+      "query": "贷款",
+      "query_logic": "AND",
+      "conditions": [
+        {
+          "field": "searchClientName",
+          "operator": "MATCH",
+          "value": "贷款",
+          "match_mode": null
+        }
+      ],
+      "matched_level": 2,
+      "matched_patterns": "姓名-模糊匹配",
+      "rewritten_query": "贷款",
+      "intent_summary": "客户姓名为贷款的客户",
+      "confidence": 0.95,
+      "cost_times": 6.0
+    },
+    "missing": [
+      {
+        "kind": "condition",
+        "error_type": "核心语义未正确保留",
+        "expected": "不将贷款映射为客户本人姓名条件",
+        "actual": "未提供贷款业务语义对应的可靠条件",
+        "evidence_ref": "fulfillment_assessments[0]",
+        "raw": {
+          "kind": "condition",
+          "error_type": "核心语义未正确保留",
+          "expected": "不将贷款映射为客户本人姓名条件",
+          "actual": "未提供贷款业务语义对应的可靠条件",
+          "evidence_ref": "fulfillment_assessments[0]",
+          "incomplete": false
+        },
+        "incomplete": false
+      }
+    ],
+    "wrong": [
+      {
+        "kind": "field_mapping",
+        "error_type": "字段语义错误",
+        "expected": "仅在人名证据充分时使用searchClientName",
+        "actual": {
+          "field": "searchClientName",
+          "operator": "MATCH",
+          "value": "贷款"
+        },
+        "evidence_ref": "final_output.conditions[0]",
+        "raw": {
+          "kind": "field_mapping",
+          "error_type": "字段语义错误",
+          "expected": "仅在人名证据充分时使用searchClientName",
+          "actual": {
+            "field": "searchClientName",
+            "operator": "MATCH",
+            "value": "贷款"
+          },
+          "evidence_ref": "final_output.conditions[0]",
+          "incomplete": false
+        },
+        "incomplete": false
+      }
+    ],
+    "extra": [
+      {
+        "kind": "constraint",
+        "error_type": "无依据的额外收窄",
+        "expected": "不增加客户本人姓名限制",
+        "actual": "增加searchClientName MATCH 贷款",
+        "evidence_ref": "final_output.conditions[0]",
+        "raw": {
+          "kind": "constraint",
+          "error_type": "无依据的额外收窄",
+          "expected": "不增加客户本人姓名限制",
+          "actual": "增加searchClientName MATCH 贷款",
+          "evidence_ref": "final_output.conditions[0]",
+          "incomplete": false
+        },
+        "incomplete": false
+      }
+    ],
+    "evidence": [
+      {
+        "query": "贷款"
+      },
+      {
+        "field_definition": "searchClientName仅表示客户本人的人名，不表示客户集合、公司/机构名称、地址或产品名"
+      },
+      {
+        "actual_condition": {
+          "field": "searchClientName",
+          "operator": "MATCH",
+          "value": "贷款"
+        }
+      },
+      {
+        "result_set_verified": false
+      },
+      {
+        "source": "client_search.condition_compare",
+        "wrong": [],
+        "missing": [],
+        "extra": []
+      }
+    ],
+    "reasoning_summary": "“贷款”缺乏独立姓名证据，且字段定义仅支持客户本人姓名；实际将其直接映射为姓名匹配，增加了未表达的姓名限制，未能可靠保留筛选意图。",
+    "summary": {
+      "reason": "not_fulfilled · blocking=[贷款不被当作客户本人姓名] · “贷款”缺乏独立姓名证据，且字段定义仅支持客户本人姓名；实际将其直接映射为姓名匹配，增加了未表达的姓名限制，未能可靠保留筛选意图。",
+      "primary_failure_dimensions": [
+        {
+          "expectation_id": "贷款不被当作客户本人姓名",
+          "status": "not_fulfilled",
+          "blocking": true,
+          "downstream_impact": "会把贷款相关或待澄清的查询错误收窄为姓名匹配，无法保证保留用户真实筛选意图。",
+          "evidence": "实际条件为searchClientName MATCH 贷款 | robot_text明确表述为“客户姓名为贷款的客户” | 下游结果集未验证，result_set_verified=false | “贷款”没有独立姓名证据，不能确认是客户本人的人名 | 客户搜索字段searchClientName仅表示客户本人的人名"
+        },
+        {
+          "expectation_id": "贷款语义不确定时透明处理",
+          "status": "not_fulfilled",
+          "blocking": false,
+          "downstream_impact": "用户会误以为系统已正确理解贷款筛选意图。",
+          "evidence": "API直接生成客户姓名条件 | 未提供语义不确定性或字段不支持说明 | 无法确认“贷款”是客户姓名时，应说明限制或请求澄清"
+        }
+      ],
+      "reason_source": "aggregated_fulfillment",
+      "fulfillment_status": "not_fulfilled",
+      "assessment_count": 2,
+      "blocking_count": 1,
+      "is_formal_attribution": true
+    }
+  }
+}

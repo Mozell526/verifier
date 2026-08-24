@@ -1,0 +1,102 @@
+# 轴2 受治理业务词口径。调查产物，运行时只读。
+# status: unsupported = 字段在且 is_supported=false
+#         carried     = 字段在且空间能表达
+#         missing     = 目录确认无此维
+# evidence 必须落到 capability_manifest 字段或 fields。
+terms:
+  - term: 盘客
+    aliases: [去盘客, 盘客月份]
+    field: customerReview
+    status: unsupported
+    evidence: capability_manifest.customerReview
+  - term: 属相
+    aliases: [生肖, 十二生肖属相]
+    field: clientZodiac
+    status: unsupported
+    evidence: capability_manifest.clientZodiac
+  - term: 车牌
+    aliases: [车牌号, 号牌]
+    field: licensePlateNo
+    status: unsupported
+    evidence: capability_manifest.licensePlateNo
+  - term: 参保
+    aliases: [投保日期, 投保日]
+    field: policies_insure_date
+    status: unsupported
+    evidence: capability_manifest.policies_insure_date
+  - term: 未兑换积分
+    aliases: []
+    field: customerUnredeemedPoints
+    status: unsupported
+    evidence: capability_manifest.customerUnredeemedPoints
+  - term: 活动季
+    aliases: [守护季]
+    field: customerActivity
+    status: unsupported
+    evidence: capability_manifest.customerActivity
+  - term: 被保人
+    aliases: [被保险人]
+    field: is_life_insured
+    status: unsupported
+    evidence: capability_manifest.is_life_insured
+  - term: 万能账户追加
+    aliases: []
+    field: policies_universal_acct_transfer
+    status: unsupported
+    evidence: capability_manifest.policies_universal_acct_transfer
+  - term: 保单总数量
+    aliases: [保单总数, 保单个数]
+    field: polNum
+    status: unsupported
+    evidence: capability_manifest.polNum
+  - term: 客户本人年龄
+    aliases: []
+    field: clientAge
+    status: carried
+    evidence: capability_manifest.clientAge
+  - term: 鑫盛
+    aliases: [鑫利]
+    field: polNoInfo.plancodeinfo.abbrname
+    status: carried
+    evidence: capability_manifest.polNoInfo.plancodeinfo.abbrname
+  - term: 平安福
+    aliases: []
+    field: polNoInfo.plancodeinfo.abbrname
+    status: carried
+    evidence: capability_manifest.polNoInfo.plancodeinfo.abbrname
+  - term: 圈客
+    aliases: [去圈客]
+    field: ""
+    status: missing
+    evidence: capability_manifest.fields
+    note: 目录无圈客维度
+  - term: 续收
+    aliases: []
+    field: ""
+    status: missing
+    evidence: capability_manifest.fields
+    note: 目录无续收维度
+  - term: 团体险
+    aliases: []
+    field: ""
+    status: missing
+    evidence: capability_manifest.fields
+    note: pCategorys 险种大类不含团体险
+  - term: 满期金
+    aliases: [满期金金额]
+    field: ""
+    status: missing
+    evidence: capability_manifest.fields
+    note: 目录无满期金维度
+  - term: 家办客户
+    aliases: []
+    field: ""
+    status: missing
+    evidence: capability_manifest.fields
+    note: 目录无家办客户维度
+  - term: 财富分群
+    aliases: []
+    field: ""
+    status: missing
+    evidence: capability_manifest.fields
+    note: 财富是产品简称枚举，不是分群维度

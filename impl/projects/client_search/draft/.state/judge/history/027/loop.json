@@ -1,0 +1,42 @@
+{
+  "cases_sha256": "bf9e77ee33b34d912316db83007134ae9cd708987be936cfbb03020ac51844d4",
+  "frozen_current_sha256": "0145989d788d118e8d795811f847373cbbffb728949b865488599a13642b4734",
+  "iterations": [
+    {
+      "decision": "insufficient_evidence",
+      "draft_fingerprint": "053b4136962f460995a8e9dfc554c4f15fc83d4c244383acf059caa8b7a9e53e",
+      "evidence": [
+        {
+          "artifact": {
+            "location": "draft/.state/judge/iterations/001-run.json",
+            "location_scope": "project_package",
+            "sha256": "21ef059cbda69774205d4532dd3e316064324626728f3b35f168766d6affe9c3"
+          }
+        },
+        {
+          "artifact": {
+            "location": "draft/.state/judge/iterations/001-role-review.json",
+            "location_scope": "project_package",
+            "sha256": "36af69b9ac150426b362438fa21056772962ed1ef869c83e782ebb20dd1f06ec"
+          }
+        }
+      ],
+      "iteration": 1,
+      "reason": "第一轮完成但证据不足：Draft 出现 6 条 fulfilled→not_fulfilled、6 条→not_evaluable；12 个 authority 调用中出现结构化输出失败，且运行中暴露 investigation_search_index 旧工具名失配。先修复/重新固化工具接线与结构化协议，再重跑 30 条，不能把本轮当作改善或 promotion 证据。",
+      "route": "solidify",
+      "run_report": {
+        "location": "draft/.state/judge/iterations/001-run.json",
+        "location_scope": "project_package",
+        "sha256": "21ef059cbda69774205d4532dd3e316064324626728f3b35f168766d6affe9c3"
+      }
+    }
+  ],
+  "max_iterations": 5,
+  "objective": "优化 client_search Draft Judge：以最新 Investigation Authority 材料和 Key-Index Search→Load 作为运行时导航，准确输出 fulfilled/not_fulfilled/not_evaluable；不把 SearchHit 当 Evidence，不静默全量加载，逐轮根据冻结 Current/Draft 结果探索改进。",
+  "project_id": "client_search",
+  "review": "在冻结 30 条 client_search badcase 上逐条比较 Current/Draft：业务判定不得退化；Authority 绑定、字段资料 Search→Load、unresolved 原因和所需证据必须可审计；embedding 实验未形成 shortlist 时不得冒充已选中能力；整体必须有可证明改善才可建议选中。",
+  "role": "judge",
+  "schema_version": 2,
+  "source_revision": "b4ffbb6245158be3b54d3e00c35214d1dd76b66f",
+  "status": "active"
+}

@@ -11,7 +11,7 @@ from impl.core.attribute_protocol import ProjectAttribute
 from impl.core.judge_protocol import ProjectJudge
 from impl.core.live_protocol import ProvidedOutputLive
 from impl.core.mock_protocol import ProjectMock
-from impl.core.schema import normalize_multi_turn_trace_summary
+from impl.core.schema import MockIntentOutput, normalize_multi_turn_trace_summary
 from impl.core.schema.attribute import AttributeResult
 from impl.core.schema.check import CheckReport
 from impl.core.schema.cluster import ClusterSummary
@@ -33,7 +33,14 @@ class FixtureLive(ProvidedOutputLive):
 
 class FixtureMock(ProjectMock):
     def build_user_intent(self, scenario):
-        return {"scenario": scenario, "query": "fixture"}
+        return MockIntentOutput(
+            user_intent="exercise the fixture request path",
+            query="fixture",
+            scenario=scenario,
+        )
+
+    def build_initial_request(self, intent):
+        return {"query": intent.query}
 
 
 class FixtureJudge(ProjectJudge):
@@ -103,8 +110,13 @@ def _view() -> FrontendViewModel:
 @contextmanager
 def _patched_project_runtime():
     adapter = _adapter()
+    def load_role_instance(spec, role, loaded_adapter):
+        loader = getattr(loaded_adapter, f"_load_{role}", None)
+        return loader() if callable(loader) else None
+
     with patch.object(pipeline, "load_project", return_value=_spec()), \
         patch.object(pipeline, "load_adapter", return_value=adapter), \
+        patch.object(pipeline, "load_project_role_instance", side_effect=load_role_instance), \
         patch.object(pipeline, "analyze_project", return_value=load_fixture(ProjectAnalysis)):
         yield adapter
 
@@ -135,7 +147,7 @@ def _multi_turn_trace_summary() -> object:
 
 def _live_run() -> object:
     with _patched_project_runtime():
-        case = load_fixture(SingleTurnCase, as_dict=True)
+        case = load_fixture(SingleTurnCase)
         return pipeline.live_run("fixture_project", case)
 
 
@@ -183,7 +195,11 @@ def _mock_datasets_chain_step() -> object:
 
 
 def _run_payload() -> object:
-    return pipeline._run_payload(_trace(), _judge(), _attribute(), _cluster(), _check(), _view())
+    # _run_payload attaches project-config provenance to the trace.  Keep this
+    # fixture-only project on the same patched runtime as the public pipeline
+    # entry points instead of requiring a real impl/projects/fixture-project.
+    with _patched_project_runtime():
+        return pipeline._run_payload(_trace(), _judge(), _attribute(), _cluster(), _check(), _view())
 
 
 def _batch_run_empty() -> object:

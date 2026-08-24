@@ -1,0 +1,314 @@
+{
+  "caller": "judge",
+  "created_at": "2026-08-20T06:11:16Z",
+  "elapsed_ms": 28983,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "production"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "1c866105f97a5d6b8300beba46ada610039736a59310d4a8b1ee062269bd8127",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [],
+      "lineage": {
+        "call_id": "",
+        "case_id": "llm-probe-mpi-customer-portrait",
+        "trace_id": "llm_probe:llm-probe-mpi-customer-portrait:1787206247352"
+      },
+      "messages": [
+        {
+          "char_count": 6811,
+          "content_sha256": "6bc41cc9442d41be75eba596e778e6b8e1a80c34046eb78478b0ff5b1f573bdb",
+          "role": "system"
+        },
+        {
+          "char_count": 4208,
+          "content_sha256": "f41bb3d7f7223585aab5cd860e60d0b32cff7f6ae26da18147e6c0471fbddf6f",
+          "role": "user"
+        }
+      ],
+      "mode": "production",
+      "output_contract": {
+        "field_names": [
+          "acceptance_criteria",
+          "actual",
+          "actual_evidence",
+          "applicable_product_expectation_ids",
+          "authority_tool_call_ids",
+          "blocking",
+          "boundary",
+          "business_expectations",
+          "downstream_consumer",
+          "downstream_impact",
+          "error_type",
+          "evidence",
+          "evidence_ref",
+          "expectation_id",
+          "expected",
+          "expected_evidence",
+          "expected_outcome",
+          "extra",
+          "fulfillment_assessments",
+          "incomplete",
+          "kind",
+          "missing",
+          "output_text",
+          "priority",
+          "raw",
+          "reasoning_summary",
+          "required_capabilities",
+          "score",
+          "status",
+          "user_intent",
+          "wrong"
+        ],
+        "identity": "impl.core.schema.judge.JudgeLLMOutput",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "40fa7a66e30b1a0dd26fea5170efaf75abd4add050e000d4a15b236de1d31ba9",
+        "sha256": "40fa7a66e30b1a0dd26fea5170efaf75abd4add050e000d4a15b236de1d31ba9"
+      },
+      "project_id": "llm_probe",
+      "prompt_char_count": 11019,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 4208,
+        "occurred": false
+      },
+      "role": "judge",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 478,
+          "content_sha256": "600c5ea3215f199a7ceb66e89af155ba94303255c0aceb785cf2125468b8a0fc",
+          "order": 0,
+          "role": "judge",
+          "segment_id": "mandatory-context-units",
+          "source": "contextunit://project.llm_probe.asset.judge_boundary,project.llm_probe.asset.judge_evaluation",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 2090,
+          "content_sha256": "3fc24129ac8bb96ec5ee85fbd7be47310f965365d3bfe24b7d824b89d7c28318",
+          "order": 1,
+          "role": "judge",
+          "segment_id": "compiled-system",
+          "source": "impl/core/judge.py#judge_trace",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 4208,
+          "content_sha256": "f41bb3d7f7223585aab5cd860e60d0b32cff7f6ae26da18147e6c0471fbddf6f",
+          "order": 2,
+          "role": "judge",
+          "segment_id": "case-user-payload",
+          "source": "trace://judge-evidence-view",
+          "stage": "judge"
+        }
+      ],
+      "stage": "judge",
+      "tool_plan": []
+    }
+  },
+  "llm_model": "deepseek-v4-flash-0731",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "你是通用评估系统的 judge agent。\n\n## 核心原则\n只基于当前 RunTrace、项目评判标准和动态检索的知识库内容判断，不继承历史 case。\n首要职责：理解用户/下游消费者的真实业务意图 → 派生 business_expectations → 基于完整执行链路（每轮 output、最终 output、交互过程和停止事实）判断 expectations 的 fulfillment。\n\n## expectation 拆分原则\nbusiness_expectations 的粒度直接决定判断精度。每个 expectation 必须是原子、独立可评价的判断单元：证据充分时判 fulfilled 或 not_fulfilled；确需评价但当前证据不足时按协议判 not_evaluable。\n- 一个 expectation 只描述一个可独立验证的结果维度\n- 多维度意图必须拆成多个 expectation\n- 每个 expectation 必须有明确的 acceptance_criteria\n- 每个 expectation 必须在比较 actual 前确定 blocking：只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true\n- fulfillment_assessments 只判断对应 expectation 的 status 和证据，不得重新定义 blocking\n- expectation_id 必须是描述性的中文短语，禁止使用 E1/E2/exp_01 等占位符 ID\n- reasoning_summary 必须是中文写成的判断依据\n\n## 输出词表\n`fulfillment_assessments[*].status` 必须从以下 3 个值中选择：\n  - fulfilled：该 expectation 完全满足\n  - not_fulfilled：该 expectation 未满足\n  - not_evaluable：当前无法评估\n禁用 failed/passed/incorrect/wrong/met/unmet/partially_fulfilled/partial/success/fail/ok/unknown 等同义词。\n`fulfillment_assessments[*].expected_evidence` 与 `actual_evidence` **必须是数组**（JSON array / list），即使只有一条证据也要用 `[...]` 包裹，不可直接用字符串或对象。\n\n不要输出 overall_fulfillment；公共层会在项目契约补充完成后根据 blocking expectations 确定性派生整体状态。\n\n## 评估规范\n\n\n## 评估边界\n\n\n## 判断标准\n\n\n## 项目 ContextUnit（按 Role policy 在运行前确定性装载）\n## ContextUnit: judge_boundary: judge_boundary.md (project.llm_probe.asset.judge_boundary)\n# Judge Boundary\n\nIn scope:\n\n- 非流式 HTTP 响应字符串是否兑现能力描述\n- show_schema 指出的输出片段\n\nOut of scope:\n\n- SSE / 流式协议\n- 下游检索结果集\n- 被测服务是否由 verifier 启动\n- 各业务项目自己的 EXTRACT 字段协议\n\n\n## ContextUnit: judge_evaluation: evaluation.md (project.llm_probe.asset.judge_evaluation)\n# Evaluation\n\nJudge 只看三件事：能力描述、请求信封（尤其是 body）、`output_text`。\n\n有 show_schema 时，只把其中指出的部分当作重要证据。没有 gold output，不要把 actual 抄成 expected。\n\n\n\n\n## 能力描述\n只根据能力描述判断 output_text 是否兑现了该能力。没有 gold output，不要编造参考答案。\n## 工具使用原则\n所有工具的用途、调用时机和参数含义以 Agno tool schema 为准；user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息。\n\n## 禁止事项\n- 不要把 reference answer 当作默认主目标（除非 case 明确指定）\n- 不要把 HTTP 状态、run_status、attribute/cluster 结论当作满足依据\n- 不要归因内部代码、配置或 prompt 原因（属于 attribute agent）\n- 分析文字必须使用中文，包括 reasoning_summary 等所有文本字段。\n\n\n## 输出约束：judge 判定输出（自产 reference + fulfillment 判定）\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"business_expectations\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeBusinessExpectationOutput\"\n      },\n      \"minItems\": 1\n    },\n    \"applicable_product_expectation_ids\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"fulfillment_assessments\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeFulfillmentAssessmentOutput\"\n      }\n    },\n    \"expected\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"output_text\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"output_text\"\n      ]\n    },\n    \"missing\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"wrong\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"extra\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"evidence\": {\n      \"type\": \"array\",\n      \"items\": {}\n    },\n    \"reasoning_summary\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    }\n  },\n  \"additionalProperties\": false,\n  \"$defs\": {\n    \"JudgeBusinessExpectationOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"blocking\": {\n          \"type\": \"boolean\"\n        },\n        \"downstream_consumer\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"user_intent\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected_outcome\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"required_capabilities\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"acceptance_criteria\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"boundary\": {\n          \"type\": \"object\"\n        },\n        \"priority\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"blocking\"\n      ]\n    },\n    \"JudgeFulfillmentAssessmentOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"score\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        },\n        \"expected_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"actual_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"downstream_impact\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"authority_tool_call_ids\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"status\"\n      ]\n    },\n    \"GapItem\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"kind\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"error_type\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected\": {},\n        \"actual\": {},\n        \"evidence_ref\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"raw\": {},\n        \"incomplete\": {\n          \"type\": \"boolean\"\n        }\n      },\n      \"additionalProperties\": false\n    }\n  },\n  \"required\": [\n    \"expected\",\n    \"business_expectations\",\n    \"reasoning_summary\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['business_expectations', 'expected', 'reasoning_summary']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n\n### 嵌套字段子结构约束\n以下字段内部的子结构也必须严格遵守，不可随意编造字段名或类型：\n- **`expected`** 字段 (项目 llm_probe 的 expected/live output 结构) 必须符合以下结构：\n  ```json\n  {\n    \"type\": \"object\",\n    \"properties\": {\n      \"output_text\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"additionalProperties\": false,\n    \"required\": [\n      \"output_text\"\n    ]\n  }\n  ```\n",
+      "created_at": 1787206247,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "1835779f-ef29-47b8-9da1-249005445290",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"user_intent\": \"对单轮营销规划问句做意图识别，给出意图标签和必要槽位。\\n不进入多轮规划、不生成 SSE 卡片。\", \"run_trace\": {\"trace_id\": \"llm_probe:llm-probe-mpi-customer-portrait:1787206247352\", \"project_id\": \"llm_probe\", \"case_id\": \"llm-probe-mpi-customer-portrait\", \"intent_input\": {\"capability_ref\": \"marketting-planning-intent\", \"method\": \"POST\", \"body\": {\"session_id\": \"default_session\", \"trace_id\": \"default_trace\", \"org_id\": \"default_org\", \"user_text\": \"帮我看看上季度买了重疾险的客户都是啥样的？\", \"extra_input_params\": {\"agent_args\": {\"conversation_id\": \"default_session\", \"message\": {\"content\": \"帮我看看上季度买了重疾险的客户都是啥样的？\", \"content_type\": \"text\"}}, \"args\": {\"extensions\": {}, \"contexts\": []}}}}, \"normalized_request\": {\"capability_ref\": \"marketting-planning-intent\", \"method\": \"POST\", \"body\": {\"session_id\": \"default_session\", \"trace_id\": \"default_trace\", \"org_id\": \"default_org\", \"user_text\": \"帮我看看上季度买了重疾险的客户都是啥样的？\", \"extra_input_params\": {\"agent_args\": {\"conversation_id\": \"default_session\", \"message\": {\"content\": \"帮我看看上季度买了重疾险的客户都是啥样的？\", \"content_type\": \"text\"}}, \"args\": {\"extensions\": {}, \"contexts\": []}}}}, \"final_output\": {}, \"final_output_turn\": null, \"turns\": [{\"turn_index\": 1, \"request\": {\"capability_ref\": \"marketting-planning-intent\", \"method\": \"POST\", \"body\": {\"session_id\": \"default_session\", \"trace_id\": \"default_trace\", \"org_id\": \"default_org\", \"user_text\": \"帮我看看上季度买了重疾险的客户都是啥样的？\", \"extra_input_params\": {\"agent_args\": {\"conversation_id\": \"default_session\", \"message\": {\"content\": \"帮我看看上季度买了重疾险的客户都是啥样的？\", \"content_type\": \"text\"}}, \"args\": {\"extensions\": {}, \"contexts\": []}}}}, \"extracted_output\": {}, \"call_status\": \"failed\", \"runtime_ms\": 6, \"error\": \"llm_probe target unavailable: <urlopen error <urlopen error [Errno 61] Connection refused>>\", \"fallbacks\": [{\"fallback_id\": \"live-error-llm_probe\", \"source_stage\": \"live\", \"fallback_type\": \"live_error\", \"status\": \"error\", \"reason\": \"llm_probe target unavailable: <urlopen error <urlopen error [Errno 61] Connection refused>>\", \"missing_evidence\": [\"live_response\"], \"recoverable\": true, \"needs_human_review\": true, \"quality_flags\": [\"live_service_unavailable\"], \"evidence_refs\": [], \"failed_gate_ids\": [], \"metadata\": {\"case_id\": \"\", \"session_id\": \"\", \"failure_type\": \"live_service_unavailable\"}}], \"validation\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"llm_probe\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"execution_trace\": [], \"application_boundary\": {}, \"project_fields\": {}}], \"conversation_transcript\": [], \"conversation_summary\": {\"turn_count\": 1, \"final_output_turn\": null, \"completion_status\": \"failed\", \"stop_reason\": \"execution_error\", \"interaction_controller_status\": \"not_run\", \"interaction_controller_error\": \"\"}, \"stop_reason\": \"execution_error\", \"completion_status\": \"failed\", \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"llm_probe\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"turn_1\", \"status\": \"failed\", \"evidence\": \"llm_probe target unavailable: <urlopen error <urlopen error [Errno 61] Connection refused>>\", \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"evidence_refs\": [], \"raw_response_evidence\": [], \"evidence_completeness\": {\"complete\": false, \"missing_evidence\": [\"final_output\", \"successful_execution\"]}, \"application_boundary\": {}, \"reference_contract\": {}, \"scenario\": \"\", \"status\": \"error\", \"error\": \"llm_probe target unavailable: <urlopen error <urlopen error [Errno 61] Connection refused>>\"}, \"capability\": \"对单轮营销规划问句做意图识别，给出意图标签和必要槽位。\\n不进入多轮规划、不生成 SSE 卡片。\", \"show_schema\": null, \"request\": {\"url\": \"\", \"method\": \"POST\", \"headers\": {}, \"body\": {\"session_id\": \"default_session\", \"trace_id\": \"default_trace\", \"org_id\": \"default_org\", \"user_text\": \"帮我看看上季度买了重疾险的客户都是啥样的？\", \"extra_input_params\": {\"agent_args\": {\"conversation_id\": \"default_session\", \"message\": {\"content\": \"帮我看看上季度买了重疾险的客户都是啥样的？\", \"content_type\": \"text\"}}, \"args\": {\"extensions\": {}, \"contexts\": []}}}, \"capability_ref\": \"marketting-planning-intent\"}, \"output_text\": \"\", \"application_boundary\": {\"scope\": \"non_streaming_http_llm_probe\", \"streaming\": false}}",
+      "created_at": 1787206247,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "8e20c61a-56d5-4a9b-8e1c-dbbfd2da5773",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"输出意图标签和必要槽位\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"营销规划意图识别下游系统\",\n      \"user_intent\": \"对单轮营销规划问句做意图识别，给出意图标签和必要槽位\",\n      \"expected_outcome\": \"输出应包含意图标签和必要槽位信息\",\n      \"required_capabilities\": [\"意图识别\", \"槽位提取\"],\n      \"acceptance_criteria\": [\"output_text非空且包含意图标签和至少一个槽位\"],\n      \"boundary\": {\"scope\": \"non_streaming_http_llm_probe\"},\n      \"priority\": \"high\"\n    },\n    {\n      \"expectation_id\": \"不进入多轮规划\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"营销规划意图识别下游系统\",\n      \"user_intent\": \"不进入多轮规划、不生成SSE卡片\",\n      \"expected_outcome\": \"响应应为单轮完成，不发起多轮对话\",\n      \"required_capabilities\": [\"单轮交互\"],\n      \"acceptance_criteria\": [\"未观察到多轮turn或后续交互请求\"],\n      \"boundary\": {\"scope\": \"non_streaming_http_llm_probe\"},\n      \"priority\": \"medium\"\n    },\n    {\n      \"expectation_id\": \"不生成SSE卡片\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"营销规划意图识别下游系统\",\n      \"user_intent\": \"不进入多轮规划、不生成SSE卡片\",\n      \"expected_outcome\": \"响应格式应为非SSE的普通HTTP响应\",\n      \"required_capabilities\": [\"非流式输出\"],\n      \"acceptance_criteria\": [\"output_text不是SSE格式，且无SSE相关字段\"],\n      \"boundary\": {\"scope\": \"non_streaming_http_llm_probe\"},\n      \"priority\": \"medium\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"输出意图标签和必要槽位\",\n      \"status\": \"not_fulfilled\",\n      \"score\": null,\n      \"expected_evidence\": [\"output_text应包含意图标签和必要槽位信息\"],\n      \"actual_evidence\": [\"output_text为空字符串\", \"final_output为空对象\", \"调用失败无响应\"],\n      \"downstream_impact\": \"下游无法获取意图识别结果，导致后续流程中断\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"不进入多轮规划\",\n      \"status\": \"fulfilled\",\n      \"score\": null,\n      \"expected_evidence\": [\"仅有一次turn且无后续交互请求\"],\n      \"actual_evidence\": [\"run_trace中仅有一次turn且状态为failed\", \"conversation_transcript为空\", \"无多轮交互记录\"],\n      \"downstream_impact\": \"无影响，未触发多轮\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"不生成SSE卡片\",\n      \"status\": \"fulfilled\",\n      \"score\": null,\n      \"expected_evidence\": [\"响应格式为非SSE的普通HTTP响应\"],\n      \"actual_evidence\": [\"application_boundary中streaming为false\", \"output_text为空字符串，无SSE格式内容\"],\n      \"downstream_impact\": \"无影响，未生成SSE\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"expected\": {\n    \"output_text\": \"意图标签和必要槽位信息\"\n  },\n  \"missing\": [],\n  \"wrong\": [],\n  \"extra\": [],\n  \"evidence\": [],\n  \"reasoning_summary\": \"根据RunTrace，被测服务不可用（Connection refused），导致最终output_text为空，未产出任何意图标签或槽位，因此核心expectation“输出意图标签和必要槽位”未满足（not_fulfilled）。关于“不进入多轮规划”和“不生成SSE卡片”，实际执行仅有一次失败调用，未触发多轮交互，且输出为空字符串、application_boundary标记为非流式，因此这两个约束均已满足（fulfilled）。\"\n}",
+      "created_at": 1787206247,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "ee834b0b-8db2-440e-a735-a70a9bff12bf",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 3493,
+        "output_tokens": 2793,
+        "provider_metrics": null,
+        "reasoning_tokens": 1868,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 6286
+      },
+      "name": null,
+      "provider_data": {
+        "id": "3af6ca3b-ce2d-48be-a72c-3a6859e46bcc",
+        "model_extra": {
+          "request_id": "3af6ca3b-ce2d-48be-a72c-3a6859e46bcc"
+        }
+      },
+      "reasoning_content": "我们被问到：给定user_intent，run_trace，capability，show_schema，request，output_text，application_boundary。我们需要根据规则生成business_expectations和fulfillment_assessments等。\n\n首先，理解case：用户输入\"帮我看看上季度买了重疾险的客户都是啥样的？\"，能力是\"对单轮营销规划问句做意图识别，给出意图标签和必要槽位。不进入多轮规划、不生成 SSE 卡片。\" 但run_trace显示最终output为空，turns调用失败（Connection refused），所以实际上没有获得任何输出。output_text是空字符串。\n\n我们需要根据评估规范：只基于当前RunTrace、项目评判标准和动态检索的知识库内容判断。不继承历史case。首要职责：理解用户/下游消费者的真实业务意图 → 派生business_expectations → 基于完整执行链路判断expectations的fulfillment。\n\n由于没有输出，我们需要判断是否满足能力描述。但能力描述是\"给出意图标签和必要槽位\"，但实际没有输出。所以expectation应该是：输出应该包含意图标签和槽位。但run_trace显示失败，没有输出。所以我们需要创建business_expectations，然后评估。\n\n注意：输出必须符合JSON Schema。需要包含business_expectations数组，每个包含expectation_id, blocking等。同时需要fulfillment_assessments数组，每个对应一个expectation_id，有status等。另外expected字段必须包含output_text，但这里output_text是空，所以expected.output_text应该是什么？由于没有gold output，但是能力描述说\"给出意图标签和必要槽位\"，我们可以设置expected.output_text为\"意图标签和槽位信息\"，但实际是空字符串。但根据规则：没有gold output，不要把actual抄成expected。所以我们需要根据能力描述设置一个合理的expected output_text？但要求是\"expected\"字段必须非空字符串，且minLength 1。我们可以写一个描述性字符串，比如\"应包含意图标签和必要槽位信息\"。但这不是实际输出，而是期望的模板。是否允许？可能可以，因为expected是\"项目llm_probe的expected/live output结构\"，但这里没有reference，所以我们可以写一个合理的期望。但注意：expected.output_text是必须的，且不能为空。所以我会写一个占位描述，例如\"意图识别结果，包含意图标签和槽位\"。\n\n但更重要的是，我们需要根据run_trace的失败来评估。由于调用失败，没有输出，所以expectation not_fulfilled。\n\n另外，用户意图是\"对单轮营销规划问句做意图识别，给出意图标签和必要槽位。不进入多轮规划、不生成 SSE 卡片。\" 所以有一个明确的expectation：输出意图标签和槽位。另一个可能：不生成SSE卡片（但这里没有输出，所以没有SSE）。但我们需要拆分为原子expectation。\n\n根据规则：每个expectation必须是原子、独立可评价的判断单元。这里我们可以拆分为两个：\n1. 输出意图标签和必要槽位\n2. 不进入多轮规划（即回答是单轮，不发起多轮对话）\n3. 不生成SSE卡片（即输出格式不是SSE流式）\n\n但实际没有输出，所以第一个不满足，后两个可能无法判断？由于没有输出，无法判断是否进入多轮或生成SSE，但根据run_trace，没有多轮交互，也没有SSE，所以可能满足。但我们需要基于证据：run_trace显示只有一次调用且失败，没有后续交互，所以没有多轮规划。SSE卡片：没有输出，所以不生成SSE卡片。但是否算\"不生成\"？如果输出为空，也可以认为没有生成SSE。但能力描述说\"不进入多轮规划、不生成SSE卡片\"，这更像是行为约束，而不是输出内容。所以我们可以评估。\n\n但注意：规则说\"只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的expectation才设为true\"。所以blocking应该设为true的expectation是核心输出意图标签和槽位，因为如果没有这个，用户无法得到意图识别结果。其他两个是次要的。\n\n另外，我们需要考虑\"applicable_product_expectation_ids\"字段，但这里没有产品级expectation，可以留空数组。\n\n还有\"missing\", \"wrong\", \"extra\", \"evidence\"字段。这些是可选的，但schema要求它们存在？在required列表中只有\"expected\", \"business_expectations\", \"reasoning_summary\"。但其他字段如\"fulfillment_assessments\", \"applicable_product_expectation_ids\", \"missing\",\"wrong\",\"extra\",\"evidence\"在schema中定义，但不在required中？实际上顶层schema的required只包含expected, business_expectations, reasoning_summary。但fulfillment_assessments等不是required，但我们需要输出它们吗？根据输出约束：最终回答必须包含required列表中的所有字段，其他字段可选。但为了完整性，我们最好输出fulfillment_assessments，因为它是评估的核心。missing/wrong/extra/evidence可根据需要输出，但这里没有明显差异，可以留空数组。\n\n但注意，fulfillment_assessments不是required，但为了评估，我们通常输出。不过规则说\"必须包含required列表中的所有字段\"，所以fulfillment_assessments可以不输出。但输出约束要求\"业务_expectations\"和\"fulfillment_assessments\"？实际上在schema中，fulfillment_assessments是optional的，但是用户要求输出评估，我们最好输出。但为了保险，我们输出它。\n\n另外，注意输出约束中：`additionalProperties: false`，所以不能有未定义字段。\n\n现在构造business_expectations。我们需要填写每个expectation的字段：expectation_id, blocking, downstream_consumer, user_intent, expected_outcome, required_capabilities, acceptance_criteria, boundary, priority。这些字段中除了expectation_id和blocking是required，其他可选？在schema中，JudgeBusinessExpectationOutput的required只有expectation_id和blocking。但其他字段可以省略？但schema中其他字段有定义，但未标记required，所以可以省略。但为了清晰，我们提供有用的信息。\n\n我们至少需要两个expectation：\n1. 意图识别输出\n2. 单轮无多轮\n3. 无SSE\n\n但为了原子化，我们可以将2和3合并为一个：不进入多轮且不生成SSE卡片。但可能分开更好。但用户意图明确说\"不进入多轮规划、不生成SSE卡片\"，这是两个约束。但也可以合并为一个expectation：行为约束（无多轮无SSE）。但根据原子性，最好分开。\n\n但鉴于输出为空，第一个expectation的fulfillment显然是not_fulfilled，因为无输出。第二个和第三个，由于没有输出，也没有多轮或SSE，所以可以认为fulfilled。但需要证据：run_trace显示只有一次turn，且失败，没有后续交互，所以没有多轮规划。output_text为空，没有SSE协议（因为是非流式HTTP），所以没有SSE卡片。所以我们可以判fulfilled。\n\n但注意：能力描述说\"不进入多轮规划、不生成SSE卡片\"，这是对输出的约束，但实际输出为空，所以自然满足不生成SSE卡片。但可能如果输出了一个空字符串，也算没有SSE。所以没问题。\n\n现在考虑blocking：第一个expectation应该是blocking=true，因为如果没有输出，下游无法使用意图识别结果。第二个和第三个可以设为false，因为不是核心输出。\n\n现在填写expected.output_text。由于没有gold，我们写一个合理的期望字符串，如\"意图标签和必要槽位信息\"。但不要写具体内容，因为不确定。但required non-empty，所以写\"意图识别结果\"。\n\n现在构建fulfillment_assessments数组。每个对应一个expectation_id，status选择fulfilled/not_fulfilled/not_evaluable。也需要expected_evidence和actual_evidence数组，以及downstream_impact等。注意expected_evidence和actual_evidence必须是数组。\n\n对于第一个expectation，expected_evidence可以写[\"应包含意图标签和槽位\"]，actual_evidence写[\"output_text为空\"]，status为not_fulfilled。score可以为null。downstream_impact写\"下游无法获取意图识别结果\"。\n\n对于第二个，expected_evidence可能写[\"不应有多轮交互\"]，actual_evidence写[\"只有一次失败调用，无后续交互\"]，status为fulfilled。downstream_impact写\"无影响\"。\n\n第三个类似。\n\n注意authority_tool_call_ids，如果未使用工具，可以留空数组。\n\n最后reasoning_summary用中文写判断依据。\n\n注意：输出必须严格JSON，且不能有Markdown包裹。\n\n现在开始写JSON。",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "llm_probe",
+  "prompt_size": 13677,
+  "record_id": "71398090-0e2e-4ec8-a7b2-9f316a1e7722",
+  "response": {
+    "content": "{\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"输出意图标签和必要槽位\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"营销规划意图识别下游系统\",\n      \"user_intent\": \"对单轮营销规划问句做意图识别，给出意图标签和必要槽位\",\n      \"expected_outcome\": \"输出应包含意图标签和必要槽位信息\",\n      \"required_capabilities\": [\"意图识别\", \"槽位提取\"],\n      \"acceptance_criteria\": [\"output_text非空且包含意图标签和至少一个槽位\"],\n      \"boundary\": {\"scope\": \"non_streaming_http_llm_probe\"},\n      \"priority\": \"high\"\n    },\n    {\n      \"expectation_id\": \"不进入多轮规划\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"营销规划意图识别下游系统\",\n      \"user_intent\": \"不进入多轮规划、不生成SSE卡片\",\n      \"expected_outcome\": \"响应应为单轮完成，不发起多轮对话\",\n      \"required_capabilities\": [\"单轮交互\"],\n      \"acceptance_criteria\": [\"未观察到多轮turn或后续交互请求\"],\n      \"boundary\": {\"scope\": \"non_streaming_http_llm_probe\"},\n      \"priority\": \"medium\"\n    },\n    {\n      \"expectation_id\": \"不生成SSE卡片\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"营销规划意图识别下游系统\",\n      \"user_intent\": \"不进入多轮规划、不生成SSE卡片\",\n      \"expected_outcome\": \"响应格式应为非SSE的普通HTTP响应\",\n      \"required_capabilities\": [\"非流式输出\"],\n      \"acceptance_criteria\": [\"output_text不是SSE格式，且无SSE相关字段\"],\n      \"boundary\": {\"scope\": \"non_streaming_http_llm_probe\"},\n      \"priority\": \"medium\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"输出意图标签和必要槽位\",\n      \"status\": \"not_fulfilled\",\n      \"score\": null,\n      \"expected_evidence\": [\"output_text应包含意图标签和必要槽位信息\"],\n      \"actual_evidence\": [\"output_text为空字符串\", \"final_output为空对象\", \"调用失败无响应\"],\n      \"downstream_impact\": \"下游无法获取意图识别结果，导致后续流程中断\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"不进入多轮规划\",\n      \"status\": \"fulfilled\",\n      \"score\": null,\n      \"expected_evidence\": [\"仅有一次turn且无后续交互请求\"],\n      \"actual_evidence\": [\"run_trace中仅有一次turn且状态为failed\", \"conversation_transcript为空\", \"无多轮交互记录\"],\n      \"downstream_impact\": \"无影响，未触发多轮\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"不生成SSE卡片\",\n      \"status\": \"fulfilled\",\n      \"score\": null,\n      \"expected_evidence\": [\"响应格式为非SSE的普通HTTP响应\"],\n      \"actual_evidence\": [\"application_boundary中streaming为false\", \"output_text为空字符串，无SSE格式内容\"],\n      \"downstream_impact\": \"无影响，未生成SSE\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"expected\": {\n    \"output_text\": \"意图标签和必要槽位信息\"\n  },\n  \"missing\": [],\n  \"wrong\": [],\n  \"extra\": [],\n  \"evidence\": [],\n  \"reasoning_summary\": \"根据RunTrace，被测服务不可用（Connection refused），导致最终output_text为空，未产出任何意图标签或槽位，因此核心expectation“输出意图标签和必要槽位”未满足（not_fulfilled）。关于“不进入多轮规划”和“不生成SSE卡片”，实际执行仅有一次失败调用，未触发多轮交互，且输出为空字符串、application_boundary标记为非流式，因此这两个约束均已满足（fulfilled）。\"\n}",
+    "metrics": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 3493,
+      "output_tokens": 2793,
+      "reasoning_tokens": 1868,
+      "total_tokens": 6286
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 28981,
+          "endpoint": "fallback1",
+          "model": "deepseek-v4-flash-0731",
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "selected_endpoint": "fallback1",
+      "selected_model": "deepseek-v4-flash-0731",
+      "stage": ""
+    }
+  },
+  "trace_id": "llm_probe:llm-probe-mpi-customer-portrait:1787206247352"
+}

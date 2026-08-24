@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import fields, is_dataclass
 from typing import Any
 
+from .trace import RunTrace
+
 # Occam-role annotations for schema fields.
 # Updated for spec/info-volume.md slimmed schemas.
 
@@ -133,6 +135,9 @@ PUBLIC_DROP_KEYS = {
 # 以下类型的字段允许 None 值不过滤（ready 协议控制存在性）
 _PUBLIC_ALLOW_NONE_FIELDS = frozenset({"output", "reference"})
 _PUBLIC_ALLOW_NONE_SCHEMAS = frozenset({"MockCase", "MockBuildResponse"})
+_RUN_TRACE_MAPPING_FIELDS = frozenset(item.name for item in fields(RunTrace)) | {
+    "schema_protocol_extensions"
+}
 
 
 def field_role(schema_name: str, field_name: str) -> str:
@@ -152,7 +157,91 @@ def _json_safe_key(key: Any) -> Any:
     return str(key)
 
 
-def _to_public_dict(value: Any, seen: set[int]) -> Any:
+def _to_protocol_fact(value: Any, seen: set[int]) -> Any:
+    """Convert an opaque protocol fact without projecting or dropping empty values."""
+    if is_dataclass(value):
+        value_id = id(value)
+        if value_id in seen:
+            return {"recursive_ref": type(value).__name__}
+        seen.add(value_id)
+        try:
+            return {
+                item.name: _to_protocol_fact(getattr(value, item.name), seen)
+                for item in fields(value)
+            }
+        finally:
+            seen.remove(value_id)
+    if isinstance(value, list):
+        value_id = id(value)
+        if value_id in seen:
+            return []
+        seen.add(value_id)
+        try:
+            return [_to_protocol_fact(item, seen) for item in value]
+        finally:
+            seen.remove(value_id)
+    if isinstance(value, dict):
+        value_id = id(value)
+        if value_id in seen:
+            return {"recursive_ref": "dict"}
+        seen.add(value_id)
+        try:
+            return {
+                _json_safe_key(key): _to_protocol_fact(item, seen)
+                for key, item in value.items()
+            }
+        finally:
+            seen.remove(value_id)
+    return value
+
+
+def _is_request_fact_field(schema_name: str, field_name: str, request_container: bool) -> bool:
+    return (
+        schema_name == "RunTrace" and field_name in {"input", "normalized_request"}
+    ) or (
+        schema_name == "LiveExchange" and field_name == "request"
+    ) or (
+        request_container and field_name == "request"
+    )
+
+
+def _mapping_schema_name(value: dict[Any, Any]) -> str:
+    """Recover schema identity after a dataclass has already been materialized."""
+    keys = set(value)
+    trace_markers = {
+        "normalized_request",
+        "turn_records",
+        "extracted_output",
+        "execution_mode",
+        "output_source",
+    }
+    if (
+        {"trace_id", "project_id", "input"} <= keys
+        and bool(keys & trace_markers)
+        and keys <= _RUN_TRACE_MAPPING_FIELDS
+    ):
+        return "RunTrace"
+    return ""
+
+
+def _to_public_field(
+    schema_name: str,
+    field_name: str,
+    field_value: Any,
+    seen: set[int],
+    request_container: bool,
+) -> Any:
+    if _is_request_fact_field(schema_name, field_name, request_container):
+        return _to_protocol_fact(field_value, seen)
+    child_request_container = (
+        schema_name == "RunTrace" and field_name == "turn_records"
+    ) or (
+        request_container and field_name == "live_exchanges"
+    )
+    return _to_public_dict(field_value, seen, request_container=child_request_container)
+
+
+def _to_public_dict(value: Any, seen: set[int], *, request_container: bool = False) -> Any:
     if is_dataclass(value):
         value_id = id(value)
         if value_id in seen:
@@ -182,11 +271,21 @@ def _to_public_dict(value: Any, seen: set[int]) -> Any:
             # 部分类型允许 None 字段（ready 协议控制存在性）
             allow_none = _PUBLIC_ALLOW_NONE_FIELDS if schema_name in _PUBLIC_ALLOW_NONE_SCHEMAS else set()
             return {
-                field_name: _to_public_dict(getattr(value, field_name), seen)
+                field_name: _to_public_field(
+                    schema_name,
+                    field_name,
+                    getattr(value, field_name),
+                    seen,
+                    request_container,
+                )
                 for field_name in field_names
                 if field_name not in PUBLIC_DROP_KEYS
                 and hasattr(value, field_name)
-                and (field_name in allow_none or getattr(value, field_name) not in (None, [], {}))
+                and (
+                    _is_request_fact_field(schema_name, field_name, request_container)
+                    or field_name in allow_none
+                    or getattr(value, field_name) not in (None, [], {})
+                )
             }
         finally:
             seen.remove(value_id)
@@ -196,7 +295,10 @@ def _to_public_dict(value: Any, seen: set[int]) -> Any:
             return []
         seen.add(value_id)
         try:
-            return [_to_public_dict(item, seen) for item in value]
+            return [
+                _to_public_dict(item, seen, request_container=request_container)
+                for item in value
+            ]
         finally:
             seen.remove(value_id)
     if isinstance(value, dict):
@@ -205,10 +307,38 @@ def _to_public_dict(value: Any, seen: set[int]) -> Any:
             return {"recursive_ref": "dict"}
         seen.add(value_id)
         try:
+            schema_name = _mapping_schema_name(value)
+            if schema_name:
+                public_fields = PUBLIC_SCHEMA_FIELDS[schema_name]
+                return {
+                    field_name: _to_public_field(
+                        schema_name,
+                        field_name,
+                        value[field_name],
+                        seen,
+                        request_container,
+                    )
+                    for field_name in public_fields
+                    if field_name in value
+                    and field_name not in PUBLIC_DROP_KEYS
+                    and (
+                        _is_request_fact_field(schema_name, field_name, request_container)
+                        or value[field_name] not in (None, [], {})
+                    )
+                }
             return {
-                _json_safe_key(key): _to_public_dict(item, seen)
+                _json_safe_key(key): (
+                    _to_protocol_fact(item, seen)
+                    if request_container and key == "request"
+                    else _to_public_dict(
+                        item,
+                        seen,
+                        request_container=request_container and key == "live_exchanges",
+                    )
+                )
                 for key, item in value.items()
-                if key not in PUBLIC_DROP_KEYS and item not in (None, [], {})
+                if key not in PUBLIC_DROP_KEYS
+                and (request_container and key == "request" or item not in (None, [], {}))
             }
         finally:
             seen.remove(value_id)

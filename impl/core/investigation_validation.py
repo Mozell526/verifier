@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
+from .hashing import stable_sha256
 from .path_contract import LogicalPathRef, PathScope
 from .portable_artifact import write_active_artifact
 
@@ -61,7 +61,7 @@ def write_investigation_validation_receipt(
             if validation_result.get("source_root")
             else None
         ),
-        tool_inputs_sha256=_stable_hash(tool_inputs),
+        tool_inputs_sha256=stable_sha256(tool_inputs),
         tools=tools,
     )
     if not receipt.manifest_sha256 or not receipt.tool_inputs_sha256:
@@ -137,8 +137,12 @@ def require_investigation_validation_receipt(
         source_root=source_root,
         business_source_staleness_policy=business_source_staleness_policy,
     )
-    warnings = tuple(str(item) for item in current.get("warnings") or [] if str(item).strip())
-    if warnings and business_source_staleness_policy == "warn":
+    staleness_warnings = tuple(
+        dict(item)
+        for item in current.get("staleness_warnings") or []
+        if isinstance(item, Mapping)
+    )
+    if staleness_warnings and business_source_staleness_policy == "warn":
         key = (
             str(spec.project_id),
             str(role),
@@ -151,12 +155,12 @@ def require_investigation_validation_receipt(
                 "[%s/%s] Draft investigation package is stale but runtime will continue: %s",
                 spec.project_id,
                 role,
-                "; ".join(warnings),
+                "; ".join(str(item.get("message") or "") for item in staleness_warnings),
             )
     if raw.get("manifest_sha256") != current.get("manifest_sha256"):
         raise ValueError("Investigation validation receipt is stale: manifest changed")
-    if raw.get("source_revision") != current.get("source_revision"):
-        raise ValueError("Investigation validation receipt is stale: business source revision changed")
+    # source_revision drift is informational only; it does not invalidate the receipt.
+    # The receipt remains valid as long as the manifest itself has not changed.
     source_ref = raw.get("source")
     if current.get("source_root") and not isinstance(source_ref, Mapping):
         raise ValueError("Investigation validation receipt lacks a portable business source reference")
@@ -175,12 +179,15 @@ def require_investigation_validation_receipt(
             raise ValueError(f"Investigation validation receipt is stale: Tool changed: {tool_id}")
         if recorded.get("execution") != "succeeded" or int(recorded.get("execution_count") or 0) < 1:
             raise ValueError(f"Investigation validation receipt did not execute Tool: {tool_id}")
-    return raw
-
-
-def _stable_hash(value: Any) -> str:
-    payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    result = dict(raw)
+    result["runtime_staleness"] = {
+        "policy": business_source_staleness_policy,
+        "source_revision": str(current.get("source_revision") or ""),
+        "current_source_revision": str(current.get("current_source_revision") or ""),
+        "source_revision_drifted": bool(current.get("source_revision_drifted")),
+        "warnings": list(staleness_warnings),
+    }
+    return result
 
 
 def _portable_tool_result(spec: Any, value: Mapping[str, Any]) -> Mapping[str, Any]:

@@ -1,0 +1,70 @@
+{
+  "asset_fingerprints": [
+    {
+      "asset_id": "judge_boundary",
+      "kind": "context",
+      "sha256": "b32ff8aa0f162edd86160f0f79561c1e3a53bbc9472cb16654992ec785672ef9"
+    },
+    {
+      "asset_id": "judge_business_contract",
+      "kind": "context",
+      "sha256": "8af920c2685a345f03daac808cd7a0434b36c9d5014f95584913f49443c29fa2"
+    },
+    {
+      "asset_id": "judge_evaluation",
+      "kind": "context",
+      "sha256": "768231dba1558f52d821878ab7e127385555897e44c4a0b5db409127f8178a70"
+    },
+    {
+      "asset_id": "judge_investigation",
+      "kind": "investigation",
+      "sha256": "7235d99dced61f24b473bffcf2eb1a505902890376e847b1ac2e5177c34b0680"
+    },
+    {
+      "asset_id": "judge_standard",
+      "kind": "context",
+      "sha256": "c3c01f42c59ace4243f00c33ee018bb686c30e2c56350024dce94270c310d8dd"
+    }
+  ],
+  "candidate_role_sha256": "93dcc60c289fb2675bbb3744531e54fc8b4de03c3938d85bfb4961dfeec15b44",
+  "manifest_sha256": "9d01c00b49b2139ac88bd44f8010682d555a27c62b2df06763736783de0fdeee",
+  "mappings": [
+    {
+      "asset_ids": [
+        "judge_business_contract",
+        "candidate_role"
+      ],
+      "mapping_id": "judge-business-contract",
+      "runtime_observables": [
+        "judge-business-contract-smoke"
+      ],
+      "source_ids": [
+        "live_boundary",
+        "expectation:find-target-customers",
+        "dimension:search-intent-preservation",
+        "dimension:downstream-query-consumability"
+      ]
+    }
+  ],
+  "project_id": "client_search",
+  "required_source_ids": [
+    "dimension:downstream-query-consumability",
+    "dimension:search-intent-preservation",
+    "expectation:find-target-customers",
+    "live_boundary"
+  ],
+  "role": "judge",
+  "role_contract_sha256": "45fecf156332bddc493f707fc0498f8937e2ba0c9beb64a80f2d5cf96d6e23f7",
+  "runtime_observables": [
+    {
+      "evidence": "draft/probes/judge-solidify-smoke.json#checks.business_contract_loaded",
+      "observable_id": "judge-business-contract-smoke",
+      "observed_asset_ids": [
+        "judge_business_contract",
+        "candidate_role"
+      ],
+      "status": "succeeded"
+    }
+  ],
+  "schema_version": 1
+}
