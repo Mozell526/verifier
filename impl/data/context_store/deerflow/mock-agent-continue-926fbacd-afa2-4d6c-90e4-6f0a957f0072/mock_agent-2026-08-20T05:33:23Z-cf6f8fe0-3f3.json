@@ -1,0 +1,270 @@
+{
+  "caller": "mock_agent",
+  "created_at": "2026-08-20T05:33:23Z",
+  "elapsed_ms": 10521,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "draft"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "1280f2c613ff6009f2f8dd2cb72922d219c45ee4302b5086073c9b9fbb5b500c",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [],
+      "lineage": {
+        "call_id": "",
+        "case_id": "",
+        "trace_id": "mock-agent-continue-926fbacd-afa2-4d6c-90e4-6f0a957f0072"
+      },
+      "messages": [
+        {
+          "char_count": 1202,
+          "content_sha256": "de590686a49af6bdf06afd2b1e9808bea35a6361f9994ce58276fb6950249ee7",
+          "role": "system"
+        },
+        {
+          "char_count": 986,
+          "content_sha256": "e77520d52aca8eb68ca631a08d7b1bb0b756086ef76cd4f6cc4f8884cf92a257",
+          "role": "user"
+        }
+      ],
+      "mode": "draft",
+      "output_contract": {
+        "field_names": [
+          "action",
+          "stop_reason"
+        ],
+        "identity": "impl.core.schema.mock.MockContinueDecision",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "6af026c9cb94c7697d8f35f34949e05bdf50b5418cbee093b533929e1feb4fdc",
+        "sha256": "6af026c9cb94c7697d8f35f34949e05bdf50b5418cbee093b533929e1feb4fdc"
+      },
+      "project_id": "deerflow",
+      "prompt_char_count": 2188,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 986,
+        "occurred": false
+      },
+      "role": "mock",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "mock"
+          ],
+          "allowed_stages": [
+            "continue_decision"
+          ],
+          "char_count": 403,
+          "content_sha256": "625ed539af0c2b8e8a7e0b87879d1413528e817d9cee7adaccf08b91fc7a63c8",
+          "order": 0,
+          "role": "mock",
+          "segment_id": "compiled-system",
+          "source": "impl/core/mock_agent.py#continue_decision",
+          "stage": "continue_decision"
+        },
+        {
+          "allowed_roles": [
+            "mock"
+          ],
+          "allowed_stages": [
+            "continue_decision"
+          ],
+          "char_count": 986,
+          "content_sha256": "e77520d52aca8eb68ca631a08d7b1bb0b756086ef76cd4f6cc4f8884cf92a257",
+          "order": 1,
+          "role": "mock",
+          "segment_id": "case-user-payload",
+          "source": "trace://mock/continue_decision",
+          "stage": "continue_decision"
+        }
+      ],
+      "stage": "continue_decision",
+      "tool_plan": []
+    }
+  },
+  "llm_model": "deepseek-v4-flash-0731",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "你扮演真实用户，只根据用户可见的交互判断是否继续使用当前业务系统。\n- continue：目标尚未满足，但交互仍有实质进展，例如获得了新信息、新结果，或问题范围正在收敛；证据不足以停止时也选择 continue。\n- goal_satisfied：用户从可见结果主观认为目标已经满足。\n- user_abandons：用户明确不愿继续交互。\n- perceived_no_progress：经过持续交互后长期没有实质进展，例如反复询问相同问题、连续失败，且没有新增有效信息、结果或目标收敛。\n不得仅因为系统尚未交付最终结果，或仍在进行合理且有推进作用的澄清，就判断停止。选择 continue 时输出 action=continue、stop_reason=空字符串；其余状态输出 action=stop，stop_reason 为对应状态名。只能输出 action 和 stop_reason，不要解释。\n\n## 输出约束：mock_agent 轻量继续判断\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"action\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"continue\",\n        \"stop\"\n      ]\n    },\n    \"stop_reason\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"\",\n        \"goal_satisfied\",\n        \"user_abandons\",\n        \"perceived_no_progress\"\n      ]\n    }\n  },\n  \"additionalProperties\": false,\n  \"required\": [\n    \"action\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n",
+      "created_at": 1787203992,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "2486e01f-e649-4f06-8b80-4fa1c524292c",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"intent\": {\"user_intent\": \"查看队伍上个月的NBEV达成情况\", \"query\": \"看下上个月队伍达成\", \"user_context\": {}, \"system_understanding\": \"\", \"scenario\": \"open_world_user\"}, \"accumulated_output\": {\"turns\": [{\"turn_index\": 1, \"live_request\": {\"input\": {\"messages\": [{\"role\": \"user\", \"content\": \"看下上个月队伍达成\"}]}, \"config\": {\"configurable\": {}}}, \"extract_output\": {\"reply_text\": \"我来帮您查看上个月的队伍达成情况。让我先加载相关技能。\\n\\n<invoke name=\\\"read_file\\\">\\n<parameter name=\\\"location\\\">/mnt/skills/custom/nbev_profile_v2/SKILL.md</parameter>\\n</invoke>\\n</minimax:tool_call>\", \"tool_calls\": [], \"stage\": \"intent\", \"nbev_tool_count\": 0, \"scripts_called\": [], \"session_summary\": {\"thread_id\": \"1d37c7c5-0af3-41c4-b601-b0ead682d01c\", \"expected_dimensions\": [], \"accumulated_dimensions\": [], \"missing_dimensions\": [], \"evidence_declared\": true, \"evidence_status\": \"declared\"}, \"fallback\": {\"used\": false, \"allowed\": false, \"reason\": \"\"}, \"errors\": []}, \"status\": \"succeeded\", \"error\": null}], \"current_turn\": 1, \"safety_max_turns\": 12}}",
+      "created_at": 1787203992,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "510d073e-e4f1-40aa-9443-6132f47d46a0",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"action\":\"continue\",\"stop_reason\":\"\"}",
+      "created_at": 1787203992,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "7e7d9b9d-8632-4ff9-afb0-4cd14bb9c0d8",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 818,
+        "output_tokens": 69,
+        "provider_metrics": null,
+        "reasoning_tokens": 58,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 887
+      },
+      "name": null,
+      "provider_data": {
+        "id": "dffb7990-b86f-4e94-bbc3-31fcf991908f",
+        "model_extra": {
+          "request_id": "dffb7990-b86f-4e94-bbc3-31fcf991908f"
+        }
+      },
+      "reasoning_content": "用户意图：查看队伍上个月的NBEV达成情况。\n当前交互：第1轮，系统回复正在加载相关技能，尝试读取技能文件。\n判断：系统刚开始处理请求，正在加载技能，属于正常流程的初始阶段，有实质进展的可能，应继续。",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "deerflow",
+  "prompt_size": 2226,
+  "record_id": "cf6f8fe0-3f39-47fd-9453-7590583e1074",
+  "response": {
+    "content": "{\"action\":\"continue\",\"stop_reason\":\"\"}",
+    "metrics": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 818,
+      "output_tokens": 69,
+      "reasoning_tokens": 58,
+      "total_tokens": 887
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 10521,
+          "endpoint": "fallback1",
+          "model": "deepseek-v4-flash-0731",
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "selected_endpoint": "fallback1",
+      "selected_model": "deepseek-v4-flash-0731",
+      "stage": ""
+    }
+  },
+  "trace_id": "mock-agent-continue-926fbacd-afa2-4d6c-90e4-6f0a957f0072"
+}

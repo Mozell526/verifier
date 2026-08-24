@@ -1,0 +1,154 @@
+{
+  "cases_sha256": "bf9e77ee33b34d912316db83007134ae9cd708987be936cfbb03020ac51844d4",
+  "frozen_current_sha256": "bc2c669463adf3afac39ac7fedfd7dc0ea6c40ff716420d285900a676c2356d6",
+  "iterations": [
+    {
+      "decision": "insufficient_evidence",
+      "draft_fingerprint": "1305d8a80c8df046012ecee6cb8f9d9602b289a82ff5013b6b0f337d5e67fa14",
+      "evidence": [
+        {
+          "artifact": {
+            "location": "draft/.state/judge/iterations/001-run.json",
+            "location_scope": "project_package",
+            "sha256": "f6e4935d1693d58d0f9510842f6401fdf6a7228def7f7149798d20e4c90f9709"
+          }
+        },
+        {
+          "artifact": {
+            "location": "draft/.state/judge/iterations/001-role-review.json",
+            "location_scope": "project_package",
+            "sha256": "ff79fbe777b88e8d4579eb36fd5a77d30b450635f659d78d836f2543318e5d92"
+          }
+        }
+      ],
+      "iteration": 1,
+      "reason": "重启后基线第 1 轮：修复 run_report_invalid_sides 后 current 侧 0 无效，仅 2 个 draft side 无效（023/128 authority tool_failure，与 current 同判无差异）。真实改善 4 个：148 NE→NF（住院医疗保险枚举可表达被 live 漏掉，符合用户裁决）、053/088/093 F→NE（production 未查证即断言能力边界/孤词当姓名，draft 真查证 unresolved）。口径待确认 3 个：008/048/133 NF→F（孤儿单映射、掩码手机号前缀 158、机构名 vs 姓名），048 疑似忽略前缀 158 的假阳性。需澄清口径后重判。",
+      "route": "investigate",
+      "run_report": {
+        "location": "draft/.state/judge/iterations/001-run.json",
+        "location_scope": "project_package",
+        "sha256": "f6e4935d1693d58d0f9510842f6401fdf6a7228def7f7149798d20e4c90f9709"
+      }
+    },
+    {
+      "decision": "insufficient_evidence",
+      "draft_fingerprint": "8c26185956a6099d97fb201e627993c4629c5b8f30a3530b8f4e54639b3b1c94",
+      "evidence": [
+        {
+          "artifact": {
+            "location": "draft/.state/judge/iterations/002-run.json",
+            "location_scope": "project_package",
+            "sha256": "183b63c5d61841e3450bf47c1757e43a99e18f28a5ceac2ae14e4edf8e128ef3"
+          }
+        },
+        {
+          "artifact": {
+            "location": "draft/.state/judge/iterations/002-role-review.json",
+            "location_scope": "project_package",
+            "sha256": "66301432522bc0318e70bee2fefc79d2f658fb8d855a5b7053c609dbed703827"
+          }
+        }
+      ],
+      "iteration": 2,
+      "reason": "迭代 2（补锚点后）：无效侧 0（023/128 tool_failure 已消除）。6 个差异：148 NE→NF 决定性改善；053 F→NF（权益误当姓名）；088/013 F→NE、128 NF→NE（authority 真查证 unresolved，协议合规保守）；008 NF→F 孤儿单映射口径冲突（value_mappings=纯存续单客户 vs current 期望=在职有效客户，badcase 标注可能 noisy），需业务裁决。整体尚未证明优于 Production。",
+      "route": "investigate",
+      "run_report": {
+        "location": "draft/.state/judge/iterations/002-run.json",
+        "location_scope": "project_package",
+        "sha256": "183b63c5d61841e3450bf47c1757e43a99e18f28a5ceac2ae14e4edf8e128ef3"
+      }
+    },
+    {
+      "decision": "insufficient_evidence",
+      "draft_fingerprint": "6970d21bcd0d7be2a61ea4bacf1cda8304081c55d6cec565f0e7f49f36e1d5f8",
+      "evidence": [
+        {
+          "artifact": {
+            "location": "draft/.state/judge/iterations/003-run.json",
+            "location_scope": "project_package",
+            "sha256": "acd5192c720703ea65a1298d4a507ca42f1320fd93cc7d21ed98b1167f72003a"
+          }
+        },
+        {
+          "artifact": {
+            "location": "draft/.state/judge/iterations/003-role-review.json",
+            "location_scope": "project_package",
+            "sha256": "a9451a9108ebb758686e101e422c77fe7d3b4b38f7d5162c8dd3197ee80304ab"
+          }
+        }
+      ],
+      "iteration": 3,
+      "reason": "第3轮review：差异9条，决定性改善148/088/093/128；008孤儿单误判fulfilled（value_mappings vs field_definitions互斥冲突未识别，unresolved当定论消费）、133机构名误判NE（resolutions#8已resolved未注入）为可判定回归。修复：resolutions#1-#8从证据空间按sha256校验注入prompt，operator gate冲突字段从决议推导。待第4轮验证。",
+      "route": "investigate",
+      "run_report": {
+        "location": "draft/.state/judge/iterations/003-run.json",
+        "location_scope": "project_package",
+        "sha256": "acd5192c720703ea65a1298d4a507ca42f1320fd93cc7d21ed98b1167f72003a"
+      }
+    },
+    {
+      "decision": "insufficient_evidence",
+      "draft_fingerprint": "e6721118a52bfd3083f06f3d00c60b4ab3f5e5447afd812e01f98972e041a1dc",
+      "evidence": [
+        {
+          "artifact": {
+            "location": "draft/.state/judge/iterations/004-run.json",
+            "location_scope": "project_package",
+            "sha256": "074f4a9f51a8576c249d0381c6f54a1166e3540473db7940f6244842491ce5e4"
+          }
+        },
+        {
+          "artifact": {
+            "location": "draft/.state/judge/iterations/004-role-review.json",
+            "location_scope": "project_package",
+            "sha256": "070f808acf78dcfc06bd4e98b9a1a60d51694fda1284683e9bc0ebaeecfe2e45"
+          }
+        }
+      ],
+      "iteration": 4,
+      "reason": "第4轮：修复 008/133/148/028 对齐用户裁决（value_mappings 与 field_definitions 互斥 unresolved→NE、决议#8 机构名不得映射姓名→F、planfullname 命中险种漏条件→NF、poleffdate+RANGE 时间窗口→F）；018 铂金客户回 F 与 current 一致无退化；088/113 真查证职责外→NE。仍有两个机制缺陷待修：(1) authority.resolve 在 unresolved 时 LLM 误填 statement 触发 ValueError 被落成 tool_failure（093），语义错误需归一化；(2) 138 组合期望在构成维度 NE 时仍硬判 NF 与用户裁决冲突，需继承 NE。053/038 方向待用户口径确认。整体尚未优于 Production，路由 solidify 后重跑。",
+      "route": "solidify",
+      "run_report": {
+        "location": "draft/.state/judge/iterations/004-run.json",
+        "location_scope": "project_package",
+        "sha256": "074f4a9f51a8576c249d0381c6f54a1166e3540473db7940f6244842491ce5e4"
+      }
+    },
+    {
+      "decision": "insufficient_evidence",
+      "draft_fingerprint": "2b760764bd957c0aa8f16f7c3599b724bedd5c785922b58ab71c01bbefe5b31c",
+      "evidence": [
+        {
+          "artifact": {
+            "location": "draft/.state/judge/iterations/005-run.json",
+            "location_scope": "project_package",
+            "sha256": "5dc90ade087a74429c89bd35a77ccc0028f155d53bcccc6c58d50f774ba7c077"
+          }
+        },
+        {
+          "artifact": {
+            "location": "draft/.state/judge/iterations/005-role-review.json",
+            "location_scope": "project_package",
+            "sha256": "49c6a7cbf5ff1e1c6a390ccd4550458451bf30fafa55cc727a477ad04901da1b"
+          }
+        }
+      ],
+      "iteration": 5,
+      "reason": "第5轮（093 unresolved 归一 + 138 组合期望继承修复后）：30 条全完成，差异 9 条。机制修复生效：093 audit 干净（unresolved 不抛错）、138 整体 NE 与用户裁决一致。对齐裁决：008=NE（互斥 unresolved）、148=NF（险种可表达但 live 漏条件，决定性改善）、028=双方 F、018=双方 F 无退化、113=双方 NE。回归：133 中银保信 第4轮 F→本轮 NE，同一决议#8 两种解读且本轮 authority_audit 为空，权威锚定不稳定。方向待用户口径 5 条：053/058/073/023/128；current 侧 058/073/128 无代码变更仍抖动。整体未证明优于 Production，且已达 max_iterations=5 上限，本轮为最后一轮，路由 solidify 固化剩余问题。",
+      "route": "solidify",
+      "run_report": {
+        "location": "draft/.state/judge/iterations/005-run.json",
+        "location_scope": "project_package",
+        "sha256": "5dc90ade087a74429c89bd35a77ccc0028f155d53bcccc6c58d50f774ba7c077"
+      }
+    }
+  ],
+  "max_iterations": 5,
+  "objective": "优化 Draft Judge：以 Authority 调查包为运行时材料（governs 直接决定、材料第一维度、unresolved 必须带原因与所需证据），让 Judge 在业务边界内输出可审计的 fulfillment/not_evaluable/not_fulfilled 判定，不越权、不劣于 Production。",
+  "project_id": "client_search",
+  "review": "对照冻结 Current 30 条 badcase，Draft 必须在每条上保持或改善业务结果：Authority 绑定准确（不误绑、不遗漏）、not_evaluable 口径一致（材料缺失/边界外才用）、不输出无材料支撑的强验收条件；equality 不是成功，整体必须优于 Production。",
+  "role": "judge",
+  "schema_version": 2,
+  "source_revision": "2859c55f71ec8a1e9687c73b40cc0987d81d379c",
+  "status": "active"
+}

@@ -1,0 +1,453 @@
+{
+  "trace_id": "deerflow:mock-agent-deerflow-fd77d173:1784371052799",
+  "project_id": "deerflow",
+  "business_expectations": [
+    {
+      "expectation_id": "规划包含活动基本信息",
+      "downstream_consumer": "营销运营团队",
+      "user_intent": "用户需要一份包含主题、时间、目标用户、产品、预算的促销规划",
+      "expected_outcome": "回复中明确列出活动主题、活动时间范围、目标用户描述、涉及产品名称、总预算",
+      "required_capabilities": [
+        "文本生成",
+        "信息整合"
+      ],
+      "acceptance_criteria": [
+        "reply_text包含活动主题",
+        "reply_text包含活动时间范围",
+        "reply_text包含目标用户描述",
+        "reply_text包含产品名称",
+        "reply_text包含预算总额"
+      ],
+      "priority": "critical",
+      "evidence_refs": [
+        {
+          "field": "final_output.reply_text"
+        }
+      ]
+    },
+    {
+      "expectation_id": "预算金额不超过五万元",
+      "downstream_consumer": "财务/运营",
+      "user_intent": "预算控制在50000元以内",
+      "expected_outcome": "回复中标注的总预算为50000元，各渠道分配总和等于50000元",
+      "required_capabilities": [
+        "数值约束处理"
+      ],
+      "acceptance_criteria": [
+        "预算总额为50000元",
+        "各项分配金额之和为50000元"
+      ],
+      "priority": "critical",
+      "evidence_refs": [
+        {
+          "field": "final_output.reply_text"
+        }
+      ]
+    },
+    {
+      "expectation_id": "活动目标用户为注册7天内未付费新用户",
+      "downstream_consumer": "用户运营",
+      "user_intent": "活动针对注册7天内未首次付费的新用户",
+      "expected_outcome": "回复中目标用户描述精准匹配用户要求",
+      "required_capabilities": [
+        "信息提取"
+      ],
+      "acceptance_criteria": [
+        "目标用户包含“注册7天内未首次付费”的描述"
+      ],
+      "priority": "high",
+      "evidence_refs": [
+        {
+          "field": "final_output.reply_text"
+        }
+      ]
+    },
+    {
+      "expectation_id": "促销活动采用线上推广形式",
+      "downstream_consumer": "推广执行团队",
+      "user_intent": "活动形式为线上促销",
+      "expected_outcome": "推广渠道全部为线上，如APP弹窗、短信、社交媒体等，无线下活动",
+      "required_capabilities": [
+        "理解活动形式"
+      ],
+      "acceptance_criteria": [
+        "推广渠道包含APP弹窗或短信或社交媒体",
+        "不包含线下门店等线下描述"
+      ],
+      "priority": "high",
+      "evidence_refs": [
+        {
+          "field": "final_output.reply_text"
+        }
+      ]
+    },
+    {
+      "expectation_id": "提供包含具体事项的执行时间表",
+      "downstream_consumer": "项目管理团队",
+      "user_intent": "需要了解活动执行节奏",
+      "expected_outcome": "回复中给出按天/阶段划分的执行安排",
+      "required_capabilities": [
+        "时间规划"
+      ],
+      "acceptance_criteria": [
+        "存在时间表或执行安排章节",
+        "表中至少包含准备、上线、中期、结束等阶段"
+      ],
+      "priority": "medium",
+      "evidence_refs": [
+        {
+          "field": "final_output.reply_text"
+        }
+      ]
+    },
+    {
+      "expectation_id": "最终阶段应为planning",
+      "downstream_consumer": "下游自动化系统",
+      "user_intent": "Agent应正确判断任务阶段为规划",
+      "expected_outcome": "final_output.stage字段值为“planning”",
+      "required_capabilities": [
+        "stage路由"
+      ],
+      "acceptance_criteria": [
+        "final_output.stage == 'planning'"
+      ],
+      "boundary": {
+        "allowed_stages": [
+          "planning",
+          "execution"
+        ]
+      },
+      "priority": "high",
+      "evidence_refs": [
+        {
+          "field": "final_output.stage"
+        }
+      ]
+    },
+    {
+      "expectation_id": "最终工具调用不包含未解决的澄清问题",
+      "downstream_consumer": "对话管理模块",
+      "user_intent": "用户已提供足够信息，不应再触发澄清",
+      "expected_outcome": "最终轮次的tool_calls中不含ask_clarification，或澄清问题已更新为其他内容",
+      "required_capabilities": [
+        "工具调用管理",
+        "上下文感知"
+      ],
+      "acceptance_criteria": [
+        "tool_calls为空 或 不包含ask_clarification 或 澄清问题已解决"
+      ],
+      "priority": "medium",
+      "evidence_refs": [
+        {
+          "field": "final_output.tool_calls"
+        }
+      ]
+    },
+    {
+      "expectation_id": "多轮对话正确使用上下文",
+      "downstream_consumer": "对话系统",
+      "user_intent": "Agent应在第二轮结合第一轮的澄清结果生成最终规划",
+      "expected_outcome": "第二轮生成的规划基于用户第二轮提供的新信息，并修正了第一轮中的未知项",
+      "required_capabilities": [
+        "多轮上下文维护"
+      ],
+      "acceptance_criteria": [
+        "第二轮的reply_text体现了用户第二轮补充的信息",
+        "第一轮的未知内容已被补全"
+      ],
+      "priority": "high",
+      "evidence_refs": [
+        {
+          "field": "turns[1].extracted_output.reply_text"
+        },
+        {
+          "field": "turns[0].input.messages"
+        }
+      ]
+    },
+    {
+      "expectation_id": "无NBEV脚本调用",
+      "downstream_consumer": "脚本执行环境",
+      "user_intent": "此场景为纯文本规划，无需调用业务脚本",
+      "expected_outcome": "nbev_tool_count为0，且tool_calls中无任何业务执行脚本",
+      "required_capabilities": [
+        "工具选择控制"
+      ],
+      "acceptance_criteria": [
+        "final_output.nbev_tool_count == 0",
+        "tool_calls中无NBEV脚本"
+      ],
+      "priority": "low",
+      "evidence_refs": [
+        {
+          "field": "final_output.nbev_tool_count"
+        }
+      ]
+    }
+  ],
+  "fulfillment_assessments": [
+    {
+      "expectation_id": "规划包含活动基本信息",
+      "status": "fulfilled",
+      "expected_evidence": [
+        "reply_text 包含活动主题、时间、目标用户、产品、预算等字段"
+      ],
+      "actual_evidence": [
+        "reply_text 首段表格明确列出主题“首单特惠·7天解锁会员”、时间2026年7月20日-26日、目标用户“注册7天内未首次付费的新用户”、产品“月度视频会员订阅”、预算“50,000元”"
+      ],
+      "downstream_impact": "用户可直接获取所需规划内容",
+      "blocking": false,
+      "confidence": 1.0,
+      "evidence_refs": [
+        {
+          "field": "final_output.reply_text"
+        }
+      ]
+    },
+    {
+      "expectation_id": "预算金额不超过五万元",
+      "status": "fulfilled",
+      "expected_evidence": [
+        "reply_text 中预算总额为50000元，各渠道分配之和等于50000元"
+      ],
+      "actual_evidence": [
+        "reply_text 中预算表格显示总额50,000元，各项分配：20,000+12,500+10,000+7,500=50,000元"
+      ],
+      "downstream_impact": "满足财务约束",
+      "blocking": false,
+      "confidence": 1.0,
+      "evidence_refs": [
+        {
+          "field": "final_output.reply_text"
+        }
+      ]
+    },
+    {
+      "expectation_id": "活动目标用户为注册7天内未付费新用户",
+      "status": "fulfilled",
+      "expected_evidence": [
+        "reply_text 中目标用户描述为注册7天内未首次付费的新用户"
+      ],
+      "actual_evidence": [
+        "reply_text 基本信息表目标用户栏明确写“注册7天内未首次付费的新用户”"
+      ],
+      "downstream_impact": "精准定位目标人群",
+      "blocking": false,
+      "confidence": 1.0,
+      "evidence_refs": [
+        {
+          "field": "final_output.reply_text"
+        }
+      ]
+    },
+    {
+      "expectation_id": "促销活动采用线上推广形式",
+      "status": "fulfilled",
+      "expected_evidence": [
+        "推广渠道全部为线上，如APP弹窗、短信、社交媒体等"
+      ],
+      "actual_evidence": [
+        "推广渠道表格列出APP弹窗/首页横幅、短信/消息推送、社交媒体（微信/抖音），均为线上渠道"
+      ],
+      "downstream_impact": "符合用户线上活动要求",
+      "blocking": false,
+      "confidence": 1.0,
+      "evidence_refs": [
+        {
+          "field": "final_output.reply_text"
+        }
+      ]
+    },
+    {
+      "expectation_id": "提供包含具体事项的执行时间表",
+      "status": "fulfilled",
+      "expected_evidence": [
+        "reply_text 包含执行安排章节，列出多日具体事项"
+      ],
+      "actual_evidence": [
+        "reply_text 的“执行安排”表格列出7月19日准备、20日上线、22日复盘、26日结束结算"
+      ],
+      "downstream_impact": "可操作性增强",
+      "blocking": false,
+      "confidence": 1.0,
+      "evidence_refs": [
+        {
+          "field": "final_output.reply_text"
+        }
+      ]
+    },
+    {
+      "expectation_id": "最终阶段应为planning",
+      "status": "not_fulfilled",
+      "expected_evidence": [
+        "final_output.stage 值为 “planning”"
+      ],
+      "actual_evidence": [
+        "final_output.stage 值为 “clarification”"
+      ],
+      "downstream_impact": "下游自动化系统可能仍将本次会话视为澄清阶段，无法触发后续规划执行流程，导致业务断点",
+      "blocking": true,
+      "confidence": 1.0,
+      "evidence_refs": [
+        {
+          "field": "final_output.stage"
+        }
+      ]
+    },
+    {
+      "expectation_id": "最终工具调用不包含未解决的澄清问题",
+      "status": "not_fulfilled",
+      "expected_evidence": [
+        "final_output.tool_calls 为空，或不包含 ask_clarification"
+      ],
+      "actual_evidence": [
+        "final_output.tool_calls 包含一个 ask_clarification 调用，其 question 内容仍为第一轮中已解决的澄清问题（询问订阅套餐类型等）"
+      ],
+      "downstream_impact": "错误触发澄清逻辑，可能导致对话循环或工具执行浪费",
+      "blocking": false,
+      "confidence": 1.0,
+      "evidence_refs": [
+        {
+          "field": "final_output.tool_calls"
+        }
+      ]
+    },
+    {
+      "expectation_id": "多轮对话正确使用上下文",
+      "status": "fulfilled",
+      "expected_evidence": [
+        "第二轮回复基于用户补充信息生成，无信息遗漏"
+      ],
+      "actual_evidence": [
+        "第二轮用户澄清了产品、目标用户、形式和时间，最终回复完整吸收了这些信息，且第一轮的未知项均已补全"
+      ],
+      "downstream_impact": "对话体验连贯，信息准确",
+      "blocking": false,
+      "confidence": 1.0,
+      "evidence_refs": [
+        {
+          "field": "turns[1].extracted_output.reply_text"
+        }
+      ]
+    },
+    {
+      "expectation_id": "无NBEV脚本调用",
+      "status": "fulfilled",
+      "expected_evidence": [
+        "final_output.nbev_tool_count 为 0，tool_calls 中无 NBEV 脚本"
+      ],
+      "actual_evidence": [
+        "final_output.nbev_tool_count = 0；tool_calls 仅有 ask_clarification，非 NBEV 脚本"
+      ],
+      "downstream_impact": "不会误触发业务执行脚本，安全",
+      "blocking": false,
+      "confidence": 1.0,
+      "evidence_refs": [
+        {
+          "field": "final_output.nbev_tool_count"
+        }
+      ]
+    }
+  ],
+  "overall_fulfillment": {
+    "status": "not_fulfilled",
+    "reason": "虽然最终回复内容完全满足用户对促销活动规划的业务需求，但在关键系统维度“stage_routing”上未通过（实际为 clarification，预期为 planning），且最终工具调用仍包含过时未更新的澄清问题，可能导致下游自动化流程中断或误判。依据 deerflow 评估关键维度，stage 与工具调用是系统行为正确性的重要指标，因此整体判定为未满足。"
+  },
+  "expected": {
+    "reply_text": "已生成一份完整的促销活动规划方案，包含活动主题、时间、目标用户、产品、预算、推广渠道分配、预期效果和执行时间表。",
+    "stage": "planning",
+    "nbev_tool_count": 0,
+    "session_summary": {
+      "evidence_declared": true,
+      "evidence_status": "declared",
+      "thread_id": "73db3176-17a4-4370-b9d2-8d805e781c79"
+    },
+    "fallback": {
+      "allowed": false,
+      "reason": "",
+      "used": false
+    }
+  },
+  "actual": {
+    "fallback": {
+      "allowed": false,
+      "reason": "",
+      "used": false
+    },
+    "nbev_tool_count": 0,
+    "reply_text": "好的，我来帮您规划这份新会员促销活动方案。\n\n---\n\n## 🎯 下周新会员订阅套餐促销活动规划\n\n### 📋 基本信息\n\n| 项目 | 内容 |\n|------|------|\n| **活动主题** | \"首单特惠·7天解锁会员\" |\n| **活动时间** | 2026年7月20日（周一）至 7月26日（周日），共7天 |\n| **目标用户** | 注册7天内未首次付费的新用户 |\n| **产品** | 月度视频会员订阅 |\n| **预算** | 50,000元 |\n\n---\n\n### 🎁 活动内容设计\n\n**核心促销机制：**\n- **限时首单5折** — 新用户首次购买月度会员享5折优惠（原价30元→15元）\n- **邀请返利** — 老用户邀请新用户成功付费，双方各得5元奖励\n- **满赠福利** — 活动期间购买会员赠送3天会员时长\n\n**裂变机制：**\n- 分享活动海报到朋友圈可再获3天会员（需新用户通过链接注册）\n\n---\n\n### 📢 推广渠道与预算分配\n\n| 渠道 | 预算占比 | 金额 | 投放策略 |\n|------|----------|------|----------|\n| **APP弹窗/首页横幅** | 40% | 20,000元 | 全站精准触达目标用户 |\n| **短信/消息推送** | 25% | 12,500元 | 针对注册3-7天未付费用户定向推送 |\n| **社交媒体（微信/抖音）** | 20% | 10,000元 | 投放广告+KOL合作 |\n| **优惠券发放** | 15% | 7,500元 | 满减券/折扣券叠加使用 |\n\n---\n\n### 📊 预期效果\n\n| 指标 | 预估目标 |\n|------|----------|\n| 活动曝光量 | 50,000+ 人次 |\n| 付费转化率 | 8%-12% |\n| 预计新增付费会员 | 4,000-6,000 人 |\n| 预计销售额 | 60,000-90,000 元 |\n| 投入产出比(ROI) | 1.2-1.8 |\n\n---\n\n### ⏰ 执行安排\n\n| 时间 | 事项 |\n|------|------|\n| **7月19日（周日）** | 物料准备、渠道配置、后台测试 |\n| **7月20日（周一）** | 活动正式上线，全渠道推广启动 |\n| **7月22日（周三）** | 中期数据复盘，优化投放策略 |\n| **7月26日（周日）** | 活动结束，结算复盘 |\n\n---\n\n需要我帮您补充其他细节吗？比如具体的文案、促销海报设计，或者将方案保存为文件？",
+    "session_summary": {
+      "evidence_declared": true,
+      "evidence_status": "declared",
+      "thread_id": ""
+    },
+    "stage": "clarification",
+    "tool_calls": [
+      {
+        "args": {
+          "clarification_type": "missing_info",
+          "question": "您提到的\"订阅套餐\"具体是什么产品/服务类型？另外，方便告诉我以下信息以便更好地为您规划：1) 活动想针对什么类型的新会员？2) 活动形式偏好（线上、线下还是结合）？3) 活动具体从下周哪一天开始，计划持续多久？"
+        },
+        "is_nbev_script": false,
+        "name": "ask_clarification"
+      }
+    ]
+  },
+  "wrong": [
+    {
+      "kind": "stage_value",
+      "error_type": "incorrect_value",
+      "expected": "planning",
+      "actual": "clarification",
+      "evidence_ref": "final_output.stage",
+      "incomplete": false
+    },
+    {
+      "kind": "tool_call",
+      "error_type": "redundant_clarification",
+      "expected": "无澄清工具调用或澄清已完成",
+      "actual": "存在 ask_clarification 调用，问题为已解决的澄清内容",
+      "evidence_ref": "final_output.tool_calls",
+      "incomplete": false
+    }
+  ],
+  "evidence": [
+    {
+      "source": "final_output.reply_text",
+      "excerpt": "好的，我来帮您规划这份新会员促销活动方案。…（包含完整规划信息）"
+    },
+    {
+      "source": "final_output.stage",
+      "value": "clarification"
+    },
+    {
+      "source": "final_output.tool_calls",
+      "value": "[{\"name\": \"ask_clarification\", \"args\": {…}}]"
+    }
+  ],
+  "reasoning_summary": "用户意图是生成一份面向新会员的促销活动规划。Agent 在第二轮给出了一份详尽的文本规划，覆盖了活动主题、时间、目标、产品、预算、渠道分配、预期效果和执行时间表，满足了所有内容层面的业务期望。然而，关键维度“stage_routing”未能满足：最终 stage 错误地停留在 clarification，而非进入 planning；最终工具调用中仍保留了一个过时的 ask_clarification，其问题内容已被用户在前一轮澄清完毕。这些系统行为的偏差虽然未影响文本层面的交付，但对依赖 stage 进行路由的下游自动化系统构成阻断风险，因此按照 deerflow 评估规范，整体判定为未满足。",
+  "summary": {
+    "reason": "not_fulfilled · blocking=[最终阶段应为planning] · 用户意图是生成一份面向新会员的促销活动规划。Agent 在第二轮给出了一份详尽的文本规划，覆盖了活动主题、时间、目标、产品、预算、渠道分配、预期效果和执行时间表，满足了所有内容层面的业务期望。然而，关键维度“stage_routing”未能满足：最终 stage 错误地停留在 clarification，而非进入 planning；最终工具调用中仍保留了一个过时的 ask_clarification，其问题内容已被用户在前一轮澄清完毕。这些系统行为的偏差虽然未影响文本层面的交付，但对依赖 stage 进行路由的下游自动化系统构成阻断风险，因此按照 deerflow 评估规范，整体判定为未满足。",
+    "primary_failure_dimensions": [
+      {
+        "expectation_id": "最终阶段应为planning",
+        "status": "not_fulfilled",
+        "blocking": true,
+        "downstream_impact": "下游自动化系统可能仍将本次会话视为澄清阶段，无法触发后续规划执行流程，导致业务断点",
+        "evidence": "final_output.stage 值为 “clarification” | final_output.stage 值为 “planning”"
+      },
+      {
+        "expectation_id": "最终工具调用不包含未解决的澄清问题",
+        "status": "not_fulfilled",
+        "blocking": false,
+        "downstream_impact": "错误触发澄清逻辑，可能导致对话循环或工具执行浪费",
+        "evidence": "final_output.tool_calls 包含一个 ask_clarification 调用，其 question 内容仍为第一轮中已解决的澄清问题（询问订阅套餐类型等） | final_output.tool_calls 为空，或不包含 ask_clarification"
+      }
+    ],
+    "reason_source": "aggregated_fulfillment",
+    "fulfillment_status": "not_fulfilled",
+    "assessment_count": 9,
+    "blocking_count": 1,
+    "is_formal_attribution": true
+  }
+}

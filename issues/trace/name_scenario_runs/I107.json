@@ -1,0 +1,228 @@
+{
+  "id": "I107",
+  "query": "胡秀清保单号",
+  "role": "name_plus_policy",
+  "expected_status": "fulfilled",
+  "source": "set_a",
+  "live_error": null,
+  "judge_error": null,
+  "live": {
+    "trace_id": "client_search:I107:1786796232489",
+    "fields": [
+      "searchClientName"
+    ],
+    "values": [
+      "胡秀清"
+    ],
+    "robot_text": "客户姓名为胡秀清的客户",
+    "matched_patterns": "疑似姓名候选、姓名-字段名无值",
+    "intent_summary": "客户姓名为胡秀清的客户",
+    "conditions": [
+      {
+        "field": "searchClientName",
+        "operator": "MATCH",
+        "value": "胡秀清",
+        "match_mode": null
+      }
+    ],
+    "extracted": {
+      "code": 0,
+      "msg": "操作成功",
+      "robot_text": "客户姓名为胡秀清的客户",
+      "end_flag": 1,
+      "trace_id": null,
+      "query": "胡秀清保单号",
+      "query_logic": "AND",
+      "conditions": [
+        {
+          "field": "searchClientName",
+          "operator": "MATCH",
+          "value": "胡秀清",
+          "match_mode": null
+        }
+      ],
+      "matched_level": 2,
+      "matched_patterns": "疑似姓名候选、姓名-字段名无值",
+      "rewritten_query": "胡秀清保单号",
+      "intent_summary": "客户姓名为胡秀清的客户",
+      "confidence": 0.95,
+      "cost_times": 16.0
+    }
+  },
+  "judge_status": "fulfilled",
+  "judge_reasoning": "用户提供了明确姓名，但未提供具体保单号值。实际输出正确保留胡秀清姓名条件，且未凭空增加保单号限制；下游结果集未验证，但当前仅评价条件语义。",
+  "judge": {
+    "trace_id": "client_search:I107:1786796232489",
+    "project_id": "client_search",
+    "business_expectations": [
+      {
+        "expectation_id": "按姓名胡秀清筛选客户",
+        "blocking": true,
+        "downstream_consumer": "客户搜索下游",
+        "user_intent": "查找客户姓名为胡秀清的客户",
+        "expected_outcome": "生成客户姓名为胡秀清的可执行搜索条件",
+        "required_capabilities": [
+          "客户本人姓名字段",
+          "MATCH操作符",
+          "客户姓名值原样保留"
+        ],
+        "acceptance_criteria": [
+          "包含searchClientName字段",
+          "操作符为MATCH",
+          "值为胡秀清",
+          "查询逻辑可执行"
+        ],
+        "boundary": {
+          "judge_scope": "parser_condition_semantics_only",
+          "result_set_verified": false
+        },
+        "priority": "核心",
+        "evidence_refs": []
+      },
+      {
+        "expectation_id": "不因缺少保单号值增加限制",
+        "blocking": false,
+        "downstream_consumer": "客户搜索下游",
+        "user_intent": "保留姓名筛选，同时不将无具体值的保单号字段误生成条件",
+        "expected_outcome": "不生成缺少实际保单号值的保单号搜索条件",
+        "required_capabilities": [
+          "识别字段名无值表达",
+          "避免增加未表达的搜索限制"
+        ],
+        "acceptance_criteria": [
+          "条件中不出现无值的polNo条件",
+          "不凭空生成保单号"
+        ],
+        "boundary": {
+          "judge_scope": "parser_condition_semantics_only"
+        },
+        "priority": "辅助",
+        "evidence_refs": []
+      }
+    ],
+    "fulfillment_assessments": [
+      {
+        "expectation_id": "按姓名胡秀清筛选客户",
+        "status": "fulfilled",
+        "score": 1.0,
+        "expected_evidence": [
+          "用户文本包含姓名胡秀清",
+          "目标是形成客户筛选条件"
+        ],
+        "actual_evidence": [
+          "conditions包含searchClientName MATCH 胡秀清",
+          "query_logic为AND且条件数量为1"
+        ],
+        "downstream_impact": "已交付可执行的客户姓名筛选条件；下游结果集未验证，但不影响本边界内的条件语义判断。",
+        "confidence": null,
+        "evidence_refs": [],
+        "authority_tool_call_ids": []
+      },
+      {
+        "expectation_id": "不因缺少保单号值增加限制",
+        "status": "fulfilled",
+        "score": 1.0,
+        "expected_evidence": [
+          "保单号仅作为字段名出现，没有具体保单号值"
+        ],
+        "actual_evidence": [
+          "实际条件仅包含姓名条件",
+          "已加载字段事实表明polNo需要extract值并使用MATCH"
+        ],
+        "downstream_impact": "未增加无依据的保单号限制，避免缩小目标客户集合。",
+        "confidence": null,
+        "evidence_refs": [],
+        "authority_tool_call_ids": []
+      }
+    ],
+    "overall_fulfillment": {
+      "status": "fulfilled",
+      "assessment_count": 2,
+      "blocking_expectations": [
+        "按姓名胡秀清筛选客户"
+      ]
+    },
+    "expected": {
+      "code": 0,
+      "msg": "操作成功",
+      "query": "胡秀清保单号",
+      "conditions": [
+        {
+          "field": "searchClientName",
+          "operator": "MATCH",
+          "value": "胡秀清",
+          "match_mode": null
+        }
+      ],
+      "robot_text": "客户姓名为胡秀清的客户",
+      "query_logic": "AND",
+      "rewritten_query": "胡秀清保单号",
+      "end_flag": 1,
+      "trace_id": null,
+      "matched_level": null,
+      "matched_patterns": null,
+      "intent_summary": "客户姓名为胡秀清的客户",
+      "confidence": null,
+      "cost_times": null
+    },
+    "actual": {
+      "code": 0,
+      "msg": "操作成功",
+      "robot_text": "客户姓名为胡秀清的客户",
+      "end_flag": 1,
+      "trace_id": null,
+      "query": "胡秀清保单号",
+      "query_logic": "AND",
+      "conditions": [
+        {
+          "field": "searchClientName",
+          "operator": "MATCH",
+          "value": "胡秀清",
+          "match_mode": null
+        }
+      ],
+      "matched_level": 2,
+      "matched_patterns": "疑似姓名候选、姓名-字段名无值",
+      "rewritten_query": "胡秀清保单号",
+      "intent_summary": "客户姓名为胡秀清的客户",
+      "confidence": 0.95,
+      "cost_times": 16.0
+    },
+    "missing": [],
+    "wrong": [],
+    "extra": [],
+    "evidence": [
+      {
+        "query": "胡秀清保单号"
+      },
+      {
+        "actual_conditions": [
+          {
+            "field": "searchClientName",
+            "operator": "MATCH",
+            "value": "胡秀清"
+          }
+        ]
+      },
+      {
+        "loaded_field_definition": "polNo支持MATCH，值类型为extract"
+      },
+      {
+        "source": "client_search.condition_compare",
+        "wrong": [],
+        "missing": [],
+        "extra": []
+      }
+    ],
+    "reasoning_summary": "用户提供了明确姓名，但未提供具体保单号值。实际输出正确保留胡秀清姓名条件，且未凭空增加保单号限制；下游结果集未验证，但当前仅评价条件语义。",
+    "summary": {
+      "reason": "fulfilled · 1 blocking expectations all met · 用户提供了明确姓名，但未提供具体保单号值。实际输出正确保留胡秀清姓名条件，且未凭空增加保单号限制；下游结果集未验证，但当前仅评价条件语义。",
+      "primary_failure_dimensions": [],
+      "reason_source": "aggregated_fulfillment",
+      "fulfillment_status": "fulfilled",
+      "assessment_count": 2,
+      "blocking_count": 1,
+      "is_formal_attribution": true
+    }
+  }
+}

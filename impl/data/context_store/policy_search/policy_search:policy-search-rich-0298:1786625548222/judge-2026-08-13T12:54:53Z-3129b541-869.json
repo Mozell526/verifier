@@ -1,0 +1,312 @@
+{
+  "caller": "judge",
+  "created_at": "2026-08-13T12:54:53Z",
+  "elapsed_ms": 145438,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "production"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "33af42eaf67b21de315f91f0b5fff5e4550f7597b3d5a92ffcccc6263814af76",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [],
+      "lineage": {
+        "call_id": "",
+        "case_id": "policy-search-rich-0298",
+        "trace_id": "policy_search:policy-search-rich-0298:1786625548222"
+      },
+      "messages": [
+        {
+          "char_count": 7368,
+          "content_sha256": "f5559e2831ea15fd5d0a75f202e64faec2eaf6fc95f6497abac519065bb1f636",
+          "role": "system"
+        },
+        {
+          "char_count": 6102,
+          "content_sha256": "750ae8f553ed177cddc13496301ab0c6094d58b11e0814e0ad35b36d6a561040",
+          "role": "user"
+        }
+      ],
+      "mode": "production",
+      "output_contract": {
+        "field_names": [
+          "acceptance_criteria",
+          "actual",
+          "actual_evidence",
+          "applicable_product_expectation_ids",
+          "authority_tool_call_ids",
+          "blocking",
+          "boundary",
+          "business_expectations",
+          "code",
+          "downstream_consumer",
+          "downstream_impact",
+          "error_type",
+          "evidence",
+          "evidence_ref",
+          "expectation_id",
+          "expected",
+          "expected_evidence",
+          "expected_outcome",
+          "extra",
+          "filter",
+          "fulfillment_assessments",
+          "incomplete",
+          "kind",
+          "message",
+          "missing",
+          "msg",
+          "priority",
+          "query",
+          "raw",
+          "reasoning_summary",
+          "required_capabilities",
+          "score",
+          "status",
+          "user_intent",
+          "wrong"
+        ],
+        "identity": "impl.core.schema.judge.JudgeLLMOutput",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "1ebd986c8c695abe1e8329086ca3fa881a0eaa83fe0e670d24af6af6d4fad2f0",
+        "sha256": "1ebd986c8c695abe1e8329086ca3fa881a0eaa83fe0e670d24af6af6d4fad2f0"
+      },
+      "project_id": "policy_search",
+      "prompt_char_count": 13470,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 6102,
+        "occurred": false
+      },
+      "role": "judge",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 1725,
+          "content_sha256": "5727bfa7858a8ce05122cd632b62736542f3792c880caa51ab16c7257d1f754b",
+          "order": 0,
+          "role": "judge",
+          "segment_id": "compiled-system",
+          "source": "impl/core/judge.py#judge_trace",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 6102,
+          "content_sha256": "750ae8f553ed177cddc13496301ab0c6094d58b11e0814e0ad35b36d6a561040",
+          "order": 1,
+          "role": "judge",
+          "segment_id": "case-user-payload",
+          "source": "trace://judge-evidence-view",
+          "stage": "judge"
+        }
+      ],
+      "stage": "judge",
+      "tool_plan": []
+    }
+  },
+  "llm_model": "deepseek-v4-flash-0731",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "你是通用评估系统的 judge agent。\n\n## 核心原则\n只基于当前 RunTrace、项目评判标准和动态检索的知识库内容判断，不继承历史 case。\n首要职责：理解用户/下游消费者的真实业务意图 → 派生 business_expectations → 基于完整执行链路（每轮 output、最终 output、交互过程和停止事实）判断 expectations 的 fulfillment。\n\n## expectation 拆分原则\nbusiness_expectations 的粒度直接决定判断精度。每个 expectation 必须是原子、独立可评价的判断单元：证据充分时判 fulfilled 或 not_fulfilled；确需评价但当前证据不足时按协议判 not_evaluable。\n- 一个 expectation 只描述一个可独立验证的结果维度\n- 多维度意图必须拆成多个 expectation\n- 每个 expectation 必须有明确的 acceptance_criteria\n- 每个 expectation 必须在比较 actual 前确定 blocking：只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true\n- fulfillment_assessments 只判断对应 expectation 的 status 和证据，不得重新定义 blocking\n- expectation_id 必须是描述性的中文短语，禁止使用 E1/E2/exp_01 等占位符 ID\n- reasoning_summary 必须是中文写成的判断依据\n\n## 输出词表\n`fulfillment_assessments[*].status` 必须从以下 3 个值中选择：\n  - fulfilled：该 expectation 完全满足\n  - not_fulfilled：该 expectation 未满足\n  - not_evaluable：当前无法评估\n禁用 failed/passed/incorrect/wrong/met/unmet/partially_fulfilled/partial/success/fail/ok/unknown 等同义词。\n`fulfillment_assessments[*].expected_evidence` 与 `actual_evidence` **必须是数组**（JSON array / list），即使只有一条证据也要用 `[...]` 包裹，不可直接用字符串或对象。\n\n不要输出 overall_fulfillment；公共层会在项目契约补充完成后根据 blocking expectations 确定性派生整体状态。\n\n## 评估规范\n\n\n## 评估边界\n\n\n## 判断标准\n\n\n\n\n你评价的是保单筛选语义是否被完整、可执行且安全地表达。先判断服务依赖是否成功，再比较 query 与 filter。忽略 node_id 命名差异；允许逻辑等价的树。字段、操作符、值、角色、AND/OR/NOT 作用域、日期边界和条件完整性都必须正确。SUCCESS 必须有完整 filter；歧义、条件缺失或越界场景应 UNSUPPORTED 且不得返回部分 filter。业务实现、prompt 和配置是当前能力证据，不是不可质疑的自证。\n## 工具使用原则\n所有工具的用途、调用时机和参数含义以 Agno tool schema 为准；user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息。\n\n## 禁止事项\n- 不要把 reference answer 当作默认主目标（除非 case 明确指定）\n- 不要把 HTTP 状态、run_status、attribute/cluster 结论当作满足依据\n- 不要归因内部代码、配置或 prompt 原因（属于 attribute agent）\n- 分析文字必须使用中文，包括 reasoning_summary 等所有文本字段。\n\n\n## 输出约束：judge 判定输出（自产 reference + fulfillment 判定）\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"business_expectations\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeBusinessExpectationOutput\"\n      },\n      \"minItems\": 1\n    },\n    \"applicable_product_expectation_ids\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"fulfillment_assessments\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeFulfillmentAssessmentOutput\"\n      }\n    },\n    \"expected\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"code\": {\n          \"type\": \"integer\"\n        },\n        \"msg\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"query\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"filter\": {\n          \"type\": [\n            \"object\",\n            \"null\"\n          ]\n        },\n        \"message\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"code\",\n        \"msg\",\n        \"status\",\n        \"query\",\n        \"filter\",\n        \"message\"\n      ]\n    },\n    \"missing\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"wrong\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"extra\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"evidence\": {\n      \"type\": \"array\",\n      \"items\": {}\n    },\n    \"reasoning_summary\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    }\n  },\n  \"additionalProperties\": false,\n  \"$defs\": {\n    \"JudgeBusinessExpectationOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"blocking\": {\n          \"type\": \"boolean\"\n        },\n        \"downstream_consumer\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"user_intent\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected_outcome\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"required_capabilities\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"acceptance_criteria\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"boundary\": {\n          \"type\": \"object\"\n        },\n        \"priority\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"blocking\"\n      ]\n    },\n    \"JudgeFulfillmentAssessmentOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"score\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        },\n        \"expected_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"actual_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"downstream_impact\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"authority_tool_call_ids\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"status\"\n      ]\n    },\n    \"GapItem\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"kind\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"error_type\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected\": {},\n        \"actual\": {},\n        \"evidence_ref\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"raw\": {},\n        \"incomplete\": {\n          \"type\": \"boolean\"\n        }\n      },\n      \"additionalProperties\": false\n    }\n  },\n  \"required\": [\n    \"expected\",\n    \"business_expectations\",\n    \"reasoning_summary\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['business_expectations', 'expected', 'reasoning_summary']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n\n### 嵌套字段子结构约束\n以下字段内部的子结构也必须严格遵守，不可随意编造字段名或类型：\n- **`expected`** 字段 (项目 policy_search 的 expected/live output 结构) 必须符合以下结构：\n  ```json\n  {\n    \"type\": \"object\",\n    \"properties\": {\n      \"code\": {\n        \"type\": \"integer\"\n      },\n      \"msg\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"status\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"query\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"filter\": {\n        \"type\": [\n          \"object\",\n          \"null\"\n        ]\n      },\n      \"message\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"additionalProperties\": false,\n    \"required\": [\n      \"code\",\n      \"msg\",\n      \"status\",\n      \"query\",\n      \"filter\",\n      \"message\"\n    ]\n  }\n  ```\n",
+      "created_at": 1786625620,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "e7561849-767c-4952-9e40-aa2e8f867f09",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"user_intent\": \"筛选符合“可以或允许加保的保单”所表达条件的保单\", \"run_trace\": {\"trace_id\": \"policy_search:policy-search-rich-0298:1786625548222\", \"project_id\": \"policy_search\", \"case_id\": \"policy-search-rich-0298\", \"intent_input\": {\"session_id\": \"policy-search-rich-0298\", \"trace_id\": \"policy-search-rich-0298\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"麻烦帮我筛一下，可以或允许加保的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"normalized_request\": {\"session_id\": \"policy-search-rich-0298\", \"trace_id\": \"policy-search-rich-0298\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"麻烦帮我筛一下，可以或允许加保的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"final_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"麻烦帮我筛一下，可以或允许加保的保单\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"is_allow_append_insurance\", \"operator\": \"EQ\", \"value\": \"是\"}, \"message\": \"解析成功\"}, \"final_output_turn\": 1, \"turns\": [{\"turn_index\": 1, \"request\": {\"session_id\": \"policy-search-rich-0298\", \"trace_id\": \"policy-search-rich-0298\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"麻烦帮我筛一下，可以或允许加保的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"extracted_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"麻烦帮我筛一下，可以或允许加保的保单\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"is_allow_append_insurance\", \"operator\": \"EQ\", \"value\": \"是\"}, \"message\": \"解析成功\"}, \"call_status\": \"succeeded\", \"runtime_ms\": 2483, \"error\": null, \"fallbacks\": [], \"validation\": [], \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"application_boundary\": {\"dependency_status\": \"available\", \"allow_fallback\": false, \"excluded_evidence\": [], \"notes\": \"parser returned an executable filter\"}, \"project_fields\": {\"parse_status\": \"SUCCESS\", \"filter_root_type\": \"PREDICATE\"}}], \"conversation_transcript\": [{\"role\": \"user\", \"content\": \"麻烦帮我筛一下，可以或允许加保的保单\", \"query\": \"麻烦帮我筛一下，可以或允许加保的保单\"}, {\"role\": \"assistant\", \"content\": \"解析成功\", \"stage\": null}], \"conversation_summary\": {\"turn_count\": 1, \"final_output_turn\": 1, \"completion_status\": \"completed\", \"stop_reason\": \"goal_satisfied\", \"interaction_controller_status\": \"ok\", \"interaction_controller_error\": \"\"}, \"stop_reason\": \"goal_satisfied\", \"completion_status\": \"completed\", \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"evidence_refs\": [], \"raw_response_evidence\": null, \"evidence_completeness\": {\"complete\": true, \"missing_evidence\": []}, \"application_boundary\": {\"dependency_status\": \"available\", \"allow_fallback\": false, \"excluded_evidence\": [], \"notes\": \"parser returned an executable filter\"}, \"reference_contract\": {}, \"scenario\": \"enum_alias\", \"status\": \"ok\", \"error\": null}, \"query\": \"麻烦帮我筛一下，可以或允许加保的保单\", \"actual_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"麻烦帮我筛一下，可以或允许加保的保单\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"is_allow_append_insurance\", \"operator\": \"EQ\", \"value\": \"是\"}, \"message\": \"解析成功\"}, \"turn_records\": [{\"turn_index\": 1, \"query\": \"麻烦帮我筛一下，可以或允许加保的保单\", \"status\": \"SUCCESS\", \"message\": \"解析成功\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"is_allow_append_insurance\", \"operator\": \"EQ\", \"value\": \"是\"}, \"contexts\": []}], \"interactive_scenario\": false, \"reference_contract\": {}, \"business_evidence_paths\": {\"api_contract\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索算法解析接口文档（智能体对接稿）.md\", \"filter_contract\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索查询语法树协议（首期精简版）.md\", \"technical_design\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索算法解析技术方案（当前实现版）.md\", \"business_config\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/configs/insurance_search_business_config_prd.json\", \"runtime_config\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/configs/insurance_search_runtime_config_prd.json\", \"golden_manifest\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/data/golden_dataset/manifest.json\"}, \"evaluation_dimensions\": [\"field_selection\", \"operator_and_value\", \"logical_scope\", \"time_boundary\", \"condition_completeness\", \"safe_failure\"]}",
+      "created_at": 1786625620,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "18aadbfb-bdce-47a1-a7d4-8325f2d9791f",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"business_expectations\":[{\"expectation_id\":\"解析服务依赖可用且输出契约完整\",\"blocking\":true,\"downstream_consumer\":\"下游保单筛选执行器（消费 filter 执行实际筛选）\",\"user_intent\":\"用户要求筛选“可以或允许加保的保单”，解析器须产出可执行的完整筛选条件\",\"expected_outcome\":\"依赖可用时返回 status=SUCCESS 且 filter 为非空、可执行的完整谓词结构，不得返回空或部分 filter\",\"required_capabilities\":[\"policy_search_parse\",\"filter_tree_generation\",\"live_schema_validation\"],\"acceptance_criteria\":[\"final_output.status == SUCCESS\",\"final_output.code == 0\",\"final_output.filter 为非空对象且包含完整 field/operator/value 的 PREDICATE 节点\"],\"boundary\":{\"dependency\":\"available\",\"allow_partial_filter\":false},\"priority\":\"P0\"},{\"expectation_id\":\"允许加保条件映射到正确字段\",\"blocking\":true,\"downstream_consumer\":\"下游筛选执行器依据 filter.field 定位保单属性\",\"user_intent\":\"“可以加保/允许加保”应映射为保单“是否允许加保”属性\",\"expected_outcome\":\"filter.field 为 is_allow_append_insurance\",\"required_capabilities\":[\"字段映射:是否允许加保 -> is_allow_append_insurance\"],\"acceptance_criteria\":[\"filter.field == is_allow_append_insurance\"],\"boundary\":{\"字段别名\":\"可以加保/允许加保均指向同一字段\"},\"priority\":\"P0\"},{\"expectation_id\":\"操作符与取值表达允许加保为是\",\"blocking\":true,\"downstream_consumer\":\"下游筛选执行器依据 operator/value 生成筛选谓词\",\"user_intent\":\"筛选“允许加保”为肯定的保单\",\"expected_outcome\":\"filter 使用 EQ 操作符且 value=“是”\",\"required_capabilities\":[\"操作符:EQ\",\"枚举值:是\"],\"acceptance_criteria\":[\"filter.operator == EQ\",\"filter.value == 是\"],\"boundary\":{\"value_scope\":\"是/否 枚举\"},\"priority\":\"P0\"},{\"expectation_id\":\"逻辑作用域与查询语义等价\",\"blocking\":true,\"downstream_consumer\":\"下游筛选执行器按查询树结构求值\",\"user_intent\":\"“可以或允许”为同义并列表达，不应产生冗余 OR/NOT 分支\",\"expected_outcome\":\"单谓词树即可完整表达，不引入多余逻辑节点，求值结果与完整查询语义等价\",\"required_capabilities\":[\"逻辑组合:AND/OR/NOT\",\"同义别名合并\"],\"acceptance_criteria\":[\"filter 为单 PREDICATE 节点\",\"无 OR/NOT 冗余节点\",\"树求值结果等价于 允许加保=是\"],\"boundary\":{\"logical_form\":\"同义并列无需 OR 组合\"},\"priority\":\"P1\"},{\"expectation_id\":\"无歧义场景不触发安全失败\",\"blocking\":true,\"downstream_consumer\":\"调用方依据 status 与 filter 决定是否继续执行筛选\",\"user_intent\":\"查询完整可表达时不应误报 UNSUPPORTED，也不应返回部分 filter\",\"expected_outcome\":\"本次查询无歧义且条件完整，系统返回 SUCCESS 并携带完整 filter；仅在歧义/越界场景才返回 UNSUPPORTED\",\"required_capabilities\":[\"safe_failure 判定\"],\"acceptance_criteria\":[\"查询语义可完整表达，未触发 UNSUPPORTED\",\"filter 覆盖全部查询条件，非部分结果\"],\"boundary\":{\"ambiguous\":false,\"out_of_scope\":false},\"priority\":\"P1\"}],\"applicable_product_expectation_ids\":[],\"fulfillment_assessments\":[{\"expectation_id\":\"解析服务依赖可用且输出契约完整\",\"status\":\"fulfilled\",\"score\":null,\"expected_evidence\":[\"dependency_status 为 available\",\"状态为 SUCCESS 且 filter 为非空可执行结构\"],\"actual_evidence\":[\"application_boundary.dependency_status = available（allow_fallback=false）\",\"final_output 为 {code:0, msg:success, status:SUCCESS, filter:{type:PREDICATE, node_id:n0, field:is_allow_append_insurance, operator:EQ, value:是}}\"],\"downstream_impact\":\"若依赖不可用或 filter 缺失，下游将无法执行保单筛选\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"允许加保条件映射到正确字段\",\"status\":\"fulfilled\",\"score\":null,\"expected_evidence\":[\"field 为表达“是否允许加保”的字段 is_allow_append_insurance\"],\"actual_evidence\":[\"final_output.filter.field = is_allow_append_insurance，字段语义与查询“可以或允许加保”直接对应\"],\"downstream_impact\":\"字段选择错误将筛选出完全不相关的保单集合\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"操作符与取值表达允许加保为是\",\"status\":\"fulfilled\",\"score\":null,\"expected_evidence\":[\"operator=EQ 且 value=“是”，语义为“允许加保=是”\"],\"actual_evidence\":[\"final_output.filter.operator = EQ，final_output.filter.value = 是\"],\"downstream_impact\":\"操作符或取值错误会导致筛选范围颠倒或缺失目标保单\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"逻辑作用域与查询语义等价\",\"status\":\"fulfilled\",\"score\":null,\"expected_evidence\":[\"“可以加保”与“允许加保”是同义并列，单谓词即可完整表达，无需 OR 分支\"],\"actual_evidence\":[\"filter 为单节点 PREDICATE，无多余 AND/OR/NOT 结构，树求值结果与查询完整语义等价\"],\"downstream_impact\":\"逻辑作用域错误将扩大或缩小筛选范围\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"无歧义场景不触发安全失败\",\"status\":\"fulfilled\",\"score\":null,\"expected_evidence\":[\"查询可完整表达时应返回 SUCCESS 且携带完整 filter\"],\"actual_evidence\":[\"查询“麻烦帮我筛一下，可以或允许加保的保单”语义明确无歧义，返回 SUCCESS 与完整单谓词 filter，未出现 UNSUPPORTED 或部分 filter\"],\"downstream_impact\":\"误报 UNSUPPORTED 将阻断正常筛选流程，返回部分 filter 将导致筛选结果不全\",\"authority_tool_call_ids\":[]}],\"expected\":{\"code\":0,\"msg\":\"success\",\"status\":\"SUCCESS\",\"query\":\"麻烦帮我筛一下，可以或允许加保的保单\",\"filter\":{\"type\":\"PREDICATE\",\"field\":\"is_allow_append_insurance\",\"operator\":\"EQ\",\"value\":\"是\"},\"message\":\"解析成功\"},\"missing\":[],\"wrong\":[],\"extra\":[],\"evidence\":[{\"ref\":\"final_output\",\"status\":\"SUCCESS\",\"filter\":{\"type\":\"PREDICATE\",\"node_id\":\"n0\",\"field\":\"is_allow_append_insurance\",\"operator\":\"EQ\",\"value\":\"是\"}},{\"ref\":\"application_boundary\",\"dependency_status\":\"available\",\"allow_fallback\":false},{\"ref\":\"execution_trace\",\"validate_output_stage\":\"succeeded\"}],\"reasoning_summary\":\"本案服务依赖可用（application_boundary.dependency_status=available），解析器首轮即返回可执行 filter，满足完整链路评估前提。查询“可以或允许加保的保单”中，“可以加保”与“允许加保”是对同一业务条件“是否允许加保=是”的同义表述（scenario 标注为 enum_alias）。实际输出为 status=SUCCESS、code=0、message=解析成功，filter 为单谓词树 {field: is_allow_append_insurance, operator: EQ, value: 是}：字段选择与“允许加保”语义一一对应，EQ 加“是”准确表达肯定条件，单谓词完整覆盖语义且无冗余 AND/OR/NOT 节点，“可以/允许”同义并列无需 OR 分支，逻辑树与查询自然等价；查询无歧义、无缺失条件、不涉及时间边界，故无需触发 UNSUPPORTED 安全失败，亦未返回部分 filter。综上，全部业务期望均 fulfilled，missing/wrong/extra 无差距。\"}",
+      "created_at": 1786625620,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "7650118b-afcf-44f5-b5f5-198498aa0925",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 2304,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 4307,
+        "output_tokens": 9998,
+        "provider_metrics": null,
+        "reasoning_tokens": 8200,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 14305
+      },
+      "name": null,
+      "provider_data": {
+        "id": "16ce7d31-06e2-4af1-8f38-82ef5782977b",
+        "model_extra": {
+          "cost": "0"
+        }
+      },
+      "reasoning_content": "我需要评估这个保单搜索案例。让我先仔细理解任务和实际输出。\n\n用户意图：筛选“可以或允许加保的保单”\n实际输出：SUCCESS，filter 为 `{\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"is_allow_append_insurance\", \"operator\": \"EQ\", \"value\": \"是\"}`\n\n我需要判断这个语义是否被完整、可执行且安全地表达。\n\n首先，服务依赖成功（dependency_status: available，解析器返回了可执行 filter），所以可以正常评估。\n\n查询：“可以或允许加保的保单”\n- “可以加保”和“允许加保”是近义词，都表达“允许附加保险/允许加保”的语义。\n- 字段是 `is_allow_append_insurance`，值为“是”，操作符 EQ。\n\n这是一个简单的谓词 filter，正确描述了“允许加保”的条件。两个同义词“可以”和“允许”都映射到同一个字段和值，因此不需要 OR 结构。\n\n让我检查评估维度：\n1. field_selection：`is_allow_append_insurance` 字段选择正确吗？从字段名看，“is_allow_append_insurance” = “是否允许加保”，完全匹配查询“可以或允许加保”。\n2. operator_and_value：EQ + “是” 正确表达“允许加保 = 是”。\n3. logical_scope：只有一个谓词，无逻辑组合问题。\n4. time_boundary：不涉及时间。\n5. condition_completeness：查询只表达了一个条件，没有缺失条件。\n6. safe_failure：SUCCESS 且有完整 filter，符合要求。\n\n这个 case 看起来是标准的“同义词/枚举别名”场景（scenario: enum_alias），即“可以”和“允许”都是同一字段值的别名。\n\n关于可评估性：case 的 user_intent 直接给出了意图，query 也清晰。业务期望可以派生：\n1. 服务依赖可用（解析器返回可执行 filter）—— 但这属于前置条件。\n2. 查询被正确解析为“允许加保 = 是”的谓词 filter。\n3. SUCCESS 状态下必须返回完整 filter，不得返回部分 filter。\n\n我应该构建 business_expectations：\n- expectation 1：解析成功且返回可执行 filter（完整性）\n- expectation 2：字段选择正确（is_allow_append_insurance）\n- expectation 3：操作符和值正确（EQ + “是”）\n- expectation 4：逻辑作用域正确（单谓词，无多余 OR/NOT）\n- expectation 5：同义词“可以/允许”语义合并正确（无歧义，不需 UNSUPPORTED）\n\n不过按照 expectation 拆分原则，每个 expectation 要原子、独立。我觉得可以拆成：\n1. 条件完整性（filter 完整表达“允许加保”条件，SUCCESS 必须带完整 filter）\n2. 字段选择正确性\n3. 操作符与值正确性\n4. 逻辑作用域正确性（无多余逻辑节点，单谓词即可）\n5. 安全失败（无歧义时不误报 UNSUPPORTED）\n\nblocking 判断：\n- 条件完整性：blocking=true（缺了会阻断核心目的）\n- 字段选择：blocking=true（错误字段直接导致筛选错误）\n- 操作符和值：blocking=true\n- 逻辑作用域：blocking=true？逻辑作用域错误会改变筛选结果，但这里单谓词。我认为可以设 blocking=true，因为逻辑错误会阻断核心目的。\n- 安全失败：这里不是 UNSUPPORTED 场景，所以这个 expectation 是“歧义或不支持时不得返回部分 filter”——但当前场景没有歧义，所以这个 expectation 可以评估为 fulfilled（因为没有触发条件，且行为符合）。或者我可以把“SUCCESS 必须返回完整 filter”和“安全失败”合并。\n\n让我重新思考。评估维度包括 safe_failure，意思是：歧义、条件缺失或越界场景应 UNSUPPORTED 且不得返回部分 filter。当前场景不歧义，所以 safe_failure 维度意味着“没有该问题”。我可以设一个 expectation“越界/歧义场景的安全失败处理”，由于实际场景无歧义，这个 expectation 是否可评估？它的 acceptance criteria 是“当查询存在歧义或无法完整表达时，返回 UNSUPPORTED 而非部分 filter”。当前场景没有歧义，所以该 expectation 不触发，可以判为 fulfilled（无需触发保护）或 not_evaluable。我认为判 fulfilled 更合理，因为标准是“含歧义时不得截断”，当前查询无歧义且成功返回完整 filter，符合安全要求。但这更像是一个防御性期望。\n\n实际上，更好的做法：将 expectation 定位为“输出契约完整性：SUCCESS 时必须返回完整可执行的 filter 且不得返回部分/空 filter”。这个在本次 case 中是 fulfilled。\n\n我可以这样设计 business_expectations（中文 ID）：\n\n1. expectation_id: \"解析服务依赖可用且返回可执行filter\"\n   - blocking: true\n   - downstream_consumer: policy_search 解析结果消费方（下游筛选执行器）\n   - user_intent: 用户要求筛选可以或允许加保的保单\n   - expected_outcome: 解析器成功返回 status=SUCCESS、code=0 且 filter 为可执行的谓词结构\n   - acceptance_criteria: \n     - 最终输出 status 必须为 SUCCESS\n     - filter 必须非空且为合法查询树结构\n     - 不得返回空 filter 或部分 filter\n   - 实际证据：final_output status=SUCCESS, filter 为单谓词 PREDICATE\n   - 判定：fulfilled\n\n2. expectation_id: \"允许加保条件字段选择正确\"\n   - blocking: true\n   - user_intent: 查询“可以或允许加保”需映射到“是否允许加保”字段\n   - expected_outcome: filter.field == \"is_allow_append_insurance\"\n   - 判定：fulfilled\n\n3. expectation_id: \"操作符与取值表达正确\"\n   - blocking: true\n   - expected_outcome: operator=EQ 且 value=\"是\"，表达“允许加保=是”的保单\n   - 判定：fulfilled\n\n4. expectation_id: \"逻辑作用域无冗余且语义等价\"\n   - blocking: true\n   - expected_outcome: “可以”与“允许”为同一语义别名，单个 EQ 谓词即可完整表达，无需 OR 组合；逻辑树与查询天然等价\n   - 判定：fulfilled\n\n5. expectation_id: \"歧义场景安全失败\"\n   - blocking: true\n   - 但本次查询无歧义，这算 fulfilled 还是 not_evaluable？\n\n我认为可以这样处理：把安全失败 expectation 的 acceptance criteria 写成“当查询存在无法完整表达的歧义或越界场景时，应返回 UNSUPPORTED 且不得返回部分 filter；当查询可完整表达时无需触发保护”。当前场景无歧义且完整表达，因此 fulfilled。\n\n不过，我也有点犹豫是否应该把安全失败作为一个 expectation。因为 judge 的规范说“每个 expectation 必须有明确的 acceptance_criteria”，且“证据充分时判 fulfilled 或 not_fulfilled；确需评价但当前证据不足时按协议判 not_evaluable”。\n\n关于 expected 字段（自产 reference）：需要输出 code、msg、status、query、filter、message。expected filter 应该与 actual 相同或逻辑等价：\n```json\n{\n  \"code\": 0,\n  \"msg\": \"success\",\n  \"status\": \"SUCCESS\",\n  \"query\": \"麻烦帮我筛一下，可以或允许加保的保单\",\n  \"filter\": {\"type\": \"PREDICATE\", \"field\": \"is_allow_append_insurance\", \"operator\": \"EQ\", \"value\": \"是\"},\n  \"message\": \"解析成功\"\n}\n```\n\n注意：expected 是参考输出，不需要 node_id（node_id 命名差异被忽略，允许逻辑等价树）。\n\nmissing/wrong/extra 数组：因为没有差距，全部为空数组。但 schema 中 required 只包含 \"expected\", \"business_expectations\", \"reasoning_summary\"，不过既然有 missing/wrong/extra 字段定义，最好提供为空数组。等等，让我再看 required：[\"expected\", \"business_expectations\", \"reasoning_summary\"]。additionalProperties: false，所以我可以提供 missing/wrong/extra/evidence 等字段，但不是必须。为了严谨，我可以包含 missing: [], wrong: [], extra: []。但这些是可选字段。我倾向于提供它们为空数组，以明确“无差距”。不过要小心：如果提供了，必须是数组。\n\n关于 fulfillment_assessments 和 applicable_product_expectation_ids：\n- applicable_product_expectation_ids：这是指可适用的产品级 expectation ID。参考 run_trace 中没有提供产品 expectation 清单。在 golden_manifest 路径中有 \"golden_manifest\"，但内容未提供。由于没有明确的产品 expectation 列表，applicable_product_expectation_ids 可以返回空数组或仅包含自身派生的 expectation。schema 说 minItems 未指定（items minLength 1 针对元素），所以空数组是允许的。不过，为了不违反“空数组会被阻断”的说法——那个说法针对特定字段：['business_expectations', 'expected', 'reasoning_summary']。所以 applicable_product_expectation_ids 可以为空数组。\n\n既然没有外部产品契约被引用，我返回 []。\n\n- fulfillment_assessments：需要为每个 expectation 提供 assessment。expected_evidence 和 actual_evidence 必须是数组。\n\n让我构造 expected_evidence 和 actual_evidence 数组：\n\n对于 expectation 1（解析服务依赖可用且返回可执行 filter）：\n- expected_evidence: [\"run_trace 中 dependency_status 为 available\", \"最终输出 status=SUCCESS\", \"filter 为包含 field/operator/value 的可执行 PREDICATE 结构\"]\n- actual_evidence: [\"application_boundary.dependency_status = available\", \"final_output.status = SUCCESS\", \"final_output.filter = {type: PREDICATE, field: is_allow_append_insurance, operator: EQ, value: 是}\"]\n\n对于 expectation 2（字段选择正确）：\n- expected_evidence: [\"filter.field 映射到表达“是否允许加保”的语义字段\"]\n- actual_evidence: [\"filter.field = is_allow_append_insurance，字段名语义与“允许加保”直接对应\"]\n\n对于 expectation 3（操作符与值）：\n- expected_evidence: [\"filter 使用 EQ 操作符且值为“是”，等价于“允许加保=是”\"]\n- actual_evidence: [\"filter.operator = EQ，filter.value = 是\"]\n\n对于 expectation 4（逻辑作用域）：\n- expected_evidence: [\"“可以或允许”为同一字段值的同义别名，无需 OR 组合；单谓词即可表达完整语义\"]\n- actual_evidence: [\"filter 为单节点 PREDICATE，无多余 OR/NOT 结构，tree 与查询语义等价\"]\n\n对于 expectation 5（安全失败）：\n- expected_evidence: [\"查询语义完整可表达时 SUCCESS 并返回完整 filter；仅在歧义/越界时返回 UNSUPPORTED\"]\n- actual_evidence: [\"查询“可以或允许加保”无歧义，系统返回 SUCCESS 并给出完整 filter，未出现部分 filter\"]\n\nauthority_tool_call_ids：参考 run_trace，没有工具调用（execution_trace 只有 validate_request 和 validate_output 阶段，没有工具调用 ID）。可以返回 [] 或省略。由于是可选字段，我可以省略，或提供 []。为了准确性，提供 []。\n\ndownstream_impact：描述如果该 expectation 未满足对下游的影响。\n\nscore：可选，可以是 null 或数字。因为 status 已经表达，score 可以给 null 或一个数字。我会给 null 以避免任意打分。实际上 schema 允许 number 或 null。给 null 吧。但注意 required 只有 expectation_id 和 status。所以我可以省略 score。为了减少噪音，我提供 score: null 和 downstream_impact 等。\n\n好，现在写 reasoning_summary（中文）：\n- 确认服务依赖 dependency_status=available，解析器返回可执行 filter，因此基于完整链路评估。\n- query“可以或允许加保的保单”中，“可以”与“允许”为同义别名，均指向“是否允许加保”字段为“是”的保单。\n- 实际输出为 SUCCESS + 单谓词 filter：is_allow_append_insurance EQ “是”，字段、操作符、值均正确；单谓词即完整表达语义，无冗余逻辑节点，逻辑树与查询等价。\n- 无时间边界、无缺失条件、无歧义，不触发 UNSUPPORTED/部分 filter 场景。\n- 结论：所有 expectation fulfilled，missing/wrong/extra 无差距。\n\n现在设置 business_expectations 的结构。每个 expectation：\n- expectation_id\n- blocking\n- downstream_consumer\n- user_intent\n- expected_outcome\n- required_capabilities\n- acceptance_criteria\n- boundary\n- priority\n\nrequired_capabilities 数组：例如 [\"policy_search_parse\", \"field_mapping_is_allow_append_insurance\", \"enum_alias_resolution\"]。这些是能力清单。根据 prompt 中提供的能力：字段、操作符、值、角色、AND/OR/NOT、日期边界、条件完整性。我可以写具体能力名。\n\nboundary：object，可以放边界说明，如 {\"time_boundary\": \"不适用\", \"ambiguity\": \"无歧义\"}。\n\n让我为每个 expectation 设计：\n\n1. 解析服务依赖可用且输出契约完整\n   - blocking: true\n   - downstream_consumer: 下游保单筛选执行器（消费 filter 进行实际筛选）\n   - user_intent: 用户要求筛选“可以或允许加保的保单”，需要解析器产出可执行的筛选条件\n   - expected_outcome: 依赖可用时以 SUCCESS 返回，且必须携带完整的、可执行的 filter，不得为空或部分\n   - required_capabilities: [\"policy_search_parse\", \"filter_tree_generation\", \"live_schema_validation\"]\n   - acceptance_criteria: [\"final_output.status == SUCCESS\", \"final_output.code == 0\", \"final_output.filter 为非空且包含完整 field/operator/value 的 PREDICATE 结构\"]\n   - boundary: {\"dependency\": \"available\", \"partial_filter\": \"不允许\"}\n   - priority: \"P0\"\n\n2. 允许加保条件映射到正确字段\n   - blocking: true\n   - downstream_consumer: 下游筛选执行器使用 field 定位保单属性\n   - user_intent: “可以/允许加保”应映射为保单的“是否允许加保”属性\n   - expected_outcome: filter.field 为 is_allow_append_insurance\n   - required_capabilities: [\"字段映射:是否允许加保 -> is_allow_append_insurance\"]\n   - acceptance_criteria: [\"filter.field == is_allow_append_insurance\"]\n   - boundary: {\"字段别名\": \"可以加保/允许加保 均指向同一字段\"}\n   - priority: \"P0\"\n\n3. 操作符与取值表达“允许加保=是”\n   - blocking: true\n   - downstream_consumer: 下游筛选执行器依据 operator/value 生成筛选谓词\n   - user_intent: 筛选“允许加保”为肯定的保单\n   - expected_outcome: filter 使用 EQ 且 value=“是”\n   - required_capabilities: [\"操作符:EQ\", \"枚举值:是\"]\n   - acceptance_criteria: [\"filter.operator == EQ\", \"filter.value == 是\"]\n   - boundary: {\"value_validity\": \"进入枚举范围 是/否\"}\n   - priority: \"P0\"\n\n4. 逻辑作用域与查询语义等价\n   - blocking: true\n   - downstream_consumer: 下游筛选执行器按树结构求值\n   - user_intent: “可以或允许”是并列同义表达，不应产生额外 OR 分支或 NOT\n   - expected_outcome: 单谓词树即可完整表达，不引入多余逻辑节点\n   - required_capabilities: [\"逻辑组合:AND/OR/NOT\", \"同义别名合并\"]\n   - acceptance_criteria: [\"filter 为单 PREDICATE 节点\", \"无 OR/NOT 冗余节点\", \"树求值结果等价于 允许加保=是\"]\n   - boundary: {\"logical_form\": \"同义并列无需 OR\"}\n   - priority: \"P1\"\n\n5. 无歧义场景不触发安全失败（safe failure）\n   - blocking: true\n   - downstream_consumer: 调用方需根据 status 决定是否继续执行筛选\n   - user_intent: 查询完整可表达时，不应误报 UNSUPPORTED，也不应返回部分 filter\n   - expected_outcome: 完整可表达时 SUCCESS + 完整 filter；歧义/越界时 UNSUPPORTED 且无部分 filter\n   - required_capabilities: [\"safe_failure 判定\"]\n   - acceptance_criteria: [\"本次查询无歧义且无缺失条件\", \"系统返回 SUCCESS 且 filter 完整，未出现UNSUPPORTED或空白结果\"]\n   - boundary: {\"ambiguous\": false, \"out_of_scope\": false}\n   - priority: \"P1\"\n\n等一下，expectation 5 的 acceptance criteria 有点循环：说“本次查询无歧义”。acceptance criteria 应该是可验证的判断标准：对于安全失败维度，可验证的是“当查询可完整表达时，输出 SUCCESS 且 filter 完整（不触发部分返回）”；“当存在歧义/越界时输出 UNSUPPORTED”——后者在当前 case 中不触发，因此当前 case 只验证前者。我这样写可以。\n\n现在 fulfillment_assessments：\n\n1. expectation_id: \"解析服务依赖可用且输出契约完整\"\n   - status: fulfilled\n   - score: null\n   - expected_evidence: [\"dependency_status 为 available\", \"status=SUCCESS 且 filter 为非空可执行结构\"]\n   - actual_evidence: [\"application_boundary.dependency_status = available（allow_fallback=false）\", \"final_output: {code:0, status:SUCCESS, filter:{type:PREDICATE, field:is_allow_append_insurance, operator:EQ, value:是}}\"]\n   - downstream_impact: \"若依赖不可用或 filter 缺失，下游将无法执行保单筛选\"\n   - authority_tool_call_ids: []\n\n2. expectation_id: \"允许加保条件映射到正确字段\"\n   - status: fulfilled\n   - expected_evidence: [\"field 为表达“是否允许加保”的字段 is_allow_append_insurance\"]\n   - actual_evidence: [\"filter.field = is_allow_append_insurance，字段语义与查询“可以或允许加保”一致\"]\n   - downstream_impact: \"字段选错将筛选出完全不相关的保单集合\"\n\n3. expectation_id: \"操作符与取值表达允许加保为是\"\n   - status: fulfilled\n   - expected_evidence: [\"operator=EQ 且 value=是，语义为 允许加保=是\"]\n   - actual_evidence: [\"filter.operator = EQ，filter.value = 是\"]\n   - downstream_impact: \"操作符或值错误将导致筛选范围颠倒或缺失\"\n\n4. expectation_id: \"逻辑作用域与查询语义等价\"\n   - status: fulfilled\n   - expected_evidence: [\"“可以/允许”是同义并列，单谓词即可，无需 OR\"]\n   - actual_evidence: [\"filter 为单节点 PREDICATE，无 AND/OR/NOT 冗余，求值结果与完整语义等价\"]\n   - downstream_impact: \"逻辑作用域错误会扩大或缩小筛选范围\"\n\n5. expectation_id: \"无歧义场景不触发安全失败\"\n   - status: fulfilled\n   - expected_evidence: [\"查询可完整表达，应 SUCCESS 且返回完整 filter\"]\n   - actual_evidence: [\"查询“可以或允许加保”语义明确无歧义，返回 SUCCESS 与完整单谓词 filter，未出现 UNSUPPORTED 或部分 filter\"]\n   - downstream_impact: \"若误报 UNSUPPORTED 将阻断正常筛选流程；若返回部分 filter 将导致筛选结果不全\"\n\n现在 expected 字段：\n```json\n{\n  \"code\": 0,\n  \"msg\": \"success\",\n  \"status\": \"SUCCESS\",\n  \"query\": \"麻烦帮我筛一下，可以或允许加保的保单\",\n  \"filter\": {\n    \"type\": \"PREDICATE\",\n    \"field\": \"is_allow_append_insurance\",\n    \"operator\": \"EQ\",\n    \"value\": \"是\"\n  },\n  \"message\": \"解析成功\"\n}\n```\n注意：expected.filter 不需要 node_id（允许命名差异）。schema 的 expected.filter 是 object 或 null，无内部约束，所以我可以自由构造。但要注意 expected 是自产 reference，node_id 可以省略。\n\nmissing: [], wrong: [], extra: []。\n\nevidence: 数组，可以放关键证据对象。例如：\n```json\n[\n  {\"ref\": \"final_output\", \"status\": \"SUCCESS\", \"filter\": {\"type\": \"PREDICATE\", \"field\": \"is_allow_append_insurance\", \"operator\": \"EQ\", \"value\": \"是\"}},\n  {\"ref\": \"application_boundary\", \"dependency_status\": \"available\"},\n  {\"ref\": \"execution_trace\", \"validate_output\": \"succeeded\"}\n]\n```\nevidence 是可选的（schema items: {} 空对象模式）。提供即可。\n\napplicable_product_expectation_ids: []。\n\n现在检查 JSON 合规：\n- 输出必须只有一个 JSON object，无 markdown。\n- 首字符 {，末字符 }。\n- 字符串内不要有未转义的英文双引号——我会使用中文引号。\n- business_expectations 非空。\n- expected 非空。\n- reasoning_summary 非空。\n\n关于 evaluation 是否应该判 success？scenario 是 enum_alias，query \"可以或允许加保\" → is_allow_append_insurance EQ \"是\"。看起来完全正确。\n\n还要考虑：用户说“可以或允许加保的保单”，如果系统里有字段如 append_insurance_status 或 is_appendable，实际上字段名 is_allow_append_insurance 是合理的。我不需要质疑字段名本身，因为该字段语义与查询匹配。从能力清单看（用户 prompt 提供了字段、操作符、值、角色、AND/OR/NOT、日期边界、条件完整性），我认为这里有足够证据。\n\n潜在风险：是否“可以加保”与“允许加保”可能分别对应不同字段？比如“可以加保”= is_append_insurance_allowed，“允许加保”= is_permitted？但从语料看，它们是同义表达，指向同一字段。scenario 标签 enum_alias 也支持这一点（枚举别名场景）。系统 output 将两者合并为 is_allow_append_insurance EQ 是，这是正确的语义合并。\n\n另一个考虑：是否需要 OR 节点如 [is_allow_append_insurance EQ 是]？由于“可以或允许”都是正面的同义表达，不是两个互斥条件，所以单谓词正确。如果用户表达“可以或允许加保”其实是两个不同的动作（如“加保”和“允许加保”是不同险种操作）？不，上下文明确是“加保”同一个动作的两种说法。单谓词正确。\n\n最终，所有 expectation fulfilled，无 missing/wrong/extra。\n\n现在还有一个问题：fulfillment_assessments 是否必须与 business_expectations 一一对应？规范没有强制，但为了完整，我应该覆盖所有 business_expectations。\n\n关于 blocking：规范说“只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true”。这里的 5 个 expectation 都算阻断核心目的/安全底线，所以都 true。鉴于是简单 case，全 blocking 合理。\n\n不过，是不是有点过度拆分？“无歧义场景不触发安全失败”是否算一个必要 expectation？safe_failure 是评估维度之一，所以保留它合理。\n\n现在组织 reasoning_summary 用中文：\n\"本案服务依赖可用（application_boundary.dependency_status=available），解析器在首轮即返回可执行 filter，满足完整链路评估前提。查询“可以或允许加保的保单”中，“可以加保”与“允许加保”是对同一业务条件“是否允许加保=是”的同义表述（scenario 标注为 enum_alias）。实际输出为 status=SUCCESS、code=0、message=解析成功，filter 为单谓词树 {field: is_allow_append_insurance, operator: EQ, value: 是}：字段选择与“允许加保”语义一一对应，EQ+“是”准确表达肯定条件，单谓词即完整覆盖语义、无冗余 AND/OR/NOT 节点，“可以/允许”同义并列无需 OR 分支，逻辑树与查询天然等价；查询无歧义、无缺失条件、不涉及时间边界，因此无需触发 UNSUPPORTED 安全失败，且未返回部分 filter。综上所有 expectation 均 fulfilled，missing/wrong/extra 无差距。\"\n\n现在把 JSON 拼好。\n\n注意 schema 中 JudgeBusinessExpectationOutput 的 required 只有 expectation_id 和 blocking，所以我提供的其他字段是增强性的。JudgeFulfillmentAssessmentOutput required 只有 expectation_id 和 status。\n\nGapItem 中 required 只有 kind。但我不会使用 gap。\n\n最后输出。让我仔细确保 JSON 是合法的，所有字符串用英文双引号包裹，内部引用用中文引号。\n\n关于 node_id：actual filter 有 node_id: \"n0\"，expected 中我省略 node_id（允许命名差异）。在 evidence 中引用 actual filter 时保留 node_id。\n\n关于 expected.filter 是否允许无 node_id：schema 的 expected.filter 是 object 且无内部属性约束（additionalProperties 未在 filter 上限制），所以可以。\n\n好，构建最终 JSON。\n\n还要注意：fulfillment_assessments 的 expected_evidence 和 actual_evidence 必须是数组。即使一条证据也要数组。\n\n现在写：\n\n```json\n{\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"解析服务依赖可用且输出契约完整\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"下游保单筛选执行器（消费 filter 执行实际筛选）\",\n      \"user_intent\": \"用户要求筛选“可以或允许加保的保单”，解析器须产出可执行的完整筛选条件\",\n      \"expected_outcome\": \"依赖可用时返回 status=SUCCESS 且 filter 为非空、可执行的完整谓词结构，不得返回空或部分 filter\",\n      \"required_capabilities\": [\"policy_search_parse\", \"filter_tree_generation\", \"live_schema_validation\"],\n      \"acceptance_criteria\": [\n        \"final_output.status == SUCCESS\",\n        \"final_output.code == 0\",\n        \"final_output.filter 为非空对象且包含完整 field/operator/value 的 PREDICATE 节点\"\n      ],\n      \"boundary\": {\"dependency\": \"available\", \"allow_partial_filter\": false},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"允许加保条件映射到正确字段\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"下游筛选执行器依据 filter.field 定位保单属性\",\n      \"user_intent\": \"“可以加保/允许加保”应映射为保单“是否允许加保”属性\",\n      \"expected_outcome\": \"filter.field 为 is_allow_append_insurance\",\n      \"required_capabilities\": [\"字段映射:是否允许加保 -> is_allow_append_insurance\"],\n      \"acceptance_criteria\": [\"filter.field == is_allow_append_insurance\"],\n      \"boundary\": {\"字段别名\": \"可以加保/允许加保均指向同一字段\"},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"操作符与取值表达允许加保为是\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"下游筛选执行器依据 operator/value 生成筛选谓词\",\n      \"user_intent\": \"筛选“允许加保”为肯定的保单\",\n      \"expected_outcome\": \"filter 使用 EQ 操作符且 value=“是”\",\n      \"required_capabilities\": [\"操作符:EQ\", \"枚举值:是\"],\n      \"acceptance_criteria\": [\"filter.operator == EQ\", \"filter.value == 是\"],\n      \"boundary\": {\"value_scope\": \"是/否 枚举\"},\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"逻辑作用域与查询语义等价\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"下游筛选执行器按查询树结构求值\",\n      \"user_intent\": \"“可以或允许”为同义并列表达，不应产生冗余 OR/NOT 分支\",\n      \"expected_outcome\": \"单谓词树即可完整表达，不引入多余逻辑节点，求值结果与完整查询语义等价\",\n      \"required_capabilities\": [\"逻辑组合:AND/OR/NOT\", \"同义别名合并\"],\n      \"acceptance_criteria\": [\n        \"filter 为单 PREDICATE 节点\",\n        \"无 OR/NOT 冗余节点\",\n        \"树求值结果等价于 允许加保=是\"\n      ],\n      \"boundary\": {\"logical_form\": \"同义并列无需 OR 组合\"},\n      \"priority\": \"P1\"\n    },\n    {\n      \"expectation_id\": \"无歧义场景不触发安全失败\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"调用方依据 status 与 filter 决定是否继续执行筛选\",\n      \"user_intent\": \"查询完整可表达时不应误报 UNSUPPORTED，也不应返回部分 filter\",\n      \"expected_outcome\": \"本次查询无歧义且条件完整，系统返回 SUCCESS 并携带完整 filter；仅在歧义/越界场景才返回 UNSUPPORTED\",\n      \"required_capabilities\": [\"safe_failure 判定\"],\n      \"acceptance_criteria\": [\n        \"查询语义可完整表达，未触发 UNSUPPORTED\",\n        \"filter 覆盖全部查询条件，非部分结果\"\n      ],\n      \"boundary\": {\"ambiguous\": false, \"out_of_scope\": false},\n      \"priority\": \"P1\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"解析服务依赖可用且输出契约完整\",\n      \"status\": \"fulfilled\",\n      \"score\": null,\n      \"expected_evidence\": [\"dependency_status 为 available\", \"状态为 SUCCESS 且 filter 为非空可执行结构\"],\n      \"actual_evidence\": [\"application_boundary.dependency_status = available（allow_fallback=false）\", \"final_output 为 {code:0, msg:success, status:SUCCESS, filter:{type:PREDICATE, node_id:n0, field:is_allow_append_insurance, operator:EQ, value:是}}\"],\n      \"downstream_impact\": \"若依赖不可用或 filter 缺失，下游将无法执行保单筛选\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"允许加保条件映射到正确字段\",\n      \"status\": \"fulfilled\",\n      \"score\": null,\n      \"expected_evidence\": [\"field 为表达“是否允许加保”的字段 is_allow_append_insurance\"],\n      \"actual_evidence\": [\"final_output.filter.field = is_allow_append_insurance，字段语义与查询“可以或允许加保”直接对应\"],\n      \"downstream_impact\": \"字段选择错误将筛选出完全不相关的保单集合\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"操作符与取值表达允许加保为是\",\n      \"status\": \"fulfilled\",\n      \"score\": null,\n      \"expected_evidence\": [\"operator=EQ 且 value=“是”，语义为“允许加保=是”\"],\n      \"actual_evidence\": [\"final_output.filter.operator = EQ，final_output.filter.value = 是\"],\n      \"downstream_impact\": \"操作符或取值错误会导致筛选范围颠倒或缺失目标保单\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"逻辑作用域与查询语义等价\",\n      \"status\": \"fulfilled\",\n      \"score\": null,\n      \"expected_evidence\": [\"“可以加保”与“允许加保”是同义并列，单谓词即可完整表达，无需 OR 分支\"],\n      \"actual_evidence\": [\"filter 为单节点 PREDICATE，无多余 AND/OR/NOT 结构，树求值结果与查询完整语义等价\"],\n      \"downstream_impact\": \"逻辑作用域错误将扩大或缩小筛选范围\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"无歧义场景不触发安全失败\",\n      \"status\": \"fulfilled\",\n      \"score\": null,\n      \"expected_evidence\": [\"查询可完整表达时应返回 SUCCESS 且携带完整 filter\"],\n      \"actual_evidence\": [\"查询“麻烦帮我筛一下，可以或允许加保的保单”语义明确无歧义，返回 SUCCESS 与完整单谓词 filter，未出现 UNSUPPORTED 或部分 filter\"],\n      \"downstream_impact\": \"误报 UNSUPPORTED 将阻断正常筛选流程，返回部分 filter 将导致筛选结果不全\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"expected\": {\n    \"code\": 0,\n    \"msg\": \"success\",\n    \"status\": \"SUCCESS\",\n    \"query\": \"麻烦帮我筛一下，可以或允许加保的保单\",\n    \"filter\": {\n      \"type\": \"PREDICATE\",\n      \"field\": \"is_allow_append_insurance\",\n      \"operator\": \"EQ\",\n      \"value\": \"是\"\n    },\n    \"message\": \"解析成功\"\n  },\n  \"missing\": [],\n  \"wrong\": [],\n  \"extra\": [],\n  \"evidence\": [\n    {\"ref\": \"final_output\", \"status\": \"SUCCESS\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"is_allow_append_insurance\", \"operator\": \"EQ\", \"value\": \"是\"}},\n    {\"ref\": \"application_boundary\", \"dependency_status\": \"available\", \"allow_fallback\": false},\n    {\"ref\": \"execution_trace\", \"validate_output_stage\": \"succeeded\"}\n  ],\n  \"reasoning_summary\": \"本案服务依赖可用（application_boundary.dependency_status=available），解析器首轮即返回可执行 filter，满足完整链路评估前提。查询“可以或允许加保的保单”中，“可以加保”与“允许加保”是对同一业务条件“是否允许加保=是”的同义表述（scenario 标注为 enum_alias）。实际输出为 status=SUCCESS、code=0、message=解析成功，filter 为单谓词树 {field: is_allow_append_insurance, operator: EQ, value: 是}：字段选择与“允许加保”语义一一对应，EQ 加“是”准确表达肯定条件，单谓词完整覆盖语义且无冗余 AND/OR/NOT 节点，“可以/允许”同义并列无需 OR 分支，逻辑树与查询自然等价；查询无歧义、无缺失条件、不涉及时间边界，故无需触发 UNSUPPORTED 安全失败，亦未返回部分 filter。综上，全部业务期望均 fulfilled，missing/wrong/extra 无差距。\"\n}\n```\n\n检查：\n- \"字段映射:是否允许加保 -> is_allow_append_insurance\" 字符串中 `->` 没问题。\n- 字符串中英文双引号：注意 \"authority_tool_call_ids\": [] 没问题。\n- evidence 中 filter 对象含 node_id \"n0\"，OK。\n- expected.filter 无 node_id，OK。\n\n唯一顾虑：reasoning_summary 中“EQ 加“是””使用了中文引号，OK。\n\n再检查 schema 合规：\n- business_expectations items 只要求 expectation_id 和 blocking，我提供了额外字段，additionalProperties false 在 JudgeBusinessExpectationOutput 上，但我的额外字段都是 schema 定义的（downstream_consumer, user_intent, expected_outcome, required_capabilities, acceptance_criteria, boundary, priority），OK。\n- fulfillment_assessments items：我提供了 expectation_id, status, score, expected_evidence, actual_evidence, downstream_impact, authority_tool_call_ids，全部在 schema 中，OK。\n- expected：code, msg, status, query, filter, message 全部提供，无额外字段，OK。\n- missing/wrong/extra 是 GapItem 数组，空数组 OK。\n- evidence 是数组，items 空对象，OK。\n- additionalProperties false 在顶层：我只用了 schema 中定义的字段。schema 定义的字段有 business_expectations, applicable_product_expectation_ids, fulfillment_assessments, expected, missing, wrong, extra, evidence, reasoning_summary。我全都用了。OK。\n\n现在 finalize。",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "policy_search",
+  "prompt_size": 18443,
+  "record_id": "3129b541-869b-4aed-a9a6-02a0274ecf79",
+  "response": {
+    "content": "{\"business_expectations\":[{\"expectation_id\":\"解析服务依赖可用且输出契约完整\",\"blocking\":true,\"downstream_consumer\":\"下游保单筛选执行器（消费 filter 执行实际筛选）\",\"user_intent\":\"用户要求筛选“可以或允许加保的保单”，解析器须产出可执行的完整筛选条件\",\"expected_outcome\":\"依赖可用时返回 status=SUCCESS 且 filter 为非空、可执行的完整谓词结构，不得返回空或部分 filter\",\"required_capabilities\":[\"policy_search_parse\",\"filter_tree_generation\",\"live_schema_validation\"],\"acceptance_criteria\":[\"final_output.status == SUCCESS\",\"final_output.code == 0\",\"final_output.filter 为非空对象且包含完整 field/operator/value 的 PREDICATE 节点\"],\"boundary\":{\"dependency\":\"available\",\"allow_partial_filter\":false},\"priority\":\"P0\"},{\"expectation_id\":\"允许加保条件映射到正确字段\",\"blocking\":true,\"downstream_consumer\":\"下游筛选执行器依据 filter.field 定位保单属性\",\"user_intent\":\"“可以加保/允许加保”应映射为保单“是否允许加保”属性\",\"expected_outcome\":\"filter.field 为 is_allow_append_insurance\",\"required_capabilities\":[\"字段映射:是否允许加保 -> is_allow_append_insurance\"],\"acceptance_criteria\":[\"filter.field == is_allow_append_insurance\"],\"boundary\":{\"字段别名\":\"可以加保/允许加保均指向同一字段\"},\"priority\":\"P0\"},{\"expectation_id\":\"操作符与取值表达允许加保为是\",\"blocking\":true,\"downstream_consumer\":\"下游筛选执行器依据 operator/value 生成筛选谓词\",\"user_intent\":\"筛选“允许加保”为肯定的保单\",\"expected_outcome\":\"filter 使用 EQ 操作符且 value=“是”\",\"required_capabilities\":[\"操作符:EQ\",\"枚举值:是\"],\"acceptance_criteria\":[\"filter.operator == EQ\",\"filter.value == 是\"],\"boundary\":{\"value_scope\":\"是/否 枚举\"},\"priority\":\"P0\"},{\"expectation_id\":\"逻辑作用域与查询语义等价\",\"blocking\":true,\"downstream_consumer\":\"下游筛选执行器按查询树结构求值\",\"user_intent\":\"“可以或允许”为同义并列表达，不应产生冗余 OR/NOT 分支\",\"expected_outcome\":\"单谓词树即可完整表达，不引入多余逻辑节点，求值结果与完整查询语义等价\",\"required_capabilities\":[\"逻辑组合:AND/OR/NOT\",\"同义别名合并\"],\"acceptance_criteria\":[\"filter 为单 PREDICATE 节点\",\"无 OR/NOT 冗余节点\",\"树求值结果等价于 允许加保=是\"],\"boundary\":{\"logical_form\":\"同义并列无需 OR 组合\"},\"priority\":\"P1\"},{\"expectation_id\":\"无歧义场景不触发安全失败\",\"blocking\":true,\"downstream_consumer\":\"调用方依据 status 与 filter 决定是否继续执行筛选\",\"user_intent\":\"查询完整可表达时不应误报 UNSUPPORTED，也不应返回部分 filter\",\"expected_outcome\":\"本次查询无歧义且条件完整，系统返回 SUCCESS 并携带完整 filter；仅在歧义/越界场景才返回 UNSUPPORTED\",\"required_capabilities\":[\"safe_failure 判定\"],\"acceptance_criteria\":[\"查询语义可完整表达，未触发 UNSUPPORTED\",\"filter 覆盖全部查询条件，非部分结果\"],\"boundary\":{\"ambiguous\":false,\"out_of_scope\":false},\"priority\":\"P1\"}],\"applicable_product_expectation_ids\":[],\"fulfillment_assessments\":[{\"expectation_id\":\"解析服务依赖可用且输出契约完整\",\"status\":\"fulfilled\",\"score\":null,\"expected_evidence\":[\"dependency_status 为 available\",\"状态为 SUCCESS 且 filter 为非空可执行结构\"],\"actual_evidence\":[\"application_boundary.dependency_status = available（allow_fallback=false）\",\"final_output 为 {code:0, msg:success, status:SUCCESS, filter:{type:PREDICATE, node_id:n0, field:is_allow_append_insurance, operator:EQ, value:是}}\"],\"downstream_impact\":\"若依赖不可用或 filter 缺失，下游将无法执行保单筛选\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"允许加保条件映射到正确字段\",\"status\":\"fulfilled\",\"score\":null,\"expected_evidence\":[\"field 为表达“是否允许加保”的字段 is_allow_append_insurance\"],\"actual_evidence\":[\"final_output.filter.field = is_allow_append_insurance，字段语义与查询“可以或允许加保”直接对应\"],\"downstream_impact\":\"字段选择错误将筛选出完全不相关的保单集合\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"操作符与取值表达允许加保为是\",\"status\":\"fulfilled\",\"score\":null,\"expected_evidence\":[\"operator=EQ 且 value=“是”，语义为“允许加保=是”\"],\"actual_evidence\":[\"final_output.filter.operator = EQ，final_output.filter.value = 是\"],\"downstream_impact\":\"操作符或取值错误会导致筛选范围颠倒或缺失目标保单\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"逻辑作用域与查询语义等价\",\"status\":\"fulfilled\",\"score\":null,\"expected_evidence\":[\"“可以加保”与“允许加保”是同义并列，单谓词即可完整表达，无需 OR 分支\"],\"actual_evidence\":[\"filter 为单节点 PREDICATE，无多余 AND/OR/NOT 结构，树求值结果与查询完整语义等价\"],\"downstream_impact\":\"逻辑作用域错误将扩大或缩小筛选范围\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"无歧义场景不触发安全失败\",\"status\":\"fulfilled\",\"score\":null,\"expected_evidence\":[\"查询可完整表达时应返回 SUCCESS 且携带完整 filter\"],\"actual_evidence\":[\"查询“麻烦帮我筛一下，可以或允许加保的保单”语义明确无歧义，返回 SUCCESS 与完整单谓词 filter，未出现 UNSUPPORTED 或部分 filter\"],\"downstream_impact\":\"误报 UNSUPPORTED 将阻断正常筛选流程，返回部分 filter 将导致筛选结果不全\",\"authority_tool_call_ids\":[]}],\"expected\":{\"code\":0,\"msg\":\"success\",\"status\":\"SUCCESS\",\"query\":\"麻烦帮我筛一下，可以或允许加保的保单\",\"filter\":{\"type\":\"PREDICATE\",\"field\":\"is_allow_append_insurance\",\"operator\":\"EQ\",\"value\":\"是\"},\"message\":\"解析成功\"},\"missing\":[],\"wrong\":[],\"extra\":[],\"evidence\":[{\"ref\":\"final_output\",\"status\":\"SUCCESS\",\"filter\":{\"type\":\"PREDICATE\",\"node_id\":\"n0\",\"field\":\"is_allow_append_insurance\",\"operator\":\"EQ\",\"value\":\"是\"}},{\"ref\":\"application_boundary\",\"dependency_status\":\"available\",\"allow_fallback\":false},{\"ref\":\"execution_trace\",\"validate_output_stage\":\"succeeded\"}],\"reasoning_summary\":\"本案服务依赖可用（application_boundary.dependency_status=available），解析器首轮即返回可执行 filter，满足完整链路评估前提。查询“可以或允许加保的保单”中，“可以加保”与“允许加保”是对同一业务条件“是否允许加保=是”的同义表述（scenario 标注为 enum_alias）。实际输出为 status=SUCCESS、code=0、message=解析成功，filter 为单谓词树 {field: is_allow_append_insurance, operator: EQ, value: 是}：字段选择与“允许加保”语义一一对应，EQ 加“是”准确表达肯定条件，单谓词完整覆盖语义且无冗余 AND/OR/NOT 节点，“可以/允许”同义并列无需 OR 分支，逻辑树与查询自然等价；查询无歧义、无缺失条件、不涉及时间边界，故无需触发 UNSUPPORTED 安全失败，亦未返回部分 filter。综上，全部业务期望均 fulfilled，missing/wrong/extra 无差距。\"}",
+    "metrics": {
+      "cache_read_tokens": 2304,
+      "cache_write_tokens": 0,
+      "input_tokens": 4307,
+      "output_tokens": 9998,
+      "reasoning_tokens": 8200,
+      "total_tokens": 14305
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 72667,
+          "endpoint": "primary",
+          "error": "Connection error.",
+          "error_type": "RuntimeError",
+          "model": "gpt-5.6-luna",
+          "status": "failed"
+        },
+        {
+          "attempt": 2,
+          "elapsed_ms": 72764,
+          "endpoint": "fallback1",
+          "model": "deepseek-v4-flash-0731",
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "selected_endpoint": "fallback1",
+      "selected_model": "deepseek-v4-flash-0731",
+      "stage": ""
+    }
+  },
+  "trace_id": "policy_search:policy-search-rich-0298:1786625548222"
+}

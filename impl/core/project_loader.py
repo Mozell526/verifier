@@ -109,6 +109,7 @@ def resolve_role_assets(spec: ProjectSpec, role: str, use_candidate: bool) -> Li
                 "candidate_path": candidate_path,
                 "available": selected.exists(),
                 "source": "candidate" if use_candidate and candidate_path is not None else "production",
+                "metadata": dict(mapping.metadata or {}),
             }
         )
     return resolved

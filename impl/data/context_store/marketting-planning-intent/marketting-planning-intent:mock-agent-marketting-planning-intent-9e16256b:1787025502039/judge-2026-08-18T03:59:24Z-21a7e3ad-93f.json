@@ -1,0 +1,310 @@
+{
+  "caller": "judge",
+  "created_at": "2026-08-18T03:59:24Z",
+  "elapsed_ms": 62279,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "production"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "72e91deaada1731cb8f35ed847f7eb504d2d9c068b999057ea4c53af6b1f1bd3",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [],
+      "lineage": {
+        "call_id": "",
+        "case_id": "mock-agent-marketting-planning-intent-9e16256b",
+        "trace_id": "marketting-planning-intent:mock-agent-marketting-planning-intent-9e16256b:1787025502039"
+      },
+      "messages": [
+        {
+          "char_count": 6723,
+          "content_sha256": "5eabd13ae82894d101e151939925d72cf1d81add96216ab3f073373ecaf44539",
+          "role": "system"
+        },
+        {
+          "char_count": 3936,
+          "content_sha256": "59a0e67a9199090ddb1e736437e36c1c18b3cb7c6ecf258d368d2f4555b6d144",
+          "role": "user"
+        }
+      ],
+      "mode": "production",
+      "output_contract": {
+        "field_names": [
+          "acceptance_criteria",
+          "actual",
+          "actual_evidence",
+          "applicable_product_expectation_ids",
+          "authority_tool_call_ids",
+          "blocking",
+          "boundary",
+          "business_expectations",
+          "downstream_consumer",
+          "downstream_impact",
+          "error_type",
+          "evidence",
+          "evidence_ref",
+          "expectation_id",
+          "expected",
+          "expected_evidence",
+          "expected_outcome",
+          "extra",
+          "fulfillment_assessments",
+          "incomplete",
+          "kind",
+          "missing",
+          "priority",
+          "raw",
+          "reasoning_summary",
+          "required_capabilities",
+          "score",
+          "status",
+          "user_intent",
+          "wrong"
+        ],
+        "identity": "impl.core.schema.judge.JudgeLLMOutput",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "0ae0afb407db0b56761c1e5aec63fd8f5fa423085e6b9ba93a9ea9aa67bc4f84",
+        "sha256": "0ae0afb407db0b56761c1e5aec63fd8f5fa423085e6b9ba93a9ea9aa67bc4f84"
+      },
+      "project_id": "marketting-planning-intent",
+      "prompt_char_count": 10659,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 3936,
+        "occurred": false
+      },
+      "role": "judge",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 873,
+          "content_sha256": "525bd96f8dd21bf64f8bf8a14b2eb2da079eca4a5692f489211f1ea2b9c9fdd2",
+          "order": 0,
+          "role": "judge",
+          "segment_id": "mandatory-context-units",
+          "source": "contextunit://project.marketting-planning-intent.asset.judge_boundary,project.marketting-planning-intent.asset.judge_evaluation",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 2613,
+          "content_sha256": "3f4b740e86a7713a6a2f1538dc8b98349a0c4e3c7614073ac36eb0bc2ec0423c",
+          "order": 1,
+          "role": "judge",
+          "segment_id": "compiled-system",
+          "source": "impl/core/judge.py#judge_trace",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 3936,
+          "content_sha256": "59a0e67a9199090ddb1e736437e36c1c18b3cb7c6ecf258d368d2f4555b6d144",
+          "order": 2,
+          "role": "judge",
+          "segment_id": "case-user-payload",
+          "source": "trace://judge-evidence-view",
+          "stage": "judge"
+        }
+      ],
+      "stage": "judge",
+      "tool_plan": []
+    }
+  },
+  "llm_model": "gpt-5.6-luna",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "你是通用评估系统的 judge agent。\n\n## 核心原则\n只基于当前 RunTrace、项目评判标准和动态检索的知识库内容判断，不继承历史 case。\n首要职责：理解用户/下游消费者的真实业务意图 → 派生 business_expectations → 基于完整执行链路（每轮 output、最终 output、交互过程和停止事实）判断 expectations 的 fulfillment。\n\n## expectation 拆分原则\nbusiness_expectations 的粒度直接决定判断精度。每个 expectation 必须是原子、独立可评价的判断单元：证据充分时判 fulfilled 或 not_fulfilled；确需评价但当前证据不足时按协议判 not_evaluable。\n- 一个 expectation 只描述一个可独立验证的结果维度\n- 多维度意图必须拆成多个 expectation\n- 每个 expectation 必须有明确的 acceptance_criteria\n- 每个 expectation 必须在比较 actual 前确定 blocking：只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true\n- fulfillment_assessments 只判断对应 expectation 的 status 和证据，不得重新定义 blocking\n- expectation_id 必须是描述性的中文短语，禁止使用 E1/E2/exp_01 等占位符 ID\n- reasoning_summary 必须是中文写成的判断依据\n\n## 输出词表\n`fulfillment_assessments[*].status` 必须从以下 3 个值中选择：\n  - fulfilled：该 expectation 完全满足\n  - not_fulfilled：该 expectation 未满足\n  - not_evaluable：当前无法评估\n禁用 failed/passed/incorrect/wrong/met/unmet/partially_fulfilled/partial/success/fail/ok/unknown 等同义词。\n`fulfillment_assessments[*].expected_evidence` 与 `actual_evidence` **必须是数组**（JSON array / list），即使只有一条证据也要用 `[...]` 包裹，不可直接用字符串或对象。\n\n不要输出 overall_fulfillment；公共层会在项目契约补充完成后根据 blocking expectations 确定性派生整体状态。\n\n## 评估规范\n\n\n## 评估边界\n\n\n## 判断标准\n\n\n## 项目 ContextUnit（按 Role policy 在运行前确定性装载）\n## ContextUnit: judge_boundary: judge_boundary.md (project.marketting-planning-intent.asset.judge_boundary)\n# Judge Boundary\n\nIn scope:\n\n- single-turn query normalization\n- intent-recognition API call\n- adapter extraction of the intent label and confidence\n- label correctness against the current reference intent\n\nOut of scope:\n\n- multi-turn planning state\n- SSE planning output\n- planning card generation\n- downstream business data availability\n\n\n## ContextUnit: judge_evaluation: evaluation.md (project.marketting-planning-intent.asset.judge_evaluation)\n# Evaluation\n\nJudge evaluates whether the normalized `intent` returned by the intent-recognition endpoint matches the current case reference or judge-generated expected intent.\n\nThe evaluation boundary excludes multi-turn field collection, SSE streaming, planning-card generation, and downstream planning execution.\n\n\n\n\n## marketing-planning-intent 评估关键维度\n请将 user prompt 中的 critical_intent_dimensions 作为拆分 business_expectations 的骨架，围绕 intent label、必需 slots/entities、置信度阈值、fallback 策略和 dispatch 边界判断 fulfillment。\n## 工具使用原则\n所有工具的用途、调用时机和参数含义以 Agno tool schema 为准；user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息。\n\n## 禁止事项\n- 不要把 reference answer 当作默认主目标（除非 case 明确指定）\n- 不要把 HTTP 状态、run_status、attribute/cluster 结论当作满足依据\n- 不要归因内部代码、配置或 prompt 原因（属于 attribute agent）\n- 分析文字必须使用中文，包括 reasoning_summary 等所有文本字段。\n\n\n## 输出约束：judge 判定输出（reference 已固化，仅产 fulfillment 判定）\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"business_expectations\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeBusinessExpectationOutput\"\n      },\n      \"minItems\": 1\n    },\n    \"applicable_product_expectation_ids\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"fulfillment_assessments\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeFulfillmentAssessmentOutput\"\n      }\n    },\n    \"expected\": {},\n    \"missing\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"wrong\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"extra\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"evidence\": {\n      \"type\": \"array\",\n      \"items\": {}\n    },\n    \"reasoning_summary\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    }\n  },\n  \"additionalProperties\": false,\n  \"$defs\": {\n    \"JudgeBusinessExpectationOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"blocking\": {\n          \"type\": \"boolean\"\n        },\n        \"downstream_consumer\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"user_intent\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected_outcome\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"required_capabilities\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"acceptance_criteria\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"boundary\": {\n          \"type\": \"object\"\n        },\n        \"priority\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"blocking\"\n      ]\n    },\n    \"JudgeFulfillmentAssessmentOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"score\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        },\n        \"expected_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"actual_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"downstream_impact\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"authority_tool_call_ids\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"status\"\n      ]\n    },\n    \"GapItem\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"kind\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"error_type\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected\": {},\n        \"actual\": {},\n        \"evidence_ref\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"raw\": {},\n        \"incomplete\": {\n          \"type\": \"boolean\"\n        }\n      },\n      \"additionalProperties\": false\n    }\n  },\n  \"required\": [\n    \"business_expectations\",\n    \"reasoning_summary\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['business_expectations', 'reasoning_summary']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n",
+      "created_at": 1787025502,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "8784cd93-a887-438c-a5ed-a22d2b81e4b4",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"user_intent\": \"customer_portrait\", \"run_trace\": {\"trace_id\": \"marketting-planning-intent:mock-agent-marketting-planning-intent-9e16256b:1787025502039\", \"project_id\": \"marketting-planning-intent\", \"case_id\": \"mock-agent-marketting-planning-intent-9e16256b\", \"intent_input\": {\"extra_input_params\": {\"agent_args\": {\"conversation_id\": \"default_session\", \"message\": {\"content\": \"帮我看看上季度买了重疾险的客户都是啥样的？\", \"content_type\": \"text\"}}, \"args\": {\"contexts\": [], \"extensions\": {}}}, \"org_id\": \"default_org\", \"session_id\": \"default_session\", \"trace_id\": \"default_trace\", \"user_text\": \"帮我看看上季度买了重疾险的客户都是啥样的？\"}, \"normalized_request\": {\"extra_input_params\": {\"agent_args\": {\"conversation_id\": \"default_session\", \"message\": {\"content\": \"帮我看看上季度买了重疾险的客户都是啥样的？\", \"content_type\": \"text\"}}, \"args\": {\"contexts\": [], \"extensions\": {}}}, \"org_id\": \"default_org\", \"session_id\": \"default_session\", \"trace_id\": \"default_trace\", \"user_text\": \"帮我看看上季度买了重疾险的客户都是啥样的？\"}, \"final_output\": {}, \"final_output_turn\": null, \"turns\": [{\"turn_index\": 1, \"request\": {\"extra_input_params\": {\"agent_args\": {\"conversation_id\": \"default_session\", \"message\": {\"content\": \"帮我看看上季度买了重疾险的客户都是啥样的？\", \"content_type\": \"text\"}}, \"args\": {\"contexts\": [], \"extensions\": {}}}, \"org_id\": \"default_org\", \"session_id\": \"default_session\", \"trace_id\": \"default_trace\", \"user_text\": \"帮我看看上季度买了重疾险的客户都是啥样的？\"}, \"extracted_output\": {}, \"call_status\": \"failed\", \"runtime_ms\": 1, \"error\": \"marketing-planning intent service unavailable: <urlopen error <urlopen error [Errno 61] Connection refused>>\", \"fallbacks\": [{\"fallback_id\": \"live-error-marketting-planning-intent\", \"source_stage\": \"live\", \"fallback_type\": \"live_error\", \"status\": \"error\", \"reason\": \"marketing-planning intent service unavailable: <urlopen error <urlopen error [Errno 61] Connection refused>>\", \"missing_evidence\": [\"live_response\"], \"recoverable\": true, \"needs_human_review\": true, \"quality_flags\": [\"live_service_unavailable\"], \"evidence_refs\": [], \"failed_gate_ids\": [], \"metadata\": {\"case_id\": \"\", \"session_id\": \"\", \"failure_type\": \"live_service_unavailable\"}}], \"validation\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"marketting-planning-intent\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"execution_trace\": [], \"application_boundary\": {}, \"project_fields\": {}}], \"conversation_transcript\": [], \"conversation_summary\": {\"turn_count\": 1, \"final_output_turn\": null, \"completion_status\": \"failed\", \"stop_reason\": \"execution_error\", \"interaction_controller_status\": \"not_run\", \"interaction_controller_error\": \"\"}, \"stop_reason\": \"execution_error\", \"completion_status\": \"failed\", \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"marketting-planning-intent\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"turn_1\", \"status\": \"failed\", \"evidence\": \"marketing-planning intent service unavailable: <urlopen error <urlopen error [Errno 61] Connection refused>>\", \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"evidence_refs\": [], \"raw_response_evidence\": [], \"evidence_completeness\": {\"complete\": false, \"missing_evidence\": [\"final_output\", \"successful_execution\"]}, \"application_boundary\": {}, \"reference_contract\": {\"confidence\": 0.95, \"intent\": \"customer_portrait\", \"path_types\": [], \"subIntent\": null, \"target_value\": \"重疾险\"}, \"scenario\": \"intent_recognition\", \"status\": \"error\", \"error\": \"marketing-planning intent service unavailable: <urlopen error <urlopen error [Errno 61] Connection refused>>\"}, \"reference_contract\": {\"confidence\": 0.95, \"intent\": \"customer_portrait\", \"path_types\": [], \"subIntent\": null, \"target_value\": \"重疾险\"}, \"application_boundary\": {}, \"critical_intent_dimensions\": [\"intent_label\", \"required_slots_or_entities\", \"confidence_threshold\", \"fallback_policy\", \"dispatch_boundary\"]}",
+      "created_at": 1787025502,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "4466919b-e754-4420-82b8-1a4eadd1fa5a",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"business_expectations\":[{\"expectation_id\":\"返回客户画像意图标签\",\"blocking\":true,\"downstream_consumer\":\"意图识别适配器及客户画像规划模块\",\"user_intent\":\"识别用户是在请求分析购买重疾险客户的群体画像\",\"expected_outcome\":\"意图识别结果中的 intent 标签为 customer_portrait\",\"required_capabilities\":[\"调用意图识别服务\",\"提取并返回标准化 intent 标签\"],\"acceptance_criteria\":[\"成功执行时返回 intent=customer_portrait\",\"不得用其他意图标签替代客户画像意图\"],\"boundary\":{\"in_scope\":\"单轮意图识别结果及适配器标签提取\",\"out_of_scope\":\"多轮规划、流式输出和画像业务数据生成\"},\"priority\":\"核心\"},{\"expectation_id\":\"提取重疾险及时间范围实体\",\"blocking\":true,\"downstream_consumer\":\"客户画像筛选与规划模块\",\"user_intent\":\"限定分析对象为上季度购买重疾险的客户\",\"expected_outcome\":\"识别结果保留目标产品重疾险，并保留上季度这一时间限定\",\"required_capabilities\":[\"抽取产品实体\",\"识别时间范围限定\",\"将实体传递给下游意图消费者\"],\"acceptance_criteria\":[\"target_value为重疾险\",\"结果中不丢失上季度这一时间范围信息，或以项目支持的等价标准字段表达\"],\"boundary\":{\"in_scope\":\"单轮请求规范化及意图识别返回的必需实体\",\"out_of_scope\":\"下游客户数据是否可用及实际画像计算\"},\"priority\":\"核心\"},{\"expectation_id\":\"满足意图识别置信度阈值\",\"blocking\":true,\"downstream_consumer\":\"意图路由与规划调度模块\",\"user_intent\":\"只有在识别结果足够可靠时才将请求交给客户画像流程\",\"expected_outcome\":\"返回的置信度达到当前案例要求的0.95阈值，或按项目契约执行等价阈值判断\",\"required_capabilities\":[\"返回置信度\",\"按阈值判断是否可调度\"],\"acceptance_criteria\":[\"成功返回时confidence不低于0.95\",\"低于阈值时不得按高置信度客户画像意图继续调度\"],\"boundary\":{\"in_scope\":\"意图识别置信度及其调度门槛\",\"out_of_scope\":\"规划执行结果\"},\"priority\":\"核心\"},{\"expectation_id\":\"意图服务不可用时执行安全回退\",\"blocking\":true,\"downstream_consumer\":\"调用方错误处理及人工复核流程\",\"user_intent\":\"在意图服务不可用时避免生成未经证实的意图或误导下游\",\"expected_outcome\":\"明确记录服务不可用，保持结果为空或返回受控错误，并标记可恢复性或人工复核要求\",\"required_capabilities\":[\"捕获意图识别服务错误\",\"执行安全回退\",\"禁止伪造意图标签\"],\"acceptance_criteria\":[\"服务不可用时不猜测或伪造intent\",\"记录live_error及缺失的实时响应证据\",\"必要时标记人工复核或可恢复处理\"],\"boundary\":{\"in_scope\":\"意图识别服务失败时的fallback策略\",\"out_of_scope\":\"服务恢复及人工复核后的后续业务处理\"},\"priority\":\"安全与契约\"},{\"expectation_id\":\"仅在有效识别后进入客户画像分发边界\",\"blocking\":true,\"downstream_consumer\":\"客户画像规划调度器\",\"user_intent\":\"避免在意图、实体或置信度缺失时错误进入客户画像流程\",\"expected_outcome\":\"只有在有效意图标签、必需实体和置信度门槛均满足时才进行customer_portrait分发；当前失败场景不得错误分发\",\"required_capabilities\":[\"综合校验标签、实体和置信度\",\"执行受控分发或阻断分发\"],\"acceptance_criteria\":[\"有效识别结果满足条件时才允许分发\",\"本次实时服务失败且无识别结果时不得产生客户画像分发\"],\"boundary\":{\"in_scope\":\"意图识别后的分发边界判断\",\"out_of_scope\":\"多轮规划状态、SSE输出、规划卡片及下游业务执行\"},\"priority\":\"核心\"}],\"applicable_product_expectation_ids\":[\"返回客户画像意图标签\",\"提取重疾险及时间范围实体\",\"满足意图识别置信度阈值\",\"意图服务不可用时执行安全回退\",\"仅在有效识别后进入客户画像分发边界\"],\"fulfillment_assessments\":[{\"expectation_id\":\"返回客户画像意图标签\",\"status\":\"not_evaluable\",\"score\":null,\"expected_evidence\":[\"成功响应中应包含intent=customer_portrait\"],\"actual_evidence\":[\"turn_1的extracted_output为空\",\"意图识别服务因Connection refused未返回实时结果\",\"final_output为空\"],\"downstream_impact\":\"缺少可验证的意图标签，无法确认是否能正确进入客户画像意图流程\"},{\"expectation_id\":\"提取重疾险及时间范围实体\",\"status\":\"not_evaluable\",\"score\":null,\"expected_evidence\":[\"识别结果应包含target_value=重疾险\",\"识别结果应保留上季度时间范围\"],\"actual_evidence\":[\"turn_1的extracted_output为空\",\"evidence_completeness标记缺失final_output和successful_execution\"],\"downstream_impact\":\"无法确认必需产品实体和时间范围是否被规范化并传递给下游\"},{\"expectation_id\":\"满足意图识别置信度阈值\",\"status\":\"not_evaluable\",\"score\":null,\"expected_evidence\":[\"成功结果应返回不低于0.95的confidence\"],\"actual_evidence\":[\"没有成功的意图识别响应\",\"final_output_turn为null且final_output为空\"],\"downstream_impact\":\"没有置信度证据，无法判断是否满足调度门槛\"},{\"expectation_id\":\"意图服务不可用时执行安全回退\",\"status\":\"fulfilled\",\"score\":1,\"expected_evidence\":[\"服务不可用时应明确记录live_error\",\"不得伪造意图标签\",\"应标记可恢复性或人工复核要求\"],\"actual_evidence\":[\"fallback记录source_stage为live且fallback_type为live_error\",\"fallback状态为error并记录服务不可用原因\",\"missing_evidence包含live_response，recoverable为true，needs_human_review为true\",\"未生成伪造的intent或confidence\"],\"downstream_impact\":\"当前请求被安全阻断并保留人工复核信号，未因缺少实时识别结果而产生误导性意图\"},{\"expectation_id\":\"仅在有效识别后进入客户画像分发边界\",\"status\":\"fulfilled\",\"score\":1,\"expected_evidence\":[\"实时识别失败且无有效标签时不得产生客户画像分发\"],\"actual_evidence\":[\"execution_trace仅包含请求校验和turn_1失败记录\",\"未出现客户画像分发、规划执行或其他下游调用证据\",\"extracted_output为空\"],\"downstream_impact\":\"请求未在缺少有效识别结果的情况下进入下游客户画像流程\"}],\"reasoning_summary\":\"本次请求的参考契约要求识别为customer_portrait，目标产品为重疾险，置信度要求为0.95。请求校验已完成，但意图识别服务因Connection refused失败，未产生extracted_output、confidence或final_output，因此意图标签、实体提取和置信度阈值均缺少可评估证据，不能据此判定满足或未满足。失败处理记录了live_error、可恢复状态和人工复核要求，且没有伪造识别结果；执行链路也未出现下游客户画像分发证据，因此安全回退和分发边界要求得到满足。\"}",
+      "created_at": 1787025502,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "ecfe64eb-98f4-42fc-805e-73418d2081ce",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 9613,
+        "output_tokens": 3259,
+        "provider_metrics": null,
+        "reasoning_tokens": 1552,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 12872
+      },
+      "name": null,
+      "provider_data": {
+        "id": "resp_080d718ed0c9c825016a83d85fd92087d09db0b2411c5ac13c"
+      },
+      "reasoning_content": "**Defining atomic expectations for fallback evaluation****Assessing fallback fulfillment with error and human review****Evaluating dispatch compliance without execution trace****Confirming no dispatch occurred****Defining evaluation criteria and fallback handling****Verifying safe fallback with human review****Defining fallback policy criteria****Finalizing fallback fulfillment schema****Clarifying fallback evidence requirements**",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "marketting-planning-intent",
+  "prompt_size": 14683,
+  "record_id": "21a7e3ad-93f2-45c8-98d1-9d0cab5e7e91",
+  "response": {
+    "content": "{\"business_expectations\":[{\"expectation_id\":\"返回客户画像意图标签\",\"blocking\":true,\"downstream_consumer\":\"意图识别适配器及客户画像规划模块\",\"user_intent\":\"识别用户是在请求分析购买重疾险客户的群体画像\",\"expected_outcome\":\"意图识别结果中的 intent 标签为 customer_portrait\",\"required_capabilities\":[\"调用意图识别服务\",\"提取并返回标准化 intent 标签\"],\"acceptance_criteria\":[\"成功执行时返回 intent=customer_portrait\",\"不得用其他意图标签替代客户画像意图\"],\"boundary\":{\"in_scope\":\"单轮意图识别结果及适配器标签提取\",\"out_of_scope\":\"多轮规划、流式输出和画像业务数据生成\"},\"priority\":\"核心\"},{\"expectation_id\":\"提取重疾险及时间范围实体\",\"blocking\":true,\"downstream_consumer\":\"客户画像筛选与规划模块\",\"user_intent\":\"限定分析对象为上季度购买重疾险的客户\",\"expected_outcome\":\"识别结果保留目标产品重疾险，并保留上季度这一时间限定\",\"required_capabilities\":[\"抽取产品实体\",\"识别时间范围限定\",\"将实体传递给下游意图消费者\"],\"acceptance_criteria\":[\"target_value为重疾险\",\"结果中不丢失上季度这一时间范围信息，或以项目支持的等价标准字段表达\"],\"boundary\":{\"in_scope\":\"单轮请求规范化及意图识别返回的必需实体\",\"out_of_scope\":\"下游客户数据是否可用及实际画像计算\"},\"priority\":\"核心\"},{\"expectation_id\":\"满足意图识别置信度阈值\",\"blocking\":true,\"downstream_consumer\":\"意图路由与规划调度模块\",\"user_intent\":\"只有在识别结果足够可靠时才将请求交给客户画像流程\",\"expected_outcome\":\"返回的置信度达到当前案例要求的0.95阈值，或按项目契约执行等价阈值判断\",\"required_capabilities\":[\"返回置信度\",\"按阈值判断是否可调度\"],\"acceptance_criteria\":[\"成功返回时confidence不低于0.95\",\"低于阈值时不得按高置信度客户画像意图继续调度\"],\"boundary\":{\"in_scope\":\"意图识别置信度及其调度门槛\",\"out_of_scope\":\"规划执行结果\"},\"priority\":\"核心\"},{\"expectation_id\":\"意图服务不可用时执行安全回退\",\"blocking\":true,\"downstream_consumer\":\"调用方错误处理及人工复核流程\",\"user_intent\":\"在意图服务不可用时避免生成未经证实的意图或误导下游\",\"expected_outcome\":\"明确记录服务不可用，保持结果为空或返回受控错误，并标记可恢复性或人工复核要求\",\"required_capabilities\":[\"捕获意图识别服务错误\",\"执行安全回退\",\"禁止伪造意图标签\"],\"acceptance_criteria\":[\"服务不可用时不猜测或伪造intent\",\"记录live_error及缺失的实时响应证据\",\"必要时标记人工复核或可恢复处理\"],\"boundary\":{\"in_scope\":\"意图识别服务失败时的fallback策略\",\"out_of_scope\":\"服务恢复及人工复核后的后续业务处理\"},\"priority\":\"安全与契约\"},{\"expectation_id\":\"仅在有效识别后进入客户画像分发边界\",\"blocking\":true,\"downstream_consumer\":\"客户画像规划调度器\",\"user_intent\":\"避免在意图、实体或置信度缺失时错误进入客户画像流程\",\"expected_outcome\":\"只有在有效意图标签、必需实体和置信度门槛均满足时才进行customer_portrait分发；当前失败场景不得错误分发\",\"required_capabilities\":[\"综合校验标签、实体和置信度\",\"执行受控分发或阻断分发\"],\"acceptance_criteria\":[\"有效识别结果满足条件时才允许分发\",\"本次实时服务失败且无识别结果时不得产生客户画像分发\"],\"boundary\":{\"in_scope\":\"意图识别后的分发边界判断\",\"out_of_scope\":\"多轮规划状态、SSE输出、规划卡片及下游业务执行\"},\"priority\":\"核心\"}],\"applicable_product_expectation_ids\":[\"返回客户画像意图标签\",\"提取重疾险及时间范围实体\",\"满足意图识别置信度阈值\",\"意图服务不可用时执行安全回退\",\"仅在有效识别后进入客户画像分发边界\"],\"fulfillment_assessments\":[{\"expectation_id\":\"返回客户画像意图标签\",\"status\":\"not_evaluable\",\"score\":null,\"expected_evidence\":[\"成功响应中应包含intent=customer_portrait\"],\"actual_evidence\":[\"turn_1的extracted_output为空\",\"意图识别服务因Connection refused未返回实时结果\",\"final_output为空\"],\"downstream_impact\":\"缺少可验证的意图标签，无法确认是否能正确进入客户画像意图流程\"},{\"expectation_id\":\"提取重疾险及时间范围实体\",\"status\":\"not_evaluable\",\"score\":null,\"expected_evidence\":[\"识别结果应包含target_value=重疾险\",\"识别结果应保留上季度时间范围\"],\"actual_evidence\":[\"turn_1的extracted_output为空\",\"evidence_completeness标记缺失final_output和successful_execution\"],\"downstream_impact\":\"无法确认必需产品实体和时间范围是否被规范化并传递给下游\"},{\"expectation_id\":\"满足意图识别置信度阈值\",\"status\":\"not_evaluable\",\"score\":null,\"expected_evidence\":[\"成功结果应返回不低于0.95的confidence\"],\"actual_evidence\":[\"没有成功的意图识别响应\",\"final_output_turn为null且final_output为空\"],\"downstream_impact\":\"没有置信度证据，无法判断是否满足调度门槛\"},{\"expectation_id\":\"意图服务不可用时执行安全回退\",\"status\":\"fulfilled\",\"score\":1,\"expected_evidence\":[\"服务不可用时应明确记录live_error\",\"不得伪造意图标签\",\"应标记可恢复性或人工复核要求\"],\"actual_evidence\":[\"fallback记录source_stage为live且fallback_type为live_error\",\"fallback状态为error并记录服务不可用原因\",\"missing_evidence包含live_response，recoverable为true，needs_human_review为true\",\"未生成伪造的intent或confidence\"],\"downstream_impact\":\"当前请求被安全阻断并保留人工复核信号，未因缺少实时识别结果而产生误导性意图\"},{\"expectation_id\":\"仅在有效识别后进入客户画像分发边界\",\"status\":\"fulfilled\",\"score\":1,\"expected_evidence\":[\"实时识别失败且无有效标签时不得产生客户画像分发\"],\"actual_evidence\":[\"execution_trace仅包含请求校验和turn_1失败记录\",\"未出现客户画像分发、规划执行或其他下游调用证据\",\"extracted_output为空\"],\"downstream_impact\":\"请求未在缺少有效识别结果的情况下进入下游客户画像流程\"}],\"reasoning_summary\":\"本次请求的参考契约要求识别为customer_portrait，目标产品为重疾险，置信度要求为0.95。请求校验已完成，但意图识别服务因Connection refused失败，未产生extracted_output、confidence或final_output，因此意图标签、实体提取和置信度阈值均缺少可评估证据，不能据此判定满足或未满足。失败处理记录了live_error、可恢复状态和人工复核要求，且没有伪造识别结果；执行链路也未出现下游客户画像分发证据，因此安全回退和分发边界要求得到满足。\"}",
+    "metrics": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 9613,
+      "output_tokens": 3259,
+      "reasoning_tokens": 1552,
+      "total_tokens": 12872
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 62274,
+          "endpoint": "primary",
+          "model": "gpt-5.6-luna",
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "selected_endpoint": "primary",
+      "selected_model": "gpt-5.6-luna",
+      "stage": ""
+    }
+  },
+  "trace_id": "marketting-planning-intent:mock-agent-marketting-planning-intent-9e16256b:1787025502039"
+}

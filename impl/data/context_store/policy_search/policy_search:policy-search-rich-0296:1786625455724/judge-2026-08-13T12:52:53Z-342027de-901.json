@@ -1,0 +1,312 @@
+{
+  "caller": "judge",
+  "created_at": "2026-08-13T12:52:53Z",
+  "elapsed_ms": 117852,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "production"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "f12718161d8a6fd97c4c5d8f32694ba1b2a2ce2ef481558a4dda6d0a5fbc0fbe",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [],
+      "lineage": {
+        "call_id": "",
+        "case_id": "policy-search-rich-0296",
+        "trace_id": "policy_search:policy-search-rich-0296:1786625455724"
+      },
+      "messages": [
+        {
+          "char_count": 7368,
+          "content_sha256": "f5559e2831ea15fd5d0a75f202e64faec2eaf6fc95f6497abac519065bb1f636",
+          "role": "system"
+        },
+        {
+          "char_count": 6096,
+          "content_sha256": "731d9f371dfdf04353d84891653116e79d3e57409ff5454446dbc77b5462230c",
+          "role": "user"
+        }
+      ],
+      "mode": "production",
+      "output_contract": {
+        "field_names": [
+          "acceptance_criteria",
+          "actual",
+          "actual_evidence",
+          "applicable_product_expectation_ids",
+          "authority_tool_call_ids",
+          "blocking",
+          "boundary",
+          "business_expectations",
+          "code",
+          "downstream_consumer",
+          "downstream_impact",
+          "error_type",
+          "evidence",
+          "evidence_ref",
+          "expectation_id",
+          "expected",
+          "expected_evidence",
+          "expected_outcome",
+          "extra",
+          "filter",
+          "fulfillment_assessments",
+          "incomplete",
+          "kind",
+          "message",
+          "missing",
+          "msg",
+          "priority",
+          "query",
+          "raw",
+          "reasoning_summary",
+          "required_capabilities",
+          "score",
+          "status",
+          "user_intent",
+          "wrong"
+        ],
+        "identity": "impl.core.schema.judge.JudgeLLMOutput",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "1ebd986c8c695abe1e8329086ca3fa881a0eaa83fe0e670d24af6af6d4fad2f0",
+        "sha256": "1ebd986c8c695abe1e8329086ca3fa881a0eaa83fe0e670d24af6af6d4fad2f0"
+      },
+      "project_id": "policy_search",
+      "prompt_char_count": 13464,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 6096,
+        "occurred": false
+      },
+      "role": "judge",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 1725,
+          "content_sha256": "5727bfa7858a8ce05122cd632b62736542f3792c880caa51ab16c7257d1f754b",
+          "order": 0,
+          "role": "judge",
+          "segment_id": "compiled-system",
+          "source": "impl/core/judge.py#judge_trace",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 6096,
+          "content_sha256": "731d9f371dfdf04353d84891653116e79d3e57409ff5454446dbc77b5462230c",
+          "order": 1,
+          "role": "judge",
+          "segment_id": "case-user-payload",
+          "source": "trace://judge-evidence-view",
+          "stage": "judge"
+        }
+      ],
+      "stage": "judge",
+      "tool_plan": []
+    }
+  },
+  "llm_model": "deepseek-v4-flash-0731",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "你是通用评估系统的 judge agent。\n\n## 核心原则\n只基于当前 RunTrace、项目评判标准和动态检索的知识库内容判断，不继承历史 case。\n首要职责：理解用户/下游消费者的真实业务意图 → 派生 business_expectations → 基于完整执行链路（每轮 output、最终 output、交互过程和停止事实）判断 expectations 的 fulfillment。\n\n## expectation 拆分原则\nbusiness_expectations 的粒度直接决定判断精度。每个 expectation 必须是原子、独立可评价的判断单元：证据充分时判 fulfilled 或 not_fulfilled；确需评价但当前证据不足时按协议判 not_evaluable。\n- 一个 expectation 只描述一个可独立验证的结果维度\n- 多维度意图必须拆成多个 expectation\n- 每个 expectation 必须有明确的 acceptance_criteria\n- 每个 expectation 必须在比较 actual 前确定 blocking：只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true\n- fulfillment_assessments 只判断对应 expectation 的 status 和证据，不得重新定义 blocking\n- expectation_id 必须是描述性的中文短语，禁止使用 E1/E2/exp_01 等占位符 ID\n- reasoning_summary 必须是中文写成的判断依据\n\n## 输出词表\n`fulfillment_assessments[*].status` 必须从以下 3 个值中选择：\n  - fulfilled：该 expectation 完全满足\n  - not_fulfilled：该 expectation 未满足\n  - not_evaluable：当前无法评估\n禁用 failed/passed/incorrect/wrong/met/unmet/partially_fulfilled/partial/success/fail/ok/unknown 等同义词。\n`fulfillment_assessments[*].expected_evidence` 与 `actual_evidence` **必须是数组**（JSON array / list），即使只有一条证据也要用 `[...]` 包裹，不可直接用字符串或对象。\n\n不要输出 overall_fulfillment；公共层会在项目契约补充完成后根据 blocking expectations 确定性派生整体状态。\n\n## 评估规范\n\n\n## 评估边界\n\n\n## 判断标准\n\n\n\n\n你评价的是保单筛选语义是否被完整、可执行且安全地表达。先判断服务依赖是否成功，再比较 query 与 filter。忽略 node_id 命名差异；允许逻辑等价的树。字段、操作符、值、角色、AND/OR/NOT 作用域、日期边界和条件完整性都必须正确。SUCCESS 必须有完整 filter；歧义、条件缺失或越界场景应 UNSUPPORTED 且不得返回部分 filter。业务实现、prompt 和配置是当前能力证据，不是不可质疑的自证。\n## 工具使用原则\n所有工具的用途、调用时机和参数含义以 Agno tool schema 为准；user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息。\n\n## 禁止事项\n- 不要把 reference answer 当作默认主目标（除非 case 明确指定）\n- 不要把 HTTP 状态、run_status、attribute/cluster 结论当作满足依据\n- 不要归因内部代码、配置或 prompt 原因（属于 attribute agent）\n- 分析文字必须使用中文，包括 reasoning_summary 等所有文本字段。\n\n\n## 输出约束：judge 判定输出（自产 reference + fulfillment 判定）\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"business_expectations\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeBusinessExpectationOutput\"\n      },\n      \"minItems\": 1\n    },\n    \"applicable_product_expectation_ids\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"fulfillment_assessments\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeFulfillmentAssessmentOutput\"\n      }\n    },\n    \"expected\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"code\": {\n          \"type\": \"integer\"\n        },\n        \"msg\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"query\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"filter\": {\n          \"type\": [\n            \"object\",\n            \"null\"\n          ]\n        },\n        \"message\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"code\",\n        \"msg\",\n        \"status\",\n        \"query\",\n        \"filter\",\n        \"message\"\n      ]\n    },\n    \"missing\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"wrong\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"extra\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"evidence\": {\n      \"type\": \"array\",\n      \"items\": {}\n    },\n    \"reasoning_summary\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    }\n  },\n  \"additionalProperties\": false,\n  \"$defs\": {\n    \"JudgeBusinessExpectationOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"blocking\": {\n          \"type\": \"boolean\"\n        },\n        \"downstream_consumer\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"user_intent\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected_outcome\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"required_capabilities\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"acceptance_criteria\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"boundary\": {\n          \"type\": \"object\"\n        },\n        \"priority\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"blocking\"\n      ]\n    },\n    \"JudgeFulfillmentAssessmentOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"score\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        },\n        \"expected_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"actual_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"downstream_impact\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"authority_tool_call_ids\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"status\"\n      ]\n    },\n    \"GapItem\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"kind\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"error_type\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected\": {},\n        \"actual\": {},\n        \"evidence_ref\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"raw\": {},\n        \"incomplete\": {\n          \"type\": \"boolean\"\n        }\n      },\n      \"additionalProperties\": false\n    }\n  },\n  \"required\": [\n    \"expected\",\n    \"business_expectations\",\n    \"reasoning_summary\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['business_expectations', 'expected', 'reasoning_summary']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n\n### 嵌套字段子结构约束\n以下字段内部的子结构也必须严格遵守，不可随意编造字段名或类型：\n- **`expected`** 字段 (项目 policy_search 的 expected/live output 结构) 必须符合以下结构：\n  ```json\n  {\n    \"type\": \"object\",\n    \"properties\": {\n      \"code\": {\n        \"type\": \"integer\"\n      },\n      \"msg\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"status\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"query\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"filter\": {\n        \"type\": [\n          \"object\",\n          \"null\"\n        ]\n      },\n      \"message\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"additionalProperties\": false,\n    \"required\": [\n      \"code\",\n      \"msg\",\n      \"status\",\n      \"query\",\n      \"filter\",\n      \"message\"\n    ]\n  }\n  ```\n",
+      "created_at": 1786625526,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "51007a55-8760-4548-8f91-c2ffcc7f3c98",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"user_intent\": \"筛选符合“已停效保单”所表达条件的保单\", \"run_trace\": {\"trace_id\": \"policy_search:policy-search-rich-0296:1786625455724\", \"project_id\": \"policy_search\", \"case_id\": \"policy-search-rich-0296\", \"intent_input\": {\"session_id\": \"policy-search-rich-0296\", \"trace_id\": \"policy-search-rich-0296\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"手上有没有已停效保单？\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"normalized_request\": {\"session_id\": \"policy-search-rich-0296\", \"trace_id\": \"policy-search-rich-0296\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"手上有没有已停效保单？\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"final_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"手上有没有已停效保单？\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"pol_status_desc\", \"operator\": \"IN\", \"values\": [\"自垫停效\", \"贷款超停\", \"停效\", \"人为停效\"]}, \"message\": \"解析成功\"}, \"final_output_turn\": 1, \"turns\": [{\"turn_index\": 1, \"request\": {\"session_id\": \"policy-search-rich-0296\", \"trace_id\": \"policy-search-rich-0296\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"手上有没有已停效保单？\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"extracted_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"手上有没有已停效保单？\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"pol_status_desc\", \"operator\": \"IN\", \"values\": [\"自垫停效\", \"贷款超停\", \"停效\", \"人为停效\"]}, \"message\": \"解析成功\"}, \"call_status\": \"succeeded\", \"runtime_ms\": 3, \"error\": null, \"fallbacks\": [], \"validation\": [], \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"application_boundary\": {\"dependency_status\": \"available\", \"allow_fallback\": false, \"excluded_evidence\": [], \"notes\": \"parser returned an executable filter\"}, \"project_fields\": {\"parse_status\": \"SUCCESS\", \"filter_root_type\": \"PREDICATE\"}}], \"conversation_transcript\": [{\"role\": \"user\", \"content\": \"手上有没有已停效保单？\", \"query\": \"手上有没有已停效保单？\"}, {\"role\": \"assistant\", \"content\": \"解析成功\", \"stage\": null}], \"conversation_summary\": {\"turn_count\": 1, \"final_output_turn\": 1, \"completion_status\": \"completed\", \"stop_reason\": \"goal_satisfied\", \"interaction_controller_status\": \"ok\", \"interaction_controller_error\": \"\"}, \"stop_reason\": \"goal_satisfied\", \"completion_status\": \"completed\", \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"evidence_refs\": [], \"raw_response_evidence\": null, \"evidence_completeness\": {\"complete\": true, \"missing_evidence\": []}, \"application_boundary\": {\"dependency_status\": \"available\", \"allow_fallback\": false, \"excluded_evidence\": [], \"notes\": \"parser returned an executable filter\"}, \"reference_contract\": {}, \"scenario\": \"enum_alias\", \"status\": \"ok\", \"error\": null}, \"query\": \"手上有没有已停效保单？\", \"actual_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"手上有没有已停效保单？\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"pol_status_desc\", \"operator\": \"IN\", \"values\": [\"自垫停效\", \"贷款超停\", \"停效\", \"人为停效\"]}, \"message\": \"解析成功\"}, \"turn_records\": [{\"turn_index\": 1, \"query\": \"手上有没有已停效保单？\", \"status\": \"SUCCESS\", \"message\": \"解析成功\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"pol_status_desc\", \"operator\": \"IN\", \"values\": [\"自垫停效\", \"贷款超停\", \"停效\", \"人为停效\"]}, \"contexts\": []}], \"interactive_scenario\": false, \"reference_contract\": {}, \"business_evidence_paths\": {\"api_contract\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索算法解析接口文档（智能体对接稿）.md\", \"filter_contract\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索查询语法树协议（首期精简版）.md\", \"technical_design\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索算法解析技术方案（当前实现版）.md\", \"business_config\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/configs/insurance_search_business_config_prd.json\", \"runtime_config\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/configs/insurance_search_runtime_config_prd.json\", \"golden_manifest\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/data/golden_dataset/manifest.json\"}, \"evaluation_dimensions\": [\"field_selection\", \"operator_and_value\", \"logical_scope\", \"time_boundary\", \"condition_completeness\", \"safe_failure\"]}",
+      "created_at": 1786625526,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "c9ef0112-8ee8-4fd0-932f-6e1a28c46fd5",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"服务依赖可用且返回可执行解析结果\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索下游消费者\",\n      \"user_intent\": \"让“已停效保单”查询能够被成功解析为可执行的过滤条件\",\n      \"expected_outcome\": \"系统依赖可用，解析最终状态为 SUCCESS 且 filter 为完整可执行的语法树\",\n      \"required_capabilities\": [\"依赖状态检查\", \"解析状态判定\", \"可执行 filter 输出\"],\n      \"acceptance_criteria\": [\n        \"application_boundary.dependency_status 为 available\",\n        \"final_output.status 为 SUCCESS\",\n        \"filter 为 type=PREDICATE 的原始语法树而非空\"\n      ],\n      \"boundary\": {},\n      \"priority\": \"高\"\n    },\n    {\n      \"expectation_id\": \"停效状态字段选择正确\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索下游消费者\",\n      \"user_intent\": \"用保单状态字段表达“已停效”这一状态维度\",\n      \"expected_outcome\": \"过滤字段为 pol_status_desc，而不是其他不相关字段\",\n      \"required_capabilities\": [\"字段映射\", \"保单状态字段识别\"],\n      \"acceptance_criteria\": [\n        \"filter.field 为 pol_status_desc\"\n      ],\n      \"boundary\": {},\n      \"priority\": \"高\"\n    },\n    {\n      \"expectation_id\": \"停效枚举值集合完整且无越界\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索下游消费者\",\n      \"user_intent\": \"“已停效”应覆盖所有停效类子状态，且不包含非停效状态\",\n      \"expected_outcome\": \"operator 为 IN，values 覆盖停效全部枚举值，不掺杂其他保单状态\",\n      \"required_capabilities\": [\"枚举别名映射\", \"状态值集合完整性判断\"],\n      \"acceptance_criteria\": [\n        \"operator 为 IN\",\n        \"values 覆盖自垫停效、贷款超停、停效、人为停效四类停效状态\",\n        \"values 中不存在非停效状态值\"\n      ],\n      \"boundary\": {},\n      \"priority\": \"高\"\n    },\n    {\n      \"expectation_id\": \"过滤逻辑结构正确且条件完整\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索下游消费者\",\n      \"user_intent\": \"查询表达的过滤逻辑应被完整、无歧义地转换为语法树，无缺失或多余条件\",\n      \"expected_outcome\": \"单节点 PREDICATE 完整表达用户查询意图，无额外时间或条件约束，无需退化 UNSUPPORTED\",\n      \"required_capabilities\": [\"逻辑结构构建\", \"条件完整性判断\", \"歧义识别\"],\n      \"acceptance_criteria\": [\n        \"filter 为单层 PREDICATE 且无 AND/OR/NOT 嵌套\",\n        \"无时间边界条件遗漏\",\n        \"查询无歧义，不需要返回 UNSUPPORTED 或部分 filter\"\n      ],\n      \"boundary\": {},\n      \"priority\": \"高\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"服务依赖可用且返回可执行解析结果\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\n        \"最终输出 status 为 SUCCESS，code 为 0\",\n        \"filter 为完整的 PREDICATE 语法树\",\n        \"application_boundary.dependency_status 为 available\"\n      ],\n      \"actual_evidence\": [\n        {\"kind\": \"trace\", \"content\": \"final_output.status=SUCCESS，code=0，msg=success\"},\n        {\"kind\": \"trace\", \"content\": \"filter 为 {type: PREDICATE, field: pol_status_desc, operator: IN, values: [自垫停效, 贷款超停, 停效, 人为停效]}\"},\n        {\"kind\": \"trace\", \"content\": \"application_boundary.dependency_status=available\"}\n      ],\n      \"downstream_impact\": \"下游可直接基于返回的可执行 filter 进行保单检索，无需兜底处理或回退\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"停效状态字段选择正确\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\n        \"filter.field 为 pol_status_desc\"\n      ],\n      \"actual_evidence\": [\n        {\"kind\": \"trace\", \"content\": \"filter.field=pol_status_desc\"}\n      ],\n      \"downstream_impact\": \"使用正确状态字段保证检索限定在保单状态维度，不会因字段错选导致检索范围错误\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"停效枚举值集合完整且无越界\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\n        \"operator 为 IN\",\n        \"values 包含全部停效子状态：自垫停效、贷款超停、停效、人为停效\",\n        \"values 不包含正常、终止、满期等非停效状态\"\n      ],\n      \"actual_evidence\": [\n        {\"kind\": \"trace\", \"content\": \"filter.operator=IN\"},\n        {\"kind\": \"trace\", \"content\": \"filter.values=[自垫停效, 贷款超停, 停效, 人为停效]\"}\n      ],\n      \"downstream_impact\": \"枚举集合完整覆盖“已停效”语义，避免漏检停效保单或误检非停效保单\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"过滤逻辑结构正确且条件完整\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\n        \"filter 为单层 PREDICATE，无 AND/OR/NOT 嵌套\",\n        \"查询仅含停效状态条件，无需附加时间或上下文条件\",\n        \"查询无歧义，无需 UNSUPPORTED\"\n      ],\n      \"actual_evidence\": [\n        {\"kind\": \"trace\", \"content\": \"filter 结构为单节点 PREDICATE，无逻辑嵌套\"},\n        {\"kind\": \"trace\", \"content\": \"query 仅表达停效状态维度，无时间词或其他遗漏条件\"},\n        {\"kind\": \"trace\", \"content\": \"scenario=enum_alias，系统按停效枚举别名完整展开\"}\n      ],\n      \"downstream_impact\": \"下游获得与用户查询语义一致且无遗漏的检索条件，筛选结果准确\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"expected\": {\n    \"code\": 0,\n    \"msg\": \"success\",\n    \"status\": \"SUCCESS\",\n    \"query\": \"手上有没有已停效保单？\",\n    \"filter\": {\n      \"type\": \"PREDICATE\",\n      \"node_id\": \"n0\",\n      \"field\": \"pol_status_desc\",\n      \"operator\": \"IN\",\n      \"values\": [\"自垫停效\", \"贷款超停\", \"停效\", \"人为停效\"]\n    },\n    \"message\": \"解析成功\"\n  },\n  \"missing\": [],\n  \"wrong\": [],\n  \"extra\": [],\n  \"evidence\": [\n    {\"kind\": \"final_output\", \"content\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"手上有没有已停效保单？\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"pol_status_desc\", \"operator\": \"IN\", \"values\": [\"自垫停效\", \"贷款超停\", \"停效\", \"人为停效\"]}, \"message\": \"解析成功\"}},\n    {\"kind\": \"application_boundary\", \"content\": {\"dependency_status\": \"available\", \"allow_fallback\": false, \"notes\": \"parser returned an executable filter\"}},\n    {\"kind\": \"conversation_summary\", \"content\": {\"completion_status\": \"completed\", \"stop_reason\": \"goal_satisfied\"}}\n  ],\n  \"reasoning_summary\": \"评估依据：trace 显示服务依赖可用（dependency_status=available），解析最终状态为 SUCCESS 并返回完整可执行的 PREDICATE 语法树。查询“已停效保单”表达的语义是保单处于停效状态这一大类；业务枚举别名下，停效类状态包括自垫停效、贷款超停、停效、人为停效，系统以 pol_status_desc IN 上述四值表达，字段选择正确、枚举集合完整且无越界值（未包含正常、终止等非停效状态），逻辑结构为单节点无多余或缺失条件，查询不存在时间边界或歧义，无需退化 UNSUPPORTED。实际输出与正确参考完全一致，四个原子期望全部满足，无 missing、wrong、extra 差异。\"\n}",
+      "created_at": 1786625526,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "9322dbc0-3580-4031-86b4-b186b7f4267c",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 2304,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 4309,
+        "output_tokens": 5164,
+        "provider_metrics": null,
+        "reasoning_tokens": 3164,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 9473
+      },
+      "name": null,
+      "provider_data": {
+        "id": "7191492d-7182-4965-8e11-02eb58435e3f",
+        "model_extra": {
+          "cost": "0"
+        }
+      },
+      "reasoning_content": "我需要评价这个保单筛选 case。用户意图是“筛选符合‘已停效保单’所表达条件的保单”，查询词是“手上有没有已停效保单？”。\n\n首先看实际输出：SUCCESS，filter 是 pol_status_desc IN [\"自垫停效\", \"贷款超停\", \"停效\", \"人为停效\"]。\n\n我需要判断：\n1. 服务依赖是否成功（trace 显示 dependency_status available，解析成功）\n2. query 与 filter 是否匹配\n\n关键点：“已停效保单”里“已停效”对应什么状态？在保单术语中，“停效”（lapse）通常有几种子状态：自垫停效、贷款超停（贷款超值停效）、人为停效（人工停效）。这里的枚举“自垫停效、贷款超停、停效、人为停效”看起来是停效状态的所有枚举值。\n\n不过我需要考虑：是否包含了不该包含的值？比如“停效”本身就是停效；“自垫停效”是自垫导致停效；“贷款超停”是贷款超额导致的停效；“人为停效”是人工办理的停效。这些都是“已停效”的子状态，所以 IN 包含它们是合理的。\n\n有没有可能少了某个停效子状态？比如“其他停效”？我不能编造。根据枚举别名场景，这个 case 的 scenario 是 \"enum_alias\"，说明“停效”在业务配置中对应多个枚举值。\n\n还要考虑“已停效”是否等同于“停效”？通常保单状态中“停效”状态指的是保单因未按时缴费等原因失去效力，状态为“停效”。由于没有上下文，将“已停效”解析为 pol_status_desc IN [停效的各子状态] 是合理的。\n\n那么 business_expectations 应该拆分：\n1. 服务依赖可用且解析成功（blocking）——dependency_status available，parse 返回可执行 filter\n2. 字段选择正确：使用 pol_status_desc 表达状态\n3. 操作符与值：IN 枚举包含所有停效子状态，不包含非停效状态\n4. 逻辑作用域：单个 predicate，无 AND/OR/NOT 问题\n5. 安全失败：歧义时 UNSUPPORTED。这里没有歧义，停效是明确的术语。\n\nexpected 字段：code 0, msg \"success\", status \"SUCCESS\", query \"手上有没有已停效保单？\", filter 就是实际输出的 filter（自产 reference），message \"解析成功\"。\n\n最终输出 structure：\n- expected: code 0, msg success, status SUCCESS, query, filter (actual 的 filter 结构), message 解析成功\n- business_expectations: 5 个左右\n- applicable_product_expectation_ids: [] 或可以留空数组？schema 只要求是数组，没有说非空。但 required 字段有 minLength? business_expectations minItems 1。applicable_product_expectation_ids 没有 minItems 约束，可以为空数组。\n- fulfillment_assessments: 对应每个 expectation\n- missing/wrong/extra: 无 gap，空数组\n- evidence: 空数组或包含 filter\n- reasoning_summary: 中文分析\n\n等等，关于 expected.filter 应该是什么？expected 是\"自产 reference\" + 判定。这里 actual 的 filter 看起来正确，所以 expected.filter 与 actual 相同。\n\n我需要仔细核对，确保没有遗漏。场景为 \"enum_alias\"——说明用户说“已停效”，而系统把它映射到枚举列表。这暗示“已停效”是一个别名，应该映射到枚举。问题在于别名映射是否应该包含“人为停效”和“贷款超停”？“已停效”是否涵盖了“贷款超停”（贷款超值停效）？“贷款超值停效”确实也是停效的一种。自垫停效也是停效。人为停效也是停效。所以全部包含是合理的。\n\n但有没有可能“已停效”只指“停效”这一种状态？在保险行业内，停效状态常见 code 有 06（停效）等。但这里是 desc 字段的枚举。若业务配置把“停效”作为一个聚合别名包含上述 4 种，那么此次解析正确。\n\n作为 judge，我只能依据 RunTrace 和 project 契约知识。business_config 路径提供在 business_evidence_paths 中，但我无法读取文件。我只能依赖场景标识 scenario: \"enum_alias\" 说明这正是枚举别名场景，系统行为与场景相符。\n\n还有一个思考点：“手上有没有已停效保单？”——“已停效”是一个状态大类。是否应该同时排除“已退保”？filter 使用 IN 已经排除了其他状态。考虑条件完整性：无歧义、无缺失条件。\n\n时间边界：无时间相关条件。\n\n所以我认为所有 expectation 均 fulfilled。\n\nblocking 设置：服务依赖可用和查询完整表达是 blocking。字段/操作符也 blocking（缺了会阻断核心目的）。不过按协议，blocking 只在缺失会阻断核心目的时 true。我认为：\n1. 服务依赖可用（解析成功返回 executable filter）——blocking true\n2. 状态字段选择正确——blocking true\n3. 停效值集合完整且无多余——blocking true\n4. 无时间/其他隐含条件遗漏——blocking false? 边界。其实没有时间条件，这个 expectation 是“不需要额外条件”，缺失它不影响，可设 false。\n5. 歧义处理——不适用但可评价，blocking false。\n\n实际上这些可以精简为 3-4 个 expectation。\n\n让我组织：\n\nexpectation 1: 服务依赖可用与解析状态\n- expectation_id: \"服务依赖可用且返回可执行解析结果\"\n- blocking: true\n- downstream_consumer: 保单检索下游消费者\n- user_intent: 确认“已停效保单”查询可被成功解析\n- expected_outcome: 系统依赖可用，最终 status SUCCESS 并返回可执行 filter，而非 UNSUPPORTED/ERROR\n- required_capabilities: [\"依赖状态检查\", \"解析成功判定\"]\n- acceptance_criteria: [\"dependency_status 为 available\", \"status 为 SUCCESS\", \"filter 为原始语法树且 type 为 PREDICATE\"]\n- boundary: {}\n- priority: 高\n\nexpectation 2: 状态字段选择正确\n- expectation_id: \"停效状态字段选择正确\"\n- blocking: true\n- user_intent: 用保单状态字段表达“停效”\n- expected_outcome: 使用 pol_status_desc 作为过滤字段\n- required_capabilities: [\"字段映射\", \"状态字段识别\"]\n- acceptance_criteria: [\"filter.field == pol_status_desc\"]\n\nexpectation 3: 停效枚举值完整且无误\n- expectation_id: \"停效枚举值集合完整且无越界\"\n- blocking: true\n- user_intent: “已停效”应覆盖所有停效子状态，且不包含非停效状态\n- expected_outcome: operator IN，values 覆盖全部停效枚举（自垫停效、贷款超停、停效、人为停效），无其他状态\n- required_capabilities: [\"枚举别名映射\", \"状态值集合\"]\n- acceptance_criteria: [\"operator == IN\", \"values == [自垫停效, 贷款超停, 停效, 人为停效]\", \"values 不含非停效状态\"]\n\nexpectation 4: 逻辑结构正确\n- expectation_id: \"过滤逻辑结构正确无多余条件\"\n- blocking: false (不阻塞？实际上逻辑结构错误会阻断核心目的。但按理应该 true。)\n- 其实单个 PREDICATE 树结构，无 AND/OR/NOT 嵌套。若错误地加了 AND，则有问题。逻辑正确是核心，blocking 应为 true。但把 4 个并列条件合成 IN 而不是 OR 树，两者逻辑等价，允许。这里单 predicate。\n\nexpectation 5: 无隐藏时间/上下文条件遗漏\n- expectation_id: \"查询无额外隐含条件且无条件缺失\"\n- blocking: true? 条件完整性的缺失会阻断。设 true。但证据上，用户查询只有停效状态，无时间等。acceptance: 不需要附加时间范围、代理人维度以外条件；filter 完整表达查询意图。\n\n嗯，太多 expectation 会导致冗余。judge 指南说粒度直接决定精度，每个 expectation 是原子独立可评价单元。我保留 4-5 个。\n\nfulfillment_assessments 对应：\n1. 服务依赖可用与解析状态 → fulfilled\n2. 状态字段选择 → fulfilled\n3. 停效枚举值集合 → fulfilled\n4. 逻辑结构与条件完整性 → fulfilled\n\nexpected_evidence 数组与 actual_evidence 数组。\n\nactual_evidence 例如：\n- {\"kind\": \"trace\", \"content\": \"final_output.status = SUCCESS, code=0\"}\n- {\"kind\": \"trace\", \"content\": \"filter = {type: PREDICATE, field: pol_status_desc, operator: IN, values: [自垫停效, 贷款超停, 停效, 人为停效]}\"}\n- {\"kind\": \"trace\", \"content\": \"application_boundary.dependency_status = available\"}\n\nexpected.filter：应与我认为的正确 filter 一致，即 actual 的 filter 结构。\n\nmissing/wrong/extra：没有错误，三个都应为空数组。\n\nevidence: 可以放实际证据对象数组。\n\nreasoning_summary：中文说明为何满足。需要提到：query “已停效保单”是英文不太对，中文。查询表达的是“停效”状态大类；在业务枚举中“停效”下含自垫停效、贷款超停、停效、人为停效，系统以单节点 IN 谓词表达，字段 pol_status_desc 正确，无越界值、无残缺条件；dependency available，SUCCESS，完整 return filter，符合成功契约。无歧义，无需 UNSUPPORTED。\n\n关于“手上有没有”这种口语化前缀，不会影响语义，只是询问是否存在保单，不应添加其他过滤条件（如代理人维度）。agentCode 是上下文，但用户 query 没有要求按代理人过滤。等等——这里有个点：agentCode A12345678 作为 env 参数提供，但 query 是“手上有没有已停效保单？”。“手上”可能暗示“我名下/我手上的保单”，即代理人的保单。但 filter 契约只针对状态？在 policySearchParse 场景，parse 的职责是从 query 解析过滤条件，agentCode 可能是身份上下文而非过滤条件。\n\n不过按项目契约，agentCode 一般是用于鉴权/范围限定，不体现在 filter 中（或由 downstream 使用）。这里实际 filter 没有 agentCode 条件。场景是 enum_alias，说明 case 重点在枚举别名。我不会在“手上”上纠结，因为 parse 阶段不负责加代理人维度。\n\n还要注意：筛选“已停效保单”对应状态值。关于“停效”在枚举里的位置——会不会“停效”是对整个状态的顶层，而“自垫停效”“贷款超停”“人为停效”是其他状态？在保险业务中，保单状态常见有：正常、停效、终止、满期、宽限期、自垫停效、贷款超停等。“自垫停效”和“贷款超停”确实是停效大类下的细分。“人为停效”也是人工操作导致的停效。因此全部归入“已停效”语义合理。\n\nOK。\n\n关于 status 词表：fulfilled / not_fulfilled / not_evaluable。全部 fulfilled。\n\nscore：给 1 或 null。 schema score 是 number|null。给 1.0。\n\nauthority_tool_call_ids：无工具调用，空数组。\n\napplicable_product_expectation_ids：这可能是项目契约的期望 ID？没有提供具体列表，给空数组。\n\nexpected 的 filter 需要 object 结构：\n{\n  \"type\": \"PREDICATE\",\n  \"node_id\": \"n0\",\n  \"field\": \"pol_status_desc\",\n  \"operator\": \"IN\",\n  \"values\": [\"自垫停效\", \"贷款超停\", \"停效\", \"人为停效\"]\n}\n\nexpected.msg 和 message 都是 \"success\"/\"解析成功\"。\n\n现在检查输出 JSON 的约束：首字符 { 末字符 }，无 markdown。必须包含 required：business_expectations, expected, reasoning_summary。还有 applicable_product_expectation_ids 和 fulfillment_assessments 虽不在 required 顶级列表，但 schema 里 properties 也非 required？看 required 列表：[\"expected\", \"business_expectations\", \"reasoning_summary\"]。顶级 required 只有这三个。但为完整性我还是输出所有字段。\n\n等等，schema 顶级 required 只有 expected、business_expectations、reasoning_summary。但输出约束说“必须包含 required 列表中的所有字段”。我会包含全部字段更安全。\n\n还要注意 additionalProperties: false，不能加额外字段。\n\n检查 GapItem 结构：kind、error_type、expected、actual、evidence_ref、raw、incomplete。空数组即可。\n\nbusiness_expectations 的必填是 expectation_id 和 blocking，其余可选但建议提供。\n\nboundary 字段是 object（可以为空 {}）。\n\n现在写 reasoning_summary（中文，最小长度1）。\n\n内容：评估依据：trace 显示 dependency_status available、parse status SUCCESS、最终输出返回完整可执行 filter（PREDICATE 单节点）。查询“已停效保单”语义上指保单状态为停效的状态大类；业务枚举中“停效”对应的子状态包括自垫停效、贷款超停、停效、人为停效，系统以 pol_status_desc IN 上述集合表达，字段选择正确、枚举集合完整、无越界值，逻辑结构单一无多余或缺失条件，无时间边界需求。查询无歧义，无需退回 UNSUPPORTED。实际输出与正确参考一致，所有 expectations fulfilled，无 missing/wrong/extra。\n\n好，输出。\n\n关于 decision 中“忽略 node_id 命名差异；允许逻辑等价的树”，实际和 expected 相同。\n\n最终 JSON 需要转义吗？在 assistant 的最终输出中，直接输出 JSON 文本。内部中文引号问题——避免在字符串值中使用英文双引号，除非转义。我使用中文文本不需要引号。例如 expected.query = \"手上有没有已停效保单？\"在 JSON 里就是字段值字符串，没问题（JSON 中字符串用英文双引号包裹，内容里没有英文双引号即可）。\n\n确保所有内容里没有未转义的英文双引号。比如证据里 content 用中文。\n\n写吧。",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "policy_search",
+  "prompt_size": 19042,
+  "record_id": "342027de-901d-444f-9808-35c26ba38a84",
+  "response": {
+    "content": "{\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"服务依赖可用且返回可执行解析结果\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索下游消费者\",\n      \"user_intent\": \"让“已停效保单”查询能够被成功解析为可执行的过滤条件\",\n      \"expected_outcome\": \"系统依赖可用，解析最终状态为 SUCCESS 且 filter 为完整可执行的语法树\",\n      \"required_capabilities\": [\"依赖状态检查\", \"解析状态判定\", \"可执行 filter 输出\"],\n      \"acceptance_criteria\": [\n        \"application_boundary.dependency_status 为 available\",\n        \"final_output.status 为 SUCCESS\",\n        \"filter 为 type=PREDICATE 的原始语法树而非空\"\n      ],\n      \"boundary\": {},\n      \"priority\": \"高\"\n    },\n    {\n      \"expectation_id\": \"停效状态字段选择正确\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索下游消费者\",\n      \"user_intent\": \"用保单状态字段表达“已停效”这一状态维度\",\n      \"expected_outcome\": \"过滤字段为 pol_status_desc，而不是其他不相关字段\",\n      \"required_capabilities\": [\"字段映射\", \"保单状态字段识别\"],\n      \"acceptance_criteria\": [\n        \"filter.field 为 pol_status_desc\"\n      ],\n      \"boundary\": {},\n      \"priority\": \"高\"\n    },\n    {\n      \"expectation_id\": \"停效枚举值集合完整且无越界\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索下游消费者\",\n      \"user_intent\": \"“已停效”应覆盖所有停效类子状态，且不包含非停效状态\",\n      \"expected_outcome\": \"operator 为 IN，values 覆盖停效全部枚举值，不掺杂其他保单状态\",\n      \"required_capabilities\": [\"枚举别名映射\", \"状态值集合完整性判断\"],\n      \"acceptance_criteria\": [\n        \"operator 为 IN\",\n        \"values 覆盖自垫停效、贷款超停、停效、人为停效四类停效状态\",\n        \"values 中不存在非停效状态值\"\n      ],\n      \"boundary\": {},\n      \"priority\": \"高\"\n    },\n    {\n      \"expectation_id\": \"过滤逻辑结构正确且条件完整\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"保单检索下游消费者\",\n      \"user_intent\": \"查询表达的过滤逻辑应被完整、无歧义地转换为语法树，无缺失或多余条件\",\n      \"expected_outcome\": \"单节点 PREDICATE 完整表达用户查询意图，无额外时间或条件约束，无需退化 UNSUPPORTED\",\n      \"required_capabilities\": [\"逻辑结构构建\", \"条件完整性判断\", \"歧义识别\"],\n      \"acceptance_criteria\": [\n        \"filter 为单层 PREDICATE 且无 AND/OR/NOT 嵌套\",\n        \"无时间边界条件遗漏\",\n        \"查询无歧义，不需要返回 UNSUPPORTED 或部分 filter\"\n      ],\n      \"boundary\": {},\n      \"priority\": \"高\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"服务依赖可用且返回可执行解析结果\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\n        \"最终输出 status 为 SUCCESS，code 为 0\",\n        \"filter 为完整的 PREDICATE 语法树\",\n        \"application_boundary.dependency_status 为 available\"\n      ],\n      \"actual_evidence\": [\n        {\"kind\": \"trace\", \"content\": \"final_output.status=SUCCESS，code=0，msg=success\"},\n        {\"kind\": \"trace\", \"content\": \"filter 为 {type: PREDICATE, field: pol_status_desc, operator: IN, values: [自垫停效, 贷款超停, 停效, 人为停效]}\"},\n        {\"kind\": \"trace\", \"content\": \"application_boundary.dependency_status=available\"}\n      ],\n      \"downstream_impact\": \"下游可直接基于返回的可执行 filter 进行保单检索，无需兜底处理或回退\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"停效状态字段选择正确\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\n        \"filter.field 为 pol_status_desc\"\n      ],\n      \"actual_evidence\": [\n        {\"kind\": \"trace\", \"content\": \"filter.field=pol_status_desc\"}\n      ],\n      \"downstream_impact\": \"使用正确状态字段保证检索限定在保单状态维度，不会因字段错选导致检索范围错误\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"停效枚举值集合完整且无越界\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\n        \"operator 为 IN\",\n        \"values 包含全部停效子状态：自垫停效、贷款超停、停效、人为停效\",\n        \"values 不包含正常、终止、满期等非停效状态\"\n      ],\n      \"actual_evidence\": [\n        {\"kind\": \"trace\", \"content\": \"filter.operator=IN\"},\n        {\"kind\": \"trace\", \"content\": \"filter.values=[自垫停效, 贷款超停, 停效, 人为停效]\"}\n      ],\n      \"downstream_impact\": \"枚举集合完整覆盖“已停效”语义，避免漏检停效保单或误检非停效保单\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"过滤逻辑结构正确且条件完整\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\n        \"filter 为单层 PREDICATE，无 AND/OR/NOT 嵌套\",\n        \"查询仅含停效状态条件，无需附加时间或上下文条件\",\n        \"查询无歧义，无需 UNSUPPORTED\"\n      ],\n      \"actual_evidence\": [\n        {\"kind\": \"trace\", \"content\": \"filter 结构为单节点 PREDICATE，无逻辑嵌套\"},\n        {\"kind\": \"trace\", \"content\": \"query 仅表达停效状态维度，无时间词或其他遗漏条件\"},\n        {\"kind\": \"trace\", \"content\": \"scenario=enum_alias，系统按停效枚举别名完整展开\"}\n      ],\n      \"downstream_impact\": \"下游获得与用户查询语义一致且无遗漏的检索条件，筛选结果准确\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"expected\": {\n    \"code\": 0,\n    \"msg\": \"success\",\n    \"status\": \"SUCCESS\",\n    \"query\": \"手上有没有已停效保单？\",\n    \"filter\": {\n      \"type\": \"PREDICATE\",\n      \"node_id\": \"n0\",\n      \"field\": \"pol_status_desc\",\n      \"operator\": \"IN\",\n      \"values\": [\"自垫停效\", \"贷款超停\", \"停效\", \"人为停效\"]\n    },\n    \"message\": \"解析成功\"\n  },\n  \"missing\": [],\n  \"wrong\": [],\n  \"extra\": [],\n  \"evidence\": [\n    {\"kind\": \"final_output\", \"content\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"手上有没有已停效保单？\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"pol_status_desc\", \"operator\": \"IN\", \"values\": [\"自垫停效\", \"贷款超停\", \"停效\", \"人为停效\"]}, \"message\": \"解析成功\"}},\n    {\"kind\": \"application_boundary\", \"content\": {\"dependency_status\": \"available\", \"allow_fallback\": false, \"notes\": \"parser returned an executable filter\"}},\n    {\"kind\": \"conversation_summary\", \"content\": {\"completion_status\": \"completed\", \"stop_reason\": \"goal_satisfied\"}}\n  ],\n  \"reasoning_summary\": \"评估依据：trace 显示服务依赖可用（dependency_status=available），解析最终状态为 SUCCESS 并返回完整可执行的 PREDICATE 语法树。查询“已停效保单”表达的语义是保单处于停效状态这一大类；业务枚举别名下，停效类状态包括自垫停效、贷款超停、停效、人为停效，系统以 pol_status_desc IN 上述四值表达，字段选择正确、枚举集合完整且无越界值（未包含正常、终止等非停效状态），逻辑结构为单节点无多余或缺失条件，查询不存在时间边界或歧义，无需退化 UNSUPPORTED。实际输出与正确参考完全一致，四个原子期望全部满足，无 missing、wrong、extra 差异。\"\n}",
+    "metrics": {
+      "cache_read_tokens": 2304,
+      "cache_write_tokens": 0,
+      "input_tokens": 4309,
+      "output_tokens": 5164,
+      "reasoning_tokens": 3164,
+      "total_tokens": 9473
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 71147,
+          "endpoint": "primary",
+          "error": "Connection error.",
+          "error_type": "RuntimeError",
+          "model": "gpt-5.6-luna",
+          "status": "failed"
+        },
+        {
+          "attempt": 2,
+          "elapsed_ms": 46699,
+          "endpoint": "fallback1",
+          "model": "deepseek-v4-flash-0731",
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "selected_endpoint": "fallback1",
+      "selected_model": "deepseek-v4-flash-0731",
+      "stage": ""
+    }
+  },
+  "trace_id": "policy_search:policy-search-rich-0296:1786625455724"
+}

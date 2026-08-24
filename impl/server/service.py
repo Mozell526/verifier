@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 import time
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 
@@ -32,6 +33,11 @@ from ..core.schema import (
 )
 from ..core.table_view import build_case_pool_table_from_runs, build_trace_table_row, build_trace_table_row_from_run
 SERVER_STARTED_AT = time.time()
+
+
+@dataclass(frozen=True)
+class _ContextAnalysisOutput:
+    analysis: str
 
 
 def _config_hash() -> str:
@@ -90,6 +96,8 @@ def compact_run(run: Dict[str, Any]) -> Dict[str, Any]:
         "frontend_view": frontend_view,
         "error": run.get("error"),
     }
+    if run.get("capability_carrier") is not None:
+        compact["capability_carrier"] = run.get("capability_carrier")
     table_row = build_trace_table_row_from_run(compact)
     compact["table_row"] = to_dict(table_row)
     compact["status"] = table_row.status
@@ -259,7 +267,12 @@ def judge(data: Dict[str, Any]) -> Any:
 
 
 def attribute(data: Dict[str, Any]) -> Any:
-    return pipeline.attribute(project_from(data), normalize_run_trace(data.get("trace")), normalize_judge_result(data.get("judge")))
+    return pipeline.attribute(
+        project_from(data),
+        normalize_run_trace(data.get("trace")),
+        normalize_judge_result(data.get("judge")),
+        manual_override=bool(data.get("manual_override")),
+    )
 
 
 def cluster(data: Dict[str, Any]) -> Any:
@@ -305,6 +318,7 @@ def batch_run(data: Dict[str, Any]) -> BatchRunResult:
         check=normalize_check_report(result.check) if result.check else None,
         table=normalize_case_pool_table(result.table) if result.table else None,
         fallbacks=result.fallbacks,
+        run_status=result.run_status,
     )
 
 
@@ -395,10 +409,33 @@ def analyze_contexts(data: Dict[str, Any]) -> Dict[str, Any]:
         return {"error": "failed to load full context records"}
     system, user = _build_analyze_prompt(analysis_type, caller, samples)
     from .llm_bridge import llm_client_for_analysis
-    from ..core.structured_output import FREE_TEXT_OUTPUT
+    from ..core.structured_output import StructuredOutputSpec
     client = llm_client_for_analysis(project_id)
-    # context-analyze 是自由文本分析，无固定结构，用 FREE_TEXT_OUTPUT（单字段 result: str）
-    result = client.complete_json(system, user, trace_id=f"context-analyze-{caller}", output_spec=FREE_TEXT_OUTPUT)
+    trace_id = f"context-analyze-{caller}"
+    output_spec = StructuredOutputSpec.from_dataclass(
+        _ContextAnalysisOutput,
+        required_nonempty=["analysis"],
+        description="上下文样本分析结论",
+    )
+    from ..core.context_governance import configure_context_governance
+    configure_context_governance(
+        client,
+        config={
+            "enabled": True,
+            "mode": "production",
+            "role": "context_analyzer",
+            "stage": analysis_type,
+            "trace_id": trace_id,
+            "compiler_source": "impl/server/service.py#analyze_contexts",
+            "user_source": "context-store://sampled-records",
+        },
+        project_id=project_id,
+        system=system,
+        user=user,
+        output_spec=output_spec,
+        tools=[],
+    )
+    result = client.complete_json(system, user, trace_id=trace_id, output_spec=output_spec)
     analysis_text = ""
     if isinstance(result, dict):
         if result.get("error"):
@@ -421,7 +458,7 @@ def _build_analyze_prompt(analysis_type: str, caller: str, samples: List[Any]) -
         "你是通用评估系统的上下文分析器。下面是某个 agent 的若干条 LLM 上下文记录样本。\n"
         f"分析任务：{type_desc}。\n"
         "每条记录包含 system_prompt / user_prompt / response / prompt_size / elapsed_ms / error。\n"
-        "只基于样本内容分析，不要编造未提供的信息。输出 JSON，包含字段 analysis（中文分析结论）。\n"
+        "只基于样本内容分析，不要编造未提供的信息。分析结论必须使用中文。\n"
     )
     user_parts = [f"caller={caller} analysis_type={analysis_type} sample_count={len(samples)}"]
     for i, s in enumerate(samples, 1):

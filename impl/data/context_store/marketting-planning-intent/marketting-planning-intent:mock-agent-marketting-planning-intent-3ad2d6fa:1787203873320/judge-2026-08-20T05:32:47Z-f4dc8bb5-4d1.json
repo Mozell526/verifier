@@ -1,0 +1,313 @@
+{
+  "caller": "judge",
+  "created_at": "2026-08-20T05:32:47Z",
+  "elapsed_ms": 86280,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "production"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "4bd361b3ad5bd9a740f91d410723120fe6762dcc1baf8e1cabd2b98a2746ddca",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [],
+      "lineage": {
+        "call_id": "",
+        "case_id": "mock-agent-marketting-planning-intent-3ad2d6fa",
+        "trace_id": "marketting-planning-intent:mock-agent-marketting-planning-intent-3ad2d6fa:1787203873320"
+      },
+      "messages": [
+        {
+          "char_count": 6723,
+          "content_sha256": "5eabd13ae82894d101e151939925d72cf1d81add96216ab3f073373ecaf44539",
+          "role": "system"
+        },
+        {
+          "char_count": 3989,
+          "content_sha256": "3f8c2043a4fb9afd21f19719108546fc86bc0be47e100a3fd930de12f707c335",
+          "role": "user"
+        }
+      ],
+      "mode": "production",
+      "output_contract": {
+        "field_names": [
+          "acceptance_criteria",
+          "actual",
+          "actual_evidence",
+          "applicable_product_expectation_ids",
+          "authority_tool_call_ids",
+          "blocking",
+          "boundary",
+          "business_expectations",
+          "downstream_consumer",
+          "downstream_impact",
+          "error_type",
+          "evidence",
+          "evidence_ref",
+          "expectation_id",
+          "expected",
+          "expected_evidence",
+          "expected_outcome",
+          "extra",
+          "fulfillment_assessments",
+          "incomplete",
+          "kind",
+          "missing",
+          "priority",
+          "raw",
+          "reasoning_summary",
+          "required_capabilities",
+          "score",
+          "status",
+          "user_intent",
+          "wrong"
+        ],
+        "identity": "impl.core.schema.judge.JudgeLLMOutput",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "0ae0afb407db0b56761c1e5aec63fd8f5fa423085e6b9ba93a9ea9aa67bc4f84",
+        "sha256": "0ae0afb407db0b56761c1e5aec63fd8f5fa423085e6b9ba93a9ea9aa67bc4f84"
+      },
+      "project_id": "marketting-planning-intent",
+      "prompt_char_count": 10712,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 3989,
+        "occurred": false
+      },
+      "role": "judge",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 873,
+          "content_sha256": "525bd96f8dd21bf64f8bf8a14b2eb2da079eca4a5692f489211f1ea2b9c9fdd2",
+          "order": 0,
+          "role": "judge",
+          "segment_id": "mandatory-context-units",
+          "source": "contextunit://project.marketting-planning-intent.asset.judge_boundary,project.marketting-planning-intent.asset.judge_evaluation",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 2613,
+          "content_sha256": "3f4b740e86a7713a6a2f1538dc8b98349a0c4e3c7614073ac36eb0bc2ec0423c",
+          "order": 1,
+          "role": "judge",
+          "segment_id": "compiled-system",
+          "source": "impl/core/judge.py#judge_trace",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 3989,
+          "content_sha256": "3f8c2043a4fb9afd21f19719108546fc86bc0be47e100a3fd930de12f707c335",
+          "order": 2,
+          "role": "judge",
+          "segment_id": "case-user-payload",
+          "source": "trace://judge-evidence-view",
+          "stage": "judge"
+        }
+      ],
+      "stage": "judge",
+      "tool_plan": []
+    }
+  },
+  "llm_model": "deepseek-v4-flash-0731",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "你是通用评估系统的 judge agent。\n\n## 核心原则\n只基于当前 RunTrace、项目评判标准和动态检索的知识库内容判断，不继承历史 case。\n首要职责：理解用户/下游消费者的真实业务意图 → 派生 business_expectations → 基于完整执行链路（每轮 output、最终 output、交互过程和停止事实）判断 expectations 的 fulfillment。\n\n## expectation 拆分原则\nbusiness_expectations 的粒度直接决定判断精度。每个 expectation 必须是原子、独立可评价的判断单元：证据充分时判 fulfilled 或 not_fulfilled；确需评价但当前证据不足时按协议判 not_evaluable。\n- 一个 expectation 只描述一个可独立验证的结果维度\n- 多维度意图必须拆成多个 expectation\n- 每个 expectation 必须有明确的 acceptance_criteria\n- 每个 expectation 必须在比较 actual 前确定 blocking：只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true\n- fulfillment_assessments 只判断对应 expectation 的 status 和证据，不得重新定义 blocking\n- expectation_id 必须是描述性的中文短语，禁止使用 E1/E2/exp_01 等占位符 ID\n- reasoning_summary 必须是中文写成的判断依据\n\n## 输出词表\n`fulfillment_assessments[*].status` 必须从以下 3 个值中选择：\n  - fulfilled：该 expectation 完全满足\n  - not_fulfilled：该 expectation 未满足\n  - not_evaluable：当前无法评估\n禁用 failed/passed/incorrect/wrong/met/unmet/partially_fulfilled/partial/success/fail/ok/unknown 等同义词。\n`fulfillment_assessments[*].expected_evidence` 与 `actual_evidence` **必须是数组**（JSON array / list），即使只有一条证据也要用 `[...]` 包裹，不可直接用字符串或对象。\n\n不要输出 overall_fulfillment；公共层会在项目契约补充完成后根据 blocking expectations 确定性派生整体状态。\n\n## 评估规范\n\n\n## 评估边界\n\n\n## 判断标准\n\n\n## 项目 ContextUnit（按 Role policy 在运行前确定性装载）\n## ContextUnit: judge_boundary: judge_boundary.md (project.marketting-planning-intent.asset.judge_boundary)\n# Judge Boundary\n\nIn scope:\n\n- single-turn query normalization\n- intent-recognition API call\n- adapter extraction of the intent label and confidence\n- label correctness against the current reference intent\n\nOut of scope:\n\n- multi-turn planning state\n- SSE planning output\n- planning card generation\n- downstream business data availability\n\n\n## ContextUnit: judge_evaluation: evaluation.md (project.marketting-planning-intent.asset.judge_evaluation)\n# Evaluation\n\nJudge evaluates whether the normalized `intent` returned by the intent-recognition endpoint matches the current case reference or judge-generated expected intent.\n\nThe evaluation boundary excludes multi-turn field collection, SSE streaming, planning-card generation, and downstream planning execution.\n\n\n\n\n## marketing-planning-intent 评估关键维度\n请将 user prompt 中的 critical_intent_dimensions 作为拆分 business_expectations 的骨架，围绕 intent label、必需 slots/entities、置信度阈值、fallback 策略和 dispatch 边界判断 fulfillment。\n## 工具使用原则\n所有工具的用途、调用时机和参数含义以 Agno tool schema 为准；user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息。\n\n## 禁止事项\n- 不要把 reference answer 当作默认主目标（除非 case 明确指定）\n- 不要把 HTTP 状态、run_status、attribute/cluster 结论当作满足依据\n- 不要归因内部代码、配置或 prompt 原因（属于 attribute agent）\n- 分析文字必须使用中文，包括 reasoning_summary 等所有文本字段。\n\n\n## 输出约束：judge 判定输出（reference 已固化，仅产 fulfillment 判定）\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"business_expectations\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeBusinessExpectationOutput\"\n      },\n      \"minItems\": 1\n    },\n    \"applicable_product_expectation_ids\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"fulfillment_assessments\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeFulfillmentAssessmentOutput\"\n      }\n    },\n    \"expected\": {},\n    \"missing\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"wrong\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"extra\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"evidence\": {\n      \"type\": \"array\",\n      \"items\": {}\n    },\n    \"reasoning_summary\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    }\n  },\n  \"additionalProperties\": false,\n  \"$defs\": {\n    \"JudgeBusinessExpectationOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"blocking\": {\n          \"type\": \"boolean\"\n        },\n        \"downstream_consumer\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"user_intent\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected_outcome\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"required_capabilities\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"acceptance_criteria\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"boundary\": {\n          \"type\": \"object\"\n        },\n        \"priority\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"blocking\"\n      ]\n    },\n    \"JudgeFulfillmentAssessmentOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"score\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        },\n        \"expected_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"actual_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"downstream_impact\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"authority_tool_call_ids\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"status\"\n      ]\n    },\n    \"GapItem\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"kind\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"error_type\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected\": {},\n        \"actual\": {},\n        \"evidence_ref\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"raw\": {},\n        \"incomplete\": {\n          \"type\": \"boolean\"\n        }\n      },\n      \"additionalProperties\": false\n    }\n  },\n  \"required\": [\n    \"business_expectations\",\n    \"reasoning_summary\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['business_expectations', 'reasoning_summary']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n",
+      "created_at": 1787203888,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "c8bee5e0-b9f5-4220-88a0-8ab7966c83db",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"user_intent\": \"other\", \"run_trace\": {\"trace_id\": \"marketting-planning-intent:mock-agent-marketting-planning-intent-3ad2d6fa:1787203873320\", \"project_id\": \"marketting-planning-intent\", \"case_id\": \"mock-agent-marketting-planning-intent-3ad2d6fa\", \"intent_input\": {\"session_id\": \"default_session_123\", \"trace_id\": \"default_trace_456\", \"org_id\": \"default_org_789\", \"user_text\": \"哎呀，这个月队伍那边好像有点状况，帮我瞅瞅到底是啥问题？\", \"extra_input_params\": {\"agent_args\": {\"conversation_id\": \"default_session_123\", \"message\": {\"content\": \"哎呀，这个月队伍那边好像有点状况，帮我瞅瞅到底是啥问题？\", \"content_type\": \"text\"}}, \"args\": {\"extensions\": {}, \"contexts\": []}}}, \"normalized_request\": {\"session_id\": \"default_session_123\", \"trace_id\": \"default_trace_456\", \"org_id\": \"default_org_789\", \"user_text\": \"哎呀，这个月队伍那边好像有点状况，帮我瞅瞅到底是啥问题？\", \"extra_input_params\": {\"agent_args\": {\"conversation_id\": \"default_session_123\", \"message\": {\"content\": \"哎呀，这个月队伍那边好像有点状况，帮我瞅瞅到底是啥问题？\", \"content_type\": \"text\"}}, \"args\": {\"extensions\": {}, \"contexts\": []}}}, \"final_output\": {}, \"final_output_turn\": null, \"turns\": [{\"turn_index\": 1, \"request\": {\"session_id\": \"default_session_123\", \"trace_id\": \"default_trace_456\", \"org_id\": \"default_org_789\", \"user_text\": \"哎呀，这个月队伍那边好像有点状况，帮我瞅瞅到底是啥问题？\", \"extra_input_params\": {\"agent_args\": {\"conversation_id\": \"default_session_123\", \"message\": {\"content\": \"哎呀，这个月队伍那边好像有点状况，帮我瞅瞅到底是啥问题？\", \"content_type\": \"text\"}}, \"args\": {\"extensions\": {}, \"contexts\": []}}}, \"extracted_output\": {}, \"call_status\": \"failed\", \"runtime_ms\": 17, \"error\": \"marketing-planning intent service unavailable: <urlopen error <urlopen error [Errno 61] Connection refused>>\", \"fallbacks\": [{\"fallback_id\": \"live-error-marketting-planning-intent\", \"source_stage\": \"live\", \"fallback_type\": \"live_error\", \"status\": \"error\", \"reason\": \"marketing-planning intent service unavailable: <urlopen error <urlopen error [Errno 61] Connection refused>>\", \"missing_evidence\": [\"live_response\"], \"recoverable\": true, \"needs_human_review\": true, \"quality_flags\": [\"live_service_unavailable\"], \"evidence_refs\": [], \"failed_gate_ids\": [], \"metadata\": {\"case_id\": \"\", \"session_id\": \"\", \"failure_type\": \"live_service_unavailable\"}}], \"validation\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"marketting-planning-intent\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"execution_trace\": [], \"application_boundary\": {}, \"project_fields\": {}}], \"conversation_transcript\": [], \"conversation_summary\": {\"turn_count\": 1, \"final_output_turn\": null, \"completion_status\": \"failed\", \"stop_reason\": \"execution_error\", \"interaction_controller_status\": \"not_run\", \"interaction_controller_error\": \"\"}, \"stop_reason\": \"execution_error\", \"completion_status\": \"failed\", \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"marketting-planning-intent\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"turn_1\", \"status\": \"failed\", \"evidence\": \"marketing-planning intent service unavailable: <urlopen error <urlopen error [Errno 61] Connection refused>>\", \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"evidence_refs\": [], \"raw_response_evidence\": [], \"evidence_completeness\": {\"complete\": false, \"missing_evidence\": [\"final_output\", \"successful_execution\"]}, \"application_boundary\": {}, \"reference_contract\": {\"intent\": \"other\", \"confidence\": 0.5, \"target_value\": null, \"path_types\": null, \"subIntent\": null}, \"scenario\": \"fallback_unknown\", \"status\": \"error\", \"error\": \"marketing-planning intent service unavailable: <urlopen error <urlopen error [Errno 61] Connection refused>>\"}, \"reference_contract\": {\"intent\": \"other\", \"confidence\": 0.5, \"target_value\": null, \"path_types\": null, \"subIntent\": null}, \"application_boundary\": {}, \"critical_intent_dimensions\": [\"intent_label\", \"required_slots_or_entities\", \"confidence_threshold\", \"fallback_policy\", \"dispatch_boundary\"]}",
+      "created_at": 1787203888,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "3d31ddac-0058-4ea8-8876-724ad4da55bf",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "\n\n{\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"意图标签正确识别为other\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"intent-recognition endpoint consumer / downstream planner dispatcher\",\n      \"user_intent\": \"用户询问队伍状况，意图模糊，期望系统识别为other类意图\",\n      \"expected_outcome\": \"intent-recognition endpoint 返回 intent 标签为 other\",\n      \"required_capabilities\": [\"intent_label_extraction\"],\n      \"acceptance_criteria\": [\"返回的 intent 字段值等于 reference_contract 中的 intent 值 other\"],\n      \"boundary\": {\n        \"in_scope\": [\"single-turn intent label recognition\"],\n        \"out_scope\": [\"multi-turn planning\", \"SSE streaming\", \"planning card generation\"]\n      },\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"置信度达到参考阈值0.5\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"intent-recognition endpoint consumer / confidence gate\",\n      \"user_intent\": \"用户意图模糊，系统应以合理置信度返回结果\",\n      \"expected_outcome\": \"返回的 confidence 值等于或高于 reference_contract 中的 0.5\",\n      \"required_capabilities\": [\"confidence_scoring\"],\n      \"acceptance_criteria\": [\"返回的 confidence 字段值 >= 0.5\"],\n      \"boundary\": {\n        \"in_scope\": [\"confidence threshold evaluation\"],\n        \"out_scope\": [\"downstream dispatch decision\"]\n      },\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"必需槽位与实体正确提取\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"intent-recognition endpoint consumer\",\n      \"user_intent\": \"用户意图为other类，reference中target_value/path_types/subIntent均为null，无特定槽位要求\",\n      \"expected_outcome\": \"无特定槽位或实体需要提取，返回结果不应包含错误的槽位信息\",\n      \"required_capabilities\": [\"slot_extraction\"],\n      \"acceptance_criteria\": [\"target_value为null\", \"path_types为null\", \"subIntent为null\"],\n      \"boundary\": {\n        \"in_scope\": [\"slot/entity extraction validation\"],\n        \"out_scope\": [\"multi-turn field collection\"]\n      },\n      \"priority\": \"P2\"\n    },\n    {\n      \"expectation_id\": \"Fallback策略正确处理unknown场景\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"intent-recognition endpoint consumer / fallback handler\",\n      \"user_intent\": \"场景为fallback_unknown，当意图不确定或服务异常时应触发正确的fallback机制\",\n      \"expected_outcome\": \"fallback机制应产生有效的intent结果（如other标签），而非仅返回live_error\",\n      \"required_capabilities\": [\"fallback_policy_execution\"],\n      \"acceptance_criteria\": [\"fallback应返回有效的intent标签\", \"fallback不应仅停留在live_error状态而无有效输出\"],\n      \"boundary\": {\n        \"in_scope\": [\"fallback policy evaluation\"],\n        \"out_scope\": [\"downstream planning execution\"]\n      },\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"Dispatch边界正确处理\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"downstream planner dispatcher\",\n      \"user_intent\": \"系统应基于识别结果正确判断是否触发下游dispatch\",\n      \"expected_outcome\": \"基于intent=other的结果，系统应正确处理dispatch边界（不触发特定planner或触发通用处理）\",\n      \"required_capabilities\": [\"dispatch_boundary_evaluation\"],\n      \"acceptance_criteria\": [\"dispatch决策与intent标签一致\"],\n      \"boundary\": {\n        \"in_scope\": [\"dispatch boundary judgment\"],\n        \"out_scope\": [\"downstream planning execution\", \"SSE planning output\"]\n      },\n      \"priority\": \"P1\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"意图标签正确识别为other\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        \"final_output 中包含 intent 字段且值为 other\",\n        \"extracted_output 或 final_output 中可找到 intent=other\"\n      ],\n      \"actual_evidence\": [\n        \"final_output 为空对象 {}\",\n        \"extracted_output 为空对象 {}\",\n        \"call_status 为 failed\",\n        \"error 为 marketing-planning intent service unavailable: Connection refused\",\n        \"completion_status 为 failed\"\n      ],\n      \"downstream_impact\": \"下游 planner dispatcher 无法获取意图标签，无法进行正确的路由决策\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"置信度达到参考阈值0.5\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        \"final_output 中包含 confidence 字段且值 >= 0.5\"\n      ],\n      \"actual_evidence\": [\n        \"final_output 为空对象 {}\",\n        \"无任何 confidence 值返回\",\n        \"服务连接被拒绝，未产生任何输出\"\n      ],\n      \"downstream_impact\": \"下游无法基于置信度进行质量门控或降级决策\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"必需槽位与实体正确提取\",\n      \"status\": \"not_evaluable\",\n      \"score\": null,\n      \"expected_evidence\": [\n        \"target_value 为 null\",\n        \"path_types 为 null\",\n        \"subIntent 为 null\"\n      ],\n      \"actual_evidence\": [\n        \"reference_contract 中 target_value/path_types/subIntent 均为 null，无特定槽位要求\",\n        \"final_output 为空，无法验证槽位提取结果\",\n        \"由于 reference 本身无槽位要求且无输出可验证，当前无法评估\"\n      ],\n      \"downstream_impact\": \"无特定槽位要求，不影响下游核心流程\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"Fallback策略正确处理unknown场景\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        \"fallback 机制应产生有效的 intent 结果（如 other 标签）\",\n        \"fallback 不应仅停留在 live_error 状态而无有效输出\"\n      ],\n      \"actual_evidence\": [\n        \"fallback 被触发，类型为 live_error\",\n        \"fallback status 为 error\",\n        \"fallback reason 为 marketing-planning intent service unavailable\",\n        \"fallback 的 missing_evidence 包含 live_response\",\n        \"fallback recoverable 为 true 但 needs_human_review 为 true\",\n        \"未产生任何有效的 intent 输出\"\n      ],\n      \"downstream_impact\": \"fallback 未能将 unknown 场景转化为有效的 other 意图标签，下游无法继续处理\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"Dispatch边界正确处理\",\n      \"status\": \"not_evaluable\",\n      \"score\": null,\n      \"expected_evidence\": [\n        \"基于 intent=other 的 dispatch 决策记录\"\n      ],\n      \"actual_evidence\": [\n        \"final_output 为空，无 intent 结果可供 dispatch 判断\",\n        \"execution_trace 中无 dispatch 相关阶段\",\n        \"由于上游 intent 识别完全失败，dispatch 边界无法被触发或评估\"\n      ],\n      \"downstream_impact\": \"dispatch 边界未被触发，下游 planner 未收到任何输入\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"expected\": {\n    \"intent\": \"other\",\n    \"confidence\": 0.5,\n    \"target_value\": null,\n    \"path_types\": null,\n    \"subIntent\": null\n  },\n  \"missing\": [\n    {\n      \"kind\": \"missing_output\",\n      \"error_type\": \"service_unavailable\",\n      \"expected\": \"intent=other, confidence=0.5\",\n      \"actual\": \"final_output 为空，服务连接被拒绝\",\n      \"evidence_ref\": \"turn_1.error: marketing-planning intent service unavailable: Connection refused\",\n      \"raw\": {\n        \"final_output\": {},\n        \"call_status\": \"failed\",\n        \"error\": \"marketing-planning intent service unavailable: <urlopen error <urlopen error [Errno 61] Connection refused>>\"\n      },\n      \"incomplete\": true\n    },\n    {\n      \"kind\": \"missing_fallback_result\",\n      \"error_type\": \"fallback_incomplete\",\n      \"expected\": \"fallback 应产生有效的 intent 标签 other\",\n      \"actual\": \"fallback 仅返回 live_error 状态，无有效 intent 输出\",\n      \"evidence_ref\": \"turn_1.fallbacks[0].status: error\",\n      \"raw\": {\n        \"fallback_type\": \"live_error\",\n        \"fallback_status\": \"error\",\n        \"missing_evidence\": [\"live_response\"]\n      },\n      \"incomplete\": true\n    }\n  ],\n  \"wrong\": [],\n  \"extra\": [],\n  \"evidence\": [\n    \"user_text: 哎呀，这个月队伍那边好像有点状况，帮我瞅瞅到底是啥问题？\",\n    \"reference_contract: intent=other, confidence=0.5, target_value=null, path_types=null, subIntent=null\",\n    \"scenario: fallback_unknown\",\n    \"final_output: {} (空对象)\",\n    \"call_status: failed\",\n    \"error: marketing-planning intent service unavailable: Connection refused\",\n    \"completion_status: failed\",\n    \"stop_reason: execution_error\",\n    \"fallback: type=live_error, status=error, recoverable=true, needs_human_review=true\",\n    \"evidence_completeness: complete=false, missing_evidence=[final_output, successful_execution]\"\n  ],\n  \"reasoning_summary\": \"本次评估的核心问题是 intent-recognition 服务完全不可用（Connection refused），导致未产生任何有效的意图识别输出。reference_contract 期望返回 intent=other 且 confidence=0.5，但 final_output 为空对象，extracted_output 也为空。虽然 fallback 机制被触发，但其类型为 live_error（服务级错误），而非针对 fallback_unknown 场景的有效意图降级——fallback 仅记录了错误状态，未产生任何可用的 intent 标签。因此，意图标签正确性、置信度阈值、Fallback策略三个 blocking expectation 均未满足。必需槽位与实体提取因 reference 本身无槽位要求且无输出可验证，判为 not_evaluable。Dispatch边界因上游完全失败无法触发，同样判为 not_evaluable。整体而言，服务不可用导致整个意图识别链路中断，所有核心业务期望均未达成。\"\n}",
+      "created_at": 1787203888,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "5be1d12e-13ed-4cdf-920b-3d4f6906ab89",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 7394,
+        "output_tokens": 4230,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 11624
+      },
+      "name": null,
+      "provider_data": {
+        "id": "6780fd44-93a1-4772-ad63-65652c80e26c",
+        "model_extra": {
+          "request_id": "6780fd44-93a1-4772-ad63-65652c80e26c"
+        }
+      },
+      "reasoning_content": "Let me analyze this case carefully.\n\nThe user's input is: \"哎呀，这个月队伍那边好像有点状况，帮我瞅瞅到底是啥问题？\"\n\nThe reference contract says:\n- intent: \"other\"\n- confidence: 0.5\n- target_value: null\n- path_types: null\n- subIntent: null\n\nThe scenario is \"fallback_unknown\".\n\nThe run trace shows:\n- The intent recognition service was unavailable (connection refused)\n- The call failed with error: \"marketing-planning intent service unavailable\"\n- No final output was produced\n- The completion status is \"failed\"\n- The stop reason is \"execution_error\"\n\nNow, the critical intent dimensions are:\n1. intent_label\n2. required_slots_or_entities\n3. confidence_threshold\n4. fallback_policy\n5. dispatch_boundary\n\nLet me think about what the business expectations should be:\n\n1. **Intent label correctness**: The system should correctly identify the intent label. The reference says \"other\" with confidence 0.5. But the service was unavailable, so no intent was actually returned.\n\n2. **Required slots/entities**: The reference has target_value: null, path_types: null, subIntent: null - so no specific slots are required.\n\n3. **Confidence threshold**: Reference confidence is 0.5.\n\n4. **Fallback policy**: The scenario is \"fallback_unknown\" - this means when the intent is uncertain or the service fails, a fallback should be triggered.\n\n5. **Dispatch boundary**: The system should handle the dispatch correctly.\n\nNow, the actual execution:\n- The service was completely unavailable (connection refused)\n- No intent was returned\n- The fallback was triggered but it was a \"live_error\" type fallback, not a proper intent fallback\n- The final output is empty\n\nThe key question is: what should the judge evaluate?\n\nThe reference contract says intent should be \"other\" with confidence 0.5. But the service failed completely - no output was produced.\n\nLet me think about the expectations:\n\n1. **Intent label should be \"other\"**: The service failed, so no intent label was returned. This is not fulfilled.\n\n2. **Confidence should be 0.5**: No confidence was returned. Not fulfilled.\n\n3. **Fallback policy should handle the unknown scenario**: The fallback was triggered (live_error fallback), but it didn't produce a proper intent result. The scenario is \"fallback_unknown\" which suggests the system should handle this gracefully.\n\n4. **Required slots/entities**: Reference has null values, so no specific slots needed. This might be fulfilled by default since there's nothing to check.\n\n5. **Dispatch boundary**: The service was unavailable, so dispatch couldn't happen.\n\nLet me structure the business expectations:\n\n1. **意图标签正确性**: The intent label should match \"other\"\n   - Blocking: true (core purpose)\n   - Status: not_fulfilled (no output produced)\n\n2. **置信度阈值**: Confidence should be 0.5\n   - Blocking: true\n   - Status: not_fulfilled (no output)\n\n3. **必需槽位/实体**: No specific slots required (all null in reference)\n   - Blocking: false (no slots needed)\n   - Status: not_evaluable or fulfilled (nothing to check)\n\n4. **Fallback策略**: Should handle fallback_unknown scenario\n   - Blocking: true\n   - Status: not_fulfilled (fallback was triggered but didn't produce a valid intent result)\n\n5. **Dispatch边界**: Should handle dispatch correctly\n   - Blocking: false\n   - Status: not_fulfilled (service unavailable)\n\nActually, let me reconsider. The scenario is \"fallback_unknown\" - this means the expected behavior is that when the intent is uncertain, the system should fall back to \"other\" with confidence 0.5. But the service was completely unavailable, so it couldn't even produce this fallback.\n\nThe fallback that was triggered was a \"live_error\" fallback, which is different from the intended \"fallback_unknown\" scenario. The live_error fallback indicates the service itself failed, not that the intent was uncertain.\n\nSo the key issue is: the service was unavailable, and no intent result was produced. The reference expects \"other\" with confidence 0.5, but nothing was returned.\n\nLet me finalize my assessment:\n\n1. **意图标签识别为\"other\"**: not_fulfilled - service unavailable, no output\n2. **置信度达到0.5**: not_fulfilled - no output\n3. **必需槽位/实体提取**: not_evaluable - reference has null values, nothing to evaluate\n4. **Fallback策略正确执行**: not_fulfilled - fallback was triggered but as live_error, not as proper intent fallback\n5. **Dispatch边界处理**: not_fulfilled - service unavailable, no dispatch\n\nWait, let me reconsider the \"required_slots_or_entities\" dimension. The reference has target_value: null, path_types: null, subIntent: null. This means no specific slots are expected. Since the service failed and produced no output, there are no slots to evaluate. I think this should be \"not_evaluable\" since there's nothing to check against.\n\nActually, looking more carefully at the schema, I need to be more careful about what's blocking vs not blocking.\n\nThe core purpose of this system is intent recognition. If the intent label is wrong or missing, that's blocking. If confidence is wrong, that's also important. Fallback policy is important for handling edge cases.\n\nLet me finalize:\n\n1. **意图标签正确识别为\"other\"**: blocking=true, not_fulfilled\n2. **置信度达到参考值0.5**: blocking=true, not_fulfilled  \n3. **必需槽位/实体正确提取**: blocking=false, not_evaluable (reference has null values)\n4. **Fallback策略正确处理unknown场景**: blocking=true, not_fulfilled\n5. **Dispatch边界正确处理**: blocking=false, not_fulfilled\n\nHmm, actually for the dispatch boundary, since the service was completely unavailable, the dispatch couldn't happen. But the reference contract doesn't specify a specific dispatch behavior. Let me think about this differently.\n\nThe dispatch boundary is about whether the system correctly determines whether to dispatch to a downstream planner or not. Since the intent is \"other\" (a catch-all), it might not need to dispatch to a specific planner. But since no output was produced, we can't evaluate this.\n\nLet me simplify and focus on what's clearly evaluable:\n\n1. **意图标签正确性**: The reference says \"other\", but no output was produced. not_fulfilled.\n2. **置信度阈值**: Reference says 0.5, no output. not_fulfilled.\n3. **必需槽位/实体**: Reference has null values, nothing to check. not_evaluable.\n4. **Fallback策略**: The scenario is \"fallback_unknown\", meaning the system should handle this gracefully. The fallback was triggered but as a live_error, not producing a valid intent. not_fulfilled.\n5. **Dispatch边界**: No output, can't evaluate dispatch. not_evaluable.\n\nActually, I think I should be more precise. Let me re-read the evaluation boundary:\n\n\"Judge evaluates whether the normalized `intent` returned by the intent-recognition endpoint matches the current case reference or judge-generated expected intent.\"\n\n\"The evaluation boundary excludes multi-turn field collection, SSE streaming, planning-card generation, and downstream planning execution.\"\n\nSo the judge is specifically evaluating whether the intent returned matches the reference. Since no intent was returned (service unavailable), the intent doesn't match.\n\nLet me also consider: the scenario is \"fallback_unknown\" - this might mean the expected behavior IS to fall back to \"other\" when the intent is uncertain. But the service was completely unavailable, so it couldn't even do that.\n\nOK, let me finalize my assessment. I'll create 5 expectations based on the critical_intent_dimensions:\n\n1. **意图标签正确识别为\"other\"** - blocking, not_fulfilled\n2. **置信度达到参考阈值0.5** - blocking, not_fulfilled\n3. **必需槽位/实体正确提取** - not blocking, not_evaluable (reference has null values)\n4. **Fallback策略正确处理unknown场景** - blocking, not_fulfilled\n5. **Dispatch边界正确处理** - not blocking, not_evaluable\n\nLet me write the JSON now.\n",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "marketting-planning-intent",
+  "prompt_size": 18847,
+  "record_id": "f4dc8bb5-4d1a-492d-9774-f990be2889eb",
+  "response": {
+    "content": "\n\n{\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"意图标签正确识别为other\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"intent-recognition endpoint consumer / downstream planner dispatcher\",\n      \"user_intent\": \"用户询问队伍状况，意图模糊，期望系统识别为other类意图\",\n      \"expected_outcome\": \"intent-recognition endpoint 返回 intent 标签为 other\",\n      \"required_capabilities\": [\"intent_label_extraction\"],\n      \"acceptance_criteria\": [\"返回的 intent 字段值等于 reference_contract 中的 intent 值 other\"],\n      \"boundary\": {\n        \"in_scope\": [\"single-turn intent label recognition\"],\n        \"out_scope\": [\"multi-turn planning\", \"SSE streaming\", \"planning card generation\"]\n      },\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"置信度达到参考阈值0.5\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"intent-recognition endpoint consumer / confidence gate\",\n      \"user_intent\": \"用户意图模糊，系统应以合理置信度返回结果\",\n      \"expected_outcome\": \"返回的 confidence 值等于或高于 reference_contract 中的 0.5\",\n      \"required_capabilities\": [\"confidence_scoring\"],\n      \"acceptance_criteria\": [\"返回的 confidence 字段值 >= 0.5\"],\n      \"boundary\": {\n        \"in_scope\": [\"confidence threshold evaluation\"],\n        \"out_scope\": [\"downstream dispatch decision\"]\n      },\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"必需槽位与实体正确提取\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"intent-recognition endpoint consumer\",\n      \"user_intent\": \"用户意图为other类，reference中target_value/path_types/subIntent均为null，无特定槽位要求\",\n      \"expected_outcome\": \"无特定槽位或实体需要提取，返回结果不应包含错误的槽位信息\",\n      \"required_capabilities\": [\"slot_extraction\"],\n      \"acceptance_criteria\": [\"target_value为null\", \"path_types为null\", \"subIntent为null\"],\n      \"boundary\": {\n        \"in_scope\": [\"slot/entity extraction validation\"],\n        \"out_scope\": [\"multi-turn field collection\"]\n      },\n      \"priority\": \"P2\"\n    },\n    {\n      \"expectation_id\": \"Fallback策略正确处理unknown场景\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"intent-recognition endpoint consumer / fallback handler\",\n      \"user_intent\": \"场景为fallback_unknown，当意图不确定或服务异常时应触发正确的fallback机制\",\n      \"expected_outcome\": \"fallback机制应产生有效的intent结果（如other标签），而非仅返回live_error\",\n      \"required_capabilities\": [\"fallback_policy_execution\"],\n      \"acceptance_criteria\": [\"fallback应返回有效的intent标签\", \"fallback不应仅停留在live_error状态而无有效输出\"],\n      \"boundary\": {\n        \"in_scope\": [\"fallback policy evaluation\"],\n        \"out_scope\": [\"downstream planning execution\"]\n      },\n      \"priority\": \"P0\"\n    },\n    {\n      \"expectation_id\": \"Dispatch边界正确处理\",\n      \"blocking\": false,\n      \"downstream_consumer\": \"downstream planner dispatcher\",\n      \"user_intent\": \"系统应基于识别结果正确判断是否触发下游dispatch\",\n      \"expected_outcome\": \"基于intent=other的结果，系统应正确处理dispatch边界（不触发特定planner或触发通用处理）\",\n      \"required_capabilities\": [\"dispatch_boundary_evaluation\"],\n      \"acceptance_criteria\": [\"dispatch决策与intent标签一致\"],\n      \"boundary\": {\n        \"in_scope\": [\"dispatch boundary judgment\"],\n        \"out_scope\": [\"downstream planning execution\", \"SSE planning output\"]\n      },\n      \"priority\": \"P1\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"意图标签正确识别为other\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        \"final_output 中包含 intent 字段且值为 other\",\n        \"extracted_output 或 final_output 中可找到 intent=other\"\n      ],\n      \"actual_evidence\": [\n        \"final_output 为空对象 {}\",\n        \"extracted_output 为空对象 {}\",\n        \"call_status 为 failed\",\n        \"error 为 marketing-planning intent service unavailable: Connection refused\",\n        \"completion_status 为 failed\"\n      ],\n      \"downstream_impact\": \"下游 planner dispatcher 无法获取意图标签，无法进行正确的路由决策\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"置信度达到参考阈值0.5\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        \"final_output 中包含 confidence 字段且值 >= 0.5\"\n      ],\n      \"actual_evidence\": [\n        \"final_output 为空对象 {}\",\n        \"无任何 confidence 值返回\",\n        \"服务连接被拒绝，未产生任何输出\"\n      ],\n      \"downstream_impact\": \"下游无法基于置信度进行质量门控或降级决策\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"必需槽位与实体正确提取\",\n      \"status\": \"not_evaluable\",\n      \"score\": null,\n      \"expected_evidence\": [\n        \"target_value 为 null\",\n        \"path_types 为 null\",\n        \"subIntent 为 null\"\n      ],\n      \"actual_evidence\": [\n        \"reference_contract 中 target_value/path_types/subIntent 均为 null，无特定槽位要求\",\n        \"final_output 为空，无法验证槽位提取结果\",\n        \"由于 reference 本身无槽位要求且无输出可验证，当前无法评估\"\n      ],\n      \"downstream_impact\": \"无特定槽位要求，不影响下游核心流程\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"Fallback策略正确处理unknown场景\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0,\n      \"expected_evidence\": [\n        \"fallback 机制应产生有效的 intent 结果（如 other 标签）\",\n        \"fallback 不应仅停留在 live_error 状态而无有效输出\"\n      ],\n      \"actual_evidence\": [\n        \"fallback 被触发，类型为 live_error\",\n        \"fallback status 为 error\",\n        \"fallback reason 为 marketing-planning intent service unavailable\",\n        \"fallback 的 missing_evidence 包含 live_response\",\n        \"fallback recoverable 为 true 但 needs_human_review 为 true\",\n        \"未产生任何有效的 intent 输出\"\n      ],\n      \"downstream_impact\": \"fallback 未能将 unknown 场景转化为有效的 other 意图标签，下游无法继续处理\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"Dispatch边界正确处理\",\n      \"status\": \"not_evaluable\",\n      \"score\": null,\n      \"expected_evidence\": [\n        \"基于 intent=other 的 dispatch 决策记录\"\n      ],\n      \"actual_evidence\": [\n        \"final_output 为空，无 intent 结果可供 dispatch 判断\",\n        \"execution_trace 中无 dispatch 相关阶段\",\n        \"由于上游 intent 识别完全失败，dispatch 边界无法被触发或评估\"\n      ],\n      \"downstream_impact\": \"dispatch 边界未被触发，下游 planner 未收到任何输入\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"expected\": {\n    \"intent\": \"other\",\n    \"confidence\": 0.5,\n    \"target_value\": null,\n    \"path_types\": null,\n    \"subIntent\": null\n  },\n  \"missing\": [\n    {\n      \"kind\": \"missing_output\",\n      \"error_type\": \"service_unavailable\",\n      \"expected\": \"intent=other, confidence=0.5\",\n      \"actual\": \"final_output 为空，服务连接被拒绝\",\n      \"evidence_ref\": \"turn_1.error: marketing-planning intent service unavailable: Connection refused\",\n      \"raw\": {\n        \"final_output\": {},\n        \"call_status\": \"failed\",\n        \"error\": \"marketing-planning intent service unavailable: <urlopen error <urlopen error [Errno 61] Connection refused>>\"\n      },\n      \"incomplete\": true\n    },\n    {\n      \"kind\": \"missing_fallback_result\",\n      \"error_type\": \"fallback_incomplete\",\n      \"expected\": \"fallback 应产生有效的 intent 标签 other\",\n      \"actual\": \"fallback 仅返回 live_error 状态，无有效 intent 输出\",\n      \"evidence_ref\": \"turn_1.fallbacks[0].status: error\",\n      \"raw\": {\n        \"fallback_type\": \"live_error\",\n        \"fallback_status\": \"error\",\n        \"missing_evidence\": [\"live_response\"]\n      },\n      \"incomplete\": true\n    }\n  ],\n  \"wrong\": [],\n  \"extra\": [],\n  \"evidence\": [\n    \"user_text: 哎呀，这个月队伍那边好像有点状况，帮我瞅瞅到底是啥问题？\",\n    \"reference_contract: intent=other, confidence=0.5, target_value=null, path_types=null, subIntent=null\",\n    \"scenario: fallback_unknown\",\n    \"final_output: {} (空对象)\",\n    \"call_status: failed\",\n    \"error: marketing-planning intent service unavailable: Connection refused\",\n    \"completion_status: failed\",\n    \"stop_reason: execution_error\",\n    \"fallback: type=live_error, status=error, recoverable=true, needs_human_review=true\",\n    \"evidence_completeness: complete=false, missing_evidence=[final_output, successful_execution]\"\n  ],\n  \"reasoning_summary\": \"本次评估的核心问题是 intent-recognition 服务完全不可用（Connection refused），导致未产生任何有效的意图识别输出。reference_contract 期望返回 intent=other 且 confidence=0.5，但 final_output 为空对象，extracted_output 也为空。虽然 fallback 机制被触发，但其类型为 live_error（服务级错误），而非针对 fallback_unknown 场景的有效意图降级——fallback 仅记录了错误状态，未产生任何可用的 intent 标签。因此，意图标签正确性、置信度阈值、Fallback策略三个 blocking expectation 均未满足。必需槽位与实体提取因 reference 本身无槽位要求且无输出可验证，判为 not_evaluable。Dispatch边界因上游完全失败无法触发，同样判为 not_evaluable。整体而言，服务不可用导致整个意图识别链路中断，所有核心业务期望均未达成。\"\n}",
+    "metrics": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 7394,
+      "output_tokens": 4230,
+      "reasoning_tokens": 0,
+      "total_tokens": 11624
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 78889,
+          "endpoint": "fallback1",
+          "model": "deepseek-v4-flash-0731",
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "selected_endpoint": "fallback1",
+      "selected_model": "deepseek-v4-flash-0731",
+      "stage": ""
+    }
+  },
+  "trace_id": "marketting-planning-intent:mock-agent-marketting-planning-intent-3ad2d6fa:1787203873320"
+}

@@ -1,0 +1,350 @@
+{
+  "caller": "judge",
+  "created_at": "2026-08-20T05:22:44Z",
+  "elapsed_ms": 120072,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "production"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "31e95c9d7bbb2e75e7159c38fd4d17a2521b410968d05da773962025ef923290",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [],
+      "lineage": {
+        "call_id": "",
+        "case_id": "mock-agent-marketting-planning-9a5c4f58",
+        "trace_id": "marketting-planning:mock-agent-marketting-planning-9a5c4f58:1787203242744"
+      },
+      "messages": [
+        {
+          "char_count": 15759,
+          "content_sha256": "0c60299e956db460120d9f954180dce899db3cf16039622fc9e75778dbe3c673",
+          "role": "system"
+        },
+        {
+          "char_count": 4518,
+          "content_sha256": "7fcb9e3fd4c16c4ec9c9afb90aa8c69dbafbccf03be34f52f9eeb0974dc5616b",
+          "role": "user"
+        }
+      ],
+      "mode": "production",
+      "output_contract": {
+        "field_names": [
+          "acceptance_criteria",
+          "accumulated_fields",
+          "achievement_rate",
+          "actual",
+          "actual_evidence",
+          "allowed",
+          "applicable_product_expectation_ids",
+          "authority_tool_call_ids",
+          "blocking",
+          "boundary",
+          "business_completed",
+          "business_evidence",
+          "business_expectations",
+          "canonical_names",
+          "card_code",
+          "card_name",
+          "card_summary",
+          "code",
+          "completed",
+          "counts",
+          "downstream_consumer",
+          "downstream_impact",
+          "end_flag",
+          "error_type",
+          "errors",
+          "event_summary",
+          "evidence",
+          "evidence_declared",
+          "evidence_ref",
+          "evidence_status",
+          "expectation_id",
+          "expected",
+          "expected_evidence",
+          "expected_outcome",
+          "extra",
+          "fallback",
+          "final_event",
+          "forecast_value",
+          "fulfillment_assessments",
+          "incomplete",
+          "intent",
+          "intent_name",
+          "kind",
+          "missing",
+          "missing_fields",
+          "msg",
+          "names",
+          "path_type",
+          "priority",
+          "protocol_completed",
+          "raw",
+          "raw_counts",
+          "raw_final_event",
+          "raw_names",
+          "reason",
+          "reasoning_summary",
+          "required_capabilities",
+          "required_fields",
+          "robot_text",
+          "score",
+          "session_id",
+          "session_summary",
+          "stage",
+          "status",
+          "used",
+          "user_intent",
+          "wrong"
+        ],
+        "identity": "impl.core.schema.judge.JudgeLLMOutput",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "8c825a6c5e35a3fa08d01a01f7a4e8353f0cf326987e5299879ec17cf322b0e9",
+        "sha256": "8c825a6c5e35a3fa08d01a01f7a4e8353f0cf326987e5299879ec17cf322b0e9"
+      },
+      "project_id": "marketting-planning",
+      "prompt_char_count": 20277,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 4518,
+        "occurred": false
+      },
+      "role": "judge",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 1653,
+          "content_sha256": "d0c913d01b7ce171ff3b2f6a017ad907363055a8099527a1aeb200bf501ea74e",
+          "order": 0,
+          "role": "judge",
+          "segment_id": "mandatory-context-units",
+          "source": "contextunit://project.marketting-planning.asset.judge_boundary,project.marketting-planning.asset.judge_evaluation",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 3379,
+          "content_sha256": "4130bff79eef5ac24e20963a909a83edcb905b4abc1972891904ca36d08a94f5",
+          "order": 1,
+          "role": "judge",
+          "segment_id": "compiled-system",
+          "source": "impl/core/judge.py#judge_trace",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 4518,
+          "content_sha256": "7fcb9e3fd4c16c4ec9c9afb90aa8c69dbafbccf03be34f52f9eeb0974dc5616b",
+          "order": 2,
+          "role": "judge",
+          "segment_id": "case-user-payload",
+          "source": "trace://judge-evidence-view",
+          "stage": "judge"
+        }
+      ],
+      "stage": "judge",
+      "tool_plan": []
+    }
+  },
+  "llm_model": "deepseek-v4-flash-0731",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "你是通用评估系统的 judge agent。\n\n## 核心原则\n只基于当前 RunTrace、项目评判标准和动态检索的知识库内容判断，不继承历史 case。\n首要职责：理解用户/下游消费者的真实业务意图 → 派生 business_expectations → 基于完整执行链路（每轮 output、最终 output、交互过程和停止事实）判断 expectations 的 fulfillment。\n\n## expectation 拆分原则\nbusiness_expectations 的粒度直接决定判断精度。每个 expectation 必须是原子、独立可评价的判断单元：证据充分时判 fulfilled 或 not_fulfilled；确需评价但当前证据不足时按协议判 not_evaluable。\n- 一个 expectation 只描述一个可独立验证的结果维度\n- 多维度意图必须拆成多个 expectation\n- 每个 expectation 必须有明确的 acceptance_criteria\n- 每个 expectation 必须在比较 actual 前确定 blocking：只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true\n- fulfillment_assessments 只判断对应 expectation 的 status 和证据，不得重新定义 blocking\n- expectation_id 必须是描述性的中文短语，禁止使用 E1/E2/exp_01 等占位符 ID\n- reasoning_summary 必须是中文写成的判断依据\n\n## 输出词表\n`fulfillment_assessments[*].status` 必须从以下 3 个值中选择：\n  - fulfilled：该 expectation 完全满足\n  - not_fulfilled：该 expectation 未满足\n  - not_evaluable：当前无法评估\n禁用 failed/passed/incorrect/wrong/met/unmet/partially_fulfilled/partial/success/fail/ok/unknown 等同义词。\n`fulfillment_assessments[*].expected_evidence` 与 `actual_evidence` **必须是数组**（JSON array / list），即使只有一条证据也要用 `[...]` 包裹，不可直接用字符串或对象。\n\n不要输出 overall_fulfillment；公共层会在项目契约补充完成后根据 blocking expectations 确定性派生整体状态。\n\n## 评估规范\n\n\n## 评估边界\n\n\n## 判断标准\n\n\n## 项目 ContextUnit（按 Role policy 在运行前确定性装载）\n## ContextUnit: judge_boundary: judge_boundary.md (project.marketting-planning.asset.judge_boundary)\n# marketting-planning judge boundary\n\n边界判断由 live 层作为每轮执行事实上报，由 trace 层写入 `RunTrace.application_boundary`；judge 只消费当前 case 的标准 trace 边界，不在 prompt 中重新猜测责任范围。\n\n## 当前责任范围\n\n- 请求归一化是否保留用户意图、多轮顺序和 expected stage。\n- 意图识别是否进入正确阶段。\n- 缺字段时是否澄清。\n- 字段补齐后是否进入规划。\n- path_types 是否按意图选择。\n- 卡片摘要是否覆盖 required cards/path types。\n- SSE 是否有可解释事件顺序、结束状态和错误信息。\n- fallback 是否符合当前 boundary 的 allow_fallback。\n\n## 外部依赖边界\n\n外部服务、数据源、session store、模型依赖不可用时，adapter 记录 `dependency_status`。如果当前 reference/boundary 明确允许该不可用状态，judge 不应把外部依赖本身作为本系统错误；如果 fallback 掩盖了本应完成的内部阶段，则仍可判错。\n\n\n## ContextUnit: judge_evaluation: evaluation.md (project.marketting-planning.asset.judge_evaluation)\n# marketting-planning evaluation\n\n## 评估对象\n\n评估当前营销规划 agent 在系统责任边界内是否完成用户意图。reference 不是唯一标准答案文本，而是与 output summary 对齐的条件契约。\n\n## 输出摘要形状\n\n`extracted_output` 应保持轻量：\n\n```json\n{\n  \"stage\": \"intent|clarification|planning|non_agent|fallback|unknown\",\n  \"event_summary\": {\"names\": [], \"counts\": {}, \"final_event\": \"\", \"completed\": false},\n  \"card_summary\": [{\"path_type\": \"\", \"card_code\": \"\", \"card_name\": \"\", \"fallback\": false}],\n  \"session_summary\": {\"session_id\": \"\", \"required_fields\": [], \"accumulated_fields\": {}, \"missing_fields\": []},\n  \"fallback\": {\"used\": false, \"allowed\": false, \"reason\": \"\"},\n  \"errors\": []\n}\n```\n\n## 参考契约\n\nreference 可包含：\n\n- `expected_stage`\n- `required_events`\n- `required_path_types`\n- `forbidden_path_types`\n- `required_cards`\n- `forbidden_cards`\n- `allow_fallback`\n- `session_requirements`\n- `semantic_requirements`\n\n输入无 reference 时，judge 可以生成同形状参考契约；前端必须标记为 judge-generated。\n\n\n\n\n## marketing-planning 评估关键维度\n请将 user prompt 中的 critical_intent_dimensions 作为拆分 business_expectations 的骨架，围绕业务指标、目标值与单位、时间范围、拆解维度、stage 路由、planning 可执行性和 SSE 完整性交付判断 fulfillment。\n## 工具使用原则\n所有工具的用途、调用时机和参数含义以 Agno tool schema 为准；user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息。\n\n## 禁止事项\n- 不要把 reference answer 当作默认主目标（除非 case 明确指定）\n- 不要把 HTTP 状态、run_status、attribute/cluster 结论当作满足依据\n- 不要归因内部代码、配置或 prompt 原因（属于 attribute agent）\n- 分析文字必须使用中文，包括 reasoning_summary 等所有文本字段。\n\n\n## 输出约束：judge 判定输出（自产 reference + fulfillment 判定）\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"business_expectations\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeBusinessExpectationOutput\"\n      },\n      \"minItems\": 1\n    },\n    \"applicable_product_expectation_ids\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"fulfillment_assessments\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeFulfillmentAssessmentOutput\"\n      }\n    },\n    \"expected\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"code\": {\n          \"type\": \"integer\"\n        },\n        \"msg\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"robot_text\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"end_flag\": {\n          \"type\": \"integer\"\n        },\n        \"intent\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"intent_name\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"stage\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"event_summary\": {\n          \"$ref\": \"#/$defs/MPEventSummary\"\n        },\n        \"card_summary\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"$ref\": \"#/$defs/MPCardSummary\"\n          }\n        },\n        \"session_summary\": {\n          \"$ref\": \"#/$defs/MPSessionSummary\"\n        },\n        \"fallback\": {\n          \"$ref\": \"#/$defs/MPFallbackSummary\"\n        },\n        \"errors\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"code\",\n        \"msg\"\n      ]\n    },\n    \"missing\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"wrong\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"extra\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"evidence\": {\n      \"type\": \"array\",\n      \"items\": {}\n    },\n    \"reasoning_summary\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    }\n  },\n  \"additionalProperties\": false,\n  \"$defs\": {\n    \"JudgeBusinessExpectationOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"blocking\": {\n          \"type\": \"boolean\"\n        },\n        \"downstream_consumer\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"user_intent\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected_outcome\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"required_capabilities\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"acceptance_criteria\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"boundary\": {\n          \"type\": \"object\"\n        },\n        \"priority\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"blocking\"\n      ]\n    },\n    \"JudgeFulfillmentAssessmentOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"score\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        },\n        \"expected_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"actual_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"downstream_impact\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"authority_tool_call_ids\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"status\"\n      ]\n    },\n    \"GapItem\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"kind\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"error_type\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected\": {},\n        \"actual\": {},\n        \"evidence_ref\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"raw\": {},\n        \"incomplete\": {\n          \"type\": \"boolean\"\n        }\n      },\n      \"additionalProperties\": false\n    },\n    \"MPEventSummary\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"names\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"raw_names\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"canonical_names\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"counts\": {\n          \"type\": \"object\"\n        },\n        \"raw_counts\": {\n          \"type\": \"object\"\n        },\n        \"final_event\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"raw_final_event\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"protocol_completed\": {\n          \"type\": \"boolean\"\n        },\n        \"business_completed\": {\n          \"type\": \"boolean\"\n        },\n        \"completed\": {\n          \"type\": \"boolean\"\n        }\n      },\n      \"additionalProperties\": false\n    },\n    \"MPCardSummary\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"path_type\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"card_code\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"card_name\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"fallback\": {\n          \"type\": \"boolean\"\n        },\n        \"forecast_value\": {},\n        \"achievement_rate\": {},\n        \"business_evidence\": {\n          \"type\": \"object\"\n        }\n      },\n      \"additionalProperties\": false\n    },\n    \"MPSessionSummary\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"session_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"required_fields\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"accumulated_fields\": {\n          \"type\": \"object\"\n        },\n        \"missing_fields\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"evidence_declared\": {\n          \"type\": \"boolean\"\n        },\n        \"evidence_status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false\n    },\n    \"MPFallbackSummary\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"used\": {\n          \"type\": \"boolean\"\n        },\n        \"allowed\": {\n          \"type\": \"boolean\"\n        },\n        \"reason\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false\n    }\n  },\n  \"required\": [\n    \"expected\",\n    \"business_expectations\",\n    \"reasoning_summary\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['business_expectations', 'expected', 'reasoning_summary']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n\n### 嵌套字段子结构约束\n以下字段内部的子结构也必须严格遵守，不可随意编造字段名或类型：\n- **`expected`** 字段 (项目 marketting-planning 的 expected/live output 结构) 必须符合以下结构：\n  ```json\n  {\n    \"type\": \"object\",\n    \"properties\": {\n      \"code\": {\n        \"type\": \"integer\"\n      },\n      \"msg\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"robot_text\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"end_flag\": {\n        \"type\": \"integer\"\n      },\n      \"intent\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"intent_name\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"stage\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"event_summary\": {\n        \"$ref\": \"#/$defs/MPEventSummary\"\n      },\n      \"card_summary\": {\n        \"type\": \"array\",\n        \"items\": {\n          \"$ref\": \"#/$defs/MPCardSummary\"\n        }\n      },\n      \"session_summary\": {\n        \"$ref\": \"#/$defs/MPSessionSummary\"\n      },\n      \"fallback\": {\n        \"$ref\": \"#/$defs/MPFallbackSummary\"\n      },\n      \"errors\": {\n        \"type\": \"array\",\n        \"items\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      }\n    },\n    \"additionalProperties\": false,\n    \"required\": [\n      \"code\",\n      \"msg\"\n    ],\n    \"$defs\": {\n      \"MPEventSummary\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"names\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"string\",\n              \"minLength\": 1\n            }\n          },\n          \"raw_names\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"string\",\n              \"minLength\": 1\n            }\n          },\n          \"canonical_names\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"string\",\n              \"minLength\": 1\n            }\n          },\n          \"counts\": {\n            \"type\": \"object\"\n          },\n          \"raw_counts\": {\n            \"type\": \"object\"\n          },\n          \"final_event\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          },\n          \"raw_final_event\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          },\n          \"protocol_completed\": {\n            \"type\": \"boolean\"\n          },\n          \"business_completed\": {\n            \"type\": \"boolean\"\n          },\n          \"completed\": {\n            \"type\": \"boolean\"\n          }\n        },\n        \"additionalProperties\": false\n      },\n      \"MPCardSummary\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"path_type\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          },\n          \"card_code\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          },\n          \"card_name\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          },\n          \"fallback\": {\n            \"type\": \"boolean\"\n          },\n          \"forecast_value\": {},\n          \"achievement_rate\": {},\n          \"business_evidence\": {\n            \"type\": \"object\"\n          }\n        },\n        \"additionalProperties\": false\n      },\n      \"MPSessionSummary\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"session_id\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          },\n          \"required_fields\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"string\",\n              \"minLength\": 1\n            }\n          },\n          \"accumulated_fields\": {\n            \"type\": \"object\"\n          },\n          \"missing_fields\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"string\",\n              \"minLength\": 1\n            }\n          },\n          \"evidence_declared\": {\n            \"type\": \"boolean\"\n          },\n          \"evidence_status\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"additionalProperties\": false\n      },\n      \"MPFallbackSummary\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"used\": {\n            \"type\": \"boolean\"\n          },\n          \"allowed\": {\n            \"type\": \"boolean\"\n          },\n          \"reason\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"additionalProperties\": false\n      }\n    }\n  }\n  ```\n",
+      "created_at": 1787203253,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "1ec873fe-025c-44c4-8462-c66172a6fb4e",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"user_intent\": \"我想发起一个营销活动规划，但目前还没有提供具体细节\", \"run_trace\": {\"trace_id\": \"marketting-planning:mock-agent-marketting-planning-9a5c4f58:1787203242744\", \"project_id\": \"marketting-planning\", \"case_id\": \"mock-agent-marketting-planning-9a5c4f58\", \"intent_input\": {\"session_id\": \"sess_clar_001\", \"trace_id\": \"trace_clar_001\", \"org_id\": \"org_default\", \"user_text\": \"我想搞个促销活动，帮我规划一下\", \"history\": [], \"user_action\": \"intent_recognition\", \"action_scenario\": \"clarification\", \"user_id\": \"user_001\", \"ts\": 1710000000, \"token\": \"mock_token\", \"app_scenario\": \"marketing_planning\", \"docs_num\": 0, \"source\": \"user\", \"extra_input_params\": {\"agent_args\": {}, \"args\": {}}, \"application_setting\": null, \"module_name\": null, \"model_name\": null, \"scenario\": null}, \"normalized_request\": {\"session_id\": \"sess_clar_001\", \"trace_id\": \"trace_clar_001\", \"org_id\": \"org_default\", \"user_text\": \"我想搞个促销活动，帮我规划一下\", \"history\": [], \"user_action\": \"intent_recognition\", \"action_scenario\": \"clarification\", \"user_id\": \"user_001\", \"ts\": 1710000000, \"token\": \"mock_token\", \"app_scenario\": \"marketing_planning\", \"docs_num\": 0, \"source\": \"user\", \"extra_input_params\": {\"agent_args\": {}, \"args\": {}}, \"application_setting\": null, \"module_name\": null, \"model_name\": null, \"scenario\": null}, \"final_output\": {}, \"final_output_turn\": null, \"turns\": [{\"turn_index\": 1, \"request\": {\"session_id\": \"sess_clar_001\", \"trace_id\": \"trace_clar_001\", \"org_id\": \"org_default\", \"user_text\": \"我想搞个促销活动，帮我规划一下\", \"history\": [], \"user_action\": \"intent_recognition\", \"action_scenario\": \"clarification\", \"user_id\": \"user_001\", \"ts\": 1710000000, \"token\": \"mock_token\", \"app_scenario\": \"marketing_planning\", \"docs_num\": 0, \"source\": \"user\", \"extra_input_params\": {\"agent_args\": {}, \"args\": {}}, \"application_setting\": null, \"module_name\": null, \"model_name\": null, \"scenario\": null}, \"extracted_output\": {}, \"call_status\": \"failed\", \"runtime_ms\": 2, \"error\": \"marketing-planning service unavailable: <urlopen error <urlopen error [Errno 61] Connection refused>>\", \"fallbacks\": [{\"fallback_id\": \"live-error-marketting-planning\", \"source_stage\": \"live\", \"fallback_type\": \"live_error\", \"status\": \"error\", \"reason\": \"marketing-planning service unavailable: <urlopen error <urlopen error [Errno 61] Connection refused>>\", \"missing_evidence\": [\"live_response\"], \"recoverable\": true, \"needs_human_review\": true, \"quality_flags\": [\"live_service_unavailable\"], \"evidence_refs\": [], \"failed_gate_ids\": [], \"metadata\": {\"case_id\": \"\", \"session_id\": \"\", \"failure_type\": \"live_service_unavailable\"}}], \"validation\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"marketting-planning\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"execution_trace\": [], \"application_boundary\": {}, \"project_fields\": {}}], \"conversation_transcript\": [{\"role\": \"user\", \"content\": \"我想搞个促销活动，帮我规划一下\", \"query\": \"我想搞个促销活动，帮我规划一下\"}], \"conversation_summary\": {\"turn_count\": 1, \"final_output_turn\": null, \"completion_status\": \"failed\", \"stop_reason\": \"live_error\", \"interaction_controller_status\": \"not_run\", \"interaction_controller_error\": \"\"}, \"stop_reason\": \"live_error\", \"completion_status\": \"failed\", \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"marketting-planning\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"turn_1\", \"status\": \"failed\", \"evidence\": \"marketing-planning service unavailable: <urlopen error <urlopen error [Errno 61] Connection refused>>\", \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"evidence_refs\": [], \"raw_response_evidence\": [[]], \"evidence_completeness\": {\"complete\": false, \"missing_evidence\": [\"final_output\", \"successful_execution\"]}, \"application_boundary\": {}, \"reference_contract\": {}, \"scenario\": \"clarification\", \"status\": \"error\", \"error\": \"marketing-planning service unavailable: <urlopen error <urlopen error [Errno 61] Connection refused>>\"}, \"reference_contract\": {}, \"output_summary\": {}, \"application_boundary\": {}, \"expected_stage\": null, \"expected_path_types\": [], \"expected_cards\": [], \"stage_rules\": {\"clarification\": \"缺字段时澄清是正确方向，规划卡片通常是可疑证据。\", \"planning\": \"规划场景必须检查 path_types、card identity、fallback 和 SSE completion。\", \"fallback\": \"fallback 是否正确取决于当前 boundary 是否允许。\"}, \"critical_intent_dimensions\": [\"business_metric\", \"target_value_and_unit\", \"time_range\", \"decomposition_dimensions\", \"stage_routing\", \"planning_actionability\", \"sse_completion\"]}",
+      "created_at": 1787203253,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "5219d70e-b7cc-44ae-b54e-238290789ae9",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "\n\n{\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"意图识别与阶段路由正确性\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"营销规划agent\",\n      \"user_intent\": \"用户想发起促销活动规划但未提供具体细节，系统应识别为营销规划意图并路由到澄清阶段\",\n      \"expected_outcome\": \"请求归一化保留用户意图，action_scenario正确设为clarification，通过schema校验\",\n      \"required_capabilities\": [\"意图识别\", \"阶段路由\", \"请求归一化\"],\n      \"acceptance_criteria\": [\"action_scenario为clarification\", \"live_schema.validate_request通过\", \"scenario字段为clarification\"],\n      \"boundary\": {\n        \"in_scope\": [\"请求归一化\", \"意图识别\", \"阶段路由\"],\n        \"out_scope\": [\"live服务可用性\"]\n      },\n      \"priority\": \"high\"\n    },\n    {\n      \"expectation_id\": \"缺失字段澄清交互\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"用户\",\n      \"user_intent\": \"用户未提供业务指标、目标值、时间范围等关键信息，系统应主动发起澄清询问\",\n      \"expected_outcome\": \"agent输出澄清问题，覆盖business_metric、target_value_and_unit、time_range、decomposition_dimensions等缺失维度\",\n      \"required_capabilities\": [\"字段缺失检测\", \"澄清问题生成\", \"会话状态管理\"],\n      \"acceptance_criteria\": [\"final_output非空\", \"robot_text包含澄清问题\", \"session_summary中missing_fields列出缺失字段\"],\n      \"boundary\": {\n        \"in_scope\": [\"澄清交互\", \"字段收集\"],\n        \"out_scope\": [\"规划卡片生成\"]\n      },\n      \"priority\": \"high\"\n    },\n    {\n      \"expectation_id\": \"SSE事件完整性与结束状态\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"前端交互层\",\n      \"user_intent\": \"执行链路应产生可解释的SSE事件序列并以明确的结束状态收尾\",\n      \"expected_outcome\": \"event_summary包含事件名称、计数、final_event和completed标志\",\n      \"required_capabilities\": [\"SSE事件流\", \"完成状态标记\"],\n      \"acceptance_criteria\": [\"event_summary.names非空\", \"event_summary.completed为true\", \"final_event非空\"],\n      \"boundary\": {\n        \"in_scope\": [\"SSE事件顺序\", \"结束状态\", \"错误信息\"],\n        \"out_scope\": [\"外部服务可用性\"]\n      },\n      \"priority\": \"high\"\n    },\n    {\n      \"expectation_id\": \"服务可用性与错误恢复\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"用户\",\n      \"user_intent\": \"系统应能正常处理用户请求，或在服务不可用时提供有意义的降级响应\",\n      \"expected_outcome\": \"live服务可用并返回有效响应，或fallback提供可恢复的用户可见反馈\",\n      \"required_capabilities\": [\"live服务调用\", \"fallback机制\", \"错误恢复\"],\n      \"acceptance_criteria\": [\"call_status为succeeded\", \"final_output非空\", \"fallback若使用则reason为用户可理解\"],\n      \"boundary\": {\n        \"in_scope\": [\"fallback是否符合boundary\", \"错误信息可解释性\"],\n        \"out_scope\": [\"外部服务本身可用性\"]\n      },\n      \"priority\": \"high\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"意图识别与阶段路由正确性\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\n        \"action_scenario为clarification\",\n        \"live_schema.validate_request状态为succeeded\",\n        \"scenario字段为clarification\"\n      ],\n      \"actual_evidence\": [\n        \"normalized_request.action_scenario为clarification\",\n        \"execution_trace中live_schema.validate_request状态为succeeded，evidence包含project_id: marketting-planning\",\n        \"run_trace.scenario为clarification\"\n      ],\n      \"downstream_impact\": \"意图识别和阶段路由正确，请求归一化保留了用户意图，为后续澄清交互奠定了基础\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"缺失字段澄清交互\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0.0,\n      \"expected_evidence\": [\n        \"final_output包含澄清问题文本\",\n        \"session_summary.missing_fields列出缺失字段\",\n        \"robot_text向用户询问业务指标、目标值、时间范围等信息\"\n      ],\n      \"actual_evidence\": [\n        \"final_output为空对象{}\",\n        \"final_output_turn为null\",\n        \"conversation_transcript中仅有用户消息，无agent回复\",\n        \"turn_1 call_status为failed，error为marketing-planning service unavailable\"\n      ],\n      \"downstream_impact\": \"用户未收到任何澄清问题，无法提供缺失的关键信息，营销规划流程完全中断\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"SSE事件完整性与结束状态\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0.0,\n      \"expected_evidence\": [\n        \"event_summary.names包含至少一个事件名称\",\n        \"event_summary.completed为true\",\n        \"event_summary.final_event非空\"\n      ],\n      \"actual_evidence\": [\n        \"output_summary为空对象{}\",\n        \"raw_response_evidence为空数组[[]]\",\n        \"evidence_completeness.complete为false，missing_evidence包含final_output和successful_execution\",\n        \"completion_status为failed，stop_reason为live_error\"\n      ],\n      \"downstream_impact\": \"前端无法获取任何SSE事件，交互层无法展示进度或结果，用户体验完全中断\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"服务可用性与错误恢复\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0.0,\n      \"expected_evidence\": [\n        \"call_status为succeeded\",\n        \"final_output非空且包含有效响应\",\n        \"若使用fallback则reason为用户可理解的降级说明\"\n      ],\n      \"actual_evidence\": [\n        \"turn_1 call_status为failed\",\n        \"error为marketing-planning service unavailable: Connection refused\",\n        \"fallback类型为live_error，status为error，reason为内部错误信息\",\n        \"fallback.recoverable为true但needs_human_review为true，未自动恢复\",\n        \"final_output为空\"\n      ],\n      \"downstream_impact\": \"live服务不可用导致整个执行链路中断，fallback仅记录了错误但未提供用户可见的降级响应，用户无法获得任何有效反馈\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"expected\": {\n    \"code\": 200,\n    \"msg\": \"澄清阶段：请提供促销活动的详细信息以便规划\",\n    \"robot_text\": \"好的，我来帮您规划促销活动。为了制定有效的方案，我需要了解以下信息：1）您希望提升的业务指标是什么（如销售额、新用户数、品牌曝光等）？2）目标值是多少？3）活动计划的时间范围？4）需要按哪些维度拆解（如渠道、地区、产品线等）？\",\n    \"end_flag\": 0,\n    \"intent\": \"marketing_planning\",\n    \"intent_name\": \"营销活动规划\",\n    \"stage\": \"clarification\",\n    \"event_summary\": {\n      \"names\": [\"clarification_start\", \"fields_identified\", \"clarification_questions\"],\n      \"raw_names\": [\"clarification_start\", \"fields_identified\", \"clarification_questions\"],\n      \"canonical_names\": [\"clarification_start\", \"fields_identified\", \"clarification_questions\"],\n      \"counts\": {\"clarification_start\": 1, \"fields_identified\": 1, \"clarification_questions\": 1},\n      \"raw_counts\": {\"clarification_start\": 1, \"fields_identified\": 1, \"clarification_questions\": 1},\n      \"final_event\": \"clarification_questions\",\n      \"raw_final_event\": \"clarification_questions\",\n      \"protocol_completed\": true,\n      \"business_completed\": false,\n      \"completed\": true\n    },\n    \"card_summary\": [],\n    \"session_summary\": {\n      \"session_id\": \"sess_clar_001\",\n      \"required_fields\": [\"business_metric\", \"target_value_and_unit\", \"time_range\", \"decomposition_dimensions\"],\n      \"accumulated_fields\": {},\n      \"missing_fields\": [\"business_metric\", \"target_value_and_unit\", \"time_range\", \"decomposition_dimensions\"],\n      \"evidence_declared\": false,\n      \"evidence_status\": \"pending\"\n    },\n    \"fallback\": {\n      \"used\": false,\n      \"allowed\": false,\n      \"reason\": \"无\"\n    },\n    \"errors\": []\n  },\n  \"missing\": [\n    {\n      \"kind\": \"final_output\",\n      \"error_type\": \"missing_output\",\n      \"expected\": \"包含澄清问题和session_summary的非空final_output\",\n      \"actual\": \"final_output为空对象{}\",\n      \"evidence_ref\": \"run_trace.final_output\",\n      \"raw\": {},\n      \"incomplete\": true\n    },\n    {\n      \"kind\": \"sse_events\",\n      \"error_type\": \"missing_events\",\n      \"expected\": \"至少包含clarification_start和clarification_questions事件\",\n      \"actual\": \"无任何SSE事件产生\",\n      \"evidence_ref\": \"run_trace.raw_response_evidence\",\n      \"raw\": [[]],\n      \"incomplete\": true\n    },\n    {\n      \"kind\": \"clarification_response\",\n      \"error_type\": \"missing_clarification\",\n      \"expected\": \"向用户询问business_metric、target_value_and_unit、time_range、decomposition_dimensions\",\n      \"actual\": \"未产生任何澄清交互\",\n      \"evidence_ref\": \"run_trace.conversation_transcript\",\n      \"raw\": {\"user_only\": true},\n      \"incomplete\": true\n    }\n  ],\n  \"wrong\": [\n    {\n      \"kind\": \"call_status\",\n      \"error_type\": \"service_unavailable\",\n      \"expected\": \"call_status为succeeded\",\n      \"actual\": \"call_status为failed，error为Connection refused\",\n      \"evidence_ref\": \"run_trace.turns[0].call_status\",\n      \"raw\": \"marketing-planning service unavailable: Connection refused\",\n      \"incomplete\": false\n    },\n    {\n      \"kind\": \"fallback_quality\",\n      \"error_type\": \"uninformative_fallback\",\n      \"expected\": \"fallback提供用户可理解的降级响应\",\n      \"actual\": \"fallback为live_error类型，reason为内部错误信息，未向用户传递有效反馈\",\n      \"evidence_ref\": \"run_trace.turns[0].fallbacks[0]\",\n      \"raw\": {\"fallback_type\": \"live_error\", \"status\": \"error\", \"needs_human_review\": true},\n      \"incomplete\": false\n    }\n  ],\n  \"extra\": [],\n  \"evidence\": [\n    \"run_trace.turns[0].call_status = failed\",\n    \"run_trace.turns[0].error = marketing-planning service unavailable: Connection refused\",\n    \"run_trace.final_output = {}\",\n    \"run_trace.completion_status = failed\",\n    \"run_trace.stop_reason = live_error\",\n    \"run_trace.evidence_completeness.complete = false\",\n    \"run_trace.evidence_completeness.missing_evidence = [final_output, successful_execution]\",\n    \"run_trace.turns[0].fallbacks[0].fallback_type = live_error\",\n    \"run_trace.turns[0].fallbacks[0].status = error\",\n    \"run_trace.turns[0].fallbacks[0].recoverable = true\",\n    \"run_trace.turns[0].fallbacks[0].needs_human_review = true\",\n    \"run_trace.execution_trace[0].stage = live_schema.validate_request, status = succeeded\",\n    \"run_trace.normalized_request.action_scenario = clarification\",\n    \"run_trace.scenario = clarification\"\n  ],\n  \"reasoning_summary\": \"用户意图为发起促销活动规划但未提供具体细节，系统正确识别为clarification场景并通过schema校验（意图识别与阶段路由正确性已满足）。然而，live服务因Connection refused不可用，导致agent执行完全失败：final_output为空、无任何SSE事件产生、未向用户输出澄清问题。fallback虽被触发但类型为live_error且status为error，仅记录了内部错误信息而未提供用户可见的降级响应。三个核心expectation（缺失字段澄清交互、SSE事件完整性、服务可用性与错误恢复）均未满足，用户无法获得任何有效反馈，营销规划流程完全中断。\"\n}",
+      "created_at": 1787203253,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "fe470dd8-538a-4c0c-8d7f-76e47d08a0e9",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 10314,
+        "output_tokens": 4712,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 15026
+      },
+      "name": null,
+      "provider_data": {
+        "id": "949dc6c2-947d-4477-a68d-88157b7501a9",
+        "model_extra": {
+          "request_id": "949dc6c2-947d-4477-a68d-88157b7501a9"
+        }
+      },
+      "reasoning_content": "Let me analyze this case carefully.\n\nThe user's intent is: \"我想搞个促销活动，帮我规划一下\" (I want to run a promotional activity, help me plan it)\n\nThe run trace shows:\n1. The request was validated successfully at `live_schema.validate_request`\n2. The actual turn execution failed with: \"marketing-planning service unavailable: <urlopen error <urlopen error [Errno 61] Connection refused>>\"\n3. A fallback was triggered: `live-error-marketting-planning` with type `live_error`, status `error`, recoverable: true, needs_human_review: true\n4. The final output is empty `{}`\n5. The completion status is \"failed\" with stop_reason \"live_error\"\n6. There's no reference contract provided\n\nKey observations:\n- The user wants to plan a marketing/promotional activity but hasn't provided specific details\n- The system correctly identified this as a clarification scenario (action_scenario: \"clarification\")\n- However, the live service was unavailable (connection refused), so the agent couldn't even proceed to ask clarifying questions\n- The fallback was triggered but it's an error fallback, not a successful recovery\n\nNow let me think about the business expectations:\n\n1. **Intent recognition and stage routing**: The user wants to plan a marketing activity. The system should recognize this intent and route to the appropriate stage. Since no specific details were provided, the correct stage should be \"clarification\" to gather missing fields.\n\n2. **Clarification for missing fields**: Since the user hasn't provided specific details (business metric, target value, time range, etc.), the system should ask clarifying questions.\n\n3. **SSE completion**: The execution should complete with proper SSE events.\n\n4. **Service availability**: The live service was unavailable, which is an external dependency issue.\n\nLet me think about what the judge should evaluate:\n\nThe critical_intent_dimensions are:\n- business_metric\n- target_value_and_unit\n- time_range\n- decomposition_dimensions\n- stage_routing\n- planning_actionability\n- sse_completion\n\nGiven the run trace:\n- The request validation succeeded\n- The live service was unavailable (connection refused)\n- A fallback was triggered but it's an error state\n- No final output was produced\n- No clarification was provided to the user\n\nThe key question is: should the judge consider the service unavailability as a system error or an external dependency issue?\n\nAccording to the judge boundary:\n- \"外部服务、数据源、session store、模型依赖不可用时，adapter 记录 dependency_status。如果当前 reference/boundary 明确允许该不可用状态，judge 不应把外部依赖本身作为本系统错误；如果 fallback 掩盖了本应完成的内部阶段，则仍可判错。\"\n\nSince there's no reference contract and no boundary explicitly allowing this unavailability, and the fallback is an error fallback (not a successful recovery), the system failed to complete its core responsibility.\n\nLet me define the business expectations:\n\n1. **意图识别与阶段路由正确性** (Intent recognition and stage routing correctness): The system should correctly identify the marketing planning intent and route to the clarification stage since no specific details were provided.\n\n2. **缺失字段澄清** (Missing field clarification): Since the user hasn't provided specific details, the system should ask clarifying questions about business metrics, target values, time range, etc.\n\n3. **SSE 事件完整性** (SSE event completeness): The execution should produce proper SSE events with completion status.\n\n4. **服务可用性** (Service availability): The live service should be available to process the request.\n\nNow let me assess each:\n\n1. **Intent recognition and stage routing**: The normalized request shows `action_scenario: \"clarification\"` which is correct. The scenario is \"clarification\". This seems to have been correctly identified at the request level. However, since the live service was unavailable, we can't confirm if the agent itself correctly processed this. The validation step succeeded, so the routing was correct at the schema level. Status: partially fulfilled - the routing was correct but the execution failed.\n\nActually, let me reconsider. The `action_scenario` is \"clarification\" in the input, which means the system already determined this should be a clarification scenario. The validation passed. But the actual agent execution failed due to service unavailability.\n\n2. **Missing field clarification**: No clarification was provided because the service was unavailable. Status: not_fulfilled.\n\n3. **SSE event completeness**: No SSE events were produced (final_output is empty). Status: not_fulfilled.\n\n4. **Service availability**: The service was unavailable. This is an external dependency issue. According to the boundary rules, if the boundary doesn't explicitly allow this, it's still a problem. Since there's no reference contract allowing this, and the fallback is an error fallback, this should be considered not_fulfilled.\n\nLet me also consider: the fallback was triggered with `recoverable: true` and `needs_human_review: true`. This means the system recognized the error but couldn't recover automatically.\n\nNow let me structure the output:\n\nFor the `expected` field, I need to provide what the expected output should have been. Since this is a clarification scenario, the expected output should include:\n- stage: \"clarification\"\n- Some clarifying questions about the missing fields\n- Proper SSE events\n\nLet me write the JSON output now.\n\nActually, I need to be more careful. The `expected` field in the schema represents what the expected output should look like. Since there's no reference contract, I need to generate one based on the user intent.\n\nThe user wants to plan a promotional activity but hasn't provided details. The expected behavior would be:\n1. Recognize the intent as marketing planning\n2. Route to clarification stage\n3. Ask clarifying questions about: business metric, target value, time range, decomposition dimensions\n4. Complete with proper SSE events\n\nLet me now write the full assessment.\n\nFor the business expectations, I'll define:\n\n1. \"意图识别与阶段路由正确性\" - blocking: true\n   - The system should correctly identify the marketing planning intent and route to clarification stage\n   \n2. \"缺失字段澄清交互\" - blocking: true\n   - The system should ask clarifying questions about missing fields (business metric, target value, time range, etc.)\n\n3. \"SSE事件完整性与结束状态\" - blocking: true\n   - The execution should produce proper SSE events with completion status\n\n4. \"服务可用性与错误处理\" - blocking: true\n   - The live service should be available, or if unavailable, the fallback should provide a meaningful response\n\nLet me assess each:\n\n1. Intent recognition: The action_scenario is \"clarification\" which is correct. The validation passed. But the actual agent execution failed. I'd say this is partially fulfilled - the routing was correct at the schema level but the execution failed. Actually, since the validation succeeded and the scenario was correctly identified, I'll say this is fulfilled at the routing level.\n\nWait, but the actual agent didn't execute. The routing was correct in the input, but we can't confirm the agent's behavior. Let me say this is fulfilled because the request was correctly normalized and validated.\n\n2. Missing field clarification: Not fulfilled - no clarification was provided due to service unavailability.\n\n3. SSE event completeness: Not fulfilled - no SSE events were produced.\n\n4. Service availability: Not fulfilled - the service was unavailable and the fallback was an error fallback.\n\nActually, let me reconsider expectation 1. The `action_scenario` in the input is \"clarification\", which means the system already determined this should be a clarification scenario before the agent was called. The validation passed. So the intent recognition and stage routing were correct. I'll mark this as fulfilled.\n\nBut wait - the `expected_stage` in the run trace is null, and there's no reference contract. The `action_scenario` is \"clarification\" in the input, which is the scenario that was set before the agent was called. The agent itself never got to execute. So the routing was correct at the input level, but we can't confirm the agent's behavior.\n\nI think the most accurate assessment is:\n- Intent recognition and stage routing: fulfilled (the input correctly identified this as a clarification scenario, and validation passed)\n- Missing field clarification: not_fulfilled (no clarification was provided)\n- SSE event completeness: not_fulfilled (no events were produced)\n- Service availability: not_fulfilled (service was unavailable)\n\nLet me finalize the output.\n",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "marketting-planning",
+  "prompt_size": 29601,
+  "record_id": "418127ed-5752-4953-93cd-b9395381f6fc",
+  "response": {
+    "content": "\n\n{\n  \"business_expectations\": [\n    {\n      \"expectation_id\": \"意图识别与阶段路由正确性\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"营销规划agent\",\n      \"user_intent\": \"用户想发起促销活动规划但未提供具体细节，系统应识别为营销规划意图并路由到澄清阶段\",\n      \"expected_outcome\": \"请求归一化保留用户意图，action_scenario正确设为clarification，通过schema校验\",\n      \"required_capabilities\": [\"意图识别\", \"阶段路由\", \"请求归一化\"],\n      \"acceptance_criteria\": [\"action_scenario为clarification\", \"live_schema.validate_request通过\", \"scenario字段为clarification\"],\n      \"boundary\": {\n        \"in_scope\": [\"请求归一化\", \"意图识别\", \"阶段路由\"],\n        \"out_scope\": [\"live服务可用性\"]\n      },\n      \"priority\": \"high\"\n    },\n    {\n      \"expectation_id\": \"缺失字段澄清交互\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"用户\",\n      \"user_intent\": \"用户未提供业务指标、目标值、时间范围等关键信息，系统应主动发起澄清询问\",\n      \"expected_outcome\": \"agent输出澄清问题，覆盖business_metric、target_value_and_unit、time_range、decomposition_dimensions等缺失维度\",\n      \"required_capabilities\": [\"字段缺失检测\", \"澄清问题生成\", \"会话状态管理\"],\n      \"acceptance_criteria\": [\"final_output非空\", \"robot_text包含澄清问题\", \"session_summary中missing_fields列出缺失字段\"],\n      \"boundary\": {\n        \"in_scope\": [\"澄清交互\", \"字段收集\"],\n        \"out_scope\": [\"规划卡片生成\"]\n      },\n      \"priority\": \"high\"\n    },\n    {\n      \"expectation_id\": \"SSE事件完整性与结束状态\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"前端交互层\",\n      \"user_intent\": \"执行链路应产生可解释的SSE事件序列并以明确的结束状态收尾\",\n      \"expected_outcome\": \"event_summary包含事件名称、计数、final_event和completed标志\",\n      \"required_capabilities\": [\"SSE事件流\", \"完成状态标记\"],\n      \"acceptance_criteria\": [\"event_summary.names非空\", \"event_summary.completed为true\", \"final_event非空\"],\n      \"boundary\": {\n        \"in_scope\": [\"SSE事件顺序\", \"结束状态\", \"错误信息\"],\n        \"out_scope\": [\"外部服务可用性\"]\n      },\n      \"priority\": \"high\"\n    },\n    {\n      \"expectation_id\": \"服务可用性与错误恢复\",\n      \"blocking\": true,\n      \"downstream_consumer\": \"用户\",\n      \"user_intent\": \"系统应能正常处理用户请求，或在服务不可用时提供有意义的降级响应\",\n      \"expected_outcome\": \"live服务可用并返回有效响应，或fallback提供可恢复的用户可见反馈\",\n      \"required_capabilities\": [\"live服务调用\", \"fallback机制\", \"错误恢复\"],\n      \"acceptance_criteria\": [\"call_status为succeeded\", \"final_output非空\", \"fallback若使用则reason为用户可理解\"],\n      \"boundary\": {\n        \"in_scope\": [\"fallback是否符合boundary\", \"错误信息可解释性\"],\n        \"out_scope\": [\"外部服务本身可用性\"]\n      },\n      \"priority\": \"high\"\n    }\n  ],\n  \"applicable_product_expectation_ids\": [],\n  \"fulfillment_assessments\": [\n    {\n      \"expectation_id\": \"意图识别与阶段路由正确性\",\n      \"status\": \"fulfilled\",\n      \"score\": 1.0,\n      \"expected_evidence\": [\n        \"action_scenario为clarification\",\n        \"live_schema.validate_request状态为succeeded\",\n        \"scenario字段为clarification\"\n      ],\n      \"actual_evidence\": [\n        \"normalized_request.action_scenario为clarification\",\n        \"execution_trace中live_schema.validate_request状态为succeeded，evidence包含project_id: marketting-planning\",\n        \"run_trace.scenario为clarification\"\n      ],\n      \"downstream_impact\": \"意图识别和阶段路由正确，请求归一化保留了用户意图，为后续澄清交互奠定了基础\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"缺失字段澄清交互\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0.0,\n      \"expected_evidence\": [\n        \"final_output包含澄清问题文本\",\n        \"session_summary.missing_fields列出缺失字段\",\n        \"robot_text向用户询问业务指标、目标值、时间范围等信息\"\n      ],\n      \"actual_evidence\": [\n        \"final_output为空对象{}\",\n        \"final_output_turn为null\",\n        \"conversation_transcript中仅有用户消息，无agent回复\",\n        \"turn_1 call_status为failed，error为marketing-planning service unavailable\"\n      ],\n      \"downstream_impact\": \"用户未收到任何澄清问题，无法提供缺失的关键信息，营销规划流程完全中断\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"SSE事件完整性与结束状态\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0.0,\n      \"expected_evidence\": [\n        \"event_summary.names包含至少一个事件名称\",\n        \"event_summary.completed为true\",\n        \"event_summary.final_event非空\"\n      ],\n      \"actual_evidence\": [\n        \"output_summary为空对象{}\",\n        \"raw_response_evidence为空数组[[]]\",\n        \"evidence_completeness.complete为false，missing_evidence包含final_output和successful_execution\",\n        \"completion_status为failed，stop_reason为live_error\"\n      ],\n      \"downstream_impact\": \"前端无法获取任何SSE事件，交互层无法展示进度或结果，用户体验完全中断\",\n      \"authority_tool_call_ids\": []\n    },\n    {\n      \"expectation_id\": \"服务可用性与错误恢复\",\n      \"status\": \"not_fulfilled\",\n      \"score\": 0.0,\n      \"expected_evidence\": [\n        \"call_status为succeeded\",\n        \"final_output非空且包含有效响应\",\n        \"若使用fallback则reason为用户可理解的降级说明\"\n      ],\n      \"actual_evidence\": [\n        \"turn_1 call_status为failed\",\n        \"error为marketing-planning service unavailable: Connection refused\",\n        \"fallback类型为live_error，status为error，reason为内部错误信息\",\n        \"fallback.recoverable为true但needs_human_review为true，未自动恢复\",\n        \"final_output为空\"\n      ],\n      \"downstream_impact\": \"live服务不可用导致整个执行链路中断，fallback仅记录了错误但未提供用户可见的降级响应，用户无法获得任何有效反馈\",\n      \"authority_tool_call_ids\": []\n    }\n  ],\n  \"expected\": {\n    \"code\": 200,\n    \"msg\": \"澄清阶段：请提供促销活动的详细信息以便规划\",\n    \"robot_text\": \"好的，我来帮您规划促销活动。为了制定有效的方案，我需要了解以下信息：1）您希望提升的业务指标是什么（如销售额、新用户数、品牌曝光等）？2）目标值是多少？3）活动计划的时间范围？4）需要按哪些维度拆解（如渠道、地区、产品线等）？\",\n    \"end_flag\": 0,\n    \"intent\": \"marketing_planning\",\n    \"intent_name\": \"营销活动规划\",\n    \"stage\": \"clarification\",\n    \"event_summary\": {\n      \"names\": [\"clarification_start\", \"fields_identified\", \"clarification_questions\"],\n      \"raw_names\": [\"clarification_start\", \"fields_identified\", \"clarification_questions\"],\n      \"canonical_names\": [\"clarification_start\", \"fields_identified\", \"clarification_questions\"],\n      \"counts\": {\"clarification_start\": 1, \"fields_identified\": 1, \"clarification_questions\": 1},\n      \"raw_counts\": {\"clarification_start\": 1, \"fields_identified\": 1, \"clarification_questions\": 1},\n      \"final_event\": \"clarification_questions\",\n      \"raw_final_event\": \"clarification_questions\",\n      \"protocol_completed\": true,\n      \"business_completed\": false,\n      \"completed\": true\n    },\n    \"card_summary\": [],\n    \"session_summary\": {\n      \"session_id\": \"sess_clar_001\",\n      \"required_fields\": [\"business_metric\", \"target_value_and_unit\", \"time_range\", \"decomposition_dimensions\"],\n      \"accumulated_fields\": {},\n      \"missing_fields\": [\"business_metric\", \"target_value_and_unit\", \"time_range\", \"decomposition_dimensions\"],\n      \"evidence_declared\": false,\n      \"evidence_status\": \"pending\"\n    },\n    \"fallback\": {\n      \"used\": false,\n      \"allowed\": false,\n      \"reason\": \"无\"\n    },\n    \"errors\": []\n  },\n  \"missing\": [\n    {\n      \"kind\": \"final_output\",\n      \"error_type\": \"missing_output\",\n      \"expected\": \"包含澄清问题和session_summary的非空final_output\",\n      \"actual\": \"final_output为空对象{}\",\n      \"evidence_ref\": \"run_trace.final_output\",\n      \"raw\": {},\n      \"incomplete\": true\n    },\n    {\n      \"kind\": \"sse_events\",\n      \"error_type\": \"missing_events\",\n      \"expected\": \"至少包含clarification_start和clarification_questions事件\",\n      \"actual\": \"无任何SSE事件产生\",\n      \"evidence_ref\": \"run_trace.raw_response_evidence\",\n      \"raw\": [[]],\n      \"incomplete\": true\n    },\n    {\n      \"kind\": \"clarification_response\",\n      \"error_type\": \"missing_clarification\",\n      \"expected\": \"向用户询问business_metric、target_value_and_unit、time_range、decomposition_dimensions\",\n      \"actual\": \"未产生任何澄清交互\",\n      \"evidence_ref\": \"run_trace.conversation_transcript\",\n      \"raw\": {\"user_only\": true},\n      \"incomplete\": true\n    }\n  ],\n  \"wrong\": [\n    {\n      \"kind\": \"call_status\",\n      \"error_type\": \"service_unavailable\",\n      \"expected\": \"call_status为succeeded\",\n      \"actual\": \"call_status为failed，error为Connection refused\",\n      \"evidence_ref\": \"run_trace.turns[0].call_status\",\n      \"raw\": \"marketing-planning service unavailable: Connection refused\",\n      \"incomplete\": false\n    },\n    {\n      \"kind\": \"fallback_quality\",\n      \"error_type\": \"uninformative_fallback\",\n      \"expected\": \"fallback提供用户可理解的降级响应\",\n      \"actual\": \"fallback为live_error类型，reason为内部错误信息，未向用户传递有效反馈\",\n      \"evidence_ref\": \"run_trace.turns[0].fallbacks[0]\",\n      \"raw\": {\"fallback_type\": \"live_error\", \"status\": \"error\", \"needs_human_review\": true},\n      \"incomplete\": false\n    }\n  ],\n  \"extra\": [],\n  \"evidence\": [\n    \"run_trace.turns[0].call_status = failed\",\n    \"run_trace.turns[0].error = marketing-planning service unavailable: Connection refused\",\n    \"run_trace.final_output = {}\",\n    \"run_trace.completion_status = failed\",\n    \"run_trace.stop_reason = live_error\",\n    \"run_trace.evidence_completeness.complete = false\",\n    \"run_trace.evidence_completeness.missing_evidence = [final_output, successful_execution]\",\n    \"run_trace.turns[0].fallbacks[0].fallback_type = live_error\",\n    \"run_trace.turns[0].fallbacks[0].status = error\",\n    \"run_trace.turns[0].fallbacks[0].recoverable = true\",\n    \"run_trace.turns[0].fallbacks[0].needs_human_review = true\",\n    \"run_trace.execution_trace[0].stage = live_schema.validate_request, status = succeeded\",\n    \"run_trace.normalized_request.action_scenario = clarification\",\n    \"run_trace.scenario = clarification\"\n  ],\n  \"reasoning_summary\": \"用户意图为发起促销活动规划但未提供具体细节，系统正确识别为clarification场景并通过schema校验（意图识别与阶段路由正确性已满足）。然而，live服务因Connection refused不可用，导致agent执行完全失败：final_output为空、无任何SSE事件产生、未向用户输出澄清问题。fallback虽被触发但类型为live_error且status为error，仅记录了内部错误信息而未提供用户可见的降级响应。三个核心expectation（缺失字段澄清交互、SSE事件完整性、服务可用性与错误恢复）均未满足，用户无法获得任何有效反馈，营销规划流程完全中断。\"\n}",
+    "metrics": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 10314,
+      "output_tokens": 4712,
+      "reasoning_tokens": 0,
+      "total_tokens": 15026
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 110098,
+          "endpoint": "fallback1",
+          "model": "deepseek-v4-flash-0731",
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "selected_endpoint": "fallback1",
+      "selected_model": "deepseek-v4-flash-0731",
+      "stage": ""
+    }
+  },
+  "trace_id": "marketting-planning:mock-agent-marketting-planning-9a5c4f58:1787203242744"
+}

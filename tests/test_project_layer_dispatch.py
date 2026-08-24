@@ -285,7 +285,7 @@ def test_pipeline_prefers_enabled_draft_attribute_protocol(monkeypatch):
 
     trace = RunTrace(trace_id="trace-draft", project_id="demo")
     judge = JudgeResult(trace_id="trace-draft", project_id="demo", fulfillment_assessments=[{"expectation_id": "exp", "status": "not_fulfilled"}], overall_fulfillment={"status": "not_fulfilled"})
-    result = pipeline.attribute("demo", trace, judge)
+    result = pipeline.attribute("demo", trace, judge, manual_override=True)
 
     assert result.unresolved_reason.endswith("[draft_attribute]")
 
@@ -388,7 +388,7 @@ def test_pipeline_rejects_adapter_without_attribute_protocol(monkeypatch):
     trace = RunTrace(trace_id="trace-1", project_id="demo")
     judge = JudgeResult(trace_id="trace-1", project_id="demo", overall_fulfillment={"status": "not_fulfilled"})
     with pytest.raises(AttributeError):
-        pipeline.attribute("demo", trace, judge)
+        pipeline.attribute("demo", trace, judge, manual_override=True)
 
 
 def test_marketting_planning_intent_attribute_module_injects_project_strategy(monkeypatch):
@@ -493,3 +493,30 @@ def test_minimal_protocol_schemas_do_not_regain_removed_fields():
     assert "analysis_quality" not in attribute_fields
     assert "verification_steps" not in attribute_fields
     assert "patch_direction" not in attribute_fields
+
+
+def test_judge_live_schema_gate_prefers_projection_aware_observation(monkeypatch):
+    calls = []
+    checker = SimpleNamespace(
+        output=lambda _value: (_ for _ in ()).throw(AssertionError("strict output validator used")),
+        observation=lambda value: calls.append(value) or True,
+        reference=lambda _value: True,
+    )
+    monkeypatch.setattr(pipeline, "load_live_schema", lambda _project_id: SimpleNamespace(check=checker))
+    trace = RunTrace(
+        trace_id="trace-historical-projection",
+        project_id="demo",
+        extracted_output={"business_field": "present"},
+    )
+    result = JudgeResult(
+        trace_id=trace.trace_id,
+        project_id=trace.project_id,
+        actual={"business_field": "present"},
+        expected={"business_field": "expected"},
+        overall_fulfillment={"status": "not_fulfilled"},
+    )
+
+    enforced = pipeline._enforce_judge_live_schema("demo", trace, result)
+
+    assert calls == [{"business_field": "present"}]
+    assert enforced.overall_fulfillment["status"] == "not_fulfilled"

@@ -1,0 +1,188 @@
+{
+  "id": "HB004",
+  "query": "陈静",
+  "role": "true_bare_name",
+  "expected_status": "fulfilled",
+  "source": "set_b",
+  "live_error": null,
+  "judge_error": null,
+  "live": {
+    "trace_id": "client_search:HB004:1786796442561",
+    "fields": [
+      "searchClientName"
+    ],
+    "values": [
+      "陈静"
+    ],
+    "robot_text": "客户姓名为陈静的客户",
+    "matched_patterns": "疑似姓名候选、姓名-模糊匹配",
+    "intent_summary": "客户姓名为陈静的客户",
+    "conditions": [
+      {
+        "field": "searchClientName",
+        "operator": "MATCH",
+        "value": "陈静",
+        "match_mode": null
+      }
+    ],
+    "extracted": {
+      "code": 0,
+      "msg": "操作成功",
+      "robot_text": "客户姓名为陈静的客户",
+      "end_flag": 1,
+      "trace_id": null,
+      "query": "陈静",
+      "query_logic": "AND",
+      "conditions": [
+        {
+          "field": "searchClientName",
+          "operator": "MATCH",
+          "value": "陈静",
+          "match_mode": null
+        }
+      ],
+      "matched_level": 2,
+      "matched_patterns": "疑似姓名候选、姓名-模糊匹配",
+      "rewritten_query": "陈静",
+      "intent_summary": "客户姓名为陈静的客户",
+      "confidence": 0.95,
+      "cost_times": 52.0
+    }
+  },
+  "judge_status": "fulfilled",
+  "judge_reasoning": "用户输入明确指向姓名为陈静的客户。实际仅生成客户本人姓名 MATCH 条件，值和逻辑均保留，且无额外约束；下游结果集未验证不影响本次语义范围判断。",
+  "judge": {
+    "trace_id": "client_search:HB004:1786796442561",
+    "project_id": "client_search",
+    "business_expectations": [
+      {
+        "expectation_id": "按客户本人姓名陈静筛选客户",
+        "blocking": true,
+        "downstream_consumer": "客户搜索下游",
+        "user_intent": "查找姓名为陈静的客户",
+        "expected_outcome": "生成可执行的客户本人姓名搜索条件，使下游筛选姓名包含或匹配陈静的客户",
+        "required_capabilities": [
+          "客户本人姓名字段",
+          "姓名值陈静",
+          "MATCH操作符",
+          "AND逻辑"
+        ],
+        "acceptance_criteria": [
+          "条件字段语义为客户本人的姓名",
+          "条件值原样为陈静",
+          "使用下游支持的姓名匹配操作符",
+          "未增加用户未表达的其他筛选条件"
+        ],
+        "boundary": {
+          "judge_scope": "parser_condition_semantics_only",
+          "result_set_verified": false
+        },
+        "priority": "核心交付",
+        "evidence_refs": []
+      }
+    ],
+    "fulfillment_assessments": [
+      {
+        "expectation_id": "按客户本人姓名陈静筛选客户",
+        "status": "fulfilled",
+        "score": 1.0,
+        "expected_evidence": [
+          "用户输入为“陈静”，表达按客户本人姓名筛选",
+          "期望条件为客户本人姓名匹配陈静"
+        ],
+        "actual_evidence": [
+          "实际输出包含 searchClientName MATCH 陈静",
+          "query_logic 为 AND，且仅有一个姓名条件",
+          "已加载字段定义确认 searchClientName 表示客户本人的人名并支持 MATCH；下游结果集未验证"
+        ],
+        "downstream_impact": "条件语义完整且可交付下游；本次不评价实际客户结果集是否存在。",
+        "confidence": null,
+        "evidence_refs": [],
+        "authority_tool_call_ids": []
+      }
+    ],
+    "overall_fulfillment": {
+      "status": "fulfilled",
+      "assessment_count": 1,
+      "blocking_expectations": [
+        "按客户本人姓名陈静筛选客户"
+      ]
+    },
+    "expected": {
+      "code": 0,
+      "msg": "操作成功",
+      "query": "陈静",
+      "conditions": [
+        {
+          "field": "searchClientName",
+          "operator": "MATCH",
+          "value": "陈静",
+          "match_mode": null
+        }
+      ],
+      "robot_text": "客户姓名为陈静的客户",
+      "query_logic": "AND",
+      "rewritten_query": "陈静"
+    },
+    "actual": {
+      "code": 0,
+      "msg": "操作成功",
+      "robot_text": "客户姓名为陈静的客户",
+      "end_flag": 1,
+      "trace_id": null,
+      "query": "陈静",
+      "query_logic": "AND",
+      "conditions": [
+        {
+          "field": "searchClientName",
+          "operator": "MATCH",
+          "value": "陈静",
+          "match_mode": null
+        }
+      ],
+      "matched_level": 2,
+      "matched_patterns": "疑似姓名候选、姓名-模糊匹配",
+      "rewritten_query": "陈静",
+      "intent_summary": "客户姓名为陈静的客户",
+      "confidence": 0.95,
+      "cost_times": 52.0
+    },
+    "missing": [],
+    "wrong": [],
+    "extra": [],
+    "evidence": [
+      {
+        "query": "陈静"
+      },
+      {
+        "actual_conditions": [
+          {
+            "field": "searchClientName",
+            "operator": "MATCH",
+            "value": "陈静",
+            "match_mode": null
+          }
+        ]
+      },
+      {
+        "result_set_verified": false
+      },
+      {
+        "source": "client_search.condition_compare",
+        "wrong": [],
+        "missing": [],
+        "extra": []
+      }
+    ],
+    "reasoning_summary": "用户输入明确指向姓名为陈静的客户。实际仅生成客户本人姓名 MATCH 条件，值和逻辑均保留，且无额外约束；下游结果集未验证不影响本次语义范围判断。",
+    "summary": {
+      "reason": "fulfilled · 1 blocking expectations all met · 用户输入明确指向姓名为陈静的客户。实际仅生成客户本人姓名 MATCH 条件，值和逻辑均保留，且无额外约束；下游结果集未验证不影响本次语义范围判断。",
+      "primary_failure_dimensions": [],
+      "reason_source": "aggregated_fulfillment",
+      "fulfillment_status": "fulfilled",
+      "assessment_count": 1,
+      "blocking_count": 1,
+      "is_formal_attribution": true
+    }
+  }
+}

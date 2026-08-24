@@ -1,0 +1,300 @@
+{
+  "caller": "judge",
+  "created_at": "2026-08-13T12:34:33Z",
+  "elapsed_ms": 56806,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "production"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "45b2097cbc6af6c5d3135f4de3452cebbac335c077a2f9c3cb17590381747b4d",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [],
+      "lineage": {
+        "call_id": "",
+        "case_id": "policy-search-rich-0151",
+        "trace_id": "policy_search:policy-search-rich-0151:1786624416871"
+      },
+      "messages": [
+        {
+          "char_count": 7368,
+          "content_sha256": "f5559e2831ea15fd5d0a75f202e64faec2eaf6fc95f6497abac519065bb1f636",
+          "role": "system"
+        },
+        {
+          "char_count": 6394,
+          "content_sha256": "b4bd24ddc222f3a922d28e5e2170a1a068899c077a92e8c9739c7351b3533e5a",
+          "role": "user"
+        }
+      ],
+      "mode": "production",
+      "output_contract": {
+        "field_names": [
+          "acceptance_criteria",
+          "actual",
+          "actual_evidence",
+          "applicable_product_expectation_ids",
+          "authority_tool_call_ids",
+          "blocking",
+          "boundary",
+          "business_expectations",
+          "code",
+          "downstream_consumer",
+          "downstream_impact",
+          "error_type",
+          "evidence",
+          "evidence_ref",
+          "expectation_id",
+          "expected",
+          "expected_evidence",
+          "expected_outcome",
+          "extra",
+          "filter",
+          "fulfillment_assessments",
+          "incomplete",
+          "kind",
+          "message",
+          "missing",
+          "msg",
+          "priority",
+          "query",
+          "raw",
+          "reasoning_summary",
+          "required_capabilities",
+          "score",
+          "status",
+          "user_intent",
+          "wrong"
+        ],
+        "identity": "impl.core.schema.judge.JudgeLLMOutput",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "1ebd986c8c695abe1e8329086ca3fa881a0eaa83fe0e670d24af6af6d4fad2f0",
+        "sha256": "1ebd986c8c695abe1e8329086ca3fa881a0eaa83fe0e670d24af6af6d4fad2f0"
+      },
+      "project_id": "policy_search",
+      "prompt_char_count": 13762,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 6394,
+        "occurred": false
+      },
+      "role": "judge",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 1725,
+          "content_sha256": "5727bfa7858a8ce05122cd632b62736542f3792c880caa51ab16c7257d1f754b",
+          "order": 0,
+          "role": "judge",
+          "segment_id": "compiled-system",
+          "source": "impl/core/judge.py#judge_trace",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 6394,
+          "content_sha256": "b4bd24ddc222f3a922d28e5e2170a1a068899c077a92e8c9739c7351b3533e5a",
+          "order": 1,
+          "role": "judge",
+          "segment_id": "case-user-payload",
+          "source": "trace://judge-evidence-view",
+          "stage": "judge"
+        }
+      ],
+      "stage": "judge",
+      "tool_plan": []
+    }
+  },
+  "llm_model": "gpt-5.6-luna",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "你是通用评估系统的 judge agent。\n\n## 核心原则\n只基于当前 RunTrace、项目评判标准和动态检索的知识库内容判断，不继承历史 case。\n首要职责：理解用户/下游消费者的真实业务意图 → 派生 business_expectations → 基于完整执行链路（每轮 output、最终 output、交互过程和停止事实）判断 expectations 的 fulfillment。\n\n## expectation 拆分原则\nbusiness_expectations 的粒度直接决定判断精度。每个 expectation 必须是原子、独立可评价的判断单元：证据充分时判 fulfilled 或 not_fulfilled；确需评价但当前证据不足时按协议判 not_evaluable。\n- 一个 expectation 只描述一个可独立验证的结果维度\n- 多维度意图必须拆成多个 expectation\n- 每个 expectation 必须有明确的 acceptance_criteria\n- 每个 expectation 必须在比较 actual 前确定 blocking：只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true\n- fulfillment_assessments 只判断对应 expectation 的 status 和证据，不得重新定义 blocking\n- expectation_id 必须是描述性的中文短语，禁止使用 E1/E2/exp_01 等占位符 ID\n- reasoning_summary 必须是中文写成的判断依据\n\n## 输出词表\n`fulfillment_assessments[*].status` 必须从以下 3 个值中选择：\n  - fulfilled：该 expectation 完全满足\n  - not_fulfilled：该 expectation 未满足\n  - not_evaluable：当前无法评估\n禁用 failed/passed/incorrect/wrong/met/unmet/partially_fulfilled/partial/success/fail/ok/unknown 等同义词。\n`fulfillment_assessments[*].expected_evidence` 与 `actual_evidence` **必须是数组**（JSON array / list），即使只有一条证据也要用 `[...]` 包裹，不可直接用字符串或对象。\n\n不要输出 overall_fulfillment；公共层会在项目契约补充完成后根据 blocking expectations 确定性派生整体状态。\n\n## 评估规范\n\n\n## 评估边界\n\n\n## 判断标准\n\n\n\n\n你评价的是保单筛选语义是否被完整、可执行且安全地表达。先判断服务依赖是否成功，再比较 query 与 filter。忽略 node_id 命名差异；允许逻辑等价的树。字段、操作符、值、角色、AND/OR/NOT 作用域、日期边界和条件完整性都必须正确。SUCCESS 必须有完整 filter；歧义、条件缺失或越界场景应 UNSUPPORTED 且不得返回部分 filter。业务实现、prompt 和配置是当前能力证据，不是不可质疑的自证。\n## 工具使用原则\n所有工具的用途、调用时机和参数含义以 Agno tool schema 为准；user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息。\n\n## 禁止事项\n- 不要把 reference answer 当作默认主目标（除非 case 明确指定）\n- 不要把 HTTP 状态、run_status、attribute/cluster 结论当作满足依据\n- 不要归因内部代码、配置或 prompt 原因（属于 attribute agent）\n- 分析文字必须使用中文，包括 reasoning_summary 等所有文本字段。\n\n\n## 输出约束：judge 判定输出（自产 reference + fulfillment 判定）\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"business_expectations\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeBusinessExpectationOutput\"\n      },\n      \"minItems\": 1\n    },\n    \"applicable_product_expectation_ids\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"fulfillment_assessments\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeFulfillmentAssessmentOutput\"\n      }\n    },\n    \"expected\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"code\": {\n          \"type\": \"integer\"\n        },\n        \"msg\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"query\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"filter\": {\n          \"type\": [\n            \"object\",\n            \"null\"\n          ]\n        },\n        \"message\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"code\",\n        \"msg\",\n        \"status\",\n        \"query\",\n        \"filter\",\n        \"message\"\n      ]\n    },\n    \"missing\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"wrong\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"extra\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"evidence\": {\n      \"type\": \"array\",\n      \"items\": {}\n    },\n    \"reasoning_summary\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    }\n  },\n  \"additionalProperties\": false,\n  \"$defs\": {\n    \"JudgeBusinessExpectationOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"blocking\": {\n          \"type\": \"boolean\"\n        },\n        \"downstream_consumer\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"user_intent\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected_outcome\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"required_capabilities\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"acceptance_criteria\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"boundary\": {\n          \"type\": \"object\"\n        },\n        \"priority\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"blocking\"\n      ]\n    },\n    \"JudgeFulfillmentAssessmentOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"score\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        },\n        \"expected_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"actual_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"downstream_impact\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"authority_tool_call_ids\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"status\"\n      ]\n    },\n    \"GapItem\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"kind\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"error_type\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected\": {},\n        \"actual\": {},\n        \"evidence_ref\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"raw\": {},\n        \"incomplete\": {\n          \"type\": \"boolean\"\n        }\n      },\n      \"additionalProperties\": false\n    }\n  },\n  \"required\": [\n    \"expected\",\n    \"business_expectations\",\n    \"reasoning_summary\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['business_expectations', 'expected', 'reasoning_summary']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n\n### 嵌套字段子结构约束\n以下字段内部的子结构也必须严格遵守，不可随意编造字段名或类型：\n- **`expected`** 字段 (项目 policy_search 的 expected/live output 结构) 必须符合以下结构：\n  ```json\n  {\n    \"type\": \"object\",\n    \"properties\": {\n      \"code\": {\n        \"type\": \"integer\"\n      },\n      \"msg\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"status\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"query\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      },\n      \"filter\": {\n        \"type\": [\n          \"object\",\n          \"null\"\n        ]\n      },\n      \"message\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"additionalProperties\": false,\n    \"required\": [\n      \"code\",\n      \"msg\",\n      \"status\",\n      \"query\",\n      \"filter\",\n      \"message\"\n    ]\n  }\n  ```\n",
+      "created_at": 1786624416,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "a5a50bf5-2049-4111-a14a-42d6fa4ecfed",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"user_intent\": \"筛选符合“近9个月内生效的保单”所表达条件的保单\", \"run_trace\": {\"trace_id\": \"policy_search:policy-search-rich-0151:1786624416871\", \"project_id\": \"policy_search\", \"case_id\": \"policy-search-rich-0151\", \"intent_input\": {\"session_id\": \"policy-search-rich-0151\", \"trace_id\": \"policy-search-rich-0151\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"近9个月内生效的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"normalized_request\": {\"session_id\": \"policy-search-rich-0151\", \"trace_id\": \"policy-search-rich-0151\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"近9个月内生效的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"final_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"近9个月内生效的保单\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"pol_effective_date_term\", \"operator\": \"BETWEEN\", \"range\": {\"lower\": \"2026-08-07\", \"upper\": \"2027-05-07\", \"include_lower\": true, \"include_upper\": false}}, \"message\": \"解析成功\"}, \"final_output_turn\": 1, \"turns\": [{\"turn_index\": 1, \"request\": {\"session_id\": \"policy-search-rich-0151\", \"trace_id\": \"policy-search-rich-0151\", \"user_id\": \"verifier-user\", \"org_id\": \"verifier-org\", \"org_name\": \"verifier\", \"ts\": 1785983400000, \"token\": \"\", \"app_scenario\": \"policy_search_parse\", \"source\": \"verifier\", \"user_text\": \"\", \"history\": [], \"user_action\": \"write\", \"action_scenario\": \"policySearch\", \"extra_input_params\": {\"policySearchParseArgs\": {\"query\": \"近9个月内生效的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\"}, \"agent_args\": null, \"args\": {\"contexts\": []}}, \"application_setting\": null, \"scenario\": null}, \"extracted_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"近9个月内生效的保单\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"pol_effective_date_term\", \"operator\": \"BETWEEN\", \"range\": {\"lower\": \"2026-08-07\", \"upper\": \"2027-05-07\", \"include_lower\": true, \"include_upper\": false}}, \"message\": \"解析成功\"}, \"call_status\": \"succeeded\", \"runtime_ms\": 3, \"error\": null, \"fallbacks\": [], \"validation\": [], \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"application_boundary\": {\"dependency_status\": \"available\", \"allow_fallback\": false, \"excluded_evidence\": [], \"notes\": \"parser returned an executable filter\"}, \"project_fields\": {\"parse_status\": \"SUCCESS\", \"filter_root_type\": \"PREDICATE\"}}], \"conversation_transcript\": [{\"role\": \"user\", \"content\": \"近9个月内生效的保单\", \"query\": \"近9个月内生效的保单\"}, {\"role\": \"assistant\", \"content\": \"解析成功\", \"stage\": null}], \"conversation_summary\": {\"turn_count\": 1, \"final_output_turn\": 1, \"completion_status\": \"completed\", \"stop_reason\": \"goal_satisfied\", \"interaction_controller_status\": \"ok\", \"interaction_controller_error\": \"\"}, \"stop_reason\": \"goal_satisfied\", \"completion_status\": \"completed\", \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"policy_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"evidence_refs\": [], \"raw_response_evidence\": null, \"evidence_completeness\": {\"complete\": true, \"missing_evidence\": []}, \"application_boundary\": {\"dependency_status\": \"available\", \"allow_fallback\": false, \"excluded_evidence\": [], \"notes\": \"parser returned an executable filter\"}, \"reference_contract\": {}, \"scenario\": \"time_boundary\", \"status\": \"ok\", \"error\": null}, \"query\": \"近9个月内生效的保单\", \"actual_output\": {\"code\": 0, \"msg\": \"success\", \"status\": \"SUCCESS\", \"query\": \"近9个月内生效的保单\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"pol_effective_date_term\", \"operator\": \"BETWEEN\", \"range\": {\"lower\": \"2026-08-07\", \"upper\": \"2027-05-07\", \"include_lower\": true, \"include_upper\": false}}, \"message\": \"解析成功\"}, \"turn_records\": [{\"turn_index\": 1, \"query\": \"近9个月内生效的保单\", \"status\": \"SUCCESS\", \"message\": \"解析成功\", \"filter\": {\"type\": \"PREDICATE\", \"node_id\": \"n0\", \"field\": \"pol_effective_date_term\", \"operator\": \"BETWEEN\", \"range\": {\"lower\": \"2026-08-07\", \"upper\": \"2027-05-07\", \"include_lower\": true, \"include_upper\": false}}, \"contexts\": []}], \"interactive_scenario\": false, \"reference_contract\": {}, \"business_evidence_paths\": {\"api_contract\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索算法解析接口文档（智能体对接稿）.md\", \"filter_contract\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索查询语法树协议（首期精简版）.md\", \"technical_design\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/docs/保单搜索算法解析技术方案（当前实现版）.md\", \"business_config\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/configs/insurance_search_business_config_prd.json\", \"runtime_config\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/configs/insurance_search_runtime_config_prd.json\", \"golden_manifest\": \"/Users/xiaozijian/WorkSpace/projects/claude_code/policy-search/policy-search/src/main/python/policy_search/data/golden_dataset/manifest.json\"}, \"evaluation_dimensions\": [\"field_selection\", \"operator_and_value\", \"logical_scope\", \"time_boundary\", \"condition_completeness\", \"safe_failure\"]}",
+      "created_at": 1786624416,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "dca3f161-d82c-443f-ad50-163e829dd89c",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"business_expectations\":[{\"expectation_id\":\"成功返回可执行的保单筛选结果\",\"blocking\":true,\"downstream_consumer\":\"保单搜索查询执行器\",\"user_intent\":\"将用户的自然语言条件转换为可执行的保单筛选结果\",\"expected_outcome\":\"服务依赖可用，并返回状态为SUCCESS且包含完整filter的结果\",\"required_capabilities\":[\"解析请求\",\"判断服务依赖状态\",\"生成完整查询语法树\"],\"acceptance_criteria\":[\"依赖状态为available或等价的可用状态\",\"返回code为0且status为SUCCESS\",\"返回的filter非空并且结构完整可执行\",\"不在可支持条件下返回部分结果或错误的成功结果\"],\"boundary\":{\"supported_case\":\"该查询语义明确且字段能力已覆盖\",\"unsupported_case\":\"仅在条件存在歧义、能力越界或无法安全生成完整filter时返回UNSUPPORTED且filter为空\"},\"priority\":\"核心\"},{\"expectation_id\":\"使用保单生效日期字段进行筛选\",\"blocking\":true,\"downstream_consumer\":\"保单搜索查询执行器\",\"user_intent\":\"筛选生效日期符合条件的保单\",\"expected_outcome\":\"筛选字段为保单生效日期字段pol_effective_date_term\",\"required_capabilities\":[\"生效日期字段识别\"],\"acceptance_criteria\":[\"filter.field等于pol_effective_date_term\",\"字段角色表示保单生效日期，而非失效日期、创建日期或其他日期\"],\"boundary\":{\"field\":\"pol_effective_date_term\"},\"priority\":\"核心\"},{\"expectation_id\":\"将近九个月解释为当前日期之前的过去时间窗口\",\"blocking\":true,\"downstream_consumer\":\"保单搜索查询执行器\",\"user_intent\":\"筛选从当前时间向前追溯九个月内生效的保单\",\"expected_outcome\":\"以2026-08-06为当前日期，日期范围为2025-11-06含下界至2026-08-07不含上界\",\"required_capabilities\":[\"相对日期计算\",\"过去时间方向识别\",\"日期边界处理\"],\"acceptance_criteria\":[\"操作符为BETWEEN或逻辑等价的区间表达\",\"lower为2025-11-06且include_lower为true\",\"upper为2026-08-07且include_upper为false\",\"范围不得落在当前日期之后或被解释为未来九个月\"],\"boundary\":{\"current_time\":\"2026-08-06 10:30:00\",\"date_granularity\":\"day\",\"lower_boundary\":\"2025-11-06，包含\",\"upper_boundary\":\"2026-08-07，不包含\"},\"priority\":\"核心\"}],\"applicable_product_expectation_ids\":[\"成功返回可执行的保单筛选结果\",\"使用保单生效日期字段进行筛选\",\"将近九个月解释为当前日期之前的过去时间窗口\"],\"fulfillment_assessments\":[{\"expectation_id\":\"成功返回可执行的保单筛选结果\",\"status\":\"not_fulfilled\",\"score\":0.4,\"expected_evidence\":[\"依赖可用时应返回code为0、status为SUCCESS及完整且语义正确的filter\"],\"actual_evidence\":[\"application_boundary.dependency_status为available\",\"返回code为0、status为SUCCESS，且包含PREDICATE filter\",\"但filter日期范围为2026-08-07至2027-05-07，属于未来时间窗口，不符合用户条件\"],\"downstream_impact\":\"下游查询执行器会基于错误的未来日期范围筛选保单，无法得到用户要求的近九个月内生效保单。\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"使用保单生效日期字段进行筛选\",\"status\":\"fulfilled\",\"score\":1.0,\"expected_evidence\":[\"筛选字段应为pol_effective_date_term\"],\"actual_evidence\":[\"actual_output.filter.field为pol_effective_date_term\"],\"downstream_impact\":\"日期字段选择正确，字段维度不会导致查询落到其他保单日期属性上。\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"将近九个月解释为当前日期之前的过去时间窗口\",\"status\":\"not_fulfilled\",\"score\":0.0,\"expected_evidence\":[\"当前时间为2026-08-06时，期望范围为lower=2025-11-06且包含、upper=2026-08-07且不包含\"],\"actual_evidence\":[\"actual_output.filter.range.lower为2026-08-07且包含\",\"actual_output.filter.range.upper为2027-05-07且不包含\",\"实际范围整体位于当前日期之后，表示未来九个月而非过去九个月\"],\"downstream_impact\":\"核心时间语义反转，查询会漏掉用户要求的历史保单并筛选未来生效日期的保单。\",\"authority_tool_call_ids\":[]}],\"expected\":{\"code\":0,\"msg\":\"success\",\"status\":\"SUCCESS\",\"query\":\"近9个月内生效的保单\",\"filter\":{\"type\":\"PREDICATE\",\"node_id\":\"n0\",\"field\":\"pol_effective_date_term\",\"operator\":\"BETWEEN\",\"range\":{\"lower\":\"2025-11-06\",\"upper\":\"2026-08-07\",\"include_lower\":true,\"include_upper\":false}},\"message\":\"解析成功\"},\"missing\":[{\"kind\":\"filter.range.lower\",\"error_type\":\"日期下界错误\",\"expected\":\"2025-11-06\",\"actual\":\"2026-08-07\",\"evidence_ref\":\"actual_output.filter.range.lower\",\"incomplete\":false},{\"kind\":\"filter.range.upper\",\"error_type\":\"日期上界错误\",\"expected\":\"2026-08-07\",\"actual\":\"2027-05-07\",\"evidence_ref\":\"actual_output.filter.range.upper\",\"incomplete\":false}],\"wrong\":[{\"kind\":\"time_boundary\",\"error_type\":\"时间方向反转\",\"expected\":\"当前日期之前的过去九个月\",\"actual\":\"当前日期之后的未来九个月\",\"evidence_ref\":\"actual_output.filter.range\",\"incomplete\":false},{\"kind\":\"time_boundary\",\"error_type\":\"相对日期窗口计算错误\",\"expected\":{\"lower\":\"2025-11-06\",\"upper\":\"2026-08-07\",\"include_lower\":true,\"include_upper\":false},\"actual\":{\"lower\":\"2026-08-07\",\"upper\":\"2027-05-07\",\"include_lower\":true,\"include_upper\":false},\"evidence_ref\":\"actual_output.filter.range\",\"incomplete\":false}],\"extra\":[],\"evidence\":[\"run_trace.application_boundary.dependency_status=available\",\"run_trace.final_output.status=SUCCESS\",\"run_trace.final_output.filter.field=pol_effective_date_term\",\"run_trace.final_output.filter.range=2026-08-07至2027-05-07\"],\"reasoning_summary\":\"服务依赖可用，返回结果结构完整，且正确选择了保单生效日期字段；但用户所说的“近9个月内”应以2026-08-06为基准向过去追溯至2025-11-06，当前日期当天应被包含，故期望区间为[2025-11-06, 2026-08-07)。实际filter却生成了[2026-08-07, 2027-05-07)的未来九个月区间，时间方向和两个日期边界均错误。因此字段选择满足，但核心时间边界及整体可执行筛选结果未满足。\"}",
+      "created_at": 1786624416,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "b16e09d2-1244-4f54-afea-ea37a1886af3",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 8960,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 11055,
+        "output_tokens": 2612,
+        "provider_metrics": null,
+        "reasoning_tokens": 1034,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 13667
+      },
+      "name": null,
+      "provider_data": {
+        "id": "resp_0aba85facb535146016a7db9a762e4819ab415e357b22a20f8"
+      },
+      "reasoning_content": "**Defining nine-month date range boundaries****Clarifying business expectation criteria and success status****Planning filter validation criteria****Defining semantic filter fulfillment criteria****Aligning expected code and message formats**",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "policy_search",
+  "prompt_size": 18031,
+  "record_id": "be9a3b63-4b79-424a-9fa4-a0350a6be6d1",
+  "response": {
+    "content": "{\"business_expectations\":[{\"expectation_id\":\"成功返回可执行的保单筛选结果\",\"blocking\":true,\"downstream_consumer\":\"保单搜索查询执行器\",\"user_intent\":\"将用户的自然语言条件转换为可执行的保单筛选结果\",\"expected_outcome\":\"服务依赖可用，并返回状态为SUCCESS且包含完整filter的结果\",\"required_capabilities\":[\"解析请求\",\"判断服务依赖状态\",\"生成完整查询语法树\"],\"acceptance_criteria\":[\"依赖状态为available或等价的可用状态\",\"返回code为0且status为SUCCESS\",\"返回的filter非空并且结构完整可执行\",\"不在可支持条件下返回部分结果或错误的成功结果\"],\"boundary\":{\"supported_case\":\"该查询语义明确且字段能力已覆盖\",\"unsupported_case\":\"仅在条件存在歧义、能力越界或无法安全生成完整filter时返回UNSUPPORTED且filter为空\"},\"priority\":\"核心\"},{\"expectation_id\":\"使用保单生效日期字段进行筛选\",\"blocking\":true,\"downstream_consumer\":\"保单搜索查询执行器\",\"user_intent\":\"筛选生效日期符合条件的保单\",\"expected_outcome\":\"筛选字段为保单生效日期字段pol_effective_date_term\",\"required_capabilities\":[\"生效日期字段识别\"],\"acceptance_criteria\":[\"filter.field等于pol_effective_date_term\",\"字段角色表示保单生效日期，而非失效日期、创建日期或其他日期\"],\"boundary\":{\"field\":\"pol_effective_date_term\"},\"priority\":\"核心\"},{\"expectation_id\":\"将近九个月解释为当前日期之前的过去时间窗口\",\"blocking\":true,\"downstream_consumer\":\"保单搜索查询执行器\",\"user_intent\":\"筛选从当前时间向前追溯九个月内生效的保单\",\"expected_outcome\":\"以2026-08-06为当前日期，日期范围为2025-11-06含下界至2026-08-07不含上界\",\"required_capabilities\":[\"相对日期计算\",\"过去时间方向识别\",\"日期边界处理\"],\"acceptance_criteria\":[\"操作符为BETWEEN或逻辑等价的区间表达\",\"lower为2025-11-06且include_lower为true\",\"upper为2026-08-07且include_upper为false\",\"范围不得落在当前日期之后或被解释为未来九个月\"],\"boundary\":{\"current_time\":\"2026-08-06 10:30:00\",\"date_granularity\":\"day\",\"lower_boundary\":\"2025-11-06，包含\",\"upper_boundary\":\"2026-08-07，不包含\"},\"priority\":\"核心\"}],\"applicable_product_expectation_ids\":[\"成功返回可执行的保单筛选结果\",\"使用保单生效日期字段进行筛选\",\"将近九个月解释为当前日期之前的过去时间窗口\"],\"fulfillment_assessments\":[{\"expectation_id\":\"成功返回可执行的保单筛选结果\",\"status\":\"not_fulfilled\",\"score\":0.4,\"expected_evidence\":[\"依赖可用时应返回code为0、status为SUCCESS及完整且语义正确的filter\"],\"actual_evidence\":[\"application_boundary.dependency_status为available\",\"返回code为0、status为SUCCESS，且包含PREDICATE filter\",\"但filter日期范围为2026-08-07至2027-05-07，属于未来时间窗口，不符合用户条件\"],\"downstream_impact\":\"下游查询执行器会基于错误的未来日期范围筛选保单，无法得到用户要求的近九个月内生效保单。\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"使用保单生效日期字段进行筛选\",\"status\":\"fulfilled\",\"score\":1.0,\"expected_evidence\":[\"筛选字段应为pol_effective_date_term\"],\"actual_evidence\":[\"actual_output.filter.field为pol_effective_date_term\"],\"downstream_impact\":\"日期字段选择正确，字段维度不会导致查询落到其他保单日期属性上。\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"将近九个月解释为当前日期之前的过去时间窗口\",\"status\":\"not_fulfilled\",\"score\":0.0,\"expected_evidence\":[\"当前时间为2026-08-06时，期望范围为lower=2025-11-06且包含、upper=2026-08-07且不包含\"],\"actual_evidence\":[\"actual_output.filter.range.lower为2026-08-07且包含\",\"actual_output.filter.range.upper为2027-05-07且不包含\",\"实际范围整体位于当前日期之后，表示未来九个月而非过去九个月\"],\"downstream_impact\":\"核心时间语义反转，查询会漏掉用户要求的历史保单并筛选未来生效日期的保单。\",\"authority_tool_call_ids\":[]}],\"expected\":{\"code\":0,\"msg\":\"success\",\"status\":\"SUCCESS\",\"query\":\"近9个月内生效的保单\",\"filter\":{\"type\":\"PREDICATE\",\"node_id\":\"n0\",\"field\":\"pol_effective_date_term\",\"operator\":\"BETWEEN\",\"range\":{\"lower\":\"2025-11-06\",\"upper\":\"2026-08-07\",\"include_lower\":true,\"include_upper\":false}},\"message\":\"解析成功\"},\"missing\":[{\"kind\":\"filter.range.lower\",\"error_type\":\"日期下界错误\",\"expected\":\"2025-11-06\",\"actual\":\"2026-08-07\",\"evidence_ref\":\"actual_output.filter.range.lower\",\"incomplete\":false},{\"kind\":\"filter.range.upper\",\"error_type\":\"日期上界错误\",\"expected\":\"2026-08-07\",\"actual\":\"2027-05-07\",\"evidence_ref\":\"actual_output.filter.range.upper\",\"incomplete\":false}],\"wrong\":[{\"kind\":\"time_boundary\",\"error_type\":\"时间方向反转\",\"expected\":\"当前日期之前的过去九个月\",\"actual\":\"当前日期之后的未来九个月\",\"evidence_ref\":\"actual_output.filter.range\",\"incomplete\":false},{\"kind\":\"time_boundary\",\"error_type\":\"相对日期窗口计算错误\",\"expected\":{\"lower\":\"2025-11-06\",\"upper\":\"2026-08-07\",\"include_lower\":true,\"include_upper\":false},\"actual\":{\"lower\":\"2026-08-07\",\"upper\":\"2027-05-07\",\"include_lower\":true,\"include_upper\":false},\"evidence_ref\":\"actual_output.filter.range\",\"incomplete\":false}],\"extra\":[],\"evidence\":[\"run_trace.application_boundary.dependency_status=available\",\"run_trace.final_output.status=SUCCESS\",\"run_trace.final_output.filter.field=pol_effective_date_term\",\"run_trace.final_output.filter.range=2026-08-07至2027-05-07\"],\"reasoning_summary\":\"服务依赖可用，返回结果结构完整，且正确选择了保单生效日期字段；但用户所说的“近9个月内”应以2026-08-06为基准向过去追溯至2025-11-06，当前日期当天应被包含，故期望区间为[2025-11-06, 2026-08-07)。实际filter却生成了[2026-08-07, 2027-05-07)的未来九个月区间，时间方向和两个日期边界均错误。因此字段选择满足，但核心时间边界及整体可执行筛选结果未满足。\"}",
+    "metrics": {
+      "cache_read_tokens": 8960,
+      "cache_write_tokens": 0,
+      "input_tokens": 11055,
+      "output_tokens": 2612,
+      "reasoning_tokens": 1034,
+      "total_tokens": 13667
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 56802,
+          "endpoint": "primary",
+          "model": "gpt-5.6-luna",
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "selected_endpoint": "primary",
+      "selected_model": "gpt-5.6-luna",
+      "stage": ""
+    }
+  },
+  "trace_id": "policy_search:policy-search-rich-0151:1786624416871"
+}

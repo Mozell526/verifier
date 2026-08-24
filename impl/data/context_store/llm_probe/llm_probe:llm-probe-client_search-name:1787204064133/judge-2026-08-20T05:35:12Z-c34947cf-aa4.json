@@ -1,0 +1,314 @@
+{
+  "caller": "judge",
+  "created_at": "2026-08-20T05:35:12Z",
+  "elapsed_ms": 48085,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "production"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "d93d6ef7b280ec5fb2425ae5056f41bb70081e1cfe2a570887f8e84035d4bc59",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [],
+      "lineage": {
+        "call_id": "",
+        "case_id": "llm-probe-client_search-name",
+        "trace_id": "llm_probe:llm-probe-client_search-name:1787204064133"
+      },
+      "messages": [
+        {
+          "char_count": 6857,
+          "content_sha256": "54ccc6794c0bb28318244520fd104ff7743fc2512ccf4c2b6a6c7d9e645af5f6",
+          "role": "system"
+        },
+        {
+          "char_count": 6345,
+          "content_sha256": "598a502578009c4424cc9baf54223b058aab9fbda61624d41db49e5db76f0e61",
+          "role": "user"
+        }
+      ],
+      "mode": "production",
+      "output_contract": {
+        "field_names": [
+          "acceptance_criteria",
+          "actual",
+          "actual_evidence",
+          "applicable_product_expectation_ids",
+          "authority_tool_call_ids",
+          "blocking",
+          "boundary",
+          "business_expectations",
+          "downstream_consumer",
+          "downstream_impact",
+          "error_type",
+          "evidence",
+          "evidence_ref",
+          "expectation_id",
+          "expected",
+          "expected_evidence",
+          "expected_outcome",
+          "extra",
+          "fulfillment_assessments",
+          "incomplete",
+          "kind",
+          "missing",
+          "output_text",
+          "priority",
+          "raw",
+          "reasoning_summary",
+          "required_capabilities",
+          "score",
+          "status",
+          "user_intent",
+          "wrong"
+        ],
+        "identity": "impl.core.schema.judge.JudgeLLMOutput",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "40fa7a66e30b1a0dd26fea5170efaf75abd4add050e000d4a15b236de1d31ba9",
+        "sha256": "40fa7a66e30b1a0dd26fea5170efaf75abd4add050e000d4a15b236de1d31ba9"
+      },
+      "project_id": "llm_probe",
+      "prompt_char_count": 13202,
+      "reprompt": {
+        "added_char_count": 0,
+        "base_user_char_count": 6345,
+        "occurred": false
+      },
+      "role": "judge",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 478,
+          "content_sha256": "600c5ea3215f199a7ceb66e89af155ba94303255c0aceb785cf2125468b8a0fc",
+          "order": 0,
+          "role": "judge",
+          "segment_id": "mandatory-context-units",
+          "source": "contextunit://project.llm_probe.asset.judge_boundary,project.llm_probe.asset.judge_evaluation",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 2136,
+          "content_sha256": "3252075c7a5b4d3ef47e9b41e4e0da5ba34c63eafa391df94ec195dde74f4a90",
+          "order": 1,
+          "role": "judge",
+          "segment_id": "compiled-system",
+          "source": "impl/core/judge.py#judge_trace",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 6345,
+          "content_sha256": "598a502578009c4424cc9baf54223b058aab9fbda61624d41db49e5db76f0e61",
+          "order": 2,
+          "role": "judge",
+          "segment_id": "case-user-payload",
+          "source": "trace://judge-evidence-view",
+          "stage": "judge"
+        }
+      ],
+      "stage": "judge",
+      "tool_plan": []
+    }
+  },
+  "llm_model": "deepseek-v4-flash-0731",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "你是通用评估系统的 judge agent。\n\n## 核心原则\n只基于当前 RunTrace、项目评判标准和动态检索的知识库内容判断，不继承历史 case。\n首要职责：理解用户/下游消费者的真实业务意图 → 派生 business_expectations → 基于完整执行链路（每轮 output、最终 output、交互过程和停止事实）判断 expectations 的 fulfillment。\n\n## expectation 拆分原则\nbusiness_expectations 的粒度直接决定判断精度。每个 expectation 必须是原子、独立可评价的判断单元：证据充分时判 fulfilled 或 not_fulfilled；确需评价但当前证据不足时按协议判 not_evaluable。\n- 一个 expectation 只描述一个可独立验证的结果维度\n- 多维度意图必须拆成多个 expectation\n- 每个 expectation 必须有明确的 acceptance_criteria\n- 每个 expectation 必须在比较 actual 前确定 blocking：只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true\n- fulfillment_assessments 只判断对应 expectation 的 status 和证据，不得重新定义 blocking\n- expectation_id 必须是描述性的中文短语，禁止使用 E1/E2/exp_01 等占位符 ID\n- reasoning_summary 必须是中文写成的判断依据\n\n## 输出词表\n`fulfillment_assessments[*].status` 必须从以下 3 个值中选择：\n  - fulfilled：该 expectation 完全满足\n  - not_fulfilled：该 expectation 未满足\n  - not_evaluable：当前无法评估\n禁用 failed/passed/incorrect/wrong/met/unmet/partially_fulfilled/partial/success/fail/ok/unknown 等同义词。\n`fulfillment_assessments[*].expected_evidence` 与 `actual_evidence` **必须是数组**（JSON array / list），即使只有一条证据也要用 `[...]` 包裹，不可直接用字符串或对象。\n\n不要输出 overall_fulfillment；公共层会在项目契约补充完成后根据 blocking expectations 确定性派生整体状态。\n\n## 评估规范\n\n\n## 评估边界\n\n\n## 判断标准\n\n\n## 项目 ContextUnit（按 Role policy 在运行前确定性装载）\n## ContextUnit: judge_boundary: judge_boundary.md (project.llm_probe.asset.judge_boundary)\n# Judge Boundary\n\nIn scope:\n\n- 非流式 HTTP 响应字符串是否兑现能力描述\n- show_schema 指出的输出片段\n\nOut of scope:\n\n- SSE / 流式协议\n- 下游检索结果集\n- 被测服务是否由 verifier 启动\n- 各业务项目自己的 EXTRACT 字段协议\n\n\n## ContextUnit: judge_evaluation: evaluation.md (project.llm_probe.asset.judge_evaluation)\n# Evaluation\n\nJudge 只看三件事：能力描述、请求信封（尤其是 body）、`output_text`。\n\n有 show_schema 时，只把其中指出的部分当作重要证据。没有 gold output，不要把 actual 抄成 expected。\n\n\n\n\n## 能力描述\n只根据能力描述判断 output_text 是否兑现了该能力。没有 gold output，不要编造参考答案。\n\n## show_schema\n下面指出输出里哪些部分重要。没提到的部分不要当成失败依据。\n## 工具使用原则\n所有工具的用途、调用时机和参数含义以 Agno tool schema 为准；user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息。\n\n## 禁止事项\n- 不要把 reference answer 当作默认主目标（除非 case 明确指定）\n- 不要把 HTTP 状态、run_status、attribute/cluster 结论当作满足依据\n- 不要归因内部代码、配置或 prompt 原因（属于 attribute agent）\n- 分析文字必须使用中文，包括 reasoning_summary 等所有文本字段。\n\n\n## 输出约束：judge 判定输出（自产 reference + fulfillment 判定）\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"business_expectations\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeBusinessExpectationOutput\"\n      },\n      \"minItems\": 1\n    },\n    \"applicable_product_expectation_ids\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"fulfillment_assessments\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeFulfillmentAssessmentOutput\"\n      }\n    },\n    \"expected\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"output_text\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"output_text\"\n      ]\n    },\n    \"missing\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"wrong\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"extra\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"evidence\": {\n      \"type\": \"array\",\n      \"items\": {}\n    },\n    \"reasoning_summary\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    }\n  },\n  \"additionalProperties\": false,\n  \"$defs\": {\n    \"JudgeBusinessExpectationOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"blocking\": {\n          \"type\": \"boolean\"\n        },\n        \"downstream_consumer\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"user_intent\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected_outcome\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"required_capabilities\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"acceptance_criteria\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"boundary\": {\n          \"type\": \"object\"\n        },\n        \"priority\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"blocking\"\n      ]\n    },\n    \"JudgeFulfillmentAssessmentOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"score\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        },\n        \"expected_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"actual_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"downstream_impact\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"authority_tool_call_ids\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"status\"\n      ]\n    },\n    \"GapItem\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"kind\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"error_type\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected\": {},\n        \"actual\": {},\n        \"evidence_ref\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"raw\": {},\n        \"incomplete\": {\n          \"type\": \"boolean\"\n        }\n      },\n      \"additionalProperties\": false\n    }\n  },\n  \"required\": [\n    \"expected\",\n    \"business_expectations\",\n    \"reasoning_summary\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['business_expectations', 'expected', 'reasoning_summary']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n\n### 嵌套字段子结构约束\n以下字段内部的子结构也必须严格遵守，不可随意编造字段名或类型：\n- **`expected`** 字段 (项目 llm_probe 的 expected/live output 结构) 必须符合以下结构：\n  ```json\n  {\n    \"type\": \"object\",\n    \"properties\": {\n      \"output_text\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"additionalProperties\": false,\n    \"required\": [\n      \"output_text\"\n    ]\n  }\n  ```\n",
+      "created_at": 1787204064,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "40acc7c9-02b9-4ba0-8b7f-5a079986e5c3",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"user_intent\": \"接收自然语言的客户群体描述，输出可执行的结构化搜索条件（字段 × 操作符 × 值）。\\n不支持的表述应明确拒绝或给出能力边界，而不是编造条件。\", \"run_trace\": {\"trace_id\": \"llm_probe:llm-probe-client_search-name:1787204064133\", \"project_id\": \"llm_probe\", \"case_id\": \"llm-probe-client_search-name\", \"intent_input\": {\"capability_ref\": \"client_search\", \"method\": \"POST\", \"body\": {\"user_text\": \"客户姓名是张伟的人\", \"user_id\": \"mock_user_001\", \"trace_id\": \"mock_trace_001\", \"session_id\": \"mock_session_001\", \"source\": \"mock\", \"extra_input_params\": {}}, \"show_schema\": {\"type\": \"object\", \"description\": \"关注解析出的搜索条件（字段、操作符、值），忽略路由和追踪字段\"}}, \"normalized_request\": {\"capability_ref\": \"client_search\", \"method\": \"POST\", \"body\": {\"user_text\": \"客户姓名是张伟的人\", \"user_id\": \"mock_user_001\", \"trace_id\": \"mock_trace_001\", \"session_id\": \"mock_session_001\", \"source\": \"mock\", \"extra_input_params\": {}}, \"show_schema\": {\"type\": \"object\", \"description\": \"关注解析出的搜索条件（字段、操作符、值），忽略路由和追踪字段\"}}, \"final_output\": {\"output_text\": \"{\\\"code\\\": 0, \\\"msg\\\": \\\"操作成功\\\", \\\"data\\\": {\\\"robot_text\\\": \\\"姓张伟的客户\\\", \\\"end_flag\\\": 1, \\\"extra_output_params\\\": {\\\"query\\\": \\\"客户姓名是张伟的人\\\", \\\"query_logic\\\": \\\"AND\\\", \\\"conditions\\\": [{\\\"field\\\": \\\"searchClientName\\\", \\\"operator\\\": \\\"MATCH\\\", \\\"value\\\": \\\"张伟\\\", \\\"match_mode\\\": \\\"prefix\\\"}], \\\"sort\\\": [], \\\"sort_source\\\": \\\"none\\\", \\\"matched_level\\\": 2, \\\"rewritten_query\\\": \\\"客户姓名是张伟的人\\\", \\\"matched_patterns\\\": \\\"明确客户姓名上下文\\\", \\\"cost_times\\\": 58.0, \\\"confidence\\\": 0.95, \\\"intent_summary\\\": \\\"姓张伟的客户\\\", \\\"behavior_debug\\\": null}, \\\"trace_id\\\": \\\"mock_trace_001\\\"}}\"}, \"final_output_turn\": 1, \"turns\": [{\"turn_index\": 1, \"request\": {\"capability_ref\": \"client_search\", \"method\": \"POST\", \"body\": {\"user_text\": \"客户姓名是张伟的人\", \"user_id\": \"mock_user_001\", \"trace_id\": \"mock_trace_001\", \"session_id\": \"mock_session_001\", \"source\": \"mock\", \"extra_input_params\": {}}, \"show_schema\": {\"type\": \"object\", \"description\": \"关注解析出的搜索条件（字段、操作符、值），忽略路由和追踪字段\"}}, \"extracted_output\": {\"output_text\": \"{\\\"code\\\": 0, \\\"msg\\\": \\\"操作成功\\\", \\\"data\\\": {\\\"robot_text\\\": \\\"姓张伟的客户\\\", \\\"end_flag\\\": 1, \\\"extra_output_params\\\": {\\\"query\\\": \\\"客户姓名是张伟的人\\\", \\\"query_logic\\\": \\\"AND\\\", \\\"conditions\\\": [{\\\"field\\\": \\\"searchClientName\\\", \\\"operator\\\": \\\"MATCH\\\", \\\"value\\\": \\\"张伟\\\", \\\"match_mode\\\": \\\"prefix\\\"}], \\\"sort\\\": [], \\\"sort_source\\\": \\\"none\\\", \\\"matched_level\\\": 2, \\\"rewritten_query\\\": \\\"客户姓名是张伟的人\\\", \\\"matched_patterns\\\": \\\"明确客户姓名上下文\\\", \\\"cost_times\\\": 58.0, \\\"confidence\\\": 0.95, \\\"intent_summary\\\": \\\"姓张伟的客户\\\", \\\"behavior_debug\\\": null}, \\\"trace_id\\\": \\\"mock_trace_001\\\"}}\"}, \"call_status\": \"succeeded\", \"runtime_ms\": 101, \"error\": null, \"fallbacks\": [], \"validation\": [], \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"llm_probe\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"llm_probe\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"request_normalization\", \"status\": \"succeeded\", \"evidence\": {\"capability_ref\": \"client_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"http_call\", \"status\": \"succeeded\", \"evidence\": {\"url\": \"\", \"method\": \"POST\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"output_stringify\", \"status\": \"succeeded\", \"evidence\": {\"output_chars\": 493}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"application_boundary\": {\"scope\": \"non_streaming_http_llm_probe\", \"streaming\": false}, \"project_fields\": {\"capability_ref\": \"client_search\", \"capability\": \"\", \"show_schema\": {\"type\": \"object\", \"description\": \"关注解析出的搜索条件（字段、操作符、值），忽略路由和追踪字段\"}}}], \"conversation_transcript\": [], \"conversation_summary\": {\"turn_count\": 1, \"final_output_turn\": 1, \"completion_status\": \"completed\", \"stop_reason\": \"single_turn_completed\", \"interaction_controller_status\": \"not_run\", \"interaction_controller_error\": \"\"}, \"stop_reason\": \"single_turn_completed\", \"completion_status\": \"completed\", \"execution_trace\": [{\"stage\": \"live_schema.validate_request\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"llm_probe\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"live_schema.validate_output\", \"status\": \"succeeded\", \"evidence\": {\"project_id\": \"llm_probe\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"request_normalization\", \"status\": \"succeeded\", \"evidence\": {\"capability_ref\": \"client_search\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"http_call\", \"status\": \"succeeded\", \"evidence\": {\"url\": \"\", \"method\": \"POST\"}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}, {\"stage\": \"output_stringify\", \"status\": \"succeeded\", \"evidence\": {\"output_chars\": 493}, \"timestamp\": \"\", \"inputs\": {}, \"outputs\": {}, \"error\": \"\", \"metadata\": {}}], \"evidence_refs\": [], \"raw_response_evidence\": null, \"evidence_completeness\": {\"complete\": true, \"missing_evidence\": []}, \"application_boundary\": {\"scope\": \"non_streaming_http_llm_probe\", \"streaming\": false}, \"reference_contract\": {}, \"scenario\": \"http_probe\", \"status\": \"ok\", \"error\": null}, \"capability\": \"接收自然语言的客户群体描述，输出可执行的结构化搜索条件（字段 × 操作符 × 值）。\\n不支持的表述应明确拒绝或给出能力边界，而不是编造条件。\", \"show_schema\": {\"type\": \"object\", \"description\": \"关注解析出的搜索条件（字段、操作符、值），忽略路由和追踪字段\"}, \"request\": {\"url\": \"\", \"method\": \"POST\", \"headers\": {}, \"body\": {\"user_text\": \"客户姓名是张伟的人\", \"user_id\": \"mock_user_001\", \"trace_id\": \"mock_trace_001\", \"session_id\": \"mock_session_001\", \"source\": \"mock\", \"extra_input_params\": {}}, \"capability_ref\": \"client_search\"}, \"output_text\": \"{\\\"code\\\": 0, \\\"msg\\\": \\\"操作成功\\\", \\\"data\\\": {\\\"robot_text\\\": \\\"姓张伟的客户\\\", \\\"end_flag\\\": 1, \\\"extra_output_params\\\": {\\\"query\\\": \\\"客户姓名是张伟的人\\\", \\\"query_logic\\\": \\\"AND\\\", \\\"conditions\\\": [{\\\"field\\\": \\\"searchClientName\\\", \\\"operator\\\": \\\"MATCH\\\", \\\"value\\\": \\\"张伟\\\", \\\"match_mode\\\": \\\"prefix\\\"}], \\\"sort\\\": [], \\\"sort_source\\\": \\\"none\\\", \\\"matched_level\\\": 2, \\\"rewritten_query\\\": \\\"客户姓名是张伟的人\\\", \\\"matched_patterns\\\": \\\"明确客户姓名上下文\\\", \\\"cost_times\\\": 58.0, \\\"confidence\\\": 0.95, \\\"intent_summary\\\": \\\"姓张伟的客户\\\", \\\"behavior_debug\\\": null}, \\\"trace_id\\\": \\\"mock_trace_001\\\"}}\", \"application_boundary\": {\"scope\": \"non_streaming_http_llm_probe\", \"streaming\": false}}",
+      "created_at": 1787204064,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "b7cacca4-c2d8-495c-8bb2-47946ba4ea9b",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"business_expectations\":[{\"expectation_id\":\"解析出结构化搜索条件包含字段操作符和值\",\"blocking\":true,\"downstream_consumer\":\"客户搜索执行引擎\",\"user_intent\":\"将自然语言客户群体描述转换为可执行的结构化搜索条件\",\"expected_outcome\":\"输出中包含 conditions 数组，每个条件包含 field、operator、value 三个核心要素\",\"required_capabilities\":[\"自然语言解析\",\"字段映射\",\"条件结构化\"],\"acceptance_criteria\":[\"output 中存在 conditions 数组\",\"每个 condition 包含 field、operator、value 字段\",\"条件数量与用户输入的筛选维度一致\"],\"boundary\":{\"in\":\"非流式HTTP响应中的结构化搜索条件\",\"out\":\"路由字段、追踪字段、下游检索结果集\"},\"priority\":\"P0\"},{\"expectation_id\":\"客户姓名字段正确映射\",\"blocking\":true,\"downstream_consumer\":\"客户搜索执行引擎\",\"user_intent\":\"将'客户姓名是张伟'中的姓名维度映射到正确的搜索字段\",\"expected_outcome\":\"conditions 中存在一条条件，field 对应客户姓名字段，value 为'张伟'\",\"required_capabilities\":[\"实体识别\",\"字段映射\"],\"acceptance_criteria\":[\"存在一条 condition 的 field 与客户姓名相关\",\"该 condition 的 value 为'张伟'\"],\"boundary\":{\"in\":\"字段映射准确性\",\"out\":\"match_mode 策略选择\"},\"priority\":\"P0\"},{\"expectation_id\":\"不编造条件且不添加多余筛选维度\",\"blocking\":true,\"downstream_consumer\":\"客户搜索执行引擎\",\"user_intent\":\"仅根据用户明确表述的筛选维度生成条件，不编造\",\"expected_outcome\":\"conditions 数组仅包含用户输入中明确提及的筛选维度，数量为1\",\"required_capabilities\":[\"意图边界识别\"],\"acceptance_criteria\":[\"conditions 数组长度为1\",\"不包含用户未提及的筛选维度\"],\"boundary\":{\"in\":\"条件数量与维度\",\"out\":\"排序、追踪等非条件字段\"},\"priority\":\"P0\"}],\"applicable_product_expectation_ids\":[\"解析出结构化搜索条件包含字段操作符和值\",\"客户姓名字段正确映射\",\"不编造条件且不添加多余筛选维度\"],\"fulfillment_assessments\":[{\"expectation_id\":\"解析出结构化搜索条件包含字段操作符和值\",\"status\":\"fulfilled\",\"score\":1.0,\"expected_evidence\":[\"conditions 数组中包含至少一个条件对象，对象内含 field、operator、value\"],\"actual_evidence\":[\"output_text 中 conditions 为 [{\\\"field\\\":\\\"searchClientName\\\",\\\"operator\\\":\\\"MATCH\\\",\\\"value\\\":\\\"张伟\\\",\\\"match_mode\\\":\\\"prefix\\\"}]，包含 field、operator、value 三个核心要素\"],\"downstream_impact\":\"下游搜索引擎可直接使用该条件执行查询\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"客户姓名字段正确映射\",\"status\":\"fulfilled\",\"score\":1.0,\"expected_evidence\":[\"存在一条 condition，field 对应客户姓名字段，value 为'张伟'\"],\"actual_evidence\":[\"conditions[0].field = \\\"searchClientName\\\"，value = \\\"张伟\\\"，正确映射了用户输入的姓名维度和值\"],\"downstream_impact\":\"下游可基于 searchClientName 字段查询姓名为张伟的客户\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"不编造条件且不添加多余筛选维度\",\"status\":\"fulfilled\",\"score\":1.0,\"expected_evidence\":[\"conditions 数组长度为1，仅包含姓名维度\"],\"actual_evidence\":[\"conditions 数组长度为1，仅包含 searchClientName 一个条件，未编造其他筛选维度\"],\"downstream_impact\":\"搜索结果不会因多余条件而遗漏目标客户\",\"authority_tool_call_ids\":[]}],\"expected\":{\"output_text\":\"{\\\"code\\\":0,\\\"msg\\\":\\\"操作成功\\\",\\\"data\\\":{\\\"robot_text\\\":\\\"姓名是张伟的客户\\\",\\\"end_flag\\\":1,\\\"extra_output_params\\\":{\\\"query\\\":\\\"客户姓名是张伟的人\\\",\\\"query_logic\\\":\\\"AND\\\",\\\"conditions\\\":[{\\\"field\\\":\\\"searchClientName\\\",\\\"operator\\\":\\\"MATCH\\\",\\\"value\\\":\\\"张伟\\\"}],\\\"sort\\\":[],\\\"trace_id\\\":\\\"mock_trace_001\\\"}}}\"},\"missing\":[],\"wrong\":[{\"kind\":\"semantic\",\"error_type\":\"match_mode偏差\",\"expected\":\"用户表述'姓名是张伟'倾向于精确或包含匹配\",\"actual\":\"match_mode为prefix（前缀匹配），robot_text为'姓张伟的客户'，语义上把'姓名是张伟'理解为'姓张伟'\",\"evidence_ref\":\"conditions[0].match_mode=prefix, robot_text=姓张伟的客户\",\"raw\":{\"match_mode\":\"prefix\",\"robot_text\":\"姓张伟的客户\"},\"incomplete\":false}],\"extra\":[],\"evidence\":[{\"source\":\"output_text\",\"content\":\"conditions: [{\\\"field\\\":\\\"searchClientName\\\",\\\"operator\\\":\\\"MATCH\\\",\\\"value\\\":\\\"张伟\\\",\\\"match_mode\\\":\\\"prefix\\\"}]\",\"ref\":\"conditions数组\"},{\"source\":\"output_text\",\"content\":\"robot_text: 姓张伟的客户\",\"ref\":\"robot_text字段\"}],\"reasoning_summary\":\"用户输入'客户姓名是张伟的人'，系统输出 conditions 数组包含一条条件：field=searchClientName、operator=MATCH、value=张伟，结构化搜索条件的字段、操作符、值三要素齐全且映射正确，conditions 长度为1未编造多余条件，核心能力描述已兑现。需注意 match_mode=prefix 及 robot_text'姓张伟的客户'存在语义偏差——用户说的是'姓名是张伟'而非'姓张伟'，前缀匹配可能匹配到'张伟明'等非精确目标，但 match_mode 属于搜索策略选择而非编造条件，且 show_schema 仅要求关注字段、操作符、值，故不构成 blocking 缺陷。\"}",
+      "created_at": 1787204064,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "b4aa4a85-a5a4-4282-ab13-c5e5de3f2e73",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 2176,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 4121,
+        "output_tokens": 1806,
+        "provider_metrics": null,
+        "reasoning_tokens": 627,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 5927
+      },
+      "name": null,
+      "provider_data": {
+        "id": "5aa83da3-a571-4fa6-b3fa-4c4010e329c5",
+        "model_extra": {
+          "request_id": "5aa83da3-a571-4fa6-b3fa-4c4010e329c5"
+        }
+      },
+      "reasoning_content": "用户意图：接收自然语言的客户群体描述，输出可执行的结构化搜索条件（字段 × 操作符 × 值）。不支持的表述应明确拒绝或给出能力边界，而不是编造条件。\n\n输入：user_text = \"客户姓名是张伟的人\"\n输出：包含 conditions 数组，其中有一个条件：field=searchClientName, operator=MATCH, value=张伟, match_mode=prefix\n\n分析：\n1. 用户输入\"客户姓名是张伟的人\"，期望搜索姓名为\"张伟\"的客户。\n2. 输出中 conditions 为 [{\"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value\": \"张伟\", \"match_mode\": \"prefix\"}]。\n3. match_mode 为 \"prefix\"，这意味着是前缀匹配，即搜索姓\"张伟\"开头的客户，而不是精确匹配\"张伟\"。\n4. robot_text 是 \"姓张伟的客户\"，这有点奇怪，\"姓张伟\"在中文里不太通顺，通常姓是单个字\"张\"，名是\"伟\"。但用户说的是\"客户姓名是张伟\"，意思是姓名就是\"张伟\"。\n5. 如果用 prefix 匹配，会匹配到\"张伟\"、\"张伟明\"等所有以\"张伟\"开头的名字，这可能不是用户想要的精确匹配。\n\n但是，从能力描述来看，核心是输出结构化搜索条件（字段 × 操作符 × 值）。输出确实包含了 field, operator, value。\n关于 match_mode=prefix 是否合理：在很多客户搜索系统中，姓名搜索默认使用前缀匹配是常见做法。用户说\"客户姓名是张伟的人\"，系统解析为 searchClientName MATCH 张伟 prefix。这可以接受，因为\"是张伟的人\"可以理解为找叫张伟的，prefix匹配是一种实现方式。\n\n不过 robot_text \"姓张伟的客户\" 表述不准确，用户说的是\"姓名是张伟\"，不是\"姓张伟\"。\n\n让我拆分 expectations：\n1. 解析出结构化搜索条件，包含字段、操作符、值 - fulfilled\n2. 字段正确映射到客户姓名相关字段 - fulfilled (searchClientName)\n3. 值正确提取为\"张伟\" - fulfilled\n4. 不编造条件 - fulfilled (只有一个条件，没有多余条件)\n\n关于 match_mode=prefix：用户说\"姓名是张伟\"，更倾向于精确匹配，但prefix也是一种合理的搜索策略，不算编造条件。这个可以作为非blocking的观察点。\n\n实际上，robot_text \"姓张伟的客户\" 有语义偏差，但这不是 show_schema 关注的重点。show_schema 说\"关注解析出的搜索条件（字段、操作符、值），忽略路由和追踪字段\"。\n\n所以核心看 conditions 里的 field, operator, value。\n- field: searchClientName ✓\n- operator: MATCH ✓\n- value: 张伟 ✓\n\n这些是合理的。match_mode=prefix 可能不完全精确但属于系统搜索策略，不算编造。\n\n我判断核心 expectation fulfilled。",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "llm_probe",
+  "prompt_size": 16754,
+  "record_id": "c34947cf-aa42-42ef-9f9e-26668d570061",
+  "response": {
+    "content": "{\"business_expectations\":[{\"expectation_id\":\"解析出结构化搜索条件包含字段操作符和值\",\"blocking\":true,\"downstream_consumer\":\"客户搜索执行引擎\",\"user_intent\":\"将自然语言客户群体描述转换为可执行的结构化搜索条件\",\"expected_outcome\":\"输出中包含 conditions 数组，每个条件包含 field、operator、value 三个核心要素\",\"required_capabilities\":[\"自然语言解析\",\"字段映射\",\"条件结构化\"],\"acceptance_criteria\":[\"output 中存在 conditions 数组\",\"每个 condition 包含 field、operator、value 字段\",\"条件数量与用户输入的筛选维度一致\"],\"boundary\":{\"in\":\"非流式HTTP响应中的结构化搜索条件\",\"out\":\"路由字段、追踪字段、下游检索结果集\"},\"priority\":\"P0\"},{\"expectation_id\":\"客户姓名字段正确映射\",\"blocking\":true,\"downstream_consumer\":\"客户搜索执行引擎\",\"user_intent\":\"将'客户姓名是张伟'中的姓名维度映射到正确的搜索字段\",\"expected_outcome\":\"conditions 中存在一条条件，field 对应客户姓名字段，value 为'张伟'\",\"required_capabilities\":[\"实体识别\",\"字段映射\"],\"acceptance_criteria\":[\"存在一条 condition 的 field 与客户姓名相关\",\"该 condition 的 value 为'张伟'\"],\"boundary\":{\"in\":\"字段映射准确性\",\"out\":\"match_mode 策略选择\"},\"priority\":\"P0\"},{\"expectation_id\":\"不编造条件且不添加多余筛选维度\",\"blocking\":true,\"downstream_consumer\":\"客户搜索执行引擎\",\"user_intent\":\"仅根据用户明确表述的筛选维度生成条件，不编造\",\"expected_outcome\":\"conditions 数组仅包含用户输入中明确提及的筛选维度，数量为1\",\"required_capabilities\":[\"意图边界识别\"],\"acceptance_criteria\":[\"conditions 数组长度为1\",\"不包含用户未提及的筛选维度\"],\"boundary\":{\"in\":\"条件数量与维度\",\"out\":\"排序、追踪等非条件字段\"},\"priority\":\"P0\"}],\"applicable_product_expectation_ids\":[\"解析出结构化搜索条件包含字段操作符和值\",\"客户姓名字段正确映射\",\"不编造条件且不添加多余筛选维度\"],\"fulfillment_assessments\":[{\"expectation_id\":\"解析出结构化搜索条件包含字段操作符和值\",\"status\":\"fulfilled\",\"score\":1.0,\"expected_evidence\":[\"conditions 数组中包含至少一个条件对象，对象内含 field、operator、value\"],\"actual_evidence\":[\"output_text 中 conditions 为 [{\\\"field\\\":\\\"searchClientName\\\",\\\"operator\\\":\\\"MATCH\\\",\\\"value\\\":\\\"张伟\\\",\\\"match_mode\\\":\\\"prefix\\\"}]，包含 field、operator、value 三个核心要素\"],\"downstream_impact\":\"下游搜索引擎可直接使用该条件执行查询\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"客户姓名字段正确映射\",\"status\":\"fulfilled\",\"score\":1.0,\"expected_evidence\":[\"存在一条 condition，field 对应客户姓名字段，value 为'张伟'\"],\"actual_evidence\":[\"conditions[0].field = \\\"searchClientName\\\"，value = \\\"张伟\\\"，正确映射了用户输入的姓名维度和值\"],\"downstream_impact\":\"下游可基于 searchClientName 字段查询姓名为张伟的客户\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"不编造条件且不添加多余筛选维度\",\"status\":\"fulfilled\",\"score\":1.0,\"expected_evidence\":[\"conditions 数组长度为1，仅包含姓名维度\"],\"actual_evidence\":[\"conditions 数组长度为1，仅包含 searchClientName 一个条件，未编造其他筛选维度\"],\"downstream_impact\":\"搜索结果不会因多余条件而遗漏目标客户\",\"authority_tool_call_ids\":[]}],\"expected\":{\"output_text\":\"{\\\"code\\\":0,\\\"msg\\\":\\\"操作成功\\\",\\\"data\\\":{\\\"robot_text\\\":\\\"姓名是张伟的客户\\\",\\\"end_flag\\\":1,\\\"extra_output_params\\\":{\\\"query\\\":\\\"客户姓名是张伟的人\\\",\\\"query_logic\\\":\\\"AND\\\",\\\"conditions\\\":[{\\\"field\\\":\\\"searchClientName\\\",\\\"operator\\\":\\\"MATCH\\\",\\\"value\\\":\\\"张伟\\\"}],\\\"sort\\\":[],\\\"trace_id\\\":\\\"mock_trace_001\\\"}}}\"},\"missing\":[],\"wrong\":[{\"kind\":\"semantic\",\"error_type\":\"match_mode偏差\",\"expected\":\"用户表述'姓名是张伟'倾向于精确或包含匹配\",\"actual\":\"match_mode为prefix（前缀匹配），robot_text为'姓张伟的客户'，语义上把'姓名是张伟'理解为'姓张伟'\",\"evidence_ref\":\"conditions[0].match_mode=prefix, robot_text=姓张伟的客户\",\"raw\":{\"match_mode\":\"prefix\",\"robot_text\":\"姓张伟的客户\"},\"incomplete\":false}],\"extra\":[],\"evidence\":[{\"source\":\"output_text\",\"content\":\"conditions: [{\\\"field\\\":\\\"searchClientName\\\",\\\"operator\\\":\\\"MATCH\\\",\\\"value\\\":\\\"张伟\\\",\\\"match_mode\\\":\\\"prefix\\\"}]\",\"ref\":\"conditions数组\"},{\"source\":\"output_text\",\"content\":\"robot_text: 姓张伟的客户\",\"ref\":\"robot_text字段\"}],\"reasoning_summary\":\"用户输入'客户姓名是张伟的人'，系统输出 conditions 数组包含一条条件：field=searchClientName、operator=MATCH、value=张伟，结构化搜索条件的字段、操作符、值三要素齐全且映射正确，conditions 长度为1未编造多余条件，核心能力描述已兑现。需注意 match_mode=prefix 及 robot_text'姓张伟的客户'存在语义偏差——用户说的是'姓名是张伟'而非'姓张伟'，前缀匹配可能匹配到'张伟明'等非精确目标，但 match_mode 属于搜索策略选择而非编造条件，且 show_schema 仅要求关注字段、操作符、值，故不构成 blocking 缺陷。\"}",
+    "metrics": {
+      "cache_read_tokens": 2176,
+      "cache_write_tokens": 0,
+      "input_tokens": 4121,
+      "output_tokens": 1806,
+      "reasoning_tokens": 627,
+      "total_tokens": 5927
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 48085,
+          "endpoint": "fallback1",
+          "model": "deepseek-v4-flash-0731",
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "selected_endpoint": "fallback1",
+      "selected_model": "deepseek-v4-flash-0731",
+      "stage": ""
+    }
+  },
+  "trace_id": "llm_probe:llm-probe-client_search-name:1787204064133"
+}

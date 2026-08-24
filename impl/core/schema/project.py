@@ -19,6 +19,7 @@ class RoleAssetMapping:
     replace: bool = False
     logical_production_path: str = ""
     logical_candidate_path: str = ""
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -241,6 +242,7 @@ class ProjectSpec:
                 replace=item.get("replace") is True,
                 logical_production_path=str(item["production_path"]),
                 logical_candidate_path=str(item.get("candidate_path") or ""),
+                metadata=dict(item.get("metadata") or {}),
             )
             for item in self.verifier.get("assets") or []
         ]
@@ -358,6 +360,26 @@ class ProjectSpec:
         return self.project_package_path(
             f"draft/.state/{role}/investigation-validation.json",
             field_path=f"investigation.{role}.validation_receipt",
+            expected_type="file" if must_exist else "any",
+            must_exist=must_exist,
+        )
+
+    def solidify_receipt_path(
+        self, role: str, *, must_exist: bool = True
+    ) -> Path:
+        return self.project_package_path(
+            f"draft/.state/{role}/solidify.json",
+            field_path=f"solidify.{role}.receipt",
+            expected_type="file" if must_exist else "any",
+            must_exist=must_exist,
+        )
+
+    def draft_role_review_path(
+        self, role: str, iteration: int, *, must_exist: bool = True
+    ) -> Path:
+        return self.project_package_path(
+            f"draft/.state/{role}/iterations/{iteration:03d}-role-review.json",
+            field_path=f"draft_loop.{role}.iterations[{iteration}].role_review",
             expected_type="file" if must_exist else "any",
             must_exist=must_exist,
         )

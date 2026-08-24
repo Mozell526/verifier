@@ -1,0 +1,201 @@
+- generic [ref=f4e1]:
+  - banner [ref=f4e2]:
+    - heading "归因总结" [level=1] [ref=f4e3]
+    - paragraph [ref=f4e4]: 协议式单链路、用例池、批量运行、聚簇和 Check 审核视图。
+  - main [ref=f4e5]:
+    - generic [ref=f4e6]:
+      - generic [ref=f4e7]:
+        - link "返回 Live 请求" [ref=f4e8] [cursor=pointer]:
+          - /url: live.html
+        - button "统一单链路" [ref=f4e9] [cursor=pointer]
+        - button "加载最近结果" [ref=f4e10] [cursor=pointer]
+        - button "构建 Mock 用例池" [ref=f4e11] [cursor=pointer]
+        - button "加载 Mock 数据集" [active] [ref=f4e12] [cursor=pointer]
+        - generic [ref=f4e13]:
+          - text: 并发数
+          - spinbutton "并发数" [ref=f4e14]: "4"
+        - button "批量运行" [ref=f4e15] [cursor=pointer]
+        - button "手动归因" [ref=f4e16] [cursor=pointer]
+        - button "分析项目配置" [ref=f4e17] [cursor=pointer]
+      - generic [ref=f4e18]:
+        - generic [ref=f4e19]:
+          - generic [ref=f4e20]: "3"
+          - text: 用例总数
+        - generic [ref=f4e21]:
+          - generic [ref=f4e22]: "3"
+          - text: 已选择
+        - generic [ref=f4e23]:
+          - generic [ref=f4e24]: "0"
+          - text: Fulfilled
+        - generic [ref=f4e25]:
+          - generic [ref=f4e26]: "0"
+          - text: Not Fulfilled
+        - generic [ref=f4e27]:
+          - generic [ref=f4e28]: "0"
+          - text: Clusters
+    - generic [ref=f4e29]:
+      - complementary [ref=f4e30]:
+        - generic [ref=f4e31]:
+          - heading "运行输入" [level=2] [ref=f4e32]
+          - generic [ref=f4e33]: Project
+          - combobox [ref=f4e34]:
+            - option "QA"
+            - option "client_search"
+            - option "deerflow"
+            - option "marketting-planning"
+            - option "marketting-planning-intent"
+            - option "policy_search" [selected]
+          - generic [ref=f4e35]: 单链路 Input JSON
+          - textbox [ref=f4e36]: "{ \"session_id\": \"browser-unsupported-check\", \"trace_id\": \"browser-unsupported-check\", \"extra_input_params\": { \"policySearchParseArgs\": { \"query\": \"投诉超过3次的保单\", \"currentTime\": \"2026-08-11 10:30:00\", \"agentCode\": \"VERIFIER_TEST\" }, \"args\": { \"contexts\": [] } } }"
+          - generic [ref=f4e37]: User Intent（可选）
+          - textbox "可留空；填写后会传给 judge agent。" [ref=f4e38]
+          - generic [ref=f4e39]: 上传/导入用例 JSON
+          - button "Choose File" [ref=f4e40]
+          - textbox [ref=f4e41]: "[]"
+          - generic [ref=f4e42]:
+            - button "导入候选区" [ref=f4e43] [cursor=pointer]
+            - button "生成已选 JSON" [ref=f4e44] [cursor=pointer]
+            - button "清空" [ref=f4e45] [cursor=pointer]
+          - paragraph [ref=f4e46]: 参考 8011 页面后，这里把“上传/生成/选择/批量运行”集中成候选区；所有数据先转成通用 case 协议，再交给后端统一 batch 链路执行。
+        - generic [ref=f4e47]:
+          - heading "用例池库" [level=2] [ref=f4e48]
+          - generic [ref=f4e49]: 保存名称
+          - textbox "例如：生存金专项用例池" [ref=f4e50]
+          - generic [ref=f4e51]:
+            - button "保存当前候选区" [ref=f4e52] [cursor=pointer]
+            - button "刷新列表" [ref=f4e53] [cursor=pointer]
+          - paragraph [ref=f4e54]: 已完成的一批用例可以保存成命名用例池；之后可加载另一批继续分析，互不覆盖。
+          - generic [ref=f4e185]: 暂无已保存用例池。
+        - generic [ref=f4e55]:
+          - heading "聚簇概览" [level=2] [ref=f4e56]
+          - generic [ref=f4e136]: 暂无聚簇。
+      - generic [ref=f4e58]:
+        - generic [ref=f4e59]:
+          - generic [ref=f4e60]:
+            - generic [ref=f4e61]:
+              - heading "用例池候选区" [level=2] [ref=f4e62]
+              - generic [ref=f4e63]: 候选区共 3 条 · 当前筛选命中 3 条
+            - generic [ref=f4e64]:
+              - button "选中当前筛选" [ref=f4e65] [cursor=pointer]
+              - button "全选全部" [ref=f4e66] [cursor=pointer]
+              - button "取消全选" [ref=f4e67] [cursor=pointer]
+              - combobox [ref=f4e68]:
+                - option "全部场景" [selected]
+                - option "atomic_condition"
+                - option "compound_logic"
+                - option "time_boundary"
+              - combobox [ref=f4e69]:
+                - option "全部达成状态" [selected]
+                - option "fulfilled"
+                - option "not_fulfilled"
+                - option "not_evaluable"
+                - option "其他（未判定）"
+              - combobox [ref=f4e70]:
+                - option "全部运行状态" [selected]
+                - option "未运行"
+                - option "运行中"
+                - option "已跑过"
+                - option "已完成"
+                - option "失败"
+              - button "导出当前筛选 (.xlsx)" [ref=f4e71] [cursor=pointer]
+          - generic [ref=f4e72]:
+            - text: 批量运行中
+            - generic [ref=f4e74]: 已加载 3 批 Mock 数据集，共 3 条，可直接选择后批量运行。
+          - table [ref=f4e77]:
+            - rowgroup [ref=f4e78]:
+              - row "选择 ID 来源 执行模式 Scenario Input / Live Request Output / 被评估输出 Reference 状态 Score / Judge 归因摘要 Trace" [ref=f4e79]:
+                - columnheader "选择" [ref=f4e80]
+                - columnheader "ID" [ref=f4e81]
+                - columnheader "来源" [ref=f4e82]
+                - columnheader "执行模式" [ref=f4e83]
+                - columnheader "Scenario" [ref=f4e84]
+                - columnheader "Input / Live Request" [ref=f4e85]
+                - columnheader "Output / 被评估输出" [ref=f4e86]
+                - columnheader "Reference" [ref=f4e87]
+                - columnheader "状态" [ref=f4e88]
+                - columnheader "Score / Judge" [ref=f4e89]
+                - columnheader "归因摘要" [ref=f4e90]
+                - columnheader "Trace" [ref=f4e91]
+            - rowgroup [ref=f4e92]:
+              - 'row "policy-search-atomic-condition-01 project_mock_dataset - atomic_condition { \"session_id\": \"verifier-policy-atomic-01\", \"trace_id\": \"verifier-policy-atomic-01\", \"extra_input_params\": { \"policySearchParseArgs\": { \"query\": \"保额不低于50万的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\" }, \"args\": { \"contexts\": [] } } } - - pending 尚未评估 尚未归因 无 Trace" [ref=f4e186]':
+                - cell [ref=f4e187]:
+                  - checkbox [checked] [ref=f4e188]
+                - cell "policy-search-atomic-condition-01" [ref=f4e189]
+                - cell "project_mock_dataset" [ref=f4e190]
+                - cell "-" [ref=f4e191]
+                - cell "atomic_condition" [ref=f4e192]
+                - 'cell "{ \"session_id\": \"verifier-policy-atomic-01\", \"trace_id\": \"verifier-policy-atomic-01\", \"extra_input_params\": { \"policySearchParseArgs\": { \"query\": \"保额不低于50万的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\" }, \"args\": { \"contexts\": [] } } }" [ref=f4e193]':
+                  - generic [ref=f4e194]: "{ \"session_id\": \"verifier-policy-atomic-01\", \"trace_id\": \"verifier-policy-atomic-01\", \"extra_input_params\": { \"policySearchParseArgs\": { \"query\": \"保额不低于50万的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\" }, \"args\": { \"contexts\": [] } } }"
+                - cell "-" [ref=f4e195]
+                - cell "-" [ref=f4e196]
+                - cell "pending" [ref=f4e197]:
+                  - generic [ref=f4e198]: pending
+                - cell "尚未评估" [ref=f4e199]
+                - cell "尚未归因" [ref=f4e200]
+                - cell "无 Trace" [ref=f4e201]
+              - 'row "policy-search-compound-logic-01 project_mock_dataset - compound_logic { \"session_id\": \"verifier-policy-compound-01\", \"trace_id\": \"verifier-policy-compound-01\", \"extra_input_params\": { \"policySearchParseArgs\": { \"query\": \"张三或李四作为投保人，今年生效且保额不低于50万的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\" }, \"args\": { \"contexts\": [] } } } - - pending 尚未评估 尚未归因 无 Trace" [ref=f4e202]':
+                - cell [ref=f4e203]:
+                  - checkbox [checked] [ref=f4e204]
+                - cell "policy-search-compound-logic-01" [ref=f4e205]
+                - cell "project_mock_dataset" [ref=f4e206]
+                - cell "-" [ref=f4e207]
+                - cell "compound_logic" [ref=f4e208]
+                - 'cell "{ \"session_id\": \"verifier-policy-compound-01\", \"trace_id\": \"verifier-policy-compound-01\", \"extra_input_params\": { \"policySearchParseArgs\": { \"query\": \"张三或李四作为投保人，今年生效且保额不低于50万的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\" }, \"args\": { \"contexts\": [] } } }" [ref=f4e209]':
+                  - generic [ref=f4e210]: "{ \"session_id\": \"verifier-policy-compound-01\", \"trace_id\": \"verifier-policy-compound-01\", \"extra_input_params\": { \"policySearchParseArgs\": { \"query\": \"张三或李四作为投保人，今年生效且保额不低于50万的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\" }, \"args\": { \"contexts\": [] } } }"
+                - cell "-" [ref=f4e211]
+                - cell "-" [ref=f4e212]
+                - cell "pending" [ref=f4e213]:
+                  - generic [ref=f4e214]: pending
+                - cell "尚未评估" [ref=f4e215]
+                - cell "尚未归因" [ref=f4e216]
+                - cell "无 Trace" [ref=f4e217]
+              - 'row "policy-search-time-boundary-01 project_mock_dataset - time_boundary { \"session_id\": \"verifier-policy-time-01\", \"trace_id\": \"verifier-policy-time-01\", \"extra_input_params\": { \"policySearchParseArgs\": { \"query\": \"8月生效的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\" }, \"args\": { \"contexts\": [] } } } - - pending 尚未评估 尚未归因 无 Trace" [ref=f4e218]':
+                - cell [ref=f4e219]:
+                  - checkbox [checked] [ref=f4e220]
+                - cell "policy-search-time-boundary-01" [ref=f4e221]
+                - cell "project_mock_dataset" [ref=f4e222]
+                - cell "-" [ref=f4e223]
+                - cell "time_boundary" [ref=f4e224]
+                - 'cell "{ \"session_id\": \"verifier-policy-time-01\", \"trace_id\": \"verifier-policy-time-01\", \"extra_input_params\": { \"policySearchParseArgs\": { \"query\": \"8月生效的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\" }, \"args\": { \"contexts\": [] } } }" [ref=f4e225]':
+                  - generic [ref=f4e226]: "{ \"session_id\": \"verifier-policy-time-01\", \"trace_id\": \"verifier-policy-time-01\", \"extra_input_params\": { \"policySearchParseArgs\": { \"query\": \"8月生效的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\" }, \"args\": { \"contexts\": [] } } }"
+                - cell "-" [ref=f4e227]
+                - cell "-" [ref=f4e228]
+                - cell "pending" [ref=f4e229]:
+                  - generic [ref=f4e230]: pending
+                - cell "尚未评估" [ref=f4e231]
+                - cell "尚未归因" [ref=f4e232]
+                - cell "无 Trace" [ref=f4e233]
+          - generic [ref=f4e95]:
+            - generic [ref=f4e96]: 共 3 条 · 每页 100 条
+            - generic [ref=f4e97]:
+              - button "上一页" [disabled] [ref=f4e98]
+              - generic [ref=f4e99]: 第 1 / 1 页
+              - button "下一页" [disabled] [ref=f4e100]
+        - generic [ref=f4e101]:
+          - generic [ref=f4e102]:
+            - heading "RunTrace" [level=2] [ref=f4e103]
+            - generic [ref=f4e104]: 尚未加载。
+          - generic [ref=f4e105]:
+            - heading "Reference" [level=2] [ref=f4e106]
+            - generic [ref=f4e107]: 尚未加载。
+          - generic [ref=f4e108]:
+            - heading "Judge" [level=2] [ref=f4e109]
+            - generic [ref=f4e110]: 尚未加载。
+          - generic [ref=f4e111]:
+            - heading "Attribute" [level=2] [ref=f4e112]
+            - generic [ref=f4e113]: 尚未加载。
+          - generic [ref=f4e114]:
+            - heading "Cluster" [level=2] [ref=f4e115]
+            - generic [ref=f4e116]: 尚未加载。
+          - generic [ref=f4e117]:
+            - heading "Check Agent 审核" [level=2] [ref=f4e118]
+            - generic [ref=f4e119]: 尚未加载。
+          - generic [ref=f4e120]:
+            - heading "Frontend ViewModel" [level=2] [ref=f4e121]
+            - generic [ref=f4e122]: 尚未加载。
+          - generic [ref=f4e123]:
+            - heading "Project Analysis" [level=2] [ref=f4e124]
+            - generic [ref=f4e125]: 尚未加载。
+          - generic [ref=f4e126]:
+            - heading "Batch / Case Pool Raw" [level=2] [ref=f4e127]
+            - generic [ref=f4e128]: "{ \"mock_datasets\": [ { \"dataset_id\": \"policy_search_atomic_condition\", \"name\": \"atomic_condition mock 数据集\", \"dimension_type\": \"atomic_condition\", \"description\": \"mock_agent 生成或固化的 atomic_condition 场景用例\", \"cases\": [ { \"id\": \"policy-search-atomic-condition-01\", \"project_id\": \"policy_search\", \"scenario\": \"atomic_condition\", \"intent\": { \"user_intent\": \"筛选保额不少于五十万元的保单\", \"query\": \"保额不低于50万的保单\", \"user_context\": {}, \"system_understanding\": \"系统返回保单查询语法树\", \"scenario\": \"atomic_condition\" }, \"live_request\": { \"session_id\": \"verifier-policy-atomic-01\", \"trace_id\": \"verifier-policy-atomic-01\", \"extra_input_params\": { \"policySearchParseArgs\": { \"query\": \"保额不低于50万的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\" }, \"args\": { \"contexts\": [] } } }, \"output\": null, \"reference\": null } ], \"case_count\": 1 }, { \"dataset_id\": \"policy_search_compound_logic\", \"name\": \"compound_logic mock 数据集\", \"dimension_type\": \"compound_logic\", \"description\": \"mock_agent 生成或固化的 compound_logic 场景用例\", \"cases\": [ { \"id\": \"policy-search-compound-logic-01\", \"project_id\": \"policy_search\", \"scenario\": \"compound_logic\", \"intent\": { \"user_intent\": \"筛选张三或李四作为投保人、今年生效且保额不少于五十万元的保单\", \"query\": \"张三或李四作为投保人，今年生效且保额不低于50万的保单\", \"user_context\": {}, \"system_understanding\": \"系统返回保单查询语法树\", \"scenario\": \"compound_logic\" }, \"live_request\": { \"session_id\": \"verifier-policy-compound-01\", \"trace_id\": \"verifier-policy-compound-01\", \"extra_input_params\": { \"policySearchParseArgs\": { \"query\": \"张三或李四作为投保人，今年生效且保额不低于50万的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\" }, \"args\": { \"contexts\": [] } } }, \"output\": null, \"reference\": null } ], \"case_count\": 1 }, { \"dataset_id\": \"policy_search_time_boundary\", \"name\": \"time_boundary mock 数据集\", \"dimension_type\": \"time_boundary\", \"description\": \"mock_agent 生成或固化的 time_boundary 场景用例\", \"cases\": [ { \"id\": \"policy-search-time-boundary-01\", \"project_id\": \"policy_search\", \"scenario\": \"time_boundary\", \"intent\": { \"user_intent\": \"筛选八月份生效的保单\", \"query\": \"8月生效的保单\", \"user_context\": {}, \"system_understanding\": \"系统返回保单查询语法树\", \"scenario\": \"time_boundary\" }, \"live_request\": { \"session_id\": \"verifier-policy-time-01\", \"trace_id\": \"verifier-policy-time-01\", \"extra_input_params\": { \"policySearchParseArgs\": { \"query\": \"8月生效的保单\", \"currentTime\": \"2026-08-06 10:30:00\", \"agentCode\": \"A12345678\" }, \"args\": { \"contexts\": [] } } }, \"output\": null, \"reference\": null } ], \"case_count\": 1 } ], \"dataset_count\": 3, \"case_count\": 3 }"

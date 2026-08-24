@@ -1,0 +1,218 @@
+{
+  "contract_coverage": [
+    {
+      "evidence": [
+        "Authority 关闭，Draft 30 条 authority_tool_call_ids 均为空；solidify 仍映射该 source"
+      ],
+      "source_id": "authority-claim-index"
+    },
+    {
+      "evidence": [
+        "073/113/133/138/148 能力缺口仍被 Draft 写成 NF；088/093 明确不支持改为 overall NF（不再 NE）"
+      ],
+      "source_id": "authority-coverage-gaps"
+    },
+    {
+      "evidence": [
+        "Draft 装载 candidate investigation；本轮无 authority.resolve 消费报告材料"
+      ],
+      "source_id": "authority-investigation-report"
+    },
+    {
+      "evidence": [
+        "draft_runtime.context_governance.snapshot.tool_plan 30/30 含 investigation.search_index、investigation.load_entry、field.search_definition",
+        "RoleResult 无 matched_channels/embedding；093/018 evidence 引用 field_definition"
+      ],
+      "source_id": "authority-search-load"
+    },
+    {
+      "evidence": [
+        "088/093 空条件不可消费被 Draft 判 NF；128 可消费但改写目标被正确判 NF"
+      ],
+      "source_id": "dimension:downstream-query-consumability"
+    },
+    {
+      "evidence": [
+        "128 Draft NF 指出合家福被静默替换为合家欢；048 Draft F 接受尾号 5078"
+      ],
+      "source_id": "dimension:search-intent-preservation"
+    },
+    {
+      "evidence": [
+        "30 条 Draft overall_fulfillment 均围绕目标客户筛选；128 不再错误肯定；088/113/133 仍把不支持查询当成未交付客户条件"
+      ],
+      "source_id": "expectation:find-target-customers"
+    },
+    {
+      "evidence": [
+        "088/133 Current 接受不支持提示为 F，Draft 判 NF；093 本轮两侧 NF；hide-NE 消除了 Draft overall NE"
+      ],
+      "source_id": "live_boundary"
+    }
+  ],
+  "criteria": [
+    {
+      "criterion_id": "expectation_support",
+      "evidence": [
+        "003-run.json#source-badcase-008",
+        "003-run.json#source-badcase-128"
+      ],
+      "finding": "128 继续把合家福=合家欢判 not_fulfilled，未假阳性。008 Draft 仍以“孤儿单应为在职有效客户”否定 live 的纯存续单客户，evidence 未展示 Search→Load 后的决定性映射条目。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "atomic_pre_actual_expectations",
+      "evidence": [
+        "003-run.json draft rows 仅有 business_expectations 与 fulfillment_assessments 同框，无独立 judge_plan_audit"
+      ],
+      "finding": "本轮 run report 没有与 assessment 分离的 pre-actual 计划冻结件，无法证明 expectation 在看到 actual 前原子冻结。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "expectation_topology",
+      "evidence": [
+        "003-run.json#source-badcase-088",
+        "003-run.json#source-badcase-093",
+        "003-run.json#source-badcase-128"
+      ],
+      "finding": "088 核心“检索七月盘客客户群体”blocking NF、辅助“明确说明盘客搜索限制”F。093 核心车牌意图/可消费条件 NF、透明限制说明 F。128 blocking“保留合家福产品筛选意图”拦住静默改写。拓扑可读。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "pre_actual_blocking",
+      "evidence": [
+        "003-run.json#source-badcase-128"
+      ],
+      "finding": "产品名称静默改写作为 blocking 语义阻止了 overall fulfilled。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "dimension_coverage",
+      "evidence": [
+        "003-run.json 30 条 Draft 均产出 fulfillment_assessments 与 overall_fulfillment，无侧失败"
+      ],
+      "finding": "30 条均形成可比较的维度评估，没有基础设施级缺评估或 side error。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "fulfilled_external_evidence",
+      "evidence": [
+        "003-run.json#source-badcase-128",
+        "003-run.json#source-badcase-048",
+        "003-run.json#source-badcase-028"
+      ],
+      "finding": "128 未在无映射证据时 fulfilled。048 fulfilled 绑定 actual 尾号 5078。028 本轮 Current NF / Draft F 是 production 对 RANGE 当天零点上界的 LLM 波动（D2/D3 均为 F），不是把 SearchHit 或静默改写冒充 Evidence。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "not_fulfilled_live_boundary",
+      "evidence": [
+        "003-run.json#source-badcase-088",
+        "003-run.json#source-badcase-093",
+        "003-run.json#source-badcase-113",
+        "003-run.json#source-badcase-133"
+      ],
+      "finding": "盘客/车牌 live 空条件+不支持提示：088 Current F / Draft NF；093 本轮两侧 NF。公司名/机构名 113 Draft NF（Current NE）、133 Current F / Draft NF。Draft 仍把能力外查询当成未履行，而不是边界内透明拒绝。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "not_evaluable_evidence_gap",
+      "evidence": [
+        "003-run.json#source-badcase-088",
+        "003-run.json#source-badcase-093",
+        "003-run.json Draft overall NE=0/30，expectation-level NE=0"
+      ],
+      "finding": "hide-NE 生效：088/093 不再 overall NE，改为 missing-core NF；30 条 Draft overall 与 expectation 均无 not_evaluable。剩余问题是 NF 对边界内拒绝的误归责，不是 NE 滥用。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "missing_output_no_escape",
+      "evidence": [
+        "003-run.json#source-badcase-138",
+        "003-run.json#source-badcase-148"
+      ],
+      "finding": "姓名命中未让业务员/保险条件逃逸为 F。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "external_constraint_non_attribution",
+      "evidence": [
+        "003-run.json#source-badcase-088",
+        "003-run.json#source-badcase-093",
+        "003-run.json#source-badcase-113",
+        "003-run.json#source-badcase-133",
+        "003-run.json#source-badcase-073"
+      ],
+      "finding": "Draft 不再把明确不支持收成 NE，但仍将上游字段/能力缺失归责为 not_fulfilled（088/093/113/133/073），而不是保持 Live 边界内的透明拒绝。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "authority_anchor_scope",
+      "evidence": [
+        "003-run.json draft_runtime.authority_tool_call_ids 30/30 为空；project.yaml verifier.authority.enabled=false"
+      ],
+      "finding": "Authority 关闭，Draft 未调用 authority.resolve，也未伪造 call id。Current 008/068 把 field.search_definition 写进 assessment.authority_tool_call_ids，属 production 误标，不是 Draft 伪造。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "authority_obligation_consumption",
+      "evidence": [
+        "003-run.json current_runtime/draft_runtime.authority_audit 均为 {}"
+      ],
+      "finding": "无 Authority 工具失败被当成相对改善；关闭状态下没有义务调用。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "authority_unresolved_conservatism",
+      "evidence": [
+        "003-run.json#source-badcase-008",
+        "003-run.json#source-badcase-128"
+      ],
+      "finding": "Authority 关闭时 008 仍直接 NF 并断言孤儿单应为在职有效客户，没有保持 not_evaluable。128 已不再在无等价证据时 fulfilled。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "no_runtime_authority_investigation",
+      "evidence": [
+        "003-run.json 无 authority.resolve；Draft evidence 未写入调查层 resolved/unresolved 资产"
+      ],
+      "finding": "未观察到把 Runtime 结论回写成调查包或 Claim Index。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "no_internal_or_unseen_leakage",
+      "evidence": [
+        "frozen_cases_sha256=bf9e77ee33b34d912316db83007134ae9cd708987be936cfbb03020ac51844d4",
+        "003-run.json case_count=30"
+      ],
+      "finding": "只跑冻结 30 条 iteration cases，未混入 unseen；未 --restart。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "relative_improvement_no_regression",
+      "evidence": [
+        "003-run.json#source-badcase-088",
+        "003-run.json#source-badcase-093",
+        "003-run.json#source-badcase-128",
+        "003-run-comparison-table.md",
+        "wall elapsed_seconds=1252.743 workers=4"
+      ],
+      "finding": "P2+hide-NE 局部通过：088/093 D2 NE→D3 NF，128 保持 NF，Draft overall NE 0。相对本轮 Current 22 条同态、8 条不一致（088 F→NF，028 NF→F 为 production 日期上界波动，038/073/113 NE→NF，133 F→NF，138/148 NE→NF）。相对 iteration-2 Draft 无新的 128 式 false-F。局部 hide-NE 改善伴随 live-boundary NF 误归责仍在，不能记 improved，不得 promotion。",
+      "status": "fail"
+    }
+  ],
+  "decision": "unchanged",
+  "iteration": 3,
+  "project_id": "client_search",
+  "role": "judge",
+  "route": "solidify",
+  "run_report": {
+    "location": "draft/.state/judge/iterations/003-run.json",
+    "location_scope": "project_package",
+    "sha256": "aeda94ecf694b5fbb0471dd6feb24b876321ec6a95ed833a1278be717789b5e0"
+  },
+  "run_report_sha256": "aeda94ecf694b5fbb0471dd6feb24b876321ec6a95ed833a1278be717789b5e0",
+  "schema_version": 1,
+  "solidify_receipt_sha256": "4d68d57068994ee39dc0fc2a5152cffc380115cd0a31f018f0ec4972850835ac",
+  "summary": "Authority-off hide-NE 已写入 candidate judge.py 并刷新 Solidify receipt（既有 mappings/observables，candidate_role_sha256 对齐 judge.py=646d818ab111ff5b6e7ac505b539e42637cf5f9a48c6395c6c6056b41186e33f）。冻结 Current/cases 未变，未 --restart。冻结 30 条上跑完 iteration 3（workers=4，elapsed_seconds=1252.743）。P2+hide-NE check 通过：088 7月盘客 D2 NE→D3 NF（blocking 核心交付未交付，透明提示 F）；093 贵C826N1 D2 NE→D3 NF；Draft overall NE 0/30，expectation 级 NE 亦 0。128 合家福保持 NF（合家福被静默替换为合家欢，无等价证据），不是 false-F。相对本轮 Current：22/30 同态，8 条不一致——088 P F / D NF（金标 Authority-off 为 NF，production F 不是 gold）；093 本轮 P NF / D NF 对齐（iter2 production 曾为 F）；028 P NF / D F 是 production 对当天零点 RANGE 上界的 LLM 波动（D2/D3 均为 F），不是 128 式静默改写假阳性；038/073/113 P NE / D NF；133 P F / D NF；138/148 P NE / D NF。Catalog 仍只在 tool_plan 30/30（investigation.search_index/load_entry + field.search_definition），RoleResult 无 matched_channels/embedding；093/018 evidence 引用 field_definition，未开火未把 F/NF 弄差。live-boundary 误归责仍在（明确不支持的空输出+提示，Current 收成 F，Draft 收成 NF）。不得宣称 selected，不得 promotion。下一步仍应 Solidify live-boundary：把明确不支持的空输出+提示按边界内透明拒绝结案，而不是 blocking NF。"
+}

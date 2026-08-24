@@ -1,0 +1,471 @@
+[
+  {
+    "id": "llm-probe-client_search-name",
+    "project_id": "llm_probe",
+    "scenario": "http_probe",
+    "live_request": {
+      "capability_ref": "client_search",
+      "method": "POST",
+      "body": {
+        "user_text": "客户姓名是张伟的人",
+        "user_id": "mock_user_001",
+        "trace_id": "mock_trace_001",
+        "session_id": "mock_session_001",
+        "source": "mock",
+        "extra_input_params": {}
+      },
+      "show_schema": {
+        "type": "object",
+        "description": "关注解析出的搜索条件（字段、操作符、值），忽略路由和追踪字段"
+      }
+    },
+    "output": null,
+    "reference": null
+  },
+  {
+    "id": "llm-probe-client_search-age",
+    "project_id": "llm_probe",
+    "scenario": "http_probe",
+    "live_request": {
+      "capability_ref": "client_search",
+      "method": "POST",
+      "body": {
+        "user_text": "五十岁以上的客户都有谁",
+        "user_id": "mock_user_001",
+        "trace_id": "mock_trace_001",
+        "session_id": "mock_session_001",
+        "source": "mock_app",
+        "extra_input_params": {}
+      }
+    },
+    "output": null,
+    "reference": null
+  },
+  {
+    "id": "llm-probe-policy_search-policy-no",
+    "project_id": "llm_probe",
+    "scenario": "http_probe",
+    "live_request": {
+      "capability_ref": "policy_search",
+      "method": "POST",
+      "body": {
+        "session_id": "policy-search-rich-0001",
+        "trace_id": "policy-search-rich-0001",
+        "user_id": "verifier-user",
+        "org_id": "verifier-org",
+        "org_name": "verifier",
+        "ts": 1785983400000,
+        "token": "",
+        "app_scenario": "policy_search_parse",
+        "source": "verifier",
+        "user_text": "",
+        "history": [],
+        "user_action": "write",
+        "action_scenario": "policySearch",
+        "extra_input_params": {
+          "policySearchParseArgs": {
+            "query": "合同号码里带4826的",
+            "currentTime": "2026-08-06 10:30:00",
+            "agentCode": "A12345678"
+          },
+          "agent_args": null,
+          "args": {
+            "contexts": []
+          }
+        },
+        "application_setting": null,
+        "scenario": null
+      }
+    },
+    "output": null,
+    "reference": null
+  },
+  {
+    "id": "llm-probe-policy_search-sum-assured",
+    "project_id": "llm_probe",
+    "scenario": "http_probe",
+    "live_request": {
+      "capability_ref": "policy_search",
+      "method": "POST",
+      "body": {
+        "session_id": "policy-search-rich-0003",
+        "trace_id": "policy-search-rich-0003",
+        "user_id": "verifier-user",
+        "org_id": "verifier-org",
+        "org_name": "verifier",
+        "ts": 1785983400000,
+        "token": "",
+        "app_scenario": "policy_search_parse",
+        "source": "verifier",
+        "user_text": "",
+        "history": [],
+        "user_action": "write",
+        "action_scenario": "policySearch",
+        "extra_input_params": {
+          "policySearchParseArgs": {
+            "query": "保额的保单",
+            "currentTime": "2026-08-06 10:30:00",
+            "agentCode": "A12345678"
+          },
+          "agent_args": null,
+          "args": {
+            "contexts": []
+          }
+        },
+        "application_setting": null,
+        "scenario": null
+      }
+    },
+    "output": null,
+    "reference": null
+  },
+  {
+    "id": "llm-probe-mpi-customer-portrait",
+    "project_id": "llm_probe",
+    "scenario": "http_probe",
+    "live_request": {
+      "capability_ref": "marketting-planning-intent",
+      "method": "POST",
+      "body": {
+        "session_id": "default_session",
+        "trace_id": "default_trace",
+        "org_id": "default_org",
+        "user_text": "帮我看看上季度买了重疾险的客户都是啥样的？",
+        "extra_input_params": {
+          "agent_args": {
+            "conversation_id": "default_session",
+            "message": {
+              "content": "帮我看看上季度买了重疾险的客户都是啥样的？",
+              "content_type": "text"
+            }
+          },
+          "args": {
+            "extensions": {},
+            "contexts": []
+          }
+        }
+      }
+    },
+    "output": null,
+    "reference": null
+  },
+  {
+    "id": "llm-probe-mpi-non-agent",
+    "project_id": "llm_probe",
+    "scenario": "http_probe",
+    "live_request": {
+      "capability_ref": "marketting-planning-intent",
+      "method": "POST",
+      "body": {
+        "session_id": "default_session_123",
+        "trace_id": "trace_abc_456",
+        "org_id": "org_001",
+        "user_text": "能不能帮我分析一下，上个月成交的客户主要都是些什么类型的人",
+        "extra_input_params": {
+          "agent_args": {
+            "conversation_id": "default_session_123",
+            "message": {
+              "content": "能不能帮我分析一下，上个月成交的客户主要都是些什么类型的人",
+              "content_type": "text"
+            }
+          },
+          "args": {
+            "extensions": {},
+            "contexts": []
+          }
+        }
+      }
+    },
+    "output": null,
+    "reference": null
+  },
+  {
+    "id": "llm-probe-client_search-age-schema",
+    "project_id": "llm_probe",
+    "scenario": "http_probe",
+    "live_request": {
+      "capability_ref": "client_search",
+      "method": "POST",
+      "body": {
+        "user_text": "五十岁以上的客户都有谁",
+        "user_id": "mock_user_001",
+        "trace_id": "cs-age-schema",
+        "session_id": "cs-age-schema",
+        "source": "llm_probe_accuracy",
+        "extra_input_params": {}
+      },
+      "show_schema": {
+        "type": "object",
+        "description": "关注解析出的搜索条件（字段、操作符、值），忽略路由、追踪字段和 matched_patterns 里的提示词泄漏"
+      }
+    },
+    "output": null,
+    "reference": null
+  },
+  {
+    "id": "llm-probe-client_search-exclusion",
+    "project_id": "llm_probe",
+    "scenario": "http_probe",
+    "live_request": {
+      "capability_ref": "client_search",
+      "method": "POST",
+      "body": {
+        "user_text": "不要买了年金险的客户",
+        "user_id": "mock_user_001",
+        "trace_id": "cs-excl",
+        "session_id": "cs-excl",
+        "source": "llm_probe_accuracy",
+        "extra_input_params": {}
+      },
+      "show_schema": {
+        "type": "object",
+        "description": "关注解析出的搜索条件（字段、操作符、值），忽略路由、追踪字段和 matched_patterns 里的提示词泄漏"
+      }
+    },
+    "output": null,
+    "reference": null
+  },
+  {
+    "id": "llm-probe-client_search-multi",
+    "project_id": "llm_probe",
+    "scenario": "http_probe",
+    "live_request": {
+      "capability_ref": "client_search",
+      "method": "POST",
+      "body": {
+        "user_text": "我想找年龄超过45岁的女客户，而且她们每年交的保费要在一万块以上",
+        "user_id": "mock_user_001",
+        "trace_id": "cs-multi",
+        "session_id": "cs-multi",
+        "source": "llm_probe_accuracy",
+        "extra_input_params": {}
+      },
+      "show_schema": {
+        "type": "object",
+        "description": "关注解析出的搜索条件（字段、操作符、值），忽略路由、追踪字段和 matched_patterns 里的提示词泄漏"
+      }
+    },
+    "output": null,
+    "reference": null
+  },
+  {
+    "id": "llm-probe-client_search-unsupported",
+    "project_id": "llm_probe",
+    "scenario": "http_probe",
+    "live_request": {
+      "capability_ref": "client_search",
+      "method": "POST",
+      "body": {
+        "user_text": "帮我查一下那些上有老下有小的客户",
+        "user_id": "mock_user_001",
+        "trace_id": "cs-unsup",
+        "session_id": "cs-unsup",
+        "source": "llm_probe_accuracy",
+        "extra_input_params": {}
+      },
+      "show_schema": {
+        "type": "object",
+        "description": "关注解析出的搜索条件（字段、操作符、值），忽略路由、追踪字段和 matched_patterns 里的提示词泄漏"
+      }
+    },
+    "output": null,
+    "reference": null
+  },
+  {
+    "id": "llm-probe-mpi-fallback-unknown",
+    "project_id": "llm_probe",
+    "scenario": "http_probe",
+    "live_request": {
+      "capability_ref": "marketting-planning-intent",
+      "method": "POST",
+      "body": {
+        "session_id": "mpi-fallback",
+        "trace_id": "mpi-fallback",
+        "org_id": "default_org",
+        "user_text": "哎呀，这个月队伍那边好像有点状况，帮我瞅瞅到底是啥问题？",
+        "extra_input_params": {
+          "agent_args": {
+            "conversation_id": "mpi-fallback",
+            "message": {
+              "content": "哎呀，这个月队伍那边好像有点状况，帮我瞅瞅到底是啥问题？",
+              "content_type": "text"
+            }
+          },
+          "args": {
+            "extensions": {},
+            "contexts": []
+          }
+        }
+      }
+    },
+    "output": null,
+    "reference": null
+  },
+  {
+    "id": "llm-probe-mpi-nbev-planning",
+    "project_id": "llm_probe",
+    "scenario": "http_probe",
+    "live_request": {
+      "capability_ref": "marketting-planning-intent",
+      "method": "POST",
+      "body": {
+        "session_id": "mpi-nbev",
+        "trace_id": "mpi-nbev",
+        "org_id": "default_org",
+        "user_text": "帮我做NBEV达成路径规划",
+        "extra_input_params": {
+          "agent_args": {
+            "conversation_id": "mpi-nbev",
+            "message": {
+              "content": "帮我做NBEV达成路径规划",
+              "content_type": "text"
+            }
+          },
+          "args": {
+            "extensions": {},
+            "contexts": []
+          }
+        }
+      }
+    },
+    "output": null,
+    "reference": null
+  },
+  {
+    "id": "llm-probe-mpi-nbev-slots",
+    "project_id": "llm_probe",
+    "scenario": "http_probe",
+    "live_request": {
+      "capability_ref": "marketting-planning-intent",
+      "method": "POST",
+      "body": {
+        "session_id": "mpi-slots",
+        "trace_id": "mpi-slots",
+        "org_id": "default_org",
+        "user_text": "NBEV目标值是300万，规划路径：队伍、客户、产品",
+        "extra_input_params": {
+          "agent_args": {
+            "conversation_id": "mpi-slots",
+            "message": {
+              "content": "NBEV目标值是300万，规划路径：队伍、客户、产品",
+              "content_type": "text"
+            }
+          },
+          "args": {
+            "extensions": {},
+            "contexts": []
+          }
+        }
+      },
+      "show_schema": {
+        "type": "object",
+        "description": "关注 extra_output_params.intent / intent_name 以及 nlu_info。编码：1001=客户画像, 1002=队伍画像, 1003=达成路径规划, 4001=其他。空 card_list 和 SSE 事件名不是失败依据。"
+      }
+    },
+    "output": null,
+    "reference": null
+  },
+  {
+    "id": "llm-probe-mpi-team-portrait",
+    "project_id": "llm_probe",
+    "scenario": "http_probe",
+    "live_request": {
+      "capability_ref": "marketting-planning-intent",
+      "method": "POST",
+      "body": {
+        "session_id": "mpi-team",
+        "trace_id": "mpi-team",
+        "org_id": "default_org",
+        "user_text": "帮我看一下本机构当前队伍画像",
+        "extra_input_params": {
+          "agent_args": {
+            "conversation_id": "mpi-team",
+            "message": {
+              "content": "帮我看一下本机构当前队伍画像",
+              "content_type": "text"
+            }
+          },
+          "args": {
+            "extensions": {},
+            "contexts": []
+          }
+        }
+      },
+      "show_schema": {
+        "type": "object",
+        "description": "关注 extra_output_params.intent / intent_name 以及 nlu_info。编码：1001=客户画像, 1002=队伍画像, 1003=达成路径规划, 4001=其他。空 card_list 和 SSE 事件名不是失败依据。"
+      }
+    },
+    "output": null,
+    "reference": null
+  },
+  {
+    "id": "llm-probe-mpi-weather-other",
+    "project_id": "llm_probe",
+    "scenario": "http_probe",
+    "live_request": {
+      "capability_ref": "marketting-planning-intent",
+      "method": "POST",
+      "body": {
+        "session_id": "mpi-weather",
+        "trace_id": "mpi-weather",
+        "org_id": "default_org",
+        "user_text": "今天深圳天气怎么样？",
+        "extra_input_params": {
+          "agent_args": {
+            "conversation_id": "mpi-weather",
+            "message": {
+              "content": "今天深圳天气怎么样？",
+              "content_type": "text"
+            }
+          },
+          "args": {
+            "extensions": {},
+            "contexts": []
+          }
+        }
+      }
+    },
+    "output": null,
+    "reference": null
+  },
+  {
+    "id": "llm-probe-policy_search-product-tail",
+    "project_id": "llm_probe",
+    "scenario": "http_probe",
+    "live_request": {
+      "capability_ref": "policy_search",
+      "method": "POST",
+      "body": {
+        "session_id": "ps-prod",
+        "trace_id": "ps-prod",
+        "user_id": "verifier-user",
+        "org_id": "verifier-org",
+        "org_name": "verifier",
+        "ts": 1785983400000,
+        "token": "",
+        "app_scenario": "policy_search_parse",
+        "source": "verifier",
+        "user_text": "",
+        "history": [],
+        "user_action": "write",
+        "action_scenario": "policySearch",
+        "extra_input_params": {
+          "policySearchParseArgs": {
+            "query": "产品名尾号康宁的保单",
+            "currentTime": "2026-08-06 10:30:00",
+            "agentCode": "A12345678"
+          },
+          "agent_args": null,
+          "args": {
+            "contexts": []
+          }
+        },
+        "application_setting": null,
+        "scenario": null
+      }
+    },
+    "output": null,
+    "reference": null
+  }
+]

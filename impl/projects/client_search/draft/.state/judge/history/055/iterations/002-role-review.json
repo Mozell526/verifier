@@ -1,0 +1,266 @@
+{
+  "contract_coverage": [
+    {
+      "evidence": [
+        "enabled_scopes=[]，两侧 authority_tool_call_ids 均为空"
+      ],
+      "source_id": "authority-claim-index"
+    },
+    {
+      "evidence": [
+        "128 无合家福映射保持 NF；113 公司名无字段仍被写成 F；088/093 空条件 Current F"
+      ],
+      "source_id": "authority-coverage-gaps"
+    },
+    {
+      "evidence": [
+        "本轮无 authority.resolve 消费报告材料"
+      ],
+      "source_id": "authority-investigation-report"
+    },
+    {
+      "evidence": [
+        "008 loaded_mapping_facts 孤儿单→纯存续单客户；128 无 mapping 进入 unmapped_enum_rewrites"
+      ],
+      "source_id": "authority-search-load"
+    },
+    {
+      "evidence": [
+        "088/093 Draft NF；113 空条件被误判可消费 F"
+      ],
+      "source_id": "dimension:downstream-query-consumability"
+    },
+    {
+      "evidence": [
+        "128 Draft 保住合家福；023 Draft 拦住少儿万能险拆词"
+      ],
+      "source_id": "dimension:search-intent-preservation"
+    },
+    {
+      "evidence": [
+        "008 Draft F 有 mapping；128/023 Draft NF 保住目标集合"
+      ],
+      "source_id": "expectation:find-target-customers"
+    },
+    {
+      "evidence": [
+        "088/093/133 反面 1；148 反面 9；013 工具中断不计分"
+      ],
+      "source_id": "live_boundary"
+    }
+  ],
+  "criteria": [
+    {
+      "criterion_id": "expectation_support",
+      "evidence": [
+        "002-run.json#source-badcase-008",
+        "002-run.json#source-badcase-128"
+      ],
+      "finding": "008 mapping 支撑 F。128 无 mapping 保持用户原词并 NF。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "atomic_pre_actual_expectations",
+      "evidence": [
+        "002-run.json 无独立 judge_plan_audit"
+      ],
+      "finding": "仍无与 assessment 分离的 pre-actual 计划冻结件。",
+      "status": "fail",
+      "waiver": {
+        "reason": "不否决本轮 128 修复结论；下轮补独立计划产物。",
+        "resolve_by_iteration": 3
+      }
+    },
+    {
+      "criterion_id": "expectation_topology",
+      "evidence": [
+        "002-run.json#source-badcase-128",
+        "002-run.json#source-badcase-023"
+      ],
+      "finding": "128 单条合家福核心 NF。023 产品简称与未表达子女年龄拆开。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "pre_actual_blocking",
+      "evidence": [
+        "002-run.json#source-badcase-128"
+      ],
+      "finding": "128 产品名改写作为 blocking NF 阻止 overall F。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "dimension_coverage",
+      "evidence": [
+        "002-run.json#source-badcase-138",
+        "002-run-comparison-table.md"
+      ],
+      "finding": "138 两侧完整 NF。013 工具中断不计覆盖失败。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "fulfilled_external_evidence",
+      "evidence": [
+        "002-run.json#source-badcase-008",
+        "002-run.json#source-badcase-113"
+      ],
+      "finding": "008 F 绑定 loaded mapping。113 空条件 F 已从净胜剔除并作为下轮目标。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "not_fulfilled_live_boundary",
+      "evidence": [
+        "002-run.json#source-badcase-088",
+        "002-run.json#source-badcase-023"
+      ],
+      "finding": "088/023 Draft NF 是反面 1 / §2.2 的正确读。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "not_evaluable_evidence_gap",
+      "evidence": [
+        "002-run.json#source-badcase-148",
+        "002-run.json"
+      ],
+      "finding": "Draft overall 对 148 收成 NF 而非 NE。关闭模式合法 NE 未扩散。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "missing_output_no_escape",
+      "evidence": [
+        "002-run.json#source-badcase-148",
+        "002-run.json#source-badcase-128"
+      ],
+      "finding": "148 姓名未让住院医疗逃逸。128 未把近邻枚举当办成。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "external_constraint_non_attribution",
+      "evidence": [
+        "002-run.json#source-badcase-088",
+        "002-run.json#source-badcase-093"
+      ],
+      "finding": "盘客/车牌不支持收成 NF，未误归责外部依赖。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "authority_anchor_scope",
+      "evidence": [
+        "002-run.json"
+      ],
+      "finding": "enabled_scopes=[]，未调用 authority.resolve。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "authority_obligation_consumption",
+      "evidence": [
+        "002-run.json"
+      ],
+      "finding": "关闭状态下无义务调用，无工具失败被当成相对改善。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "authority_unresolved_conservatism",
+      "evidence": [
+        "002-run.json#source-badcase-128",
+        "002-run.json#source-badcase-008"
+      ],
+      "finding": "128 无映射保持 NF。008 有 loaded mapping 才 F。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "no_runtime_authority_investigation",
+      "evidence": [
+        "002-run.json"
+      ],
+      "finding": "未回写调查包。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "no_internal_or_unseen_leakage",
+      "evidence": [
+        "002-run.json"
+      ],
+      "finding": "只跑冻结 30 条。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "relative_improvement_no_regression",
+      "evidence": [
+        "002-run.json#source-badcase-008",
+        "002-run.json#source-badcase-023",
+        "002-run.json#source-badcase-088",
+        "002-run.json#source-badcase-128",
+        "002-run-comparison-table.md"
+      ],
+      "finding": "machine net=-4 wins=1 losses=5 ties=19 excluded=5. 机算将覆写。013 工具中断排除后预期 win=008、loss=023/088/093/133/148。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "capability_carrier_audit",
+      "evidence": [
+        "001-run.json"
+      ],
+      "finding": "capability_carrier 未开启，本项不适用",
+      "status": "pass"
+    }
+  ],
+  "decision": "unchanged",
+  "exclusions": [
+    {
+      "case_key": "source-badcase-013",
+      "detail": "Draft 工具预算 9>8，未做出算法判断",
+      "reason": "tool_interrupt"
+    },
+    {
+      "case_key": "source-badcase-048",
+      "detail": "掩码前缀+尾号无尺子",
+      "reason": "other"
+    },
+    {
+      "case_key": "source-badcase-058",
+      "detail": "周岁以下含不含本数",
+      "reason": "ambiguity_gap"
+    },
+    {
+      "case_key": "source-badcase-083",
+      "detail": "人判不完：年华是人名还是产品",
+      "reason": "human_unresolved"
+    },
+    {
+      "case_key": "source-badcase-103",
+      "detail": "子女/孩子=本人还是家庭",
+      "reason": "ambiguity_gap"
+    }
+  ],
+  "iteration": 2,
+  "knowledge_delta": {
+    "entries": [
+      {
+        "evidence_ref": "draft/.state/judge/iterations/002-run.json#source-badcase-128",
+        "text": "变松根因是派生 expectation 时用 live 枚举值替换用户原词。unmapped_enum_rewrites 标出无 mapping 的枚举替换后，128 两侧 NF，Draft 不再把合家福写成合家欢。"
+      },
+      {
+        "evidence_ref": "draft/.state/judge/iterations/002-run.json#source-badcase-113",
+        "text": "空条件加「未识别」提示被写成 overall F（113）仍踩反面 1，与 088/093 同类，是下一刀 solidify。"
+      }
+    ],
+    "none": false
+  },
+  "project_id": "client_search",
+  "role": "judge",
+  "route": "solidify",
+  "run_report": {
+    "location": "draft/.state/judge/iterations/002-run.json",
+    "location_scope": "project_package",
+    "sha256": "834105c7525c752086a167a42e9077535baa19c2fc57a5fb62481bb8d4d51c87"
+  },
+  "run_report_sha256": "834105c7525c752086a167a42e9077535baa19c2fc57a5fb62481bb8d4d51c87",
+  "schema_version": 1,
+  "score": {
+    "allows_improved": false,
+    "net": -4,
+    "sha256": "a37bbcc79b59fcbc2df4834997d18f4ff146e494541ac5fbf16cb7f1ad9cd382"
+  },
+  "solidify_receipt_sha256": "be5238cefd75b04979392233a63e35d44f84f27d6c3032d09bb3239bcfea116f",
+  "summary": "128 变松已修：两侧 NF，Draft 保住「合家福」原词。机算 1-5=-4（013 工具中断已排除），allows_improved=false。win=008 孤儿单 mapping。loss=023/088/093/133/148 均是 Draft NF vs Current F/NE，按反面 1/9 Draft 更严。113 两侧把空条件当 F，踩反面 1，下轮 solidify。不计分 013/048/083/058/103。不得 improved。"
+}

@@ -1,0 +1,320 @@
+{
+  "caller": "judge",
+  "created_at": "2026-08-20T07:58:09Z",
+  "elapsed_ms": 79965,
+  "error": null,
+  "governance": {
+    "findings": [],
+    "gate": {
+      "blocking": false,
+      "mode": "production"
+    },
+    "schema_version": 1,
+    "snapshot": {
+      "compiled_prompt_sha256": "f495c262df3406f1a84fd42fc3c73cbc5d6e9ae294314980b001e477a4e5bdcb",
+      "compiler_id": "context-compiler-v1",
+      "compiler_protocol_version": 1,
+      "excluded_segments": [],
+      "lineage": {
+        "call_id": "",
+        "case_id": "llm-probe-mpi-customer-portrait",
+        "trace_id": "rejudge:llm-probe-mpi-customer-portrait"
+      },
+      "messages": [
+        {
+          "char_count": 6811,
+          "content_sha256": "6bc41cc9442d41be75eba596e778e6b8e1a80c34046eb78478b0ff5b1f573bdb",
+          "role": "system"
+        },
+        {
+          "char_count": 3817,
+          "content_sha256": "9f5e8fb5ddf30a9fe952142050e49d36e2e65c0e51a66fb7967b0067ae800402",
+          "role": "user"
+        }
+      ],
+      "mode": "production",
+      "output_contract": {
+        "field_names": [
+          "acceptance_criteria",
+          "actual",
+          "actual_evidence",
+          "applicable_product_expectation_ids",
+          "authority_tool_call_ids",
+          "blocking",
+          "boundary",
+          "business_expectations",
+          "downstream_consumer",
+          "downstream_impact",
+          "error_type",
+          "evidence",
+          "evidence_ref",
+          "expectation_id",
+          "expected",
+          "expected_evidence",
+          "expected_outcome",
+          "extra",
+          "fulfillment_assessments",
+          "incomplete",
+          "kind",
+          "missing",
+          "output_text",
+          "priority",
+          "raw",
+          "reasoning_summary",
+          "required_capabilities",
+          "score",
+          "status",
+          "user_intent",
+          "wrong"
+        ],
+        "identity": "impl.core.schema.judge.JudgeLLMOutput",
+        "parser_identity": "impl.core.schema_validator.SchemaValidator",
+        "parser_schema_sha256": "40fa7a66e30b1a0dd26fea5170efaf75abd4add050e000d4a15b236de1d31ba9",
+        "sha256": "40fa7a66e30b1a0dd26fea5170efaf75abd4add050e000d4a15b236de1d31ba9"
+      },
+      "project_id": "llm_probe",
+      "prompt_char_count": 10628,
+      "reprompt": {
+        "added_char_count": 568,
+        "base_user_char_count": 3249,
+        "occurred": true
+      },
+      "role": "judge",
+      "schema_version": 1,
+      "segments": [
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 478,
+          "content_sha256": "600c5ea3215f199a7ceb66e89af155ba94303255c0aceb785cf2125468b8a0fc",
+          "order": 0,
+          "role": "judge",
+          "segment_id": "mandatory-context-units",
+          "source": "contextunit://project.llm_probe.asset.judge_boundary,project.llm_probe.asset.judge_evaluation",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 2090,
+          "content_sha256": "3fc24129ac8bb96ec5ee85fbd7be47310f965365d3bfe24b7d824b89d7c28318",
+          "order": 1,
+          "role": "judge",
+          "segment_id": "compiled-system",
+          "source": "impl/core/judge.py#judge_trace",
+          "stage": "judge"
+        },
+        {
+          "allowed_roles": [
+            "judge"
+          ],
+          "allowed_stages": [
+            "judge"
+          ],
+          "char_count": 3817,
+          "content_sha256": "9f5e8fb5ddf30a9fe952142050e49d36e2e65c0e51a66fb7967b0067ae800402",
+          "order": 2,
+          "role": "judge",
+          "segment_id": "case-user-payload",
+          "source": "trace://judge-evidence-view",
+          "stage": "judge"
+        }
+      ],
+      "stage": "judge",
+      "tool_plan": []
+    }
+  },
+  "llm_model": "gpt-5.6-luna",
+  "messages": [
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "你是通用评估系统的 judge agent。\n\n## 核心原则\n只基于当前 RunTrace、项目评判标准和动态检索的知识库内容判断，不继承历史 case。\n首要职责：理解用户/下游消费者的真实业务意图 → 派生 business_expectations → 基于完整执行链路（每轮 output、最终 output、交互过程和停止事实）判断 expectations 的 fulfillment。\n\n## expectation 拆分原则\nbusiness_expectations 的粒度直接决定判断精度。每个 expectation 必须是原子、独立可评价的判断单元：证据充分时判 fulfilled 或 not_fulfilled；确需评价但当前证据不足时按协议判 not_evaluable。\n- 一个 expectation 只描述一个可独立验证的结果维度\n- 多维度意图必须拆成多个 expectation\n- 每个 expectation 必须有明确的 acceptance_criteria\n- 每个 expectation 必须在比较 actual 前确定 blocking：只有缺失后会阻断用户/下游核心目的、安全底线或项目强契约的 expectation 才设为 true\n- fulfillment_assessments 只判断对应 expectation 的 status 和证据，不得重新定义 blocking\n- expectation_id 必须是描述性的中文短语，禁止使用 E1/E2/exp_01 等占位符 ID\n- reasoning_summary 必须是中文写成的判断依据\n\n## 输出词表\n`fulfillment_assessments[*].status` 必须从以下 3 个值中选择：\n  - fulfilled：该 expectation 完全满足\n  - not_fulfilled：该 expectation 未满足\n  - not_evaluable：当前无法评估\n禁用 failed/passed/incorrect/wrong/met/unmet/partially_fulfilled/partial/success/fail/ok/unknown 等同义词。\n`fulfillment_assessments[*].expected_evidence` 与 `actual_evidence` **必须是数组**（JSON array / list），即使只有一条证据也要用 `[...]` 包裹，不可直接用字符串或对象。\n\n不要输出 overall_fulfillment；公共层会在项目契约补充完成后根据 blocking expectations 确定性派生整体状态。\n\n## 评估规范\n\n\n## 评估边界\n\n\n## 判断标准\n\n\n## 项目 ContextUnit（按 Role policy 在运行前确定性装载）\n## ContextUnit: judge_boundary: judge_boundary.md (project.llm_probe.asset.judge_boundary)\n# Judge Boundary\n\nIn scope:\n\n- 非流式 HTTP 响应字符串是否兑现能力描述\n- show_schema 指出的输出片段\n\nOut of scope:\n\n- SSE / 流式协议\n- 下游检索结果集\n- 被测服务是否由 verifier 启动\n- 各业务项目自己的 EXTRACT 字段协议\n\n\n## ContextUnit: judge_evaluation: evaluation.md (project.llm_probe.asset.judge_evaluation)\n# Evaluation\n\nJudge 只看三件事：能力描述、请求信封（尤其是 body）、`output_text`。\n\n有 show_schema 时，只把其中指出的部分当作重要证据。没有 gold output，不要把 actual 抄成 expected。\n\n\n\n\n## 能力描述\n只根据能力描述判断 output_text 是否兑现了该能力。没有 gold output，不要编造参考答案。\n## 工具使用原则\n所有工具的用途、调用时机和参数含义以 Agno tool schema 为准；user prompt 中已提供当前 case 涉及字段的完整能力清单时，优先使用 prompt 信息。\n\n## 禁止事项\n- 不要把 reference answer 当作默认主目标（除非 case 明确指定）\n- 不要把 HTTP 状态、run_status、attribute/cluster 结论当作满足依据\n- 不要归因内部代码、配置或 prompt 原因（属于 attribute agent）\n- 分析文字必须使用中文，包括 reasoning_summary 等所有文本字段。\n\n\n## 输出约束：judge 判定输出（自产 reference + fulfillment 判定）\n你的输出必须是合法 JSON，且严格符合以下 JSON Schema：\n```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"business_expectations\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeBusinessExpectationOutput\"\n      },\n      \"minItems\": 1\n    },\n    \"applicable_product_expectation_ids\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"fulfillment_assessments\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/JudgeFulfillmentAssessmentOutput\"\n      }\n    },\n    \"expected\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"output_text\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"output_text\"\n      ]\n    },\n    \"missing\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"wrong\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"extra\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/GapItem\"\n      }\n    },\n    \"evidence\": {\n      \"type\": \"array\",\n      \"items\": {}\n    },\n    \"reasoning_summary\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    }\n  },\n  \"additionalProperties\": false,\n  \"$defs\": {\n    \"JudgeBusinessExpectationOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"blocking\": {\n          \"type\": \"boolean\"\n        },\n        \"downstream_consumer\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"user_intent\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected_outcome\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"required_capabilities\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        },\n        \"acceptance_criteria\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"boundary\": {\n          \"type\": \"object\"\n        },\n        \"priority\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"blocking\"\n      ]\n    },\n    \"JudgeFulfillmentAssessmentOutput\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"expectation_id\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"status\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"score\": {\n          \"type\": [\n            \"number\",\n            \"null\"\n          ]\n        },\n        \"expected_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"actual_evidence\": {\n          \"type\": \"array\",\n          \"items\": {}\n        },\n        \"downstream_impact\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"authority_tool_call_ids\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n          }\n        }\n      },\n      \"additionalProperties\": false,\n      \"required\": [\n        \"expectation_id\",\n        \"status\"\n      ]\n    },\n    \"GapItem\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"kind\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"error_type\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"expected\": {},\n        \"actual\": {},\n        \"evidence_ref\": {\n          \"type\": \"string\",\n          \"minLength\": 1\n        },\n        \"raw\": {},\n        \"incomplete\": {\n          \"type\": \"boolean\"\n        }\n      },\n      \"additionalProperties\": false\n    }\n  },\n  \"required\": [\n    \"expected\",\n    \"business_expectations\",\n    \"reasoning_summary\"\n  ]\n}\n```\n\n### 强约束\n- 最终回答必须只包含一个 JSON object；不要输出 Markdown，不要使用 ```json 代码块，不要在 JSON 外输出解释、前缀或后缀。\n- 最终回答首字符必须是 `{`，末字符必须是 `}`。\n- JSON 字符串内部如需引用用户原词，禁止直接写未转义英文双引号；请使用中文引号“”或转义为 `\\\"`。\n- 必须包含 `required` 列表中的所有字段。\n- 每个字段值必须匹配 schema 中的类型。\n- 以下字段必须非空（空字符串/空数组/空对象/None 均视为不合规，会被阻断）：['business_expectations', 'expected', 'reasoning_summary']\n- `additionalProperties: false`：禁止输出 schema 未定义的字段。\n- 禁止把 schema 里的类型描述符（如 \"string\"）原样当作内容填进去——每个字段必须填入真实内容。\n\n### 嵌套字段子结构约束\n以下字段内部的子结构也必须严格遵守，不可随意编造字段名或类型：\n- **`expected`** 字段 (项目 llm_probe 的 expected/live output 结构) 必须符合以下结构：\n  ```json\n  {\n    \"type\": \"object\",\n    \"properties\": {\n      \"output_text\": {\n        \"type\": \"string\",\n        \"minLength\": 1\n      }\n    },\n    \"additionalProperties\": false,\n    \"required\": [\n      \"output_text\"\n    ]\n  }\n  ```\n",
+      "created_at": 1787212610,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "299c47c9-b6c5-48ce-bb48-3d28a6d5af8e",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "system",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"user_intent\": \"对单轮营销规划问句做意图识别，给出意图标签和必要槽位。\\n不进入多轮规划、不生成 SSE 卡片。\", \"run_trace\": {\"trace_id\": \"rejudge:llm-probe-mpi-customer-portrait\", \"project_id\": \"llm_probe\", \"case_id\": \"llm-probe-mpi-customer-portrait\", \"intent_input\": {\"capability_ref\": \"marketting-planning-intent\", \"method\": \"POST\", \"body\": {\"session_id\": \"mpi-portrait\", \"trace_id\": \"mpi-portrait\", \"org_id\": \"default_org\", \"user_text\": \"帮我看看上季度买了重疾险的客户都是啥样的？\", \"extra_input_params\": {\"agent_args\": {\"conversation_id\": \"mpi-portrait\", \"message\": {\"content\": \"帮我看看上季度买了重疾险的客户都是啥样的？\", \"content_type\": \"text\"}}, \"args\": {\"extensions\": {}, \"contexts\": []}}}}, \"normalized_request\": {\"capability_ref\": \"marketting-planning-intent\", \"method\": \"POST\", \"body\": {\"session_id\": \"mpi-portrait\", \"trace_id\": \"mpi-portrait\", \"org_id\": \"default_org\", \"user_text\": \"帮我看看上季度买了重疾险的客户都是啥样的？\", \"extra_input_params\": {\"agent_args\": {\"conversation_id\": \"mpi-portrait\", \"message\": {\"content\": \"帮我看看上季度买了重疾险的客户都是啥样的？\", \"content_type\": \"text\"}}, \"args\": {\"extensions\": {}, \"contexts\": []}}}}, \"final_output\": {\"output_text\": \"{\\\"code\\\": 0, \\\"msg\\\": \\\"success\\\", \\\"data\\\": {\\\"robot_text\\\": \\\"其他意图\\\", \\\"end_flag\\\": 1, \\\"extra_output_params\\\": {\\\"intent\\\": \\\"4001\\\", \\\"intent_name\\\": \\\"其他意图\\\", \\\"card_result\\\": {\\\"event\\\": \\\"reasoning_message_content\\\", \\\"sse_id\\\": \\\"mpi-portrait:reasoning_message_content\\\", \\\"think\\\": \\\"\\\", \\\"answer\\\": \\\"\\\", \\\"card_list\\\": [], \\\"extensions\\\": {\\\"trace_id\\\": \\\"mpi-portrait\\\", \\\"session_id\\\": \\\"mpi-portrait\\\", \\\"nlu_info\\\": {\\\"subIntent\\\": \\\"其他意图\\\", \\\"intent\\\": \\\"other\\\", \\\"confidence\\\": 0.5, \\\"target_value\\\": null, \\\"path_types\\\": null}}}}}}\"}, \"final_output_turn\": null, \"turns\": [], \"conversation_transcript\": [], \"conversation_summary\": {}, \"stop_reason\": \"\", \"completion_status\": \"\", \"execution_trace\": [], \"evidence_refs\": [], \"raw_response_evidence\": null, \"evidence_completeness\": {\"complete\": true, \"missing_evidence\": []}, \"application_boundary\": {\"scope\": \"non_streaming_http_llm_probe\", \"streaming\": false}, \"reference_contract\": {}, \"scenario\": \"http_probe\", \"status\": \"ok\", \"error\": null}, \"capability\": \"对单轮营销规划问句做意图识别，给出意图标签和必要槽位。\\n不进入多轮规划、不生成 SSE 卡片。\", \"show_schema\": null, \"request\": {\"url\": \"\", \"method\": \"POST\", \"headers\": {}, \"body\": {\"session_id\": \"mpi-portrait\", \"trace_id\": \"mpi-portrait\", \"org_id\": \"default_org\", \"user_text\": \"帮我看看上季度买了重疾险的客户都是啥样的？\", \"extra_input_params\": {\"agent_args\": {\"conversation_id\": \"mpi-portrait\", \"message\": {\"content\": \"帮我看看上季度买了重疾险的客户都是啥样的？\", \"content_type\": \"text\"}}, \"args\": {\"extensions\": {}, \"contexts\": []}}}, \"capability_ref\": \"marketting-planning-intent\"}, \"output_text\": \"{\\\"code\\\": 0, \\\"msg\\\": \\\"success\\\", \\\"data\\\": {\\\"robot_text\\\": \\\"其他意图\\\", \\\"end_flag\\\": 1, \\\"extra_output_params\\\": {\\\"intent\\\": \\\"4001\\\", \\\"intent_name\\\": \\\"其他意图\\\", \\\"card_result\\\": {\\\"event\\\": \\\"reasoning_message_content\\\", \\\"sse_id\\\": \\\"mpi-portrait:reasoning_message_content\\\", \\\"think\\\": \\\"\\\", \\\"answer\\\": \\\"\\\", \\\"card_list\\\": [], \\\"extensions\\\": {\\\"trace_id\\\": \\\"mpi-portrait\\\", \\\"session_id\\\": \\\"mpi-portrait\\\", \\\"nlu_info\\\": {\\\"subIntent\\\": \\\"其他意图\\\", \\\"intent\\\": \\\"other\\\", \\\"confidence\\\": 0.5, \\\"target_value\\\": null, \\\"path_types\\\": null}}}}}}\", \"application_boundary\": {\"scope\": \"non_streaming_http_llm_probe\", \"streaming\": false}}\n\n## 上次输出存在不一致\n[{\"kind\": \"enforce_blocked\", \"where\": \"structured_output\", \"detail\": \"[judge] LLM 产出不符合结构化输出约束，已阻断（不放行假货）：\\n  - 必填字段缺失：reasoning_summary\\n产出预览：{\\\"business_expectations\\\": [{\\\"expectation_id\\\": \\\"意图标签正确性\\\", \\\"blocking\\\": true, \\\"downstream_consumer\\\": \\\"营销规划意图识别下游系统\\\", \\\"user_intent\\\": \\\"识别用户输入的单轮营销规划问句意图，给出正确意图标签\\\", \\\"expected_outcome\\\": \\\"输出中包含正确的意图标签，如'客户画像查询'，而非'其他意图'\\\", \\\"required_capabilities\\\": [\\\"意图识别\\\", \\\"营销规划理解\\\"], \\\"acceptance_criteria\\\": [\\\"意图标签应反映用户查询客户画像的\"}]\n## 仅供修复的上次字段值\n{}\n请仅按错误路径修正，并重新输出符合唯一 schema 的完整 JSON；未列出的字段按原任务重新生成，不要复述上次输出。",
+      "created_at": 1787212610,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "f265d3a5-a249-4771-9fc0-0c002dc9ef22",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 0
+      },
+      "name": null,
+      "provider_data": null,
+      "reasoning_content": null,
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "user",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    },
+    {
+      "add_to_agent_memory": true,
+      "audio": null,
+      "audio_output": null,
+      "citations": null,
+      "compressed_content": null,
+      "content": "{\"business_expectations\":[{\"expectation_id\":\"客户画像查询意图标签正确\",\"blocking\":true,\"downstream_consumer\":\"营销规划意图识别下游系统\",\"user_intent\":\"识别用户关于已购重疾险客户画像的单轮营销规划意图\",\"expected_outcome\":\"将该问句识别为客户画像查询或等价的客户画像分析意图，而不是归为其他意图\",\"required_capabilities\":[\"单轮意图识别\",\"营销规划语义理解\"],\"acceptance_criteria\":[\"意图标签明确表示客户画像查询或客户画像分析\",\"意图标签与用户希望了解特定客户群体特征的目的相符\"],\"boundary\":{\"in_scope\":\"非流式HTTP响应中的意图标签\",\"out_of_scope\":\"下游客户数据检索结果\"},\"priority\":\"核心\"},{\"expectation_id\":\"提取客户购买行为槽位\",\"blocking\":true,\"downstream_consumer\":\"客户画像查询下游\",\"user_intent\":\"明确客户群体的筛选行为条件\",\"expected_outcome\":\"提取购买这一行为条件，表示目标客户为已购买相关保险的客户\",\"required_capabilities\":[\"槽位提取\",\"客户筛选条件识别\"],\"acceptance_criteria\":[\"槽位中包含购买或已购买行为\",\"行为条件与用户问句中的买了相符\"],\"boundary\":{\"in_scope\":\"请求中的显式语义槽位\",\"out_of_scope\":\"实际客户名单或统计结果\"},\"priority\":\"核心\"},{\"expectation_id\":\"提取重疾险产品槽位\",\"blocking\":true,\"downstream_consumer\":\"客户画像查询下游\",\"user_intent\":\"明确客户画像筛选所针对的保险产品\",\"expected_outcome\":\"提取重疾险作为产品槽位\",\"required_capabilities\":[\"产品实体识别\",\"槽位提取\"],\"acceptance_criteria\":[\"槽位中包含重疾险\",\"产品值与用户问句中的重疾险相符\"],\"boundary\":{\"in_scope\":\"非流式响应中的结构化产品槽位\",\"out_of_scope\":\"产品详情和销售数据\"},\"priority\":\"核心\"},{\"expectation_id\":\"提取上季度时间范围槽位\",\"blocking\":true,\"downstream_consumer\":\"客户画像查询下游\",\"user_intent\":\"明确客户购买行为的时间范围\",\"expected_outcome\":\"提取上季度作为时间范围槽位\",\"required_capabilities\":[\"时间表达识别\",\"槽位提取\"],\"acceptance_criteria\":[\"槽位中包含上季度或等价时间表达\",\"时间范围修饰客户购买重疾险这一行为\"],\"boundary\":{\"in_scope\":\"用户问句中的相对时间表达\",\"out_of_scope\":\"将上季度换算为具体日期以及检索结果\"},\"priority\":\"核心\"},{\"expectation_id\":\"保持单轮处理并结束\",\"blocking\":true,\"downstream_consumer\":\"营销规划流程控制下游\",\"user_intent\":\"只完成当前问句的意图识别，不进入多轮规划\",\"expected_outcome\":\"当前请求在单轮内完成并结束，不产生后续追问或规划轮次\",\"required_capabilities\":[\"单轮请求处理\",\"流程终止标记\"],\"acceptance_criteria\":[\"响应表明当前请求已结束\",\"没有后续对话轮次或多轮规划内容\"],\"boundary\":{\"in_scope\":\"非流式HTTP响应及执行链路中的轮次信息\",\"out_of_scope\":\"服务内部实现原因\"},\"priority\":\"约束\"},{\"expectation_id\":\"不生成营销规划卡片内容\",\"blocking\":true,\"downstream_consumer\":\"调用方展示层\",\"user_intent\":\"不生成SSE卡片或营销规划展示内容\",\"expected_outcome\":\"响应不包含实际生成的卡片内容\",\"required_capabilities\":[\"无卡片输出控制\"],\"acceptance_criteria\":[\"卡片列表为空\",\"不输出营销规划卡片正文\"],\"boundary\":{\"in_scope\":\"非流式响应字符串中的卡片字段\",\"out_of_scope\":\"SSE传输协议细节\"},\"priority\":\"约束\"}],\"applicable_product_expectation_ids\":[\"客户画像查询意图标签正确\",\"提取客户购买行为槽位\",\"提取重疾险产品槽位\",\"提取上季度时间范围槽位\",\"保持单轮处理并结束\",\"不生成营销规划卡片内容\"],\"fulfillment_assessments\":[{\"expectation_id\":\"客户画像查询意图标签正确\",\"status\":\"not_fulfilled\",\"score\":0,\"expected_evidence\":[\"用户问句要求了解上季度购买重疾险客户的群体特征，语义属于客户画像查询或客户画像分析\"],\"actual_evidence\":[\"output_text.data.robot_text为“其他意图”\",\"output_text.data.extra_output_params.intent_name为“其他意图”\",\"output_text.data.extra_output_params.card_result.extensions.nlu_info.intent为“other”\"],\"downstream_impact\":\"下游无法按客户画像查询路径处理该请求，核心意图路由不匹配\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"提取客户购买行为槽位\",\"status\":\"not_fulfilled\",\"score\":0,\"expected_evidence\":[\"用户问句中的“买了”明确表达了购买行为条件\"],\"actual_evidence\":[\"响应未提供购买或已购买行为槽位\",\"nlu_info.target_value为null，path_types为null\"],\"downstream_impact\":\"下游无法确认客户群体的购买行为筛选条件\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"提取重疾险产品槽位\",\"status\":\"not_fulfilled\",\"score\":0,\"expected_evidence\":[\"用户问句中的“重疾险”明确提供了产品条件\"],\"actual_evidence\":[\"响应未提供重疾险产品槽位\",\"nlu_info.target_value为null，path_types为null\"],\"downstream_impact\":\"下游无法按重疾险产品限定目标客户群体\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"提取上季度时间范围槽位\",\"status\":\"not_fulfilled\",\"score\":0,\"expected_evidence\":[\"用户问句中的“上季度”明确提供了时间范围条件\"],\"actual_evidence\":[\"响应未提供上季度时间范围槽位\",\"nlu_info.target_value为null，path_types为null\"],\"downstream_impact\":\"下游无法按上季度限定客户购买行为\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"保持单轮处理并结束\",\"status\":\"fulfilled\",\"score\":1,\"expected_evidence\":[\"请求应在当前轮完成并结束，不进入多轮规划\"],\"actual_evidence\":[\"final_output.data.end_flag为1\",\"run_trace.turns为空\",\"run_trace.conversation_transcript为空\"],\"downstream_impact\":\"当前请求未继续进入多轮交互，满足单轮处理约束\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"不生成营销规划卡片内容\",\"status\":\"fulfilled\",\"score\":1,\"expected_evidence\":[\"不应生成实际卡片内容，卡片列表应为空\"],\"actual_evidence\":[\"final_output.data.extra_output_params.card_result.card_list为空数组\",\"card_result中的think和answer均为空字符串\",\"application_boundary.streaming为false\"],\"downstream_impact\":\"调用方不会获得营销规划卡片内容，满足不生成卡片的约束\",\"authority_tool_call_ids\":[]}],\"expected\":{\"output_text\":\"{\\\"intent_name\\\":\\\"客户画像查询\\\",\\\"slots\\\":{\\\"行为\\\":\\\"购买\\\",\\\"产品\\\":\\\"重疾险\\\",\\\"时间范围\\\":\\\"上季度\\\"}}\"},\"missing\":[{\"kind\":\"缺失\",\"error_type\":\"缺少购买行为槽位\",\"expected\":\"购买或已购买\",\"actual\":null,\"evidence_ref\":\"output_text.data.extra_output_params.card_result.extensions.nlu_info.target_value\"},{\"kind\":\"缺失\",\"error_type\":\"缺少产品槽位\",\"expected\":\"重疾险\",\"actual\":null,\"evidence_ref\":\"output_text.data.extra_output_params.card_result.extensions.nlu_info.target_value\"},{\"kind\":\"缺失\",\"error_type\":\"缺少时间范围槽位\",\"expected\":\"上季度\",\"actual\":null,\"evidence_ref\":\"output_text.data.extra_output_params.card_result.extensions.nlu_info.target_value\"}],\"wrong\":[{\"kind\":\"错误\",\"error_type\":\"意图标签不匹配\",\"expected\":\"客户画像查询\",\"actual\":\"其他意图\",\"evidence_ref\":\"output_text.data.extra_output_params.intent_name\"}],\"extra\":[],\"evidence\":[\"用户请求：帮我看看上季度买了重疾险的客户都是啥样的？\",\"响应意图标签：其他意图\",\"响应结构化意图：other\",\"响应卡片列表：[]\"],\"reasoning_summary\":\"该请求的业务目的不是泛化咨询，而是查询上季度购买重疾险客户的画像，因此核心意图应为客户画像查询，并至少提取购买行为、重疾险产品和上季度时间范围三个必要槽位。实际响应将意图归为“其他意图”，且未提供任何必要槽位，导致核心意图识别和槽位提取均未满足。另一方面，响应以单轮结束标记返回，没有后续轮次，卡片列表为空且未生成卡片正文，满足不进入多轮规划和不生成卡片内容的约束。\"}",
+      "created_at": 1787212610,
+      "file_output": null,
+      "files": null,
+      "from_history": false,
+      "id": "2fb4a859-93c1-419d-891d-40da89b6d32f",
+      "image_output": null,
+      "images": null,
+      "metrics": {
+        "additional_metrics": null,
+        "audio_input_tokens": 0,
+        "audio_output_tokens": 0,
+        "audio_total_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": null,
+        "duration": null,
+        "input_tokens": 3507,
+        "output_tokens": 4175,
+        "provider_metrics": null,
+        "reasoning_tokens": 0,
+        "time_to_first_token": null,
+        "timer": null,
+        "total_tokens": 7682
+      },
+      "name": null,
+      "provider_data": {
+        "id": "chatcmpl-0ae1b2c0"
+      },
+      "reasoning_content": "**Assessing expected JSON output format****Deciding intent labeling and slot expectations****Splitting necessary slots into atomic units****Confirming single-turn nonstream output****Clarifying intent extraction with blocking slots****Clarifying output expectations and evidence format****Defining expected output JSON structure and evidence details****Confirming no streaming cards needed****Defining intent output with slots****Finalizing JSON schema design**",
+      "redacted_reasoning_content": null,
+      "references": null,
+      "role": "assistant",
+      "stop_after_tool_call": false,
+      "temporary": false,
+      "tool_args": null,
+      "tool_call_error": null,
+      "tool_call_id": null,
+      "tool_calls": null,
+      "tool_name": null,
+      "video_output": null,
+      "videos": null
+    }
+  ],
+  "project_id": "llm_probe",
+  "prompt_size": 15804,
+  "record_id": "2c99b93a-11aa-4c43-946c-7e9d109fc634",
+  "response": {
+    "content": "{\"business_expectations\":[{\"expectation_id\":\"客户画像查询意图标签正确\",\"blocking\":true,\"downstream_consumer\":\"营销规划意图识别下游系统\",\"user_intent\":\"识别用户关于已购重疾险客户画像的单轮营销规划意图\",\"expected_outcome\":\"将该问句识别为客户画像查询或等价的客户画像分析意图，而不是归为其他意图\",\"required_capabilities\":[\"单轮意图识别\",\"营销规划语义理解\"],\"acceptance_criteria\":[\"意图标签明确表示客户画像查询或客户画像分析\",\"意图标签与用户希望了解特定客户群体特征的目的相符\"],\"boundary\":{\"in_scope\":\"非流式HTTP响应中的意图标签\",\"out_of_scope\":\"下游客户数据检索结果\"},\"priority\":\"核心\"},{\"expectation_id\":\"提取客户购买行为槽位\",\"blocking\":true,\"downstream_consumer\":\"客户画像查询下游\",\"user_intent\":\"明确客户群体的筛选行为条件\",\"expected_outcome\":\"提取购买这一行为条件，表示目标客户为已购买相关保险的客户\",\"required_capabilities\":[\"槽位提取\",\"客户筛选条件识别\"],\"acceptance_criteria\":[\"槽位中包含购买或已购买行为\",\"行为条件与用户问句中的买了相符\"],\"boundary\":{\"in_scope\":\"请求中的显式语义槽位\",\"out_of_scope\":\"实际客户名单或统计结果\"},\"priority\":\"核心\"},{\"expectation_id\":\"提取重疾险产品槽位\",\"blocking\":true,\"downstream_consumer\":\"客户画像查询下游\",\"user_intent\":\"明确客户画像筛选所针对的保险产品\",\"expected_outcome\":\"提取重疾险作为产品槽位\",\"required_capabilities\":[\"产品实体识别\",\"槽位提取\"],\"acceptance_criteria\":[\"槽位中包含重疾险\",\"产品值与用户问句中的重疾险相符\"],\"boundary\":{\"in_scope\":\"非流式响应中的结构化产品槽位\",\"out_of_scope\":\"产品详情和销售数据\"},\"priority\":\"核心\"},{\"expectation_id\":\"提取上季度时间范围槽位\",\"blocking\":true,\"downstream_consumer\":\"客户画像查询下游\",\"user_intent\":\"明确客户购买行为的时间范围\",\"expected_outcome\":\"提取上季度作为时间范围槽位\",\"required_capabilities\":[\"时间表达识别\",\"槽位提取\"],\"acceptance_criteria\":[\"槽位中包含上季度或等价时间表达\",\"时间范围修饰客户购买重疾险这一行为\"],\"boundary\":{\"in_scope\":\"用户问句中的相对时间表达\",\"out_of_scope\":\"将上季度换算为具体日期以及检索结果\"},\"priority\":\"核心\"},{\"expectation_id\":\"保持单轮处理并结束\",\"blocking\":true,\"downstream_consumer\":\"营销规划流程控制下游\",\"user_intent\":\"只完成当前问句的意图识别，不进入多轮规划\",\"expected_outcome\":\"当前请求在单轮内完成并结束，不产生后续追问或规划轮次\",\"required_capabilities\":[\"单轮请求处理\",\"流程终止标记\"],\"acceptance_criteria\":[\"响应表明当前请求已结束\",\"没有后续对话轮次或多轮规划内容\"],\"boundary\":{\"in_scope\":\"非流式HTTP响应及执行链路中的轮次信息\",\"out_of_scope\":\"服务内部实现原因\"},\"priority\":\"约束\"},{\"expectation_id\":\"不生成营销规划卡片内容\",\"blocking\":true,\"downstream_consumer\":\"调用方展示层\",\"user_intent\":\"不生成SSE卡片或营销规划展示内容\",\"expected_outcome\":\"响应不包含实际生成的卡片内容\",\"required_capabilities\":[\"无卡片输出控制\"],\"acceptance_criteria\":[\"卡片列表为空\",\"不输出营销规划卡片正文\"],\"boundary\":{\"in_scope\":\"非流式响应字符串中的卡片字段\",\"out_of_scope\":\"SSE传输协议细节\"},\"priority\":\"约束\"}],\"applicable_product_expectation_ids\":[\"客户画像查询意图标签正确\",\"提取客户购买行为槽位\",\"提取重疾险产品槽位\",\"提取上季度时间范围槽位\",\"保持单轮处理并结束\",\"不生成营销规划卡片内容\"],\"fulfillment_assessments\":[{\"expectation_id\":\"客户画像查询意图标签正确\",\"status\":\"not_fulfilled\",\"score\":0,\"expected_evidence\":[\"用户问句要求了解上季度购买重疾险客户的群体特征，语义属于客户画像查询或客户画像分析\"],\"actual_evidence\":[\"output_text.data.robot_text为“其他意图”\",\"output_text.data.extra_output_params.intent_name为“其他意图”\",\"output_text.data.extra_output_params.card_result.extensions.nlu_info.intent为“other”\"],\"downstream_impact\":\"下游无法按客户画像查询路径处理该请求，核心意图路由不匹配\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"提取客户购买行为槽位\",\"status\":\"not_fulfilled\",\"score\":0,\"expected_evidence\":[\"用户问句中的“买了”明确表达了购买行为条件\"],\"actual_evidence\":[\"响应未提供购买或已购买行为槽位\",\"nlu_info.target_value为null，path_types为null\"],\"downstream_impact\":\"下游无法确认客户群体的购买行为筛选条件\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"提取重疾险产品槽位\",\"status\":\"not_fulfilled\",\"score\":0,\"expected_evidence\":[\"用户问句中的“重疾险”明确提供了产品条件\"],\"actual_evidence\":[\"响应未提供重疾险产品槽位\",\"nlu_info.target_value为null，path_types为null\"],\"downstream_impact\":\"下游无法按重疾险产品限定目标客户群体\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"提取上季度时间范围槽位\",\"status\":\"not_fulfilled\",\"score\":0,\"expected_evidence\":[\"用户问句中的“上季度”明确提供了时间范围条件\"],\"actual_evidence\":[\"响应未提供上季度时间范围槽位\",\"nlu_info.target_value为null，path_types为null\"],\"downstream_impact\":\"下游无法按上季度限定客户购买行为\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"保持单轮处理并结束\",\"status\":\"fulfilled\",\"score\":1,\"expected_evidence\":[\"请求应在当前轮完成并结束，不进入多轮规划\"],\"actual_evidence\":[\"final_output.data.end_flag为1\",\"run_trace.turns为空\",\"run_trace.conversation_transcript为空\"],\"downstream_impact\":\"当前请求未继续进入多轮交互，满足单轮处理约束\",\"authority_tool_call_ids\":[]},{\"expectation_id\":\"不生成营销规划卡片内容\",\"status\":\"fulfilled\",\"score\":1,\"expected_evidence\":[\"不应生成实际卡片内容，卡片列表应为空\"],\"actual_evidence\":[\"final_output.data.extra_output_params.card_result.card_list为空数组\",\"card_result中的think和answer均为空字符串\",\"application_boundary.streaming为false\"],\"downstream_impact\":\"调用方不会获得营销规划卡片内容，满足不生成卡片的约束\",\"authority_tool_call_ids\":[]}],\"expected\":{\"output_text\":\"{\\\"intent_name\\\":\\\"客户画像查询\\\",\\\"slots\\\":{\\\"行为\\\":\\\"购买\\\",\\\"产品\\\":\\\"重疾险\\\",\\\"时间范围\\\":\\\"上季度\\\"}}\"},\"missing\":[{\"kind\":\"缺失\",\"error_type\":\"缺少购买行为槽位\",\"expected\":\"购买或已购买\",\"actual\":null,\"evidence_ref\":\"output_text.data.extra_output_params.card_result.extensions.nlu_info.target_value\"},{\"kind\":\"缺失\",\"error_type\":\"缺少产品槽位\",\"expected\":\"重疾险\",\"actual\":null,\"evidence_ref\":\"output_text.data.extra_output_params.card_result.extensions.nlu_info.target_value\"},{\"kind\":\"缺失\",\"error_type\":\"缺少时间范围槽位\",\"expected\":\"上季度\",\"actual\":null,\"evidence_ref\":\"output_text.data.extra_output_params.card_result.extensions.nlu_info.target_value\"}],\"wrong\":[{\"kind\":\"错误\",\"error_type\":\"意图标签不匹配\",\"expected\":\"客户画像查询\",\"actual\":\"其他意图\",\"evidence_ref\":\"output_text.data.extra_output_params.intent_name\"}],\"extra\":[],\"evidence\":[\"用户请求：帮我看看上季度买了重疾险的客户都是啥样的？\",\"响应意图标签：其他意图\",\"响应结构化意图：other\",\"响应卡片列表：[]\"],\"reasoning_summary\":\"该请求的业务目的不是泛化咨询，而是查询上季度购买重疾险客户的画像，因此核心意图应为客户画像查询，并至少提取购买行为、重疾险产品和上季度时间范围三个必要槽位。实际响应将意图归为“其他意图”，且未提供任何必要槽位，导致核心意图识别和槽位提取均未满足。另一方面，响应以单轮结束标记返回，没有后续轮次，卡片列表为空且未生成卡片正文，满足不进入多轮规划和不生成卡片内容的约束。\"}",
+    "metrics": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 3507,
+      "output_tokens": 4175,
+      "reasoning_tokens": 0,
+      "total_tokens": 7682
+    },
+    "runtime": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "elapsed_ms": 387,
+          "endpoint": "fallback1",
+          "error": "Workspace allocated quota exceeded, please increase your quota limit.",
+          "error_type": "RuntimeError",
+          "model": "deepseek-v4-flash-0731",
+          "status": "failed"
+        },
+        {
+          "attempt": 2,
+          "elapsed_ms": 79569,
+          "endpoint": "fallback2",
+          "model": "gpt-5.6-luna",
+          "status": "succeeded"
+        }
+      ],
+      "sdk_max_retries": 0,
+      "selected_endpoint": "fallback2",
+      "selected_model": "gpt-5.6-luna",
+      "stage": ""
+    }
+  },
+  "trace_id": "rejudge:llm-probe-mpi-customer-portrait"
+}

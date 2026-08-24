@@ -1,0 +1,309 @@
+{
+  "contract_coverage": [
+    {
+      "evidence": [
+        "Authority 关闭，Draft/Current 30 条 authority_tool_call_ids 均为空"
+      ],
+      "source_id": "authority-claim-index"
+    },
+    {
+      "evidence": [
+        "088/093 空条件 Current F / Draft NF（反面 1）；138/148 Current NE / Draft NF（反面 9）；058/103 歧义-缺；073/113/133 Current 抖动进 variance"
+      ],
+      "source_id": "authority-coverage-gaps"
+    },
+    {
+      "evidence": [
+        "Draft 装载 candidate investigation；本轮无 authority.resolve 消费报告材料"
+      ],
+      "source_id": "authority-investigation-report"
+    },
+    {
+      "evidence": [
+        "001-run.json#source-badcase-008",
+        "001-run.json#source-badcase-128"
+      ],
+      "source_id": "authority-search-load"
+    },
+    {
+      "evidence": [
+        "088/093 空条件不可消费被 Draft 判 NF；023 live 可消费但改写目标被 Draft 判 NF"
+      ],
+      "source_id": "dimension:downstream-query-consumability"
+    },
+    {
+      "evidence": [
+        "023 Draft 拒绝少儿万能险被拆写；128 两侧拒绝合家福→合家欢；008 Draft 接受已加载孤儿单映射"
+      ],
+      "source_id": "dimension:search-intent-preservation"
+    },
+    {
+      "evidence": [
+        "008 Draft F；023/088/093/138/148 Draft 拦住核心未交付；128 两侧 NF；058/083/048/103 不计分"
+      ],
+      "source_id": "expectation:find-target-customers"
+    },
+    {
+      "evidence": [
+        "088/093 Current F / Draft NF（反面 1）；058/103 歧义-缺不记胜负；048 不计分；本项只查外部原因不得归责系统"
+      ],
+      "source_id": "live_boundary"
+    }
+  ],
+  "criteria": [
+    {
+      "criterion_id": "expectation_support",
+      "evidence": [
+        "001-run.json#source-badcase-008",
+        "001-run.json#source-badcase-128",
+        "001-run-comparison-table.md"
+      ],
+      "finding": "008 Draft F 有 loaded mapping。128 两侧稳定 NF，未把合家福→合家欢收成 F。023/088/093 Draft 未把未交付收成 F。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "atomic_pre_actual_expectations",
+      "evidence": [
+        "001-run.json"
+      ],
+      "finding": "本轮 run report 没有与 assessment 分离的 pre-actual 计划冻结件。",
+      "status": "fail",
+      "waiver": {
+        "reason": "缺冻结件不否决本轮净胜记账；Solidify 补独立计划产物。",
+        "resolve_by_iteration": 3
+      }
+    },
+    {
+      "criterion_id": "expectation_topology",
+      "evidence": [
+        "001-run.json#source-badcase-088",
+        "001-run.json#source-badcase-138",
+        "001-run.json#source-badcase-148"
+      ],
+      "finding": "088 盘客检索 blocking NF、透明说明 F。138 姓名/平安产品/其他业务员三条完整。148 姓名 F、住院医疗 NF，未塌成单条。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "pre_actual_blocking",
+      "evidence": [
+        "001-run.json#source-badcase-148",
+        "001-run.json#source-badcase-138"
+      ],
+      "finding": "148 住院医疗 blocking NF 阻止 overall F。138 产品/业务员 NF 阻止 overall F。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "dimension_coverage",
+      "evidence": [
+        "001-run.json#source-badcase-138",
+        "001-run.json#source-badcase-148",
+        "001-run-comparison-table.md"
+      ],
+      "finding": "138/148 覆盖姓名与未交付核心条件。本轮无 tool-budget abort。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "fulfilled_external_evidence",
+      "evidence": [
+        "001-run.json#source-badcase-008",
+        "001-run.json#source-badcase-128"
+      ],
+      "finding": "008 F 绑定已加载孤儿单映射。128 两侧 NF，无无证据 F。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "not_fulfilled_live_boundary",
+      "evidence": [
+        "001-run.json#source-badcase-088",
+        "001-run.json#source-badcase-093",
+        "001-run.json#source-badcase-023"
+      ],
+      "finding": "088/093/023 Draft NF 是反面 1 / §2.2 的正确读，不是把外部原因归责系统。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "not_evaluable_evidence_gap",
+      "evidence": [
+        "001-run.json#source-badcase-138",
+        "001-run.json#source-badcase-148",
+        "001-run.json"
+      ],
+      "finding": "Authority 关闭时 Draft overall NE=0/30。138/148 Current 稳定 NE，Draft NF。关闭模式合法 NE 仅输入坏/完全无关。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "missing_output_no_escape",
+      "evidence": [
+        "001-run.json#source-badcase-148",
+        "001-run.json#source-badcase-138"
+      ],
+      "finding": "148 姓名命中未让住院医疗保险逃逸为 F。138 未把业务员/平安产品缺口逃逸为 overall F。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "external_constraint_non_attribution",
+      "evidence": [
+        "001-run.json#source-badcase-088",
+        "001-run.json#source-badcase-093"
+      ],
+      "finding": "088/093 明确不支持收成 missing-core NF，未把外部依赖不可用误归责。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "authority_anchor_scope",
+      "evidence": [
+        "001-run.json"
+      ],
+      "finding": "enabled_scopes=[]，Draft/Current 均未调用 authority.resolve，也未伪造 call id。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "authority_obligation_consumption",
+      "evidence": [
+        "001-run.json"
+      ],
+      "finding": "current_runtime/draft_runtime.authority_audit 均为空；关闭状态下没有义务调用，无工具失败被当成相对改善。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "authority_unresolved_conservatism",
+      "evidence": [
+        "001-run.json#source-badcase-008",
+        "001-run.json#source-badcase-128"
+      ],
+      "finding": "008 以已加载映射支持 F。128 无等价证据时两侧保守 NF。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "no_runtime_authority_investigation",
+      "evidence": [
+        "001-run.json"
+      ],
+      "finding": "未观察到把 Runtime 结论回写成调查包或 Claim Index。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "no_internal_or_unseen_leakage",
+      "evidence": [
+        "001-run.json"
+      ],
+      "finding": "只跑冻结 30 条 iteration cases（cases_sha256=bf9e77ee…），未混入 unseen。双 replicate 同 fingerprint。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "relative_improvement_no_regression",
+      "evidence": [
+        "001-run.json#source-badcase-008",
+        "001-run.json#source-badcase-023",
+        "001-run.json#source-badcase-088",
+        "001-run.json#source-badcase-093",
+        "001-run.json#source-badcase-138",
+        "001-run.json#source-badcase-148",
+        "001-run-r2.json",
+        "001-run-comparison-table.md"
+      ],
+      "finding": "machine net=6 wins=6 losses=0 ties=17 unlabeled=0 variance=3 excluded=4 replicates=2 stability_ready=True. 稳定翻转按 fulfilled.md 标注。win=008/023/088/093/138/148。无稳定 loss。058/048/083/103 不计分。073/113/133 等 Current 抖动进 variance。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "capability_carrier_audit",
+      "evidence": [
+        "001-run.json"
+      ],
+      "finding": "capability_carrier 未开启，本项不适用",
+      "status": "pass"
+    }
+  ],
+  "decision": "unchanged",
+  "exclusions": [
+    {
+      "case_key": "source-badcase-048",
+      "detail": "掩码前缀+尾号无尺子",
+      "reason": "other"
+    },
+    {
+      "case_key": "source-badcase-058",
+      "detail": "周岁以下含不含本数",
+      "reason": "ambiguity_gap"
+    },
+    {
+      "case_key": "source-badcase-083",
+      "detail": "人判不完：年华是人名还是产品",
+      "reason": "human_unresolved"
+    },
+    {
+      "case_key": "source-badcase-103",
+      "detail": "子女/孩子=本人还是家庭",
+      "reason": "ambiguity_gap"
+    }
+  ],
+  "flip_labels": [
+    {
+      "case_key": "source-badcase-008",
+      "clause": "判断顺序第三步 / §4.3 孤儿单 loaded mapping",
+      "direction": "win"
+    },
+    {
+      "case_key": "source-badcase-023",
+      "clause": "§2.2 少儿万能险被拆成万能型加子女年龄",
+      "direction": "win"
+    },
+    {
+      "case_key": "source-badcase-088",
+      "clause": "反面 1 空条件加提示不能当 F",
+      "direction": "win"
+    },
+    {
+      "case_key": "source-badcase-093",
+      "clause": "反面 1 空条件加提示不能当 F",
+      "direction": "win"
+    },
+    {
+      "case_key": "source-badcase-138",
+      "clause": "反面 9 核心未交付不得 NE",
+      "direction": "win"
+    },
+    {
+      "case_key": "source-badcase-148",
+      "clause": "反面 9 核心未交付不得 NE",
+      "direction": "win"
+    }
+  ],
+  "iteration": 1,
+  "knowledge_delta": {
+    "entries": [
+      {
+        "evidence_ref": "draft/.state/judge/iterations/001-run.json#source-badcase-128",
+        "text": "同一 draft fingerprint 上，128 旧单轮 Draft F（合家福→合家欢）未在双 replicate 复现，现两侧稳定 NF。单轮变松不能归因到候选。"
+      },
+      {
+        "evidence_ref": "draft/.state/judge/iterations/001-run-r2.json",
+        "text": "Current 侧零改动仍会在 073/113/133 等案抖动；只有双 replicate 复现的 flip 才能进 win/loss。"
+      },
+      {
+        "evidence_ref": "draft/.state/judge/iterations/001-score.json",
+        "text": "稳定翻转 008/023/088/093/138/148 按 fulfilled.md 标 win 后机算 +6，不再被 F>NE>NF 记成 loss。"
+      }
+    ],
+    "none": false
+  },
+  "project_id": "client_search",
+  "role": "judge",
+  "route": "solidify",
+  "run_report": {
+    "location": "draft/.state/judge/iterations/001-run.json",
+    "location_scope": "project_package",
+    "sha256": "2ae1606a6c1b1483670dcb2d0169a9ee513651d2748558166b7d176a91f85542"
+  },
+  "run_report_sha256": "2ae1606a6c1b1483670dcb2d0169a9ee513651d2748558166b7d176a91f85542",
+  "schema_version": 1,
+  "score": {
+    "allows_improved": true,
+    "net": 6,
+    "replicate_count": 2,
+    "sha256": "1f229e5bded262800a7ae6ea785468068fc1aeed29c837991c940b013ba76226",
+    "stability_ready": true
+  },
+  "solidify_receipt_sha256": "c3f7365bf0e9739f7447509346ebc63bb7dba103a1e852cd0c1f00851c35f73b",
+  "summary": "双 replicate 齐，stability_ready。稳定翻转 7 条：008/023/088/093/138/148 按 fulfilled.md 标 win；058 周岁以下无尺子，排除不计分。机算 6-0=+6，无 loss，allows_improved=true。本轮未改候选，5 条 variance（048/073/103/113/133）和 4 条不计分仍在，不进 promotion_checks。128 两侧稳定 NF，旧单轮「变松」未复现。"
+}

@@ -1,0 +1,201 @@
+{
+  "contract_coverage": [
+    {
+      "evidence": [
+        "001-run.json#source-badcase-008",
+        "001-run.json#source-badcase-128"
+      ],
+      "source_id": "authority:enum-value-authority"
+    },
+    {
+      "evidence": [
+        "001-run.json#source-badcase-038",
+        "001-run.json#source-badcase-133"
+      ],
+      "source_id": "authority:evaluation-boundary-authority"
+    },
+    {
+      "evidence": [
+        "001-run.json#source-badcase-058",
+        "001-run.json#source-badcase-103"
+      ],
+      "source_id": "authority:query-form-equivalence-authority"
+    },
+    {
+      "evidence": [
+        "001-run.json#source-badcase-008",
+        "001-run.json#source-badcase-148"
+      ],
+      "source_id": "authority:semantic-mapping-authority"
+    },
+    {
+      "evidence": [
+        "001-run.json#rows"
+      ],
+      "source_id": "dimension:downstream-query-consumability"
+    },
+    {
+      "evidence": [
+        "001-run.json#rows"
+      ],
+      "source_id": "dimension:search-intent-preservation"
+    },
+    {
+      "evidence": [
+        "001-run.json#rows"
+      ],
+      "source_id": "expectation:find-target-customers"
+    },
+    {
+      "evidence": [
+        "001-run.json#source-badcase-088",
+        "001-run.json#source-badcase-113"
+      ],
+      "source_id": "live_boundary"
+    }
+  ],
+  "criteria": [
+    {
+      "criterion_id": "expectation_support",
+      "evidence": [
+        "001-run.json#source-badcase-088",
+        "001-run.json#source-badcase-103",
+        "001-run.json#source-badcase-148"
+      ],
+      "finding": "Draft对能力清单/已固化规则可确认的核心交付出现错误状态或遗漏。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "atomic_pre_actual_expectations",
+      "evidence": [
+        "001-run.json#rows"
+      ],
+      "finding": "未发现用actual临时追加验收点的确定性证据。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "pre_actual_blocking",
+      "evidence": [
+        "001-run.json#source-badcase-128",
+        "001-run.json#source-badcase-148"
+      ],
+      "finding": "核心交付与边界子目标的blocking拆分仍不稳定，导致整体状态漂移。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "dimension_coverage",
+      "evidence": [
+        "001-run.json#source-badcase-023",
+        "001-run.json#source-badcase-068",
+        "001-run.json#source-badcase-073"
+      ],
+      "finding": "两条LLM调用失败及一条Authority unresolved使关键维度无法形成稳定可评估结果。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "fulfilled_external_evidence",
+      "evidence": [
+        "001-run.json#source-badcase-133",
+        "001-run.json#source-badcase-128"
+      ],
+      "finding": "边界拒绝与核心交付的证据链仍未稳定区分。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "not_fulfilled_live_boundary",
+      "evidence": [
+        "001-run.json#source-badcase-088",
+        "001-run.json#source-badcase-148"
+      ],
+      "finding": "职责内或清单已有能力的请求被错误降级/改判。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "not_evaluable_evidence_gap",
+      "evidence": [
+        "001-run.json#source-badcase-023",
+        "001-run.json#source-badcase-068"
+      ],
+      "finding": "运行失败被包装成业务not_evaluable，且缺少可比较的业务证据。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "missing_output_no_escape",
+      "evidence": [
+        "001-run.json#source-badcase-138",
+        "001-run.json#source-badcase-148"
+      ],
+      "finding": "有效结果中核心遗漏通常未被边界子目标掩盖。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "external_constraint_non_attribution",
+      "evidence": [
+        "001-run.json#source-badcase-113",
+        "001-run.json#source-badcase-133"
+      ],
+      "finding": "公司/机构名未被误映射为客户姓名。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "authority_anchor_scope",
+      "evidence": [
+        "001-run.json#source-badcase-038",
+        "001-run.json#source-badcase-073",
+        "001-run.json#source-badcase-138"
+      ],
+      "finding": "unresolved Authority覆盖面扩大，且导致可评价与不可评价维度漂移。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "authority_unresolved_conservatism",
+      "evidence": [
+        "001-run.json#source-badcase-008",
+        "001-run.json#source-badcase-038"
+      ],
+      "finding": "可见结果未把unresolved直接当成fulfilled；但仍需检查错误边界传播。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "no_runtime_authority_investigation",
+      "evidence": [
+        "001-run.json#authority_environment"
+      ],
+      "finding": "Draft使用冻结/绑定Authority environment，未观察到assessment阶段临时新造调查包。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "no_internal_or_unseen_leakage",
+      "evidence": [
+        "001-run.json#frozen_cases_sha256"
+      ],
+      "finding": "仅运行冻结30条case。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "relative_improvement_no_regression",
+      "evidence": [
+        "001-run.json#source-badcase-088",
+        "001-run.json#source-badcase-103",
+        "001-run.json#source-badcase-148",
+        "001-run.json#source-badcase-023"
+      ],
+      "finding": "存在明确状态退化与运行无效样本，不能进入promotion checks。",
+      "status": "fail"
+    }
+  ],
+  "decision": "regressed",
+  "iteration": 1,
+  "project_id": "client_search",
+  "role": "judge",
+  "route": "solidify",
+  "run_report": {
+    "location": "draft/.state/judge/iterations/001-run.json",
+    "location_scope": "project_package",
+    "sha256": "b9809ef2e6b8d85028435c7818e697b85c7053ba8dc266b9f163a49669e305fb"
+  },
+  "run_report_sha256": "b9809ef2e6b8d85028435c7818e697b85c7053ba8dc266b9f163a49669e305fb",
+  "schema_version": 1,
+  "solidify_receipt_sha256": "1cf428165f040e5bf04bf8f24f31ab515bb89aeb51855c5483f382fc81fbe681",
+  "summary": "本轮30条冻结case已完成，但不能接受。Draft在运行时出现LLM失败与Authority ContextBudget/Load参数错误，形成无效评估；在有效case上，088、103、148将职责内或能力清单已确认可表达的核心交付错误降级为not_evaluable或错误判not_fulfilled，且未证明相对Production无退化。Draft只能保留部分正确边界处理，当前应回Solidify修复运行时预算、错误归因和fulfilled三态边界。"
+}

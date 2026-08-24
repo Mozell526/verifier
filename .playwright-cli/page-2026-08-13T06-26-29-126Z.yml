@@ -1,0 +1,151 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - heading "归因总结" [level=1] [ref=e3]
+    - paragraph [ref=e4]: 协议式单链路、用例池、批量运行、聚簇和 Check 审核视图。
+  - main [ref=e5]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - link "返回 Live 请求" [ref=e8] [cursor=pointer]:
+          - /url: live.html
+        - button "统一单链路" [ref=e9] [cursor=pointer]
+        - button "加载最近结果" [ref=e10] [cursor=pointer]
+        - button "构建 Mock 用例池" [ref=e11] [cursor=pointer]
+        - button "加载 Mock 数据集" [ref=e12] [cursor=pointer]
+        - generic [ref=e13]:
+          - text: 并发数
+          - spinbutton "并发数" [ref=e14]: "4"
+        - button "批量运行" [ref=e15] [cursor=pointer]
+        - button "手动归因" [ref=e16] [cursor=pointer]
+        - button "分析项目配置" [ref=e17] [cursor=pointer]
+      - generic [ref=e18]:
+        - generic [ref=e19]:
+          - generic [ref=e20]: "0"
+          - text: 用例总数
+        - generic [ref=e21]:
+          - generic [ref=e22]: "0"
+          - text: 已选择
+        - generic [ref=e23]:
+          - generic [ref=e24]: "0"
+          - text: Fulfilled
+        - generic [ref=e25]:
+          - generic [ref=e26]: "0"
+          - text: Not Fulfilled
+        - generic [ref=e27]:
+          - generic [ref=e28]: "0"
+          - text: Clusters
+    - generic [ref=e29]:
+      - complementary [ref=e30]:
+        - generic [ref=e31]:
+          - heading "运行输入" [level=2] [ref=e32]
+          - generic [ref=e33]: Project
+          - combobox [ref=e34]:
+            - option "QA"
+            - option "client_search" [selected]
+            - option "deerflow"
+            - option "marketting-planning"
+            - option "marketting-planning-intent"
+            - option "policy_search"
+          - generic [ref=e35]: 单链路 Input JSON
+          - textbox [ref=e36]: "{ \"query\": \"45岁女性保费10万以上\" }"
+          - generic [ref=e37]: User Intent（可选）
+          - textbox "可留空；填写后会传给 judge agent。" [ref=e38]
+          - generic [ref=e39]: 上传/导入用例 JSON
+          - button "Choose File" [ref=e40]
+          - textbox [ref=e41]: "[]"
+          - generic [ref=e42]:
+            - button "导入候选区" [ref=e43] [cursor=pointer]
+            - button "生成已选 JSON" [ref=e44] [cursor=pointer]
+            - button "清空" [ref=e45] [cursor=pointer]
+          - paragraph [ref=e46]: 参考 8011 页面后，这里把“上传/生成/选择/批量运行”集中成候选区；所有数据先转成通用 case 协议，再交给后端统一 batch 链路执行。
+        - generic [ref=e47]:
+          - heading "用例池库" [level=2] [ref=e48]
+          - generic [ref=e49]: 保存名称
+          - textbox "例如：生存金专项用例池" [ref=e50]
+          - generic [ref=e51]:
+            - button "保存当前候选区" [ref=e52] [cursor=pointer]
+            - button "刷新列表" [ref=e53] [cursor=pointer]
+          - paragraph [ref=e54]: 已完成的一批用例可以保存成命名用例池；之后可加载另一批继续分析，互不覆盖。
+        - generic [ref=e55]:
+          - heading "聚簇概览" [level=2] [ref=e56]
+          - generic [ref=e57]: 尚未批量运行。
+      - generic [ref=e58]:
+        - generic [ref=e59]:
+          - generic [ref=e60]:
+            - generic [ref=e61]:
+              - heading "用例池候选区" [level=2] [ref=e62]
+              - generic [ref=e63]: 候选区共 0 条 · 当前筛选命中 0 条
+            - generic [ref=e64]:
+              - button "选中当前筛选" [ref=e65] [cursor=pointer]
+              - button "全选全部" [ref=e66] [cursor=pointer]
+              - button "取消全选" [ref=e67] [cursor=pointer]
+              - combobox [ref=e68]:
+                - option "全部场景" [selected]
+              - combobox [ref=e69]:
+                - option "全部达成状态" [selected]
+                - option "fulfilled"
+                - option "not_fulfilled"
+                - option "not_evaluable"
+                - option "其他（未判定）"
+              - combobox [ref=e70]:
+                - option "全部运行状态" [selected]
+                - option "未运行"
+                - option "运行中"
+                - option "已跑过"
+                - option "已完成"
+                - option "失败"
+              - button "导出当前筛选 (.xlsx)" [ref=e71] [cursor=pointer]
+          - generic [ref=e72]:
+            - text: 批量运行中
+            - generic [ref=e74]: 页面已加载轻量摘要；如需查看最近单链路结果，请点击“加载最近结果”。
+          - table [ref=e77]:
+            - rowgroup [ref=e78]:
+              - row "选择 ID 来源 执行模式 Scenario Input / Live Request Output / 被评估输出 Reference 状态 Score / Judge 归因摘要 Trace" [ref=e79]:
+                - columnheader "选择" [ref=e80]
+                - columnheader "ID" [ref=e81]
+                - columnheader "来源" [ref=e82]
+                - columnheader "执行模式" [ref=e83]
+                - columnheader "Scenario" [ref=e84]
+                - columnheader "Input / Live Request" [ref=e85]
+                - columnheader "Output / 被评估输出" [ref=e86]
+                - columnheader "Reference" [ref=e87]
+                - columnheader "状态" [ref=e88]
+                - columnheader "Score / Judge" [ref=e89]
+                - columnheader "归因摘要" [ref=e90]
+                - columnheader "Trace" [ref=e91]
+            - rowgroup [ref=e92]:
+              - row "候选区为空，可构建 Mock 用例池或导入自定义数据集。" [ref=e93]:
+                - cell "候选区为空，可构建 Mock 用例池或导入自定义数据集。" [ref=e94]
+          - generic [ref=e95]:
+            - generic [ref=e96]: 共 0 条 · 每页 100 条
+            - generic [ref=e97]:
+              - button "上一页" [disabled] [ref=e98]
+              - generic [ref=e99]: 第 1 / 1 页
+              - button "下一页" [disabled] [ref=e100]
+        - generic [ref=e101]:
+          - generic [ref=e102]:
+            - heading "RunTrace" [level=2] [ref=e103]
+            - generic [ref=e104]: 尚未加载。
+          - generic [ref=e105]:
+            - heading "Reference" [level=2] [ref=e106]
+            - generic [ref=e107]: 尚未加载。
+          - generic [ref=e108]:
+            - heading "Judge" [level=2] [ref=e109]
+            - generic [ref=e110]: 尚未加载。
+          - generic [ref=e111]:
+            - heading "Attribute" [level=2] [ref=e112]
+            - generic [ref=e113]: 尚未加载。
+          - generic [ref=e114]:
+            - heading "Cluster" [level=2] [ref=e115]
+            - generic [ref=e116]: 尚未加载。
+          - generic [ref=e117]:
+            - heading "Check Agent 审核" [level=2] [ref=e118]
+            - generic [ref=e119]: 尚未加载。
+          - generic [ref=e120]:
+            - heading "Frontend ViewModel" [level=2] [ref=e121]
+            - generic [ref=e122]: 尚未加载。
+          - generic [ref=e123]:
+            - heading "Project Analysis" [level=2] [ref=e124]
+            - generic [ref=e125]: 尚未加载。
+          - generic [ref=e126]:
+            - heading "Batch / Case Pool Raw" [level=2] [ref=e127]
+            - generic [ref=e128]: 尚未加载。

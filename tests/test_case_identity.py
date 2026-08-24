@@ -1,7 +1,7 @@
 from impl.core.attribute import _fulfilled_attribute_result
 from impl.core.check import check_chain
 from impl.core.pipeline import incomplete_state_attribute_result
-from impl.core.schema import AttributeResult, JudgeResult, ProjectSpec, RunTrace
+from impl.core.schema import AttributeResult, FulfillmentAssessment, JudgeResult, ProjectSpec, RunTrace
 
 
 def _trace() -> RunTrace:
@@ -53,3 +53,23 @@ def test_check_reports_attribute_case_id_mismatch():
     report = check_chain(ProjectSpec(project_id="demo", name="demo"), trace, judge, attribute)
 
     assert "AttributeResult case_id does not match RunTrace." in report.consistency_gaps
+
+
+def test_check_reports_fulfillment_status_score_contradiction():
+    trace = _trace()
+    judge = _judge()
+    judge.overall_fulfillment = {"status": "not_fulfilled"}
+    judge.fulfillment_assessments = [
+        FulfillmentAssessment(
+            expectation_id="exp",
+            status="not_fulfilled",
+            score=1.0,
+        )
+    ]
+
+    report = check_chain(ProjectSpec(project_id="demo", name="demo"), trace, judge)
+
+    assert (
+        "FulfillmentAssessment exp is not_fulfilled but score is 1.0."
+        in report.consistency_gaps
+    )

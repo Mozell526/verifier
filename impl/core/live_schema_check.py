@@ -131,13 +131,30 @@ class LiveSchemaCheck:
         self._output_validator = SchemaValidator(_to_spec(output_schema))
         self._ready = set(ready or [])
 
+    def bind_ready(self, ready: Optional[list] = None) -> None:
+        """由统一 loader 从 ProjectSpec 注入 ready，保留项目自定义 check。"""
+        self._ready = set(ready or [])
+
     def request(self, data: Any) -> bool:
         """校验 live 请求体是否符合 REQUEST_SCHEMA。"""
         return self._request_validator.is_valid(data, strict=True, allow_extra=False)
 
+    def request_errors(self, data: Any) -> list[str]:
+        """返回 REQUEST_SCHEMA 的字段级错误，供调用端直接定位协议问题。"""
+        return self._request_validator.validate(data, strict=True, allow_extra=False)
+
     def output(self, data: Any) -> bool:
-        """校验 output 是否符合 EXTRACT_OUTPUT_SCHEMA。"""
+        """校验完整 Live output 是否符合 EXTRACT_OUTPUT_SCHEMA。"""
         return self._output_validator.is_valid(data, strict=True, allow_extra=False)
+
+    def observation(self, data: Any) -> bool:
+        """校验 Judge 消费的历史/冻结 Live 证据视图。
+
+        trace 中的 extracted_output 可能是完整 Live output 的合法投影，省略传输层或
+        非决定性字段。这里允许 schema 字段缺失，但仍拒绝已出现字段的错误类型和
+        schema 外字段；不能用兼容性缺字段覆盖 Judge 已由业务证据闭环得到的结论。
+        """
+        return self._output_validator.is_valid(data, strict=False, allow_extra=False)
 
     def reference(self, data: Any) -> bool:
         """reference 与 output 同形状，但允许缺少字段（reference 可以是 output 的子集）。"""

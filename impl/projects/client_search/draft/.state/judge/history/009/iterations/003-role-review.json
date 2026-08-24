@@ -1,0 +1,191 @@
+{
+  "contract_coverage": [
+    {
+      "evidence": [
+        "iterations/003-run.json#rows",
+        "draft/investigation/judge/docs/authority-investigation-report.json"
+      ],
+      "source_id": "authority:enum-value-authority"
+    },
+    {
+      "evidence": [
+        "iterations/003-run.json#rows",
+        "spec/alg/fulfilled.md"
+      ],
+      "source_id": "authority:evaluation-boundary-authority"
+    },
+    {
+      "evidence": [
+        "iterations/003-run.json#rows"
+      ],
+      "source_id": "authority:query-form-equivalence-authority"
+    },
+    {
+      "evidence": [
+        "iterations/003-run.json#rows",
+        "draft/investigation/judge/docs/evidence/judge-authority-resolutions.md"
+      ],
+      "source_id": "authority:semantic-mapping-authority"
+    },
+    {
+      "evidence": [
+        "iterations/003-run.json#rows"
+      ],
+      "source_id": "dimension:downstream-query-consumability"
+    },
+    {
+      "evidence": [
+        "iterations/003-run.json#rows"
+      ],
+      "source_id": "dimension:search-intent-preservation"
+    },
+    {
+      "evidence": [
+        "iterations/003-run.json#rows"
+      ],
+      "source_id": "expectation:find-target-customers"
+    },
+    {
+      "evidence": [
+        "iterations/003-run.json#rows",
+        "spec/alg/fulfilled.md"
+      ],
+      "source_id": "live_boundary"
+    }
+  ],
+  "criteria": [
+    {
+      "criterion_id": "expectation_support",
+      "evidence": [
+        "iterations/003-run.json#rows/source-badcase-008/draft",
+        "iterations/003-run.json#rows/source-badcase-133/draft"
+      ],
+      "finding": "008 的 blocking 期望只以 value_mappings 为唯一标准，未体现 field_definitions 的互斥说法；133 的 0-assessment NE 未派生任何期望，适用性判断把机构名场景误判为业务不适用。resolutions #7/#8 未注入 prompt 导致期望派生缺少冲突面与已固化决议。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "atomic_pre_actual_expectations",
+      "evidence": [
+        "iterations/003-run.json#rows"
+      ],
+      "finding": "148/023/103 等差异 case 的 blocking 期望保持原子化，姓名/险种/年龄/逻辑拆分为独立验收点。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "pre_actual_blocking",
+      "evidence": [
+        "iterations/003-run.json#rows"
+      ],
+      "finding": "blocking 汇总与最终状态一致（148 缺险种 blocking→NF；008 无 blocking→F；018 我的归属 blocking→NE），未见按 actual 临时改写 blocking。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "dimension_coverage",
+      "evidence": [
+        "iterations/003-run.json#rows"
+      ],
+      "finding": "差异 case 均覆盖 search-intent-preservation 与 downstream-query-consumability 两维度，result_set_verified=false 均明示。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "fulfilled_external_evidence",
+      "evidence": [
+        "iterations/003-run.json#rows/source-badcase-008/draft",
+        "iterations/003-run.json#rows/source-badcase-048/draft"
+      ],
+      "finding": "008 fulfilled 依赖单方 value_mappings 断言，与 field_definitions 冲突未裁决；048 fulfilled 把 observation（掩码→尾号推断）当决定性证据，忽略前缀 158。两者都缺已固化决议或 authority 调用支撑。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "not_fulfilled_live_boundary",
+      "evidence": [
+        "iterations/003-run.json#rows/source-badcase-148/draft"
+      ],
+      "finding": "148 not_fulfilled 由 capability_manifest 明确含住院医疗保险枚举支撑，live 漏险种条件，未把能力边界外因素归给 parser。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "not_evaluable_evidence_gap",
+      "evidence": [
+        "iterations/003-run.json#rows/source-badcase-133/draft",
+        "iterations/003-run.json#rows/source-badcase-008/draft"
+      ],
+      "finding": "133 判 NE 但未列出缺料清单（决议 #8 已 resolved，本应直接 fulfilled）；008 应 NE 却判 F，冲突双方（value_mappings vs field_definitions）未进入判定。NE/非NE 的缺口面记录不完整。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "missing_output_no_escape",
+      "evidence": [
+        "iterations/003-run.json#rows/source-badcase-103/draft"
+      ],
+      "finding": "actual 缺失条件（103 子女年龄、148 险种）均被显式评估，没有因缺输出跳过业务点。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "external_constraint_non_attribution",
+      "evidence": [
+        "iterations/003-run.json#rows"
+      ],
+      "finding": "088/093 把 live 的能力边界拒绝经 authority 查证后判 NE，未把外部能力限制直接归为 parser 失败。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "authority_anchor_scope",
+      "evidence": [
+        "iterations/003-run.json#rows",
+        "draft/investigation/judge/docs/evidence/judge-authority-resolutions.md"
+      ],
+      "finding": "resolutions #1-#8 未物化注入主 LLM prompt，仅 #4 硬编码进确定性 operator gate；#7 unresolved（孤儿单）未被识别触发、#8 resolved（机构名）未被复用、#3（住院医疗保险→planfullname）未直接支撑 148。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "authority_unresolved_conservatism",
+      "evidence": [
+        "iterations/003-run.json#rows/source-badcase-008/draft",
+        "iterations/003-run.json#rows/source-badcase-018/draft"
+      ],
+      "finding": "088/093/128 保守合规，但 008 把 unresolved 冲突当 resolved 消费（反向不保守），018 对职责内『我的客户归属』unresolved→NE 与 production F 相比是可见退化，口径需裁决。",
+      "status": "fail"
+    },
+    {
+      "criterion_id": "no_runtime_authority_investigation",
+      "evidence": [
+        "iterations/003-run.json#rows"
+      ],
+      "finding": "runtime 未主动补证，只通过 authority.resolve 查证与 NE 缺料清单反馈，符合协议。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "no_internal_or_unseen_leakage",
+      "evidence": [
+        "iterations/003-run.json#rows"
+      ],
+      "finding": "未发现把 badcase/reference 标注或 unseen case 内容写入 prompt 的情况；badcase 标注只存在于调查产物说明。",
+      "status": "pass"
+    },
+    {
+      "criterion_id": "relative_improvement_no_regression",
+      "evidence": [
+        "iterations/003-run.json#rows/source-badcase-008/draft",
+        "iterations/003-run.json#rows/source-badcase-133/draft",
+        "iterations/003-run.json#rows/source-badcase-018/draft"
+      ],
+      "finding": "148/023/088/093/128 为改善，但 008 current NF→draft F（应 NE，回归）、133 current F→draft NE（应 F，回归）、018 current F→draft NE（口径待裁决）。整体未满足『Draft 优于 Production』。",
+      "status": "fail"
+    }
+  ],
+  "decision": "insufficient_evidence",
+  "iteration": 3,
+  "project_id": "client_search",
+  "role": "judge",
+  "route": "investigate",
+  "run_report": {
+    "location": "draft/.state/judge/iterations/003-run.json",
+    "location_scope": "project_package",
+    "sha256": "acd5192c720703ea65a1298d4a507ca42f1320fd93cc7d21ed98b1167f72003a"
+  },
+  "run_report_sha256": "acd5192c720703ea65a1298d4a507ca42f1320fd93cc7d21ed98b1167f72003a",
+  "schema_version": 1,
+  "solidify_receipt_sha256": "8378b833c549d8b564e4e73facd14181373e022c178ca23a002bc1a5225691c4",
+  "summary": "第 3 轮 30 条：run_report_invalid_sides=0，差异 9 条。决定性改善 148 NE→NF（住院医疗保险枚举可表达，live 漏险种条件）；088/093/128 通过 authority.resolve 真查证 unresolved→NE（保守合规）；023 NE 符合 #4 操作符冲突面。回归/存疑 4 条：(1) 008 孤儿单 draft 判 fulfilled，把 value_mappings『纯存续单客户』当唯一标准，忽视 field_definitions『孤儿单=在职有效客户』互斥冲突，未触发 authority.resolve，把 unresolved 决议当已定论消费（违反用户裁决：008=依据不足 NE）；(2) 133 机构名『中银保信』draft 判 NE（0 assessments），resolutions #8 已 resolved『机构名不得映射客户姓名、保持空并说明→fulfilled』，draft 未拿到该决议；(3) 018『我的铂金客户名单』draft 判 NE（authority 对『我的客户归属』unresolved），production 判 fulfilled，需业务口径裁决；(4) 048 掩码手机号 draft 判 fulfilled，依赖 observation #5『掩码前缀不构成独立筛选条件』作决定性证据，且忽略前缀 158，疑似假阳性。根因：judge.py 只硬编码 #4 到 operator gate，resolutions #1-#8 未物化注入主 LLM prompt，导致 unresolved 冲突面不被识别（008）、resolved 决议不被复用（133）、是否激活 authority 全凭 LLM 自触发。修复（004 生效）：从证据空间按 manifest hash 校验加载 resolutions 注入 judge_authority_resolutions，resolved 直接复用、unresolved 命中必须 authority.resolve、observation 只作线索；operator gate 冲突字段改为从决议推导，去掉硬编码。整体仍未证明优于 Production，008/133 为可判定回归。"
+}

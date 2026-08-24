@@ -85,25 +85,24 @@ def test_bailian_embedding_reports_configuration_failure():
 def test_bailian_embedder_does_not_inherit_desktop_proxy_by_default(monkeypatch):
     captured = {}
 
-    def call(**kwargs):
-        captured.update(kwargs)
-        return SimpleNamespace(
-            status_code=200,
-            output={"embeddings": [{"text_index": 0, "embedding": [1.0]}]},
-            usage=None,
-        )
+    class _Response:
+        status_code = 200
 
-    monkeypatch.setattr(
-        knowledge_base,
-        "dashscope",
-        SimpleNamespace(TextEmbedding=SimpleNamespace(call=call)),
-    )
+        def json(self):
+            return {"output": {"embeddings": [{"text_index": 0, "embedding": [1.0]}]}}
+
+    def post(url, **kwargs):
+        captured["url"] = url
+        captured.update(kwargs)
+        return _Response()
 
     embedder = knowledge_base.BailianEmbedder(api_key="test-key")
+    monkeypatch.setattr(embedder._session, "post", post)
     vectors, _usage = embedder.get_embeddings_and_usage(["query"])
 
     assert vectors == [[1.0]]
-    assert captured["session"].trust_env is False
+    assert embedder._session.trust_env is False
+    assert captured["url"].startswith("https://dashscope.aliyuncs.com/")
 
 
 def test_bailian_embedder_uses_runtime_config_for_environment_proxy(monkeypatch):

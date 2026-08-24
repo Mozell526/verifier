@@ -20,7 +20,11 @@ from impl.core.schema import (
     SingleTurnCase,
     TraceExecutionContext,
 )
-from impl.projects.client_search.capability_manifest import build_capability_manifest
+from impl.projects.client_search.capability_manifest import (
+    build_behavior_manifest,
+    build_capability_manifest,
+    lean_capability_manifest,
+)
 
 _SERVICE_LOCK = threading.Lock()
 
@@ -69,8 +73,14 @@ def source_config_paths(spec: ProjectSpec) -> Dict[str, str]:
     return {
         "source_field_definitions": spec.source_path("field_definitions"),
         "source_field_enums": spec.source_path("field_enums"),
+        "source_planfullname_enums": spec.source_path("planfullname_enums"),
+        "source_abbrname_enums": spec.source_path("abbrname_enums"),
+        "source_claimplancodename_enums": spec.source_path("claimplancodename_enums"),
+        "source_profname_enums": spec.source_path("profname_enums"),
         "source_value_mappings": spec.source_path("value_mappings"),
         "source_enhanced_rules": spec.source_path("enhanced_rules"),
+        "source_behavior_intents": spec.source_path("behavior_intents"),
+        "source_behavior_rules": spec.source_path("behavior_rules"),
     }
 
 
@@ -78,10 +88,115 @@ def external_boundary_sources(spec: ProjectSpec) -> Dict[str, Any]:
     return {"config_paths": source_config_paths(spec)}
 
 
-def capability_manifest(spec: ProjectSpec) -> dict:
+def _merge_manifest(base: dict, extra: dict) -> dict:
+    """合并额外 manifest；同字段时合并 operators/enums 并让 false is_supported 生效。"""
+    if not isinstance(base, dict):
+        return dict(extra or {})
+    merged = {k: dict(v) for k, v in base.items()}
+    for field, entry in (extra or {}).items():
+        if not isinstance(entry, dict):
+            continue
+        if field not in merged:
+            merged[field] = dict(entry)
+            continue
+        target = merged[field]
+        target["operators"] = sorted(set(target.get("operators") or []) | set(entry.get("operators") or []))
+        target["value_types"] = sorted(set(target.get("value_types") or []) | set(entry.get("value_types") or []))
+        known = {str(v) for v in target.get("enums") or []}
+        for value in entry.get("enums") or []:
+            if str(value) not in known:
+                target.setdefault("enums", []).append(value)
+                known.add(str(value))
+        if entry.get("is_supported") is False:
+            target["is_supported"] = False
+            target["is_supported_explicit"] = True
+        elif entry.get("is_supported_explicit") and "is_supported_explicit" not in target:
+            target["is_supported_explicit"] = True
+        for extra_key in ("equivalent_activity_groups", "enum_total_count"):
+            if extra_key in entry and extra_key not in target:
+                target[extra_key] = entry[extra_key]
+    return merged
+
+
+def capability_snapshot(spec: ProjectSpec) -> dict:
+    """client_search 受治理字段目录。由 capability_provider 喂给结构化形态。
+
+    field_definitions 仍按原契约加载；behavior_intents 只吸收其空间部分
+    （field/operator/is_supported/activity 枚举值空间），不吸收 aliases/template/
+    selection_notes/examples 等 current_behavior 选择规则。
+    """
+    config_paths = source_config_paths(spec)
+    definitions = config_paths.get("source_field_definitions")
+    if not definitions:
+        raise FileNotFoundError("source_field_definitions missing")
+    enum_paths = [
+        config_paths.get(key)
+        for key in (
+            "source_field_enums",
+            "source_planfullname_enums",
+            "source_abbrname_enums",
+            "source_claimplancodename_enums",
+            "source_profname_enums",
+        )
+        if config_paths.get(key)
+    ]
+    manifest = build_capability_manifest(definitions, enums_path=enum_paths)
+    behavior_manifest = build_behavior_manifest(config_paths.get("source_behavior_intents"))
+    return _merge_manifest(manifest, behavior_manifest)
+
+
+def capability_lexicon(spec: ProjectSpec) -> dict:
+    path = Path(__file__).with_name("capability_lexicon.yaml")
+    if not path.is_file():
+        return {"terms": []}
+    data = _yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    return data if isinstance(data, dict) else {"terms": []}
+
+
+_STRUCTURED_FIELD_ALIASES = {
+    "licensePlateNo": ["车牌号", "车牌", "车辆号牌", "号牌号码"],
+    "searchClientName": ["姓名", "客户姓名", "人名"],
+    "familyInfo.familyclientname": ["子女"],
+}
+
+
+def _with_structured_aliases(manifest: dict) -> dict:
+    out = dict(manifest)
+    for field, aliases in _STRUCTURED_FIELD_ALIASES.items():
+        entry = out.get(field)
+        if not isinstance(entry, dict):
+            continue
+        merged = dict(entry)
+        existing = [str(item).strip() for item in (merged.get("aliases") or []) if str(item).strip()]
+        merged["aliases"] = list(dict.fromkeys([*existing, *aliases]))
+        out[field] = merged
+    return out
+
+
+def capability_provider(spec: ProjectSpec):
+    from impl.core.capability_structured import StructuredCarrier
+
+    return StructuredCarrier.from_materials(
+        _with_structured_aliases(capability_snapshot(spec)),
+        lexicon=capability_lexicon(spec),
+        spoken=value_mappings(spec),
+        spec=spec,
+    )
+
+
+def capability_manifest(spec: ProjectSpec, *, full: bool = False) -> dict:
+    """共享层能力清单。
+
+    - full=False（默认）：prompt-safe lean 版本，超大枚举只保留少量候选并标记
+      enum_values_truncated / enum_total_count；全量枚举由 authority EvidenceSpace
+      或文件直读提供（spec/alg/authority.md §4.2 EvidenceSpace/Materializer）。
+    - full=True：完整枚举清单，供 draft 命中检测等需要全量值的确定性逻辑使用。
+    """
     try:
-        config_paths = source_config_paths(spec)
-        return build_capability_manifest(config_paths.get("source_field_definitions"))
+        manifest = capability_snapshot(spec)
+        if full:
+            return manifest
+        return lean_capability_manifest(manifest)
     except Exception:
         return {}
 

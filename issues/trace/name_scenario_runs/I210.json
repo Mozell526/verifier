@@ -1,0 +1,194 @@
+{
+  "id": "I210",
+  "query": "金凤",
+  "role": "catalog_product",
+  "expected_status": "fulfilled",
+  "source": "set_a",
+  "live_error": null,
+  "judge_error": null,
+  "live": {
+    "trace_id": "client_search:I210:1786796342346",
+    "fields": [
+      "polNoInfo.plancodeinfo.abbrname"
+    ],
+    "values": [
+      "金凤"
+    ],
+    "robot_text": "投保险种简称为金凤的客户",
+    "matched_patterns": "疑似姓名候选、投保险种简称",
+    "intent_summary": "投保险种简称为金凤的客户",
+    "conditions": [
+      {
+        "field": "polNoInfo.plancodeinfo.abbrname",
+        "operator": "MATCH",
+        "value": "金凤",
+        "match_mode": null
+      }
+    ],
+    "extracted": {
+      "code": 0,
+      "msg": "操作成功",
+      "robot_text": "投保险种简称为金凤的客户",
+      "end_flag": 1,
+      "trace_id": null,
+      "query": "金凤",
+      "query_logic": "AND",
+      "conditions": [
+        {
+          "field": "polNoInfo.plancodeinfo.abbrname",
+          "operator": "MATCH",
+          "value": "金凤",
+          "match_mode": null
+        }
+      ],
+      "matched_level": 2,
+      "matched_patterns": "疑似姓名候选、投保险种简称",
+      "rewritten_query": "金凤",
+      "intent_summary": "投保险种简称为金凤的客户",
+      "confidence": 0.95,
+      "cost_times": 53.0
+    }
+  },
+  "judge_status": "fulfilled",
+  "judge_reasoning": "用户输入“金凤”被解析为投保险种简称。目录确认金凤是该字段的精确枚举，实际输出字段、值、MATCH操作符和AND逻辑均与可执行筛选语义一致；下游结果集未验证，但不在本次评价范围内。",
+  "judge": {
+    "trace_id": "client_search:I210:1786796342346",
+    "project_id": "client_search",
+    "business_expectations": [
+      {
+        "expectation_id": "按金凤投保险种简称筛选客户",
+        "blocking": true,
+        "downstream_consumer": "客户搜索下游",
+        "user_intent": "根据用户输入“金凤”定位对应的目标客户",
+        "expected_outcome": "筛选投保险种简称等于金凤的客户",
+        "required_capabilities": [
+          "投保险种简称字段",
+          "枚举值金凤",
+          "MATCH操作符",
+          "AND逻辑"
+        ],
+        "acceptance_criteria": [
+          "条件字段语义为投保险种简称",
+          "筛选值为金凤",
+          "使用可执行的MATCH条件且不增加未表达限制"
+        ],
+        "boundary": {
+          "judge_scope": "parser_condition_semantics_only",
+          "result_set_verified": false
+        },
+        "priority": "核心交付",
+        "evidence_refs": []
+      }
+    ],
+    "fulfillment_assessments": [
+      {
+        "expectation_id": "按金凤投保险种简称筛选客户",
+        "status": "fulfilled",
+        "score": 1,
+        "expected_evidence": [
+          "用户输入为金凤，目标是基于该词形成客户筛选条件",
+          "权威目录确认金凤是投保险种简称字段的精确枚举值"
+        ],
+        "actual_evidence": [
+          "实际条件为 polNoInfo.plancodeinfo.abbrname MATCH 金凤",
+          "实际机器人文本明确为投保险种简称为金凤的客户",
+          "下游结果集未验证，但当前评价范围为 parser_condition_semantics_only"
+        ],
+        "downstream_impact": "已交付可供下游消费的字段、值、操作符和AND逻辑；未验证实际客户结果集不影响本次语义判定",
+        "confidence": null,
+        "evidence_refs": [],
+        "authority_tool_call_ids": []
+      }
+    ],
+    "overall_fulfillment": {
+      "status": "fulfilled",
+      "assessment_count": 1,
+      "blocking_expectations": [
+        "按金凤投保险种简称筛选客户"
+      ]
+    },
+    "expected": {
+      "code": 0,
+      "msg": "操作成功",
+      "query": "金凤",
+      "conditions": [
+        {
+          "field": "polNoInfo.plancodeinfo.abbrname",
+          "operator": "MATCH",
+          "value": "金凤",
+          "match_mode": null
+        }
+      ],
+      "robot_text": "投保险种简称为金凤的客户",
+      "query_logic": "AND",
+      "rewritten_query": "金凤",
+      "end_flag": 1,
+      "trace_id": null,
+      "matched_level": 2,
+      "matched_patterns": "投保险种简称",
+      "intent_summary": "投保险种简称为金凤的客户",
+      "confidence": 0.95,
+      "cost_times": 53.0
+    },
+    "actual": {
+      "code": 0,
+      "msg": "操作成功",
+      "robot_text": "投保险种简称为金凤的客户",
+      "end_flag": 1,
+      "trace_id": null,
+      "query": "金凤",
+      "query_logic": "AND",
+      "conditions": [
+        {
+          "field": "polNoInfo.plancodeinfo.abbrname",
+          "operator": "MATCH",
+          "value": "金凤",
+          "match_mode": null
+        }
+      ],
+      "matched_level": 2,
+      "matched_patterns": "疑似姓名候选、投保险种简称",
+      "rewritten_query": "金凤",
+      "intent_summary": "投保险种简称为金凤的客户",
+      "confidence": 0.95,
+      "cost_times": 53.0
+    },
+    "missing": [],
+    "wrong": [],
+    "extra": [],
+    "evidence": [
+      {
+        "source": "用户输入与实际输出",
+        "fact": "用户输入为金凤，实际输出生成一个投保险种简称MATCH条件"
+      },
+      {
+        "source": "Catalog加载证据",
+        "fact": "金凤精确归属于 polNoInfo.plancodeinfo.abbrname"
+      },
+      {
+        "source": "Catalog加载证据",
+        "fact": "投保险种简称规则明确使用该字段和MATCH操作符"
+      },
+      {
+        "source": "下游状态",
+        "fact": "result_set_verified=false，未进行实际客户结果集验证"
+      },
+      {
+        "source": "client_search.condition_compare",
+        "wrong": [],
+        "missing": [],
+        "extra": []
+      }
+    ],
+    "reasoning_summary": "用户输入“金凤”被解析为投保险种简称。目录确认金凤是该字段的精确枚举，实际输出字段、值、MATCH操作符和AND逻辑均与可执行筛选语义一致；下游结果集未验证，但不在本次评价范围内。",
+    "summary": {
+      "reason": "fulfilled · 1 blocking expectations all met · 用户输入“金凤”被解析为投保险种简称。目录确认金凤是该字段的精确枚举，实际输出字段、值、MATCH操作符和AND逻辑均与可执行筛选语义一致；下游结果集未验证，但不在本次评价范围内。",
+      "primary_failure_dimensions": [],
+      "reason_source": "aggregated_fulfillment",
+      "fulfillment_status": "fulfilled",
+      "assessment_count": 1,
+      "blocking_count": 1,
+      "is_formal_attribution": true
+    }
+  }
+}

@@ -1,0 +1,297 @@
+{
+  "id": "HB001",
+  "query": "李明",
+  "role": "true_bare_name",
+  "expected_status": "fulfilled",
+  "source": "set_b",
+  "live_error": null,
+  "judge_error": null,
+  "live": {
+    "trace_id": "client_search:HB001:1786796360852",
+    "fields": [
+      "searchClientName"
+    ],
+    "values": [
+      "李明"
+    ],
+    "robot_text": "客户姓名为李明的客户",
+    "matched_patterns": "疑似姓名候选、姓名-模糊匹配",
+    "intent_summary": "客户姓名为李明的客户",
+    "conditions": [
+      {
+        "field": "searchClientName",
+        "operator": "MATCH",
+        "value": "李明",
+        "match_mode": null
+      }
+    ],
+    "extracted": {
+      "code": 0,
+      "msg": "操作成功",
+      "robot_text": "客户姓名为李明的客户",
+      "end_flag": 1,
+      "trace_id": null,
+      "query": "李明",
+      "query_logic": "AND",
+      "conditions": [
+        {
+          "field": "searchClientName",
+          "operator": "MATCH",
+          "value": "李明",
+          "match_mode": null
+        }
+      ],
+      "matched_level": 2,
+      "matched_patterns": "疑似姓名候选、姓名-模糊匹配",
+      "rewritten_query": "李明",
+      "intent_summary": "客户姓名为李明的客户",
+      "confidence": 0.95,
+      "cost_times": 7.0
+    }
+  },
+  "judge_status": "fulfilled",
+  "judge_reasoning": "用户输入为符合中文姓名结构的“李明”，实际输出保留为客户本人姓名条件，字段、值、MATCH操作符和AND逻辑均一致，且未增加其他限制；下游结果集未验证，但不影响本边界内的语义判定。",
+  "judge": {
+    "trace_id": "client_search:HB001:1786796360852",
+    "project_id": "client_search",
+    "business_expectations": [
+      {
+        "expectation_id": "保留客户姓名筛选条件",
+        "blocking": true,
+        "downstream_consumer": "客户搜索下游",
+        "user_intent": "查找客户姓名为李明的客户",
+        "expected_outcome": "生成针对客户本人姓名李明的可执行筛选条件",
+        "required_capabilities": [
+          "客户本人姓名字段",
+          "姓名值原样保留",
+          "支持的姓名匹配操作符"
+        ],
+        "acceptance_criteria": [
+          "条件字段语义为客户本人的姓名",
+          "条件值为李明",
+          "使用MATCH进行姓名匹配"
+        ],
+        "boundary": {
+          "judge_scope": "parser_condition_semantics_only",
+          "result_set_verified": false
+        },
+        "priority": "核心交付",
+        "evidence_refs": []
+      },
+      {
+        "expectation_id": "保持单条件布尔逻辑",
+        "blocking": true,
+        "downstream_consumer": "客户搜索下游",
+        "user_intent": "仅按姓名李明筛选客户",
+        "expected_outcome": "以AND逻辑提交唯一的姓名筛选条件",
+        "required_capabilities": [
+          "query_logic",
+          "单条件组合逻辑"
+        ],
+        "acceptance_criteria": [
+          "query_logic为AND",
+          "条件数量为1",
+          "未拆分或改变姓名条件"
+        ],
+        "boundary": {
+          "judge_scope": "parser_condition_semantics_only"
+        },
+        "priority": "核心交付",
+        "evidence_refs": []
+      },
+      {
+        "expectation_id": "不增加未表达的筛选限制",
+        "blocking": true,
+        "downstream_consumer": "客户搜索下游",
+        "user_intent": "筛选所有姓名匹配李明的客户",
+        "expected_outcome": "客户集合不被额外的年龄、地区、产品或其他条件收窄",
+        "required_capabilities": [
+          "条件完整性",
+          "无额外约束"
+        ],
+        "acceptance_criteria": [
+          "除姓名李明外不包含其他筛选条件",
+          "不引入用户未表达的强限制"
+        ],
+        "boundary": {
+          "judge_scope": "parser_condition_semantics_only"
+        },
+        "priority": "核心契约",
+        "evidence_refs": []
+      },
+      {
+        "expectation_id": "交付下游可消费的姓名查询",
+        "blocking": true,
+        "downstream_consumer": "客户搜索下游",
+        "user_intent": "将李明转换为下游可执行的客户姓名查询",
+        "expected_outcome": "输出下游支持的客户姓名字段、值和操作符",
+        "required_capabilities": [
+          "searchClientName字段",
+          "MATCH操作符",
+          "文本提取值"
+        ],
+        "acceptance_criteria": [
+          "searchClientName表示客户本人的姓名",
+          "MATCH属于该字段支持的操作符",
+          "值李明可直接作为查询值"
+        ],
+        "boundary": {
+          "judge_scope": "parser_condition_semantics_only",
+          "result_set_verified": false
+        },
+        "priority": "核心交付",
+        "evidence_refs": []
+      }
+    ],
+    "fulfillment_assessments": [
+      {
+        "expectation_id": "保留客户姓名筛选条件",
+        "status": "fulfilled",
+        "score": 1,
+        "expected_evidence": [
+          "客户本人姓名为李明",
+          "生成客户姓名匹配条件"
+        ],
+        "actual_evidence": [
+          "条件为searchClientName MATCH 李明",
+          "robot_text为客户姓名为李明的客户",
+          "已加载字段定义确认searchClientName表示客户本人的人名"
+        ],
+        "downstream_impact": "已保留用户的核心姓名筛选意图；未进行真实结果集验证。",
+        "confidence": null,
+        "evidence_refs": [],
+        "authority_tool_call_ids": []
+      },
+      {
+        "expectation_id": "保持单条件布尔逻辑",
+        "status": "fulfilled",
+        "score": 1,
+        "expected_evidence": [
+          "单一姓名条件使用AND逻辑"
+        ],
+        "actual_evidence": [
+          "query_logic为AND",
+          "condition_count为1",
+          "conditions仅包含一条姓名条件"
+        ],
+        "downstream_impact": "下游收到的逻辑关系与单条件查询一致。",
+        "confidence": null,
+        "evidence_refs": [],
+        "authority_tool_call_ids": []
+      },
+      {
+        "expectation_id": "不增加未表达的筛选限制",
+        "status": "fulfilled",
+        "score": 1,
+        "expected_evidence": [
+          "仅筛选姓名李明",
+          "不附加其他客户属性限制"
+        ],
+        "actual_evidence": [
+          "conditions仅有searchClientName MATCH 李明",
+          "未发现额外年龄、地区、产品或其他条件"
+        ],
+        "downstream_impact": "不会因额外条件无依据地缩小目标客户集合。",
+        "confidence": null,
+        "evidence_refs": [],
+        "authority_tool_call_ids": []
+      },
+      {
+        "expectation_id": "交付下游可消费的姓名查询",
+        "status": "fulfilled",
+        "score": 1,
+        "expected_evidence": [
+          "下游支持客户本人姓名字段及匹配操作符"
+        ],
+        "actual_evidence": [
+          "已加载字段定义确认searchClientName支持MATCH",
+          "实际条件字段为searchClientName且值为李明",
+          "result_set_verified=false，仅评价查询语义"
+        ],
+        "downstream_impact": "查询结构在当前 parser 语义边界内可供下游消费，但未确认实际匹配客户数量。",
+        "confidence": null,
+        "evidence_refs": [],
+        "authority_tool_call_ids": []
+      }
+    ],
+    "overall_fulfillment": {
+      "status": "fulfilled",
+      "assessment_count": 4,
+      "blocking_expectations": [
+        "保留客户姓名筛选条件",
+        "保持单条件布尔逻辑",
+        "不增加未表达的筛选限制",
+        "交付下游可消费的姓名查询"
+      ]
+    },
+    "expected": {
+      "code": 0,
+      "msg": "操作成功",
+      "query": "李明",
+      "conditions": [
+        {
+          "field": "searchClientName",
+          "operator": "MATCH",
+          "value": "李明",
+          "match_mode": null
+        }
+      ],
+      "robot_text": "客户姓名为李明的客户",
+      "query_logic": "AND",
+      "rewritten_query": "李明"
+    },
+    "actual": {
+      "code": 0,
+      "msg": "操作成功",
+      "robot_text": "客户姓名为李明的客户",
+      "end_flag": 1,
+      "trace_id": null,
+      "query": "李明",
+      "query_logic": "AND",
+      "conditions": [
+        {
+          "field": "searchClientName",
+          "operator": "MATCH",
+          "value": "李明",
+          "match_mode": null
+        }
+      ],
+      "matched_level": 2,
+      "matched_patterns": "疑似姓名候选、姓名-模糊匹配",
+      "rewritten_query": "李明",
+      "intent_summary": "客户姓名为李明的客户",
+      "confidence": 0.95,
+      "cost_times": 7.0
+    },
+    "missing": [],
+    "wrong": [],
+    "extra": [],
+    "evidence": [
+      {
+        "query": "李明与实际客户姓名条件直接一致"
+      },
+      {
+        "field_definition": "searchClientName表示客户本人的人名并支持MATCH"
+      },
+      {
+        "downstream": "未验证真实结果集，按parser_condition_semantics_only评价"
+      },
+      {
+        "source": "client_search.condition_compare",
+        "wrong": [],
+        "missing": [],
+        "extra": []
+      }
+    ],
+    "reasoning_summary": "用户输入为符合中文姓名结构的“李明”，实际输出保留为客户本人姓名条件，字段、值、MATCH操作符和AND逻辑均一致，且未增加其他限制；下游结果集未验证，但不影响本边界内的语义判定。",
+    "summary": {
+      "reason": "fulfilled · 4 blocking expectations all met · 用户输入为符合中文姓名结构的“李明”，实际输出保留为客户本人姓名条件，字段、值、MATCH操作符和AND逻辑均一致，且未增加其他限制；下游结果集未验证，但不影响本边界内的语义判定。",
+      "primary_failure_dimensions": [],
+      "reason_source": "aggregated_fulfillment",
+      "fulfillment_status": "fulfilled",
+      "assessment_count": 4,
+      "blocking_count": 4,
+      "is_formal_attribution": true
+    }
+  }
+}

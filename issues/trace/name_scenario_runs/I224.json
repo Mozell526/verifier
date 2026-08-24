@@ -1,0 +1,242 @@
+{
+  "id": "I224",
+  "query": "杨杰",
+  "role": "true_bare_name",
+  "expected_status": "fulfilled",
+  "source": "set_a",
+  "live_error": null,
+  "judge_error": null,
+  "live": {
+    "trace_id": "client_search:I224:1786795603687",
+    "fields": [
+      "searchClientName"
+    ],
+    "values": [
+      "杨杰"
+    ],
+    "robot_text": "客户姓名为杨杰的客户",
+    "matched_patterns": "疑似姓名候选、姓名-模糊匹配",
+    "intent_summary": "客户姓名为杨杰的客户",
+    "conditions": [
+      {
+        "field": "searchClientName",
+        "operator": "MATCH",
+        "value": "杨杰",
+        "match_mode": null
+      }
+    ],
+    "extracted": {
+      "code": 0,
+      "msg": "操作成功",
+      "robot_text": "客户姓名为杨杰的客户",
+      "end_flag": 1,
+      "trace_id": null,
+      "query": "杨杰",
+      "query_logic": "AND",
+      "conditions": [
+        {
+          "field": "searchClientName",
+          "operator": "MATCH",
+          "value": "杨杰",
+          "match_mode": null
+        }
+      ],
+      "matched_level": 2,
+      "matched_patterns": "疑似姓名候选、姓名-模糊匹配",
+      "rewritten_query": "杨杰",
+      "intent_summary": "客户姓名为杨杰的客户",
+      "confidence": 0.95,
+      "cost_times": 2.0
+    }
+  },
+  "judge_status": "fulfilled",
+  "judge_reasoning": "裸姓名“杨杰”意图检索客户本人姓名为杨杰的客户。actual 交付 searchClientName=杨杰（MATCH），字段语义为客户本人人名、操作符在支持列表内，值原样保留，AND 单条件无额外收窄，与意图一致；下游结果集未验证，按 parser 条件语义判 fulfilled。",
+  "judge": {
+    "trace_id": "client_search:I224:1786795603687",
+    "project_id": "client_search",
+    "business_expectations": [
+      {
+        "expectation_id": "客户姓名检索条件正确交付",
+        "blocking": true,
+        "downstream_consumer": "下游 ES 客户搜索（客户本人姓名筛选）",
+        "user_intent": "用户输入裸姓名“杨杰”，意图检索客户本人姓名为杨杰的客户",
+        "expected_outcome": "交付可执行条件：字段为客户本人姓名 searchClientName、值为“杨杰”、操作符 MATCH/CONTAINS（在字段支持范围内），查询逻辑 AND，可被下游按姓名检索到目标客户",
+        "required_capabilities": [
+          "searchClientName 字段支持",
+          "姓名 MATCH 操作符",
+          "裸姓名中文人名结构识别"
+        ],
+        "acceptance_criteria": [
+          "字段 searchClientName 语义为客户本人人名",
+          "值原样保留“杨杰”",
+          "操作符属于字段支持列表 [CONTAINS, MATCH]",
+          "单条件 AND 逻辑"
+        ],
+        "boundary": {
+          "judge_scope": "parser_condition_semantics_only",
+          "result_set_verified": false,
+          "downstream_status": "not_verified"
+        },
+        "priority": "high",
+        "evidence_refs": []
+      },
+      {
+        "expectation_id": "未引入用户未表达的额外筛选约束",
+        "blocking": true,
+        "downstream_consumer": "下游 ES 客户搜索（结果集合范围）",
+        "user_intent": "用户仅表达“杨杰”一个姓名约束，客户集合不应被额外收窄或扩大",
+        "expected_outcome": "结构化条件仅包含 searchClientName=“杨杰”，无其他字段或值层面的未表达限制",
+        "required_capabilities": [
+          "条件集合完整性"
+        ],
+        "acceptance_criteria": [
+          "condition 数量为 1",
+          "无 extra 条件",
+          "无遗漏核心约束"
+        ],
+        "boundary": {
+          "no_unexpressed_constraints": true
+        },
+        "priority": "medium",
+        "evidence_refs": []
+      }
+    ],
+    "fulfillment_assessments": [
+      {
+        "expectation_id": "客户姓名检索条件正确交付",
+        "status": "fulfilled",
+        "score": 1.0,
+        "expected_evidence": [
+          "query=杨杰，意图为检索客户本人姓名为“杨杰”的客户",
+          "searchClientName 字段定义：仅表示客户本人的人名，支持 MATCH/CONTAINS",
+          "裸姓名“杨杰”符合中文人名结构（单姓+1字名）的姓名检索形态"
+        ],
+        "actual_evidence": [
+          "conditions=[{field:searchClientName, operator:MATCH, value:杨杰, match_mode:null}]",
+          "query_logic=AND，robot_text=客户姓名为杨杰的客户",
+          "result_set_verified=false（judge_scope=parser_condition_semantics_only）"
+        ],
+        "downstream_impact": "条件可直接被下游 ES 按客户本人姓名筛选消费；本次未验证实际结果集，条件语义与用户意图一致",
+        "confidence": null,
+        "evidence_refs": [],
+        "authority_tool_call_ids": []
+      },
+      {
+        "expectation_id": "未引入用户未表达的额外筛选约束",
+        "status": "fulfilled",
+        "score": 1.0,
+        "expected_evidence": [
+          "用户仅表达“杨杰”一个姓名约束",
+          "不得增加改变客户集合的未表达限制"
+        ],
+        "actual_evidence": [
+          "actual 仅 1 个条件（searchClientName MATCH 杨杰）",
+          "condition_comparison：missing/wrong/extra 均为空"
+        ],
+        "downstream_impact": "客户集合既不被额外收窄也不被扩大，可按姓名准确定位目标客户",
+        "confidence": null,
+        "evidence_refs": [],
+        "authority_tool_call_ids": []
+      }
+    ],
+    "overall_fulfillment": {
+      "status": "fulfilled",
+      "assessment_count": 2,
+      "blocking_expectations": [
+        "客户姓名检索条件正确交付",
+        "未引入用户未表达的额外筛选约束"
+      ]
+    },
+    "expected": {
+      "code": 0,
+      "msg": "操作成功",
+      "query": "杨杰",
+      "conditions": [
+        {
+          "field": "searchClientName",
+          "operator": "MATCH",
+          "value": "杨杰",
+          "match_mode": null
+        }
+      ],
+      "robot_text": "客户姓名为杨杰的客户",
+      "query_logic": "AND",
+      "rewritten_query": "杨杰",
+      "end_flag": 1,
+      "trace_id": null,
+      "matched_level": 2,
+      "matched_patterns": "疑似姓名候选、姓名-模糊匹配",
+      "intent_summary": "客户姓名为杨杰的客户",
+      "confidence": 0.95,
+      "cost_times": 2.0
+    },
+    "actual": {
+      "code": 0,
+      "msg": "操作成功",
+      "robot_text": "客户姓名为杨杰的客户",
+      "end_flag": 1,
+      "trace_id": null,
+      "query": "杨杰",
+      "query_logic": "AND",
+      "conditions": [
+        {
+          "field": "searchClientName",
+          "operator": "MATCH",
+          "value": "杨杰",
+          "match_mode": null
+        }
+      ],
+      "matched_level": 2,
+      "matched_patterns": "疑似姓名候选、姓名-模糊匹配",
+      "rewritten_query": "杨杰",
+      "intent_summary": "客户姓名为杨杰的客户",
+      "confidence": 0.95,
+      "cost_times": 2.0
+    },
+    "missing": [],
+    "wrong": [],
+    "extra": [],
+    "evidence": [
+      {
+        "source": "field-definitions:searchClientName",
+        "loaded": true,
+        "is_supported": true,
+        "operators": [
+          "CONTAINS",
+          "MATCH"
+        ],
+        "semantics": "仅表示客户本人的人名"
+      },
+      {
+        "source": "application_boundary",
+        "judge_scope": "parser_condition_semantics_only",
+        "result_set_verified": false,
+        "downstream_status": "not_verified"
+      },
+      {
+        "source": "condition_comparison",
+        "wrong": [],
+        "missing": [],
+        "extra": [],
+        "evaluable": false,
+        "expected_source": "not_available"
+      },
+      {
+        "source": "client_search.condition_compare",
+        "wrong": [],
+        "missing": [],
+        "extra": []
+      }
+    ],
+    "reasoning_summary": "裸姓名“杨杰”意图检索客户本人姓名为杨杰的客户。actual 交付 searchClientName=杨杰（MATCH），字段语义为客户本人人名、操作符在支持列表内，值原样保留，AND 单条件无额外收窄，与意图一致；下游结果集未验证，按 parser 条件语义判 fulfilled。",
+    "summary": {
+      "reason": "fulfilled · 2 blocking expectations all met · 裸姓名“杨杰”意图检索客户本人姓名为杨杰的客户。actual 交付 searchClientName=杨杰（MATCH），字段语义为客户本人人名、操作符在支持列表内，值原样保留，AND 单条件无额外收窄，与意图一致；下游结果集未验证，按 parser 条件语义判 fulfilled。",
+      "primary_failure_dimensions": [],
+      "reason_source": "aggregated_fulfillment",
+      "fulfillment_status": "fulfilled",
+      "assessment_count": 2,
+      "blocking_count": 2,
+      "is_formal_attribution": true
+    }
+  }
+}

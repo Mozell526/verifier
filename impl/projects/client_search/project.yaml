@@ -65,6 +65,9 @@ runtime:
         timeout_seconds: 3
 
 verifier:
+  authority:
+    enabled_scopes: [capability_carrier]
+    description: 只开轴2 capability_carrier（判后承载性裁决）。其余 in-run scope 仍关，只准 draft 对照实验。
   attribution:
     enabled: false
     trace:
@@ -94,6 +97,11 @@ verifier:
       methods: [PUT, DELETE, PATCH]
       route_keywords: [reload, reindex, delete, update, create, write]
   roles:
+    judge:
+      draft:
+        enabled: true
+        module: project://draft/judge.py
+        reason: Validate the investigation-driven Judge authority contract before promotion.
     attribute:
       tool_call_limit: 8
       draft:
@@ -133,6 +141,21 @@ verifier:
             equivalent_value: [两全保险]
             basis: 字段枚举包含两全保险
         operator_compatibility:
+          - field: familyInfo.familyclientbirthday
+            operator: GTE
+            equivalent_operator: MATCH
+            condition: age lower bound converted to an inclusive birthday lower bound under the current date
+            basis: family member age-to-birthday executable conversion
+          - field: familyInfo.familyclientbirthday
+            operator: LTE
+            equivalent_operator: MATCH
+            condition: age upper bound converted to an inclusive birthday upper bound under the current date
+            basis: family member age-to-birthday executable conversion
+          - field: familyInfo.familyclientbirthday
+            operator: RANGE
+            equivalent_operator: MATCH
+            condition: age or birthday window converted to an inclusive birthday range
+            basis: family member age-to-birthday executable conversion
           - field: clientTemperature
             operator: MATCH
             equivalent_operator: CONTAINS
@@ -179,6 +202,68 @@ verifier:
             condition: birthday date range is equivalent to the family member age boundary under the current date
             basis: age-to-birthday executable conversion
   assets:
+    - asset_id: judge_investigation
+      kind: investigation
+      enabled: true
+      roles: [judge]
+      production_path: project://investigation/judge
+      candidate_path: project://draft/investigation/judge
+      replace: true
+    - asset_id: judge_business_contract
+      kind: context
+      enabled: true
+      roles: [judge]
+      production_path: project://context/judge_business_contract.md
+      candidate_path: project://draft/context/judge_business_contract.md
+      replace: true
+      metadata:
+        dimensions:
+          - search-intent-preservation
+          - downstream-query-consumability
+        product_expectation_ids:
+          - find-target-customers
+        dimension_expectation_ids:
+          search-intent-preservation:
+            - find-target-customers
+          downstream-query-consumability:
+            - find-target-customers
+        product_use_scenarios:
+          find-target-customers: 用户通过自然语言描述目标客户群体并使用客户搜索产品
+        live_boundary_sha256: da82716fcf9e829d803d6b71c5d003c107f704bf46e620478b1aa6f8b39d11fa
+        revision: 2b24c53
+    - asset_id: judge_authority_enum_values
+      kind: context
+      enabled: false
+      roles: [judge]
+      production_path: project://context/judge_authority_enum_values.md
+      candidate_path: project://draft/context/judge_authority_enum_values.md
+      replace: true
+    - asset_id: judge_authority_evaluation_boundary
+      kind: context
+      enabled: false
+      roles: [judge]
+      production_path: project://context/judge_authority_evaluation_boundary.md
+      candidate_path: project://draft/context/judge_authority_evaluation_boundary.md
+      replace: true
+    - asset_id: judge_authority_semantic_mapping
+      kind: context
+      enabled: false
+      roles: [judge]
+      production_path: project://context/judge_authority_semantic_mapping.md
+      candidate_path: project://draft/context/judge_authority_semantic_mapping.md
+      replace: true
+    - asset_id: judge_authority_query_equivalence
+      kind: context
+      enabled: false
+      roles: [judge]
+      production_path: project://context/judge_authority_query_equivalence.md
+      candidate_path: project://draft/context/judge_authority_query_equivalence.md
+      replace: true
+    - asset_id: judge_authority_resolution_tools
+      kind: tool
+      enabled: false
+      roles: [judge]
+      production_path: project://tools/search_condition_compare.py
     - asset_id: attribute_investigation
       kind: investigation
       enabled: true

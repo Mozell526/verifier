@@ -1,0 +1,3161 @@
+2026-08-15T12:55:11.069704Z  WARN codex_core_plugins::remote::remote_installed_plugin_sync: remote installed plugin bundle sync failed error=chatgpt authentication required for remote plugin catalog; api key auth is not supported
+2026-08-15T12:55:11.121553Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+2026-08-15T12:55:11.155786Z  WARN codex_core_skills::loader: ignoring interface.icon_small: icon path with '..' must resolve under plugin assets/
+2026-08-15T12:55:11.155808Z  WARN codex_core_skills::loader: ignoring interface.icon_large: icon path with '..' must resolve under plugin assets/
+2026-08-15T12:55:11.194636Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-08-15T12:55:11.195112Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-08-15T12:55:11.195321Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-08-15T12:55:11.195475Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-08-15T12:55:11.195711Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-08-15T12:55:11.195843Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-08-15T12:55:11.195950Z  WARN codex_rollout::list: state db discrepancy during find_thread_path_by_id_str_in_subdir: falling_back
+2026-08-15T12:55:11.217740Z ERROR codex_core::session::session: failed to load skill /Users/xiaozijian/.agents/skills/benchmark-curator/SKILL.md: invalid YAML: did not find expected alphabetic or numeric character at line 7 column 2, while scanning an alias at line 7 column 1
+2026-08-15T12:55:11.217760Z ERROR codex_core::session::session: failed to load skill /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier/.agents/skills/test-driven-development/SKILL.md: missing YAML frontmatter delimited by ---
+2026-08-15T12:55:11.217764Z ERROR codex_core::session::session: failed to load skill /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier/.agents/skills/bugs-explore/SKILL.md: missing YAML frontmatter delimited by ---
+OpenAI Codex v0.144.5
+--------
+workdir: /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+model: grok-4.6
+provider: custom
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: high
+reasoning summaries: none
+session id: 01a0057d-9417-7ea2-95b3-0afab9c6bc58
+--------
+user
+You are running as an isolated council peer. The role contract below wins over any other instructions on conflict.
+
+---
+# Skill
+
+---
+name: architect
+description: Independent reviewer/architect role that judges whether project issues are real problems or reasonable designs. Primarily invoked as an argue-peer by the verifier skill via `Codex -p`, but can also be invoked directly for architectural review of specific code/issues. Read-only — proposes fixes but does not modify code.
+version: 1.1.0
+---
+
+# Architect
+
+You are the Architect — an independent reviewer that judges whether issues raised against a project are real problems or reasonable designs. You operate in **read-only** mode: you analyze, reason, and propose fixes; you never modify project code.
+
+## Primary use case
+
+Invoked by the `verifier` skill as an **argue-peer** (see `~/.Codex/skills/argue-peer/README.md`). Verifier raises issues, you judge. You run in an independent `Codex -p` context — you do not share memory with the caller.
+
+## Secondary use cases
+
+- Directly invoked by users for architectural review of a specific issue or design document
+- Invoked by other skills needing an independent technical opinion
+
+## As an argue peer
+
+**Judgment perspective**: code and architectural quality, test methodology soundness, whether observed behavior is a bug or intentional design.
+
+**Evidence I look for**:
+- Reproducible test output / timing data / accuracy numbers — I try to reproduce them myself
+- Code paths that produce the observed behavior — I read the actual source
+- Project docs / README claims — does the behavior match what's documented?
+- Project-specific constraints that might justify the design
+
+**Permission**: **read-only** (review mode). I propose fixes as text — verification commands, code snippets, file:line references — but I do not apply changes.
+
+### Modify Scope (argue-peer contract)
+
+**Writable paths**:
+- The issue file under review — append response only, never overwrite prior content
+
+**Read-only (NEVER modify)**:
+- All project source code
+- All project configuration, schema, prompts
+- All data artifacts (benchmark, golden, test sets, reports)
+- Other peers' workspaces
+
+**Authorization condition**:
+- I am a read-only peer by design. I cannot "implement" fixes.
+- When verifier needs a fix implemented: I describe the fix in my Improvement Proposal; a different peer (`benchmark-curator`, `dev-agent`, etc.) or the project owner executes it.
+- If verifier asks me to implement anything, I refuse and recommend routing to an appropriate write-enabled peer.
+
+**Audit trail**:
+- Not applicable — architect makes no modifications to audit.
+- My proposals are part of the issue record, which serves as a recommendation trail.
+
+## What You Do
+
+1. Read the issue file to understand what the Verifier / caller found
+2. Read the relevant project source code to form your own understanding
+3. **Reproduce the evidence** — if test commands are provided, run them yourself
+4. Judge: real problem, reasonable design, needs more info, not actionable, or escalate to project
+5. If real problem: design an Improvement Proposal a dev agent can implement
+6. If reasonable design: explain WHY with technical reasoning grounded in the actual code
+7. If not actionable: explain what's missing
+8. If escalate-to-project: identify the blocking scope boundary or project-owner decision
+9. Append your response to the issue file (never overwrite prior content)
+
+## Judgment Options
+
+Five possible judgments. Pick one — don't hedge:
+
+- **real-problem**: The issue is valid, reproducible, needs fixing. Must include an Improvement Proposal.
+- **reasonable-design**: The behavior is intentional / acceptable given project constraints. Explain WHY with project-specific reasoning.
+- **needs-more-info**: Can't judge because specific information is missing. State exactly what you need.
+- **not-actionable**: Problem may exist but description is too vague. Triggers:
+  - Rollup issue ("28 tests fail") without per-root-cause breakdown
+  - Summary stats without specific failure examples
+  - Developer reading this couldn't locate what to fix
+  - Root cause unclear — symptoms listed but not traced to source
+
+  When not-actionable, explain exactly what the Verifier should provide instead.
+- **escalate-to-project**: The issue is real, but resolution depends on a project-side decision or on modifications outside your read-only scope. State what must be decided or changed, and by whom.
+
+## Evaluation Criteria by Issue Class
+
+### Functionality
+- Can you reproduce the bug?
+- Is the behavior wrong, or an undocumented feature / known limitation?
+- Do docs describe this as expected?
+
+### Effectiveness
+- Is the test methodology sound? (correct golden, fair cases, valid metrics)
+- Is accuracy acceptable for stated goals?
+- Failure cases edge or core?
+- Would a reasonable user consider this acceptable?
+
+### Performance
+- Is measurement methodology valid? (warm-up, sample size, representative load)
+- Is performance within stated targets?
+- Are targets themselves reasonable?
+- Is bottleneck in project code or external dependency?
+- **Did Verifier test the critical path?** If project bottleneck is LLM latency but only regex speed was measured, flag as incomplete testing.
+
+### Extreme / limit testing
+- Did Verifier push the system to the edge of its promises, not just the happy path?
+- Were boundary inversions tested (present/absent, allowed/forbidden, match/mismatch, contains/not-contains)?
+- Was stale state / reindex / rebuild / cache drift checked where relevant?
+- Was the strongest available alternative used to eliminate capability doubts before blaming the app?
+- Were oracle conflicts between docs/schema/prompt and runtime explicitly checked?
+- Were empty / malformed / max-length / unicode / repeated-input cases included where relevant?
+- If the project claims concurrency, fan-out, or volume support, was near-upper-bound load tested?
+
+### Architecture / Security
+- Real operational impact or theoretical?
+- Evidence of actual failure, or only potential?
+- Security: exploitable in project's deployment context?
+
+## Rules
+
+- **Read-only**: Never modify project code. Analyze and design only.
+- **Clear judgment**: Don't hedge.
+- **Form your own view**: Don't trust the Verifier's framing blindly — read the project source yourself.
+- **Verify the data**: If issue has test output / timing / accuracy numbers, reproduce them. If you can't, say so.
+- **Check the root cause**: Verifier may have correct symptom but wrong root cause. Trace code yourself. If you find a different or deeper root cause, say so — this is one of the most valuable things you can do.
+- **Reasonable-design requires project-specific reasoning**: "Common practice" alone is not valid. Explain WHY this design works for THIS project's constraints.
+- **Proposals must be specific**: File paths, line numbers, pseudo-code, implementation steps. Zero ambiguity.
+- **Validate your own solutions**: Before proposing, mentally trace the code to confirm the fix works. Check paths/lines are correct.
+- **Under challenge**: Address every point. If they're right, update your judgment. Stubbornness isn't a virtue. If you have evidence they're wrong, stand your ground.
+- **Don't rubber-stamp**: Weak evidence, wrong root cause, non-problem → say so.
+- **Don't be contrarian**: Solid evidence, real problem → confirm and focus on best solution.
+
+## Improvement Proposal Requirements
+
+When judging **real-problem**, the Improvement Proposal is the primary deliverable:
+
+- File paths + line numbers
+- Concrete code changes (not "add validation" — actual code/pseudo-code)
+- Copy-pasteable verification commands
+- Complete config snippets (full YAML/JSON ready to insert)
+- Zero ambiguity — no "consider whether...", no "depending on..."
+
+## Response Format
+
+```markdown
+---
+## Architect Response #{n}
+
+**Judgment**: {real-problem | reasonable-design | needs-more-info | not-actionable | escalate-to-project}
+
+**Evidence Verification**:
+{Did you reproduce the findings? What did you observe?}
+
+**Reasoning**:
+{Grounded in project code, goals, test data, your observations}
+{If reasonable-design: what specific project context makes this acceptable}
+{If real-problem: what breaks, quantified where possible}
+{If not-actionable: what's missing, what Verifier should provide instead}
+{If escalate-to-project: what decision or scope boundary blocks the fix}
+
+## Improvement Proposal (if real-problem)
+
+**Problem**: {one sentence}
+**Proposed Change**: {what, where — with file paths and line numbers}
+**Design**:
+{pseudo-code or exact code}
+**Implementation Steps**:
+1. {step with specific paths and actions}
+2. {step}
+**Risks**: {what could go wrong}
+**Verification**: {exact commands — copy-pasteable}
+**Why I Cannot Apply It**: {only for escalate-to-project}
+```
+
+## When Responding to a Challenge
+
+```markdown
+---
+## Architect Response #{n}
+
+**Addressing challenges**:
+1. {Verifier's point}: {response with technical reasoning and evidence}
+2. {Verifier's point}: {response}
+
+**Updated Judgment**: {same or changed, with explanation if changed}
+
+## Updated Improvement Proposal (if applicable)
+{revised design addressing the gaps}
+```
+
+## Cross-Issue Awareness
+
+You may receive summaries of previously confirmed issues. Use this to:
+- Spot systemic patterns (multiple symptoms, one root cause)
+- Avoid proposing conflicting solutions
+- Suggest consolidated fixes when appropriate
+
+## Synthesis Review
+
+When asked to review a `synthesis.md`, you operate at a higher level than individual issues. Job shifts from "is this bug real?" to "what are the real problems this project needs to solve?"
+
+**Do:**
+1. Read all confirmed issues and the Verifier's pattern analysis
+2. Form your own view of core problems — don't just accept Verifier's framing
+3. Challenge prioritization if you disagree:
+   - Overweighted a symptom and missed systemic cause?
+   - Missed connections between issues?
+   - Is #1 priority really the most impactful?
+4. For agreed core problems, propose strategic fix direction (not per-issue patches)
+5. Be honest about what you don't know — if prioritization depends on business context you can't see, say so
+
+**Don't:**
+- Agree with Verifier's ranking by default — if you'd rank differently, say so and explain
+- Propose solutions that conflict across issues
+- Treat all confirmed issues as equally important — call out critical vs noise
+
+
+---
+# Your Role Card (contract — wins over anything above on conflict)
+
+---
+role: architect
+kind: argue-peer
+version: 1.0.0
+enabled: true
+skill: /Users/xiaozijian/.agents/skills/architect/SKILL.md
+allowed_tools: Read,Grep
+writable_globs:
+model_default:
+---
+
+# Role Card: architect
+
+> Machine-readable contract above; prose below. If this card and
+> `architect/SKILL.md` diverge on contract fields (tools, scope), this card wins.
+
+## Perspective
+Code and architectural quality; test-methodology soundness; bug vs intentional design.
+
+## Success criterion
+Judged well = verdicts that survive later evidence: real problems confirmed with
+reproducible root causes, reasonable designs defended with project-specific
+reasoning. NOT judged by agreeing with the initiator. (Asymmetric to verifier,
+whose success is surfacing real problems; architect's is correct adjudication.)
+
+## Verdict vocabulary
+The five argue verdicts in `council/PROTOCOLS.md`.
+
+## Modify Scope
+- Writable: none (read-only peer). Implicit exception: append-only responses to
+  the issue file under review (`issues/**`).
+- Never modify: project source, config, prompts, data artifacts, other peers' workspaces.
+- Authorization: n/a — cannot implement.
+- Audit: n/a — proposals live in the issue record.
+
+## Context Contract
+- sees: the issue file under review; project source (read-only); trace files the
+  issue cites; `issues/learning.md`; confirmed-issues one-line summary; charter.
+- never-sees: the initiator's private working notes; other peers' pending
+  (unwritten) verdicts; in blind-mode experiments, the initiator's attribution
+  and severity sections.
+- writes: `## Architect Response #N` sections, append-only, with `### Spawn Evidence`.
+
+## Spawn config
+- allowed_tools: `Read,Grep` (default). `Read,Bash` only when the peer must
+  reproduce commands itself — request explicitly at spawn time.
+- model: current Codex default; charter §6 overrides.
+
+## Domain methodology
+`architect/SKILL.md` — evaluation criteria by issue class, proposal requirements,
+challenge-response format.
+
+
+---
+# Runtime constraints
+- Working directory: /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+- You may write only under: issues/**
+- Writes outside that set invalidate this round.
+- Append your verdict to the issue file; do not overwrite prior content.
+- Tool contract from the role card: Read,Bash
+
+---
+# Task
+
+Read each issue file below in full. Inspect the cited protocol files yourself. Append one Architect Response to each file. Never overwrite prior content.
+
+Issue files (respond to all three, separately):
+- /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier/issues/open/issue-022.md
+- /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier/issues/open/issue-023.md
+- /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier/issues/open/issue-024.md
+
+Do **not** review or append to issue-006 through issue-021. Those belong to other charters and already have their own status.
+
+## Your Role
+You are architect acting as an argue peer. Follow the argue protocol in ~/.codex/skills/council/PROTOCOLS.md.
+
+## Context
+Charter: /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier/issues/charter-sibling-question.md
+Discovery: /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier/issues/trace/sibling-question-discovery.md
+Prior locks: issues/open/issue-013.md, issue-014.md, issue-015.md Consensus blocks only
+Oracle: spec/alg/fulfilled.md, spec/alg/material-positioning.md, spec/alg/authority.md, spec/info-volume.md
+
+## What this run is
+The user rejected the previous public question as too narrow. They want a sibling question at the same abstraction altitude as fulfilled.md. They like looking at「尽力了」but are not sure it is the best cut. They floated「这件事，这个产品现在办得了吗？」and immediately saw it might split into two and collide with fulfilled. They rejected「放对地方 / 处置站不站得住」because「位置」is meaningless to them.
+
+This is a protocol-abstraction debate. Do not re-judge cases. Do not implement fields. Do not pick a final Chinese name.
+
+## Permission Mode
+review: append response only. Do not modify spec/**, impl/**, xlsx, or canvas.
+
+## How to write
+Do not use nested heredocs. Write each response to a temp file first, then append that file to the issue. Every response must include `### Spawn Evidence` with the spawn-id.
+
+## Investigate before judging
+Quote the protocol sections yourself. Do not treat the verifier write-up as already true.
+
+Challenge specifically:
+- 022 claims「正确承认尚未支持 / 尽力了 / 放对地方」are rater scores, not fulfilled-altitude business facts. Is that a real protocol cut, or rhetoric?
+- 023 claims the user's two kinds of「能不能做」are not two cells on one axis; only one decompression is allowed (delivery miss vs cannot-do-today). Is the 2×2 over-drawn? Did verifier smuggle「该做」without Authority?
+- 024 keeps only candidate A「今天办得了吗」. Is A still too close to「办成了没有」to survive as a public question? Should 024 be escalate-to-project rather than real-problem?
+
+If a candidate already exists in Authority statement prefixes and should stay hidden, say so. If the ontology gap is real but the public sentence belongs to the user, use escalate-to-project on 024.
+
+Do not rubber-stamp all three with the same paragraph. Pick exactly one verdict per issue from the protocol vocabulary.
+
+## Spawn Evidence (required)
+Your response MUST include a `### Spawn Evidence` section containing exactly:
+- spawn-id: ad014f66ee11ca7f
+- pid: your process id if you can observe it, else `unknown`
+A verdict whose spawn-id does not match this value is invalid.
+
+2026-08-15T12:55:13.136526Z  WARN codex_core_plugins::manager: failed to warm featured plugin ids cache error=remote featured plugin request to https://chatgpt.com/backend-api/plugins/featured failed with status 401 Unauthorized: {"detail":"Unauthorized"}
+2026-08-15T12:55:14.330591Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=file:///Users/xiaozijian/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+2026-08-15T12:55:14.333788Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=file:///Users/xiaozijian/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json
+The user wants me to act as an architect argue-peer. I need to read the issue files, inspect the cited protocol files, and append Architect Responses to each of the three issue files (022, 023, 024). ...
+codex
+I'll start by reading the argue protocol, charter, and the three issue files, then inspect the cited protocol sources myself before judging.
+exec
+/bin/zsh -lc 'cat ~/.codex/skills/council/PROTOCOLS.md && echo "===== CHARTER =====" && cat /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier/issues/charter-sibling-question.md && echo "===== PID =====" && echo $$' in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+# Council Protocols — typed edges between roles
+
+> Mechanism-library layer. Defines the interaction protocols ("edges") roles can
+> form. Moved and generalized from `~/.agents/skills/argue-peer/README.md`
+> (which is now a pointer stub).
+
+Roles never share memory. Every edge is mediated by artifacts (issue files,
+proposals, reports). Every edge type has: a message format, a verdict
+vocabulary, a round limit, and a termination condition.
+
+## Edge types
+
+| Edge | Status | Purpose |
+|---|---|---|
+| **argue** | fully specified (below) | initiator raises a finding; an independent peer challenges it until factual convergence |
+| **delegate-implement** | specified within argue (steps 5-6 of the loop) | after consensus, a write-scoped role implements + audits; initiator re-verifies |
+| **produce-review** | not yet specified | one role produces a deliverable, another reviews against the charter's oracle. Define when the first real task needs it (v2) — do not design speculatively |
+| **panel** | not yet specified | N independent reviewers, mutually invisible, plus aggregation. Define when first needed |
+
+Escalation to the user is not an edge — it is a terminal verdict
+(`escalate-to-project`) available on every edge.
+
+---
+
+# The Argue Protocol
+
+An argue peer is a role invoked by an initiator (currently: `verifier`) via
+`codex exec` in an isolated context to **independently examine an issue** the
+initiator has raised. The peer reads the issue file, forms its own judgment,
+and appends a response to the same issue file. The initiator reads the response
+and decides next steps.
+
+Think of it as a PR review mechanic where the initiator files the PR and the
+peer reviews it — but with five possible verdicts instead of approve/reject,
+and with the option for the peer to implement the fix if it has write scope.
+
+## Core Principles for Argue Peers
+
+### AP1. Investigate before judging
+
+**What**: Before issuing a verdict, read the issue, inspect the relevant project
+source, and run any checks needed to form an independent opinion.
+
+**Why**: A verdict without investigation is noise. The peer's value is being a
+second pair of eyes, not an automated stamp. Past runs have had peers that
+issued `real-problem` on every issue without reading code — no better than
+skipping argue entirely.
+
+**How to apply — before writing any verdict**:
+- Read the issue file in full
+- Read the project source files the issue references (and surrounding code)
+- If the issue claims "X happens", reproduce or check X yourself
+- If the issue's root cause feels thin, dig deeper — sometimes the real cause is
+  one level below what the initiator diagnosed
+
+**Done criteria**: Every peer response has an "Investigation" section listing
+what the peer actually read / ran.
+
+### AP2. Real tension, not rubber-stamping
+
+**What**: Peer must be willing to push back. Initiator must be willing to accept
+being wrong.
+
+**How to apply — as a peer**:
+- Conclusion correct and complete → accept clearly with `real-problem` + proposal
+- Conclusion wrong → push back with `reasonable-design` or `not-actionable`,
+  stating specifically what was missed
+- Framing right but root cause wrong → accept the issue, refine the attribution
+- Evidence insufficient → `needs-more-info` with a specific list
+
+**Red flag self-check**: Am I agreeing because the initiator sounds confident?
+Am I hedging to avoid disagreeing? Am I just echoing the initiator's fix?
+
+**Done criteria**: Over any run, peer produces a non-trivial mix of verdicts.
+All-one-verdict output is suspect.
+
+### AP3. Structured verdicts (no narrative mush)
+
+| Verdict | When to use | What to include |
+|---------|-------------|-----------------|
+| **real-problem** | Issue valid and reproducible | Root cause analysis + Improvement Proposal (file paths, specific changes, verification commands) |
+| **reasonable-design** | Behavior intentional given the target's constraints | Technical explanation grounded in THIS target's actual context, not generic hand-waving |
+| **needs-more-info** | Can't judge; specific info missing | State exactly what is needed |
+| **not-actionable** | Description too vague to act on | What's missing. Triggers: rollup issues ("N tests fail"), summary stats without examples, unclear root cause |
+| **escalate-to-project** | Real issue, fix outside peer+initiator scope | What must change, why the peer cannot make it; routes to the user / project owner |
+
+Peers must pick one. Hedging is not allowed.
+
+### AP4. Know your scope — escalate when out of reach
+
+Issues requiring project code changes (for read-only peers), schema/config
+redesign, business tradeoffs, or cross-team coordination get
+`escalate-to-project` — not circular argue. 2+ rounds without convergence on a
+feasible fix is itself an escalation signal.
+
+## Protocol contract
+
+### Spawn (initiator side)
+
+**Do not** paste `SKILL.md` into a CLI flag, and do not start the peer with an
+in-session sub-agent. Codex has no `--system-prompt`; isolation means a real
+`codex exec` process.
+
+Use the shared script with a role card (v1):
+
+```bash
+~/.codex/skills/council/bin/spawn-peer \
+  --role-card ~/.codex/skills/council/roles/{peer}.md \
+  --task-file {path_to_task_prompt} \
+  --cwd {project_path} \
+  --git-scope {project_path} \
+  --out-dir {project_path}/issues/spawn/{issue-id}-r{n}
+```
+
+The role card's front matter supplies the skill path, write-scope contract, and
+optional model (CLI flags override; charter §6 overrides model). The card text
+is prepended to the peer's prompt so the peer sees its own contract.
+Disabled cards (`enabled: false`) refuse to spawn. The script sends skill +
+card + task on stdin, and writes `meta.json` (`spawn_id`, `pid`, `exit_code`,
+`scope_valid`) plus `stdout.txt` / `stderr.txt` / `last-message.txt`.
+
+`--git-scope` snapshots `git status` before/after: any changed path outside
+the card's `writable_globs` (+ implicit `issues/**`) sets `scope_valid=false`.
+Tool lists are NOT a sandbox (proven empirically); the git check is the
+enforcement for write-scoped peers.
+
+Where `argue_task_prompt` contains:
+
+```
+Read and respond to {issue_file_path}.
+
+## Your Role
+You are {peer-skill-name} acting as an argue peer. Follow the argue protocol
+in ~/.codex/skills/council/PROTOCOLS.md.
+
+## Context
+{learning.md contents, confirmed-issues summary, charter if present}
+
+## Permission Mode
+- "review": append response only, no file modifications beyond the issue file
+- "implement": if within the peer's declared Modify Scope, may modify files to apply the fix
+
+Append your response to {issue_file_path}. Do not overwrite anything prior.
+```
+
+Anti-anchoring rule: do not frame the task in a leading way ("please confirm X
+is a bug"). Pass evidence, not confidence.
+
+### Isolation acceptance (initiator MUST apply)
+
+A peer verdict is **invalid** unless all of the following hold. Invalid
+verdicts are not argued further — the initiator records `isolation-failed`
+on the issue, does not write Consensus, and re-spawns or surfaces to the user.
+
+1. `{out-dir}/meta.json` exists, `exit_code` is 0, `isolation_valid` is true
+2. `{out-dir}/stdout.txt` is non-empty
+3. The appended peer response contains `### Spawn Evidence` whose `spawn-id`
+   equals `meta.json`'s `spawn_id`
+4. For write-scoped peers with `--git-scope`: `scope_valid` is true. An
+   out-of-scope write invalidates the round AND requires rollback of the
+   offending change before anything else proceeds
+
+In-process role-play (same context as the initiator, or a host classifier
+writing the response after blocking `codex exec`) is **not** a substitute.
+If spawn is blocked, say so and stop — do not complete the argue yourself.
+
+### Peer behavior
+
+1. **Read**: the issue file in full — initiator's original + all prior rounds
+2. **Investigate**: form an independent opinion with your own tools
+3. **Judge**: pick ONE verdict
+4. **Respond**: append a new section following the response format
+5. **Never overwrite**: append only
+
+### Response format (append to issue file)
+
+```markdown
+---
+## {Peer Skill Name} Response #{N}
+
+**Verdict**: real-problem | reasonable-design | needs-more-info | not-actionable | escalate-to-project
+
+### Spawn Evidence
+- spawn-id: {exact id from the spawn task — required}
+- pid: {peer process id or unknown}
+
+### Investigation
+{what the peer read, ran, checked}
+
+### Reasoning
+{why this verdict — grounded in specific evidence}
+
+### Improvement Proposal
+(only when verdict = real-problem or escalate-to-project)
+- **Target**: {specific files:lines, or data files, or config}
+- **Change**: {precise change — code snippet, config edit, data entry}
+- **Verification**: {command / procedure to confirm the fix works}
+- (escalate-to-project only) **Why peer cannot apply**: {boundary / decision needed}
+
+### What I Changed
+(only if permission mode = implement AND within declared scope)
+- {file}: {one line}
+
+### What's Still Needed
+(only when verdict = needs-more-info or not-actionable)
+- {specific evidence or clarification required}
+```
+
+## Permission model
+
+**The initiator is investigation-only. All modifications happen through peers,
+within each peer's own declared scope.** If the initiator could implement its
+own fixes, there would be no independent review.
+
+1. **Cast selection is the user's decision** — via the charter or `--opponent`.
+   The initiator doesn't auto-route based on issue content.
+2. **Peer's permission is the peer's own property** — declared in its role card
+   / SKILL.md "Modify Scope" section. The initiator faithfully relays it.
+
+### Scope declaration (required for every peer)
+
+Every peer MUST declare a **Modify Scope**: writable paths, explicit
+out-of-scope list, authorization condition (typically: after `real-problem`
+verdict, unchallenged), and audit requirement. See
+`council/roles/ROLE_CARD_TEMPLATE.md`.
+
+| Peer's declared scope | `--allowed-tools` |
+|----------------------|------------------|
+| Read-only (e.g., `architect`) | `Read,Grep` by default. Add `Bash` only if the peer must reproduce commands itself (may trip host agent-safety classifiers). |
+| Own workspace only (e.g., `llm-eval`) | `Read,Grep,Bash,Edit,Write` — self-enforced boundary |
+| Data-write in a subdirectory (e.g., `benchmark-curator`) | `Read,Grep,Bash,Edit,Write` — self-enforced boundary |
+| Code-write (dev-agent, future) | `Read,Grep,Bash,Edit,Write` — task-spec boundary |
+
+Codex has no Claude `--allowedTools` sandbox. `spawn-peer` runs `codex exec` with workspace-write + full-disk read, records the card's tool contract in `meta.json`, and enforces writes with the git scope check.
+If asked to work outside its scope, the peer refuses and issues
+`escalate-to-project`.
+
+### Audit trail (required for any modification)
+
+Append to `{project_path}/issues/audit-log.md`:
+
+```markdown
+## {timestamp} — {peer_name} — issue-{NNN}
+- Scope verified: files are within {peer's declared scope}
+- Files changed: {list}
+- Summary: {one paragraph}
+- Before / After: {git diff ref or inline snippet}
+- Re-verification: {pending | passed | failed}
+```
+
+A modification without an audit entry is unauthorized — flag and request rollback.
+
+### Iterative closed loop
+
+```
+1. User:       fills charter (or accepts defaults), picks cast
+2. Initiator:  discovers issue, writes issue-N.md with evidence, spawns peer
+3. Peer:       investigates, appends Response #1 (verdict + proposal)
+4. Initiator:  reviews — accept → 5 | challenge → append Challenge, goto 3
+5. Peer:       implements within its declared scope, appends audit entry
+               (or escalate-to-project if scope doesn't cover the fix → 7)
+6. Initiator:  re-runs the exact scenario from the issue's evidence
+               pass → close as fix-verified | fail → new round, goto 3
+7. Escalation: surfaces to user; user picks a different peer or routes to owner
+```
+
+The loop is not closed until step 6 passes.
+
+## Multi-round argue
+
+Max 4 rounds per issue (3 for synthesis), unless the charter says otherwise.
+If no consensus by the limit, record the disagreement and move on.
+
+## Synthesis timing
+
+Don't wait for all issues. When 3+ issues share a root-cause category, OR ~70%
+of issues have verdicts, pause and run cross-issue synthesis; feed findings back
+into remaining argues.
+
+## What this protocol does NOT cover
+
+- Cross-peer coordination (one initiator ↔ one peer per issue)
+- Peer-initiated issues (peers respond, they don't create)
+- Parallel argue rounds (sequential `codex exec` calls)
+
+## Implementation checklist for new argue peers
+
+1. SKILL.md (or role card) includes: judgment perspective, evidence sought,
+   Modify Scope declaration, whether it implements or only recommends
+2. Launchable via `codex exec` with the skill and role card in the prompt
+3. Can read/write the issue file at the provided path
+4. Follows the response format exactly
+
+## References
+
+- `council/README.md` — entry point and usage recipes
+- `council/roles/INDEX.md` — registered roles
+- `verifier/SKILL.md` — the current initiator implementation
+===== CHARTER =====
+# Charter — 和 fulfilled 同级的第二问，到底该问什么
+
+> 本轮只辩抽象，不重开 006–021，不改代码，不改协议正文。
+> 用户反馈：上一轮「产品位内有没有正确承认尚未支持」太窄，不像 fulfilled.md 那种层级。
+> 「尽力了」可以看，但不确信是最好的抽象，要看其他角度。
+> 用户自己试了几种问法，并点名：「放对地方 / 处置站不站得住」不合适，不懂位置是什么。
+> 「办得了吗」可能分成两种，且容易和 fulfilled 搅在一起。
+
+## 1. Goal & Definition of Done
+
+- Goal: 钉死第二问的抽象层级、和 fulfilled 的切面、死掉的问法、还活着的候选。
+- Done:
+  1. 每个根因一个 issue + 协议原文；
+  2. architect 独立重读协议后写 Consensus；
+  3. 给用户的是 fulfilled.md 同级的候选问法，不是功能地图，也不是上线字段名。
+
+## 2. Oracle
+
+- **对错尺子**：`spec/alg/fulfilled.md` 第一章（只看一件事、三态、不区分没办成的原因、不新增第四态）、`spec/alg/authority.md` §1 / §8.2 / §8.3、`spec/alg/material-positioning.md` 不变量 1、`spec/info-volume.md`（不引入 partial、不需要第二套对错）、013–015 Consensus（死路仍死：第四态、「尽力了=F」、用 NE 表达定位内缺口、拿系统自报当标签）。
+- **不是 oracle**：canvas、准确率、`is_supported=false`、空条件、「暂不支持」文案、常识功能地图。
+- 2 / 3 只当碰撞举例，不重判对错。
+
+## 3. Red lines
+
+- Must not touch: `src/**`、产品代码、`impl/projects/client_search/` 生产路径、xlsx、canvas、`draft/judge.py`、协议正文、`issue-006`–`issue-021`。
+- May write: `issues/**`、`trace/**`。
+- 不发明上线字段，不给最终中文名。
+
+## 4. Escalation
+
+角色不得代选：
+
+1. 活着的候选里，最终采用哪一句作为对外问法
+2. 要不要现在改 schema
+3. 去年算不算核心 / 称谓认不认 / 格式外算不算单号（仍停住）
+
+## 5. Evidence standards
+
+- 协议原文 + 013–015 已锁死路。不得用「我感觉更泛化」代替失败对象对照。
+- architect 必须自己重读 cited 协议，不抄 verifier 转述。
+- 每个候选问法必须能说明：它不偷走 fulfilled 的题；它不会把格式外和「现在办不了」收成同一个词。
+
+## 6. Budget
+
+- Max argue rounds: 4
+- Model for spawned roles: inherit current Codex model
+- 不重跑 judge；不改 prompt；不实现字段。
+
+## 7. Cast
+
+- Initiator: verifier
+- Opponent: architect
+- Reason: 问的是协议分层和抽象，不是改 golden，也不是改评测脚手架。
+===== PID =====
+79816
+
+2026-08-15T12:55:19.680838Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+Good, I have the protocol, charter, and my PID (79816). Now I need to read all three issue files and the cited protocol files. Let me also read the discovery document and the prior consensus issues.
+codex
+Next I’ll read the three issues, the protocol oracles, and the prior consensus locks so I can judge each cut independently.
+exec
+/bin/zsh -lc 'echo "===== ISSUE 022 =====" && cat /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier/issues/open/issue-022.md && echo "" && echo "===== ISSUE 023 =====" && cat /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier/issues/open/issue-023.md && echo "" && echo "===== ISSUE 024 =====" && cat /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier/issues/open/issue-024.md' in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+===== ISSUE 022 =====
+# Issue #022: 第二问必须和 fulfilled 同一层级：一件业务事实，不是评测员打分
+
+**Class**: boundary
+**Severity**: high
+**Status**: verifier-raised
+**Evidence**: code-analysis
+**Layer**: Protocol / 抽象层级
+**Cases**: 不作本轮判定对象。
+
+## Verifier Discovery
+
+用户说上一轮那句太窄：「在这个产品该做的范围内，系统有没有正确承认：这一点我们现在还不支持？」不像 `fulfilled.md` 那种层级。「尽力了」可以看，但不确信最好。「放对地方 / 处置站不站得住」不合适，不懂位置是什么。
+
+本 issue 只钉层级。候选问法的死活在 024。和 fulfilled 怎么切开在 023。
+
+### fulfilled.md 的层级是什么（不是文风）
+
+`spec/alg/fulfilled.md` §1 原文：
+
+> 我们：评测系统（Judge），只看一件事——系统有没有帮用户办成想办的事。
+>
+> 判断分两层：第一层：用户要的事办成了没有？第二层：手里的材料够不够回答第一层？
+
+同文件开篇：词表沿用 `spec/info-volume.md`，不新增第四态。§2.2：没办成「不区分原因」。期望从用户视角写，不是「输出正确的查询结构」。
+
+`spec/info-volume.md`：judge 只产出 fulfillment，不产第二套对错；不引入 partial。
+
+所以「fulfilled 那种层级」是五条结构，不是把句子写得口语一点：
+
+1. 从业务事实提问，不是从实现 / 接口 / 字段表提问
+2. 只看一件事
+3. 封闭小词表
+4. 压缩原因，不把根因当状态
+5. 「材料够不够」是能不能回答的前提，不是另一个分数
+
+`spec/alg/authority.md` §1 把另一件事已经拆走：Authority 只解决「标准是否确定」，不判断实际输出是否满足用户要求。那是输入，不是对外出口。
+
+### 上一轮那句为什么不够级
+
+「系统有没有正确承认：这一点我们现在还不支持」问的是评测员对一次披露的打分。它预设了三件事已经成立：产品位内、当前不支持、承认是对的。这是一个检查项，不是和「办成了没有」并列的业务事实。换一批产品、换一种「今天办不了」，这句话就要重写。这就是用户说的「不够泛化」。
+
+「尽力了」同样不够级。它评的是态度和努力，不是产品事实。`fulfilled.md` §5 / §7.1 / D3 已经禁止用态度换交付结论。它可以当某一格上的观感，不能当第二问本身。
+
+「放对地方」「处置站不站得住」也不够级，而且词是空的。协议里没有「位置」这个对象。用户已经明说不懂位置是啥意思。`info-volume.md` 删掉第二套对错，正是因为 fulfilled 已经是对错轴；「站不站得住」会把它偷回来。
+
+### 同级第二问必须长什么样
+
+若还要第二问，它必须能填进和 §1 一样的槽：
+
+```text
+并列的两件业务事实（不是「第一层 / 第二层」——第二层已被「材料够不够」占用）：
+  交付：用户要的事办成了没有？
+  ？？：________________________？
+```
+
+空格里必须是产品事实，能对任何产品问，不依赖「承认」「位置」「尽力」。材料不够时，第二问也可以说不清，但不能把「说不清」当成它的主业。
+
+### 不是什么
+
+- 不是推翻 013：单轴出口仍然不够。本 issue 说的是「缺的那一层该是什么层级」，不是「其实一层就够」。
+- 不是给 fulfilled 加第四态，也不是改 §2.2「不区分原因」。
+- 不是现在起中文名。
+
+### 可证伪修复（原则）
+
+任一候选问法，若不能单独成立为「一件业务事实 + 封闭词表」，或必须靠「承认 / 尽力 / 位置 / 处置」才能听懂，则未达 fulfilled.md 层级。
+
+### 未消元
+
+具体哪一句活下来，见 024。
+
+===== ISSUE 023 =====
+# Issue #023: 「办得了吗」必须切开，否则会偷走 fulfilled 的题
+
+**Class**: boundary
+**Severity**: high
+**Status**: verifier-raised
+**Evidence**: code-analysis
+**Layer**: Protocol / 切面
+**Cases**: 只作形态举例。不重开 007 / 009 / 014。
+
+## Verifier Discovery
+
+用户自己试的角度是：「这件事，这个产品现在办得了吗？」并立刻感到危险——能不能做好像有两种，且会和 fulfilled 混在一起：
+
+1. 产品应该得能做但是没做到
+2. 当前受限于一些因素就是做不到（用户说可能切得不准）
+
+本 issue 只切这一刀。014 已经钉过：共享「不能换 F」，不共享「尚未支持」。这里要把用户的两种「能不能」接到协议已有的格子上，防止第二问把 fulfilled 再问一遍。
+
+### 协议已经怎么切的
+
+`fulfilled.md` §2.2 没办成不区分原因，并且把「功能本身未实现，但用户期望已提出」写进没办成。§3 第二步把「属不属于职责、系统有没有这能力」交给 Authority，再回第三步看实际交付。
+
+`authority.md` §8.3：
+
+- 职责外 → 说不清（职责外）
+- 职责内能力缺失 + 期望未达成 → 没办成（不得降 NE）
+- 职责内正常 → 按交付判
+
+`fulfilled.md` D5：字段在清单但实际不支持，必须先问「该不该支持」；问不了是说不清，不是自动没办成。
+
+`authority.md` L467：输入坏 / 完全无关不走 Authority。
+
+014 Consensus：用户原句只覆盖 α 形态；β（事没成形）和 γ（职责外）不得使用「定位内尚未支持」；去年不得默认 α；称谓未分派。
+
+### 用户的两种「能不能」，其实不是同一根轴上的两格
+
+把它摊开，是两问的组合，不是「能不能」自己切两刀：
+
+| | 今天做得到 | 今天做不到 |
+|---|---|---|
+| 该做 | 交付问题：办成了 / 没办成。漏条件、改错值、该出没出，全在这里。这是 fulfilled 的题。 | 产品事实：认这是自己的事，但今天明确办不了。这是新格。需求未达成仍可 NF。 |
+| 不该做 | 不应出现（产品不认的事却做得到，是越权，不是「办成了」） | 职责外 / 完全无关。已有 NE。 |
+| 该不该还说不清 | — | 依据不充分。已有 NE。D5 落这里。 |
+| 事没成形 | — | 输入坏。已有 NE。不是「现在办不了」。 |
+
+所以：
+
+- 用户说的第 1 种「应该能做但是没做到」，若是指「这类事今天做得到，但这回漏了 / 做错了」——这是上表左上角，是 fulfilled，第二问不得再收。
+- 用户说的第 1 种若是指「产品该具备、但从来没做成这维」——这是右上角，和用户说的第 2 种「受限于因素就是做不到」在今天看来是同一格：该做 × 今天做不到。差别是「以后该不该补」，那是产品路线，不是评测第二问现在必须切的刀。
+- 用户说的第 2 种若把格式外、职责外也收进去，就会再次制造 014 里的大筐。
+
+「尽力了」会把整张表右边（做不到）加上事没成形，收成一个词。这就是它看起来顺、但不能当主抽象的原因。
+
+### 第二问只允许松开一处压缩
+
+fulfilled §2.2「不区分原因」必须保住：漏条件、改错值、没交付，仍然都叫没办成。
+
+第二问若存在，只允许松开这一处：
+
+> 没办成，是因为这次交付失败（左上），还是因为今天这事就办不了（右上）？
+
+不允许再松开：漏 vs 错 vs 改；也不允许把右上、职责外、输入坏合成「办不了」。
+
+### 不是什么
+
+- 不是裁定去年该不该做（章程 §4，D5）。去年只是右上角的形态候选，本轮不确认。
+- 不是把 Authority 三类前缀直接当出口。前缀是隐藏中间量（013 Consensus）。
+- 不是让 Q2 回答「该不该补到路线图」。那是产品决策。
+
+### 可证伪修复（原则）
+
+任一「办得了吗」定义，若让「这次漏了姓名」和「今天就办不了投保年」落进同一格，则偷走了 fulfilled。若让「办不了投保年」和「P07000000」落进同一格，则未修 014。
+
+### 未消元
+
+对外问句见 024。右上角要不要再拆「该补 / 不该补」，本轮不拆。
+
+===== ISSUE 024 =====
+# Issue #024: 死掉的问法和还活着的候选；角色不得代选那一句
+
+**Class**: boundary
+**Severity**: high
+**Status**: verifier-raised
+**Evidence**: code-analysis
+**Layer**: Protocol / 对外问法
+**Cases**: 无。
+
+## Verifier Discovery
+
+022 钉层级。023 钉切面。本 issue 对照用户试过的说法，列出死活，把选哪一句交给用户。
+
+013–015 已死、本轮继续死：
+
+- 给 fulfilled 加第四态 / partial
+- 「尽力了」= 办成了
+- 用说不清表达「该做但今天办不了」
+- 拿系统自报的不支持当官方标签
+
+本轮新对照的问法：
+
+| 问法 | 谁提的 | 层级（022） | 切面（023） | 裁决 |
+|---|---|---|---|---|
+| 系统有没有正确承认尚未支持 | 上一轮报告 | 评测员打分，太窄 | 只覆盖右上角，还多绑了披露质量 | 死作主问。披露对不对若以后要评，是第三轴，不是本层 |
+| 系统尽力了吗 | 用户说可以看 | 态度 / 努力，不是产品事实 | 把右上 + 职责外 + 事没成形收成一个词 | 死作主问。可当某一格上的观感，不能当抽象 |
+| 放对地方了吗 / 处置站不站得住 | 上一轮口语 | 「位置」无协议对象；「站得住」是第二套对错 | 没有格子 | 死。用户已否 |
+| 这件事办成了没有 | fulfilled.md | 已有，层级对 | 交付轴 | 活，但是 Q1，不是第二问 |
+| 这件事，今天这个产品办得了吗 | 用户试探 | 产品事实，能对任何产品问 | 必须按 023 切开，否则偷题 | **活候选 A** |
+| 这件事，今天这个产品认不认 | 本轮对照 | 产品事实，但只问职责 | 只覆盖「该不该做」，看不见右上角 | 死作单独主问。它是 A 的前提，不是 A 本身 |
+| 缺口在交付侧还是产品侧 | 本轮对照 | 像归因，不像 fulfilled 那种「一件事」 | 切得对，但 info-volume 已经在 NF/NE 之后追根因 | 死作主问。可作 A 的验算，不能取代 A |
+| 按今天产品承诺，这事处在什么状态 | 本轮对照 | 产品经理语言，不是用户视角 | 能铺开整张表，但不是「只看一件事」 | 死作对外主问。可作内部对照表 |
+
+### 活候选 A 的最小词表（不是最终中文名）
+
+问：这件事，今天这个产品办得了吗？
+
+- 办得了：该做，且今天做得到。然后由 Q1 看办成了没有。
+- 现在办不了：该做，但今天明确做不到。Q1 仍可按交付走没办成。不得因此变成办成了。
+- 不是这个问题：不该做、事没成形、或该不该还说不清。Q1 走已有的说不清。不得把这一格叫做「现在办不了」。
+
+最小验收：
+
+1. 「漏了姓名」→ 办得了 + 没办成。不能叫现在办不了。
+2. 「投保年今天就筛不了」（若业务方确认该做）→ 现在办不了 + 没办成。不能叫办成了。
+3. 「P07000000」→ 不是这个问题。不能叫现在办不了。
+4. 「查天气 / 查车牌」→ 不是这个问题。不能叫现在办不了。
+
+### 改 fulfilled.md 还是另写
+
+延续 015：fulfilled.md 最多加「这不是什么」；第二问的定义不得写进 §2 三态。写在附录、独立短文、还是 authority 消费章，以及现在改不改 schema，仍是章程 §4，角色不得代选。
+
+### 不是什么
+
+- 不是宣布采用「办得了吗」这五个字。这是候选，不是命名。
+- 不是方案 E 五值 + 披露质量（015 已否）。
+- 不是现在改 schema。
+
+### 可证伪修复（原则）
+
+若对外主问仍是「承认了没有 / 尽力了没有 / 放对地方了没有」，未修 022。若主问的「办不了」同时收编漏做和格式外，未修 023。
+
+### 未消元
+
+用户选不选 A，或是否根本不要第二问。不要第二问则 013 的出口裂缝保持为已知限制，fulfilled 维持原样。
+
+2026-08-15T12:55:27.893962Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+The issue files were truncated. I need to read the full content of issue 023 and also read all the protocol files. Let me get the full files.
+codex
+The issue files were truncated, so I’ll reread them in full and pull the protocol sections they cite.
+exec
+/bin/zsh -lc 'wc -l issues/open/issue-022.md issues/open/issue-023.md issues/open/issue-024.md issues/trace/sibling-question-discovery.md spec/alg/fulfilled.md spec/alg/authority.md spec/alg/material-positioning.md spec/info-volume.md issues/open/issue-013.md issues/open/issue-014.md issues/open/issue-015.md' in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+      70 issues/open/issue-022.md
+      76 issues/open/issue-023.md
+      65 issues/open/issue-024.md
+      27 issues/trace/sibling-question-discovery.md
+     243 spec/alg/fulfilled.md
+    1076 spec/alg/authority.md
+     191 spec/alg/material-positioning.md
+     346 spec/info-volume.md
+     299 issues/open/issue-013.md
+     262 issues/open/issue-014.md
+     286 issues/open/issue-015.md
+    2941 total
+
+2026-08-15T12:55:34.596513Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+Let me read all these files carefully. I'll start with the protocol files and the truncated issue 023, plus discovery and consensus blocks.
+exec
+/bin/zsh -lc 'cat issues/open/issue-023.md' in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+# Issue #023: 「办得了吗」必须切开，否则会偷走 fulfilled 的题
+
+**Class**: boundary
+**Severity**: high
+**Status**: verifier-raised
+**Evidence**: code-analysis
+**Layer**: Protocol / 切面
+**Cases**: 只作形态举例。不重开 007 / 009 / 014。
+
+## Verifier Discovery
+
+用户自己试的角度是：「这件事，这个产品现在办得了吗？」并立刻感到危险——能不能做好像有两种，且会和 fulfilled 混在一起：
+
+1. 产品应该得能做但是没做到
+2. 当前受限于一些因素就是做不到（用户说可能切得不准）
+
+本 issue 只切这一刀。014 已经钉过：共享「不能换 F」，不共享「尚未支持」。这里要把用户的两种「能不能」接到协议已有的格子上，防止第二问把 fulfilled 再问一遍。
+
+### 协议已经怎么切的
+
+`fulfilled.md` §2.2 没办成不区分原因，并且把「功能本身未实现，但用户期望已提出」写进没办成。§3 第二步把「属不属于职责、系统有没有这能力」交给 Authority，再回第三步看实际交付。
+
+`authority.md` §8.3：
+
+- 职责外 → 说不清（职责外）
+- 职责内能力缺失 + 期望未达成 → 没办成（不得降 NE）
+- 职责内正常 → 按交付判
+
+`fulfilled.md` D5：字段在清单但实际不支持，必须先问「该不该支持」；问不了是说不清，不是自动没办成。
+
+`authority.md` L467：输入坏 / 完全无关不走 Authority。
+
+014 Consensus：用户原句只覆盖 α 形态；β（事没成形）和 γ（职责外）不得使用「定位内尚未支持」；去年不得默认 α；称谓未分派。
+
+### 用户的两种「能不能」，其实不是同一根轴上的两格
+
+把它摊开，是两问的组合，不是「能不能」自己切两刀：
+
+| | 今天做得到 | 今天做不到 |
+|---|---|---|
+| 该做 | 交付问题：办成了 / 没办成。漏条件、改错值、该出没出，全在这里。这是 fulfilled 的题。 | 产品事实：认这是自己的事，但今天明确办不了。这是新格。需求未达成仍可 NF。 |
+| 不该做 | 不应出现（产品不认的事却做得到，是越权，不是「办成了」） | 职责外 / 完全无关。已有 NE。 |
+| 该不该还说不清 | — | 依据不充分。已有 NE。D5 落这里。 |
+| 事没成形 | — | 输入坏。已有 NE。不是「现在办不了」。 |
+
+所以：
+
+- 用户说的第 1 种「应该能做但是没做到」，若是指「这类事今天做得到，但这回漏了 / 做错了」——这是上表左上角，是 fulfilled，第二问不得再收。
+- 用户说的第 1 种若是指「产品该具备、但从来没做成这维」——这是右上角，和用户说的第 2 种「受限于因素就是做不到」在今天看来是同一格：该做 × 今天做不到。差别是「以后该不该补」，那是产品路线，不是评测第二问现在必须切的刀。
+- 用户说的第 2 种若把格式外、职责外也收进去，就会再次制造 014 里的大筐。
+
+「尽力了」会把整张表右边（做不到）加上事没成形，收成一个词。这就是它看起来顺、但不能当主抽象的原因。
+
+### 第二问只允许松开一处压缩
+
+fulfilled §2.2「不区分原因」必须保住：漏条件、改错值、没交付，仍然都叫没办成。
+
+第二问若存在，只允许松开这一处：
+
+> 没办成，是因为这次交付失败（左上），还是因为今天这事就办不了（右上）？
+
+不允许再松开：漏 vs 错 vs 改；也不允许把右上、职责外、输入坏合成「办不了」。
+
+### 不是什么
+
+- 不是裁定去年该不该做（章程 §4，D5）。去年只是右上角的形态候选，本轮不确认。
+- 不是把 Authority 三类前缀直接当出口。前缀是隐藏中间量（013 Consensus）。
+- 不是让 Q2 回答「该不该补到路线图」。那是产品决策。
+
+### 可证伪修复（原则）
+
+任一「办得了吗」定义，若让「这次漏了姓名」和「今天就办不了投保年」落进同一格，则偷走了 fulfilled。若让「办不了投保年」和「P07000000」落进同一格，则未修 014。
+
+### 未消元
+
+对外问句见 024。右上角要不要再拆「该补 / 不该补」，本轮不拆。
+
+2026-08-15T12:55:40.569318Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+Good, I have the full issue 023. Now I need to read the protocol files carefully - fulfilled.md, authority.md relevant sections, material-positioning.md, info-volume.md, and the consensus blocks from ...
+exec
+/bin/zsh -lc 'cat spec/alg/fulfilled.md' in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+# Fulfillment 三态判定协议（办成了 / 没办成 / 说不清）
+
+> 状态：草稿，待讨论。从业务角度定义 Judge 三态：`fulfilled（办成了）` /
+> `not_fulfilled（没办成）` / `not_evaluable（说不清）`。词表沿用 `spec/info-volume.md`，
+> 不新增第四态。第一章为长期协议，第二章为现状差异与一次性改造任务。
+
+# 第一章：Spec 标准
+
+## 1. 我们在评什么
+
+三个角色：
+
+- **用户**：使用业务系统的人（mock agent 扮演的角色，即 live request 的提问者），
+  不是开发/评测业务系统的人；
+- **业务系统**：被评测对象（Live），用户对它说话、它给用户结果；
+- **我们**：评测系统（Judge），只看一件事——系统有没有帮用户办成想办的事。
+
+```text
+用户期望（BusinessExpectation）
+  = 用户用这个产品想办成的事，从用户视角写（例："找到符合要求的客户"）
+  ≠ "输出正确的查询结构"（实现视角）
+
+判断分两层：
+  第一层：用户要的事办成了没有？
+  第二层：手里的材料够不够回答第一层？
+```
+
+## 2. 三个状态的定义
+
+### 2.1 办成了（fulfilled）
+
+用户要的事系统给到了，且有实打实的证据。必须同时满足：
+
+1. 属于产品职责范围（职责内）；
+2. 材料足够（该查证的查证了，没有悬而未决的依据）；
+3. 证据能证明用户要的结果确实拿到了。
+
+### 2.2 没办成（not_fulfilled）
+
+职责内、用户期望明确没达成，且责任在系统。不区分原因：
+
+- 漏条件、加多条件、改错值、条件关系理解错；
+- 静默改值、表达不了本可表达的东西；
+- 该出结果时一个结果都没出；
+- 功能本身未实现，但用户期望已提出。
+
+前提：材料足够；且已排除外部原因（数据库/接口挂了这类不怪系统，见 §4.4）。
+理由必须讲清楚，并列为长期优化点——"功能未实现"也是没办成，不降级为说不清。
+
+### 2.3 说不清（not_evaluable）
+
+该给个说法，但材料不够，无法确定办没办成。成因有四类，必须说清"差在哪儿"：
+
+| 差在哪儿 | 什么时候出现 |
+|---|---|
+| 职责外 | authority 已确认不是产品的职责（例：093 车牌、113 公司名查询） |
+| 完全无关 | 用户的事与产品完全不沾边（例：客户搜索产品里问天气）——同属 live boundary 之外 |
+| 依据不充分 | authority 真查证过仍 unresolved，分不清"本来就查不了"还是"系统漏了"（例：088 盘客当前状态） |
+| 输入坏 | 用户输入本身不可用（例：068 语音损坏），非产品职责也非评测问题 |
+
+职责外是用户确实来要过、产品没这职责；完全无关是根本没沾边。两者都在 live
+boundary 之外，都判"说不清"，只是"差在哪儿"要写清楚是哪一种。
+
+三个硬前提（防止变成垃圾桶）：
+
+1. 查证真的激活过：authority 机制真实跑过、有调用记录（"调用记录"= 本次 trace 的
+   `authority_tool_call_ids`，或本任务内相同 `decision_question` 的去重命中记录）；"没查证" ≠ "查不了"；
+2. 必须写清"差在哪儿"和缺哪份材料（缺料清单）；
+3. 是临时态：挂一次性改造限期关闭，不允许成为永久结论。
+
+## 3. 判断顺序
+
+```text
+第一步：用户要什么？
+  要结果（默认） 要拿到具体的客户/名单
+  要答复         要"能不能/有没有"的回答（请求文本明确是能力询问）
+  要处置         归并到"要结果"
+  完全无关       说不清（完全无关）
+
+第二步：属不属于产品职责、系统有没有这能力？── 由 authority 裁决
+  ├─ resolved=职责外 → 说不清（职责外）
+  ├─ resolved=职责内能力缺失 → 结合第三步实际交付：
+  │      期望未达成 → 没办成（理由 + 长期优化点）
+  │      实际达成   → 办成了
+  ├─ unresolved（真查证过仍依据不充分）→ 说不清（依据不充分）+ 缺料清单
+  └─ resolved=职责内正常 → 第三步
+
+第三步：系统实际交付了什么？
+  ├─ 有证据证明办成了 → 办成了
+  ├─ 职责内、期望未达成（漏/错/改/没交付）→ 没办成
+  ├─ 输入坏 → 说不清（输入坏）
+  └─ 无法确认办没办成 → 说不清（依据不充分，满足 §2.3 三前提）
+```
+
+第二步的约定：
+
+- "系统有没有这能力"由 authority 裁决，Judge 运行时直接采用其结论；
+  协议见 `spec/alg/authority.md`，调查产物见 `spec/alg/investigate-authority-judge.md`；
+- authority 的裁决依据是实际 Load 的原始资料；调查侧的 MaterialDecision（能力声明）
+  只是证据索引，不是裁决依据（investigate-authority-judge.md §9）；
+- authority 也可能错：harness AI 在优化评测系统时自行兜底判断，这不是 Judge 运行时
+  要做的事；
+- reference / badcase 标注不可盲信，只作线索；判据以受治理资料 + authority 裁决为准。
+
+### 3.1 Authority 开关模式
+
+上述判断顺序描述 Authority 开启时的治理判定。Authority 是可选公共能力，关闭时 Judge
+仍必须完成用户效果评价，不能把“未启用 Authority”伪装成“Authority 已查证但说不清”。
+
+Authority 关闭时：
+
+- 先识别用户核心意图和 Live 实际交付，依据当前 trace、普通业务上下文和确定性工具结果，
+  尽量判 `fulfilled` / `not_fulfilled`；
+- 核心结果缺失、错误或漏掉 blocking 维度时判 `not_fulfilled`；如实拒绝只能作为独立
+  non-blocking 透明说明，不能替代核心交付；
+- 能力/职责边界候选、coverage gap、空 conditions 或“不支持”提示本身不得触发
+  `not_evaluable`；
+- 不得声称职责内、职责外、正式语义或资料优先级已获 Authority 确认；
+- 输入坏、完全无关、实际输出或必要 trace 无法取得等不依赖 Authority 的合法成因，仍可判
+  `not_evaluable`。
+
+Authority 开启时，Judge 先形成用户意图、实际交付和决定性标准问题，再用 Authority
+resolved statement 完成最终评价。Authority 不只是 NF→NE 转换器：语义映射、查询等价、
+能力范围或职责裁决都可能使最终状态成为 fulfilled、not_fulfilled 或 not_evaluable。
+
+## 4. 常见场景
+
+### 4.1 "查不了"类
+
+用户要的东西系统说查不了，按第二步裁决：
+
+- 职责外（已确认产品不做）→ 说不清（职责外）；
+- 依据不充分（查证过仍 unresolved）→ 说不清（依据不充分）；
+- 职责内（本可/本应支持却没给）→ 没办成。例：128 合家福（枚举有同类却表达不了）、
+  148 住院医疗保险（planfullname 枚举含精确值却只回姓名）。
+
+无论哪一格，"如实告知、没编造"都只是系统态度，不是结果——如实拒绝本身不能让
+案子变成"办成了"。
+
+### 4.2 漏了/做错了
+
+职责内、给不全/给错 → 没办成。例：023 少儿万能（给了"万能型+子女"没定位到产品）、
+103 18岁的孩子（只给 clientAge 没给家庭关系）。
+
+### 4.3 等价替代
+
+系统换了一条路，达成用户底层要的目标 → 办成了（替代必须真命中用户要的实体/结果）。
+
+### 4.4 外部原因
+
+数据库里没这个人、外部服务挂了 → 不怪系统。必须有实据，不能拿猜测把系统的错推给外部。
+
+### 4.5 该回结果没回
+
+职责内、没有任何可用输出 → 没办成。"没交付"能确认就是没办成，不能包装成说不清；
+只有输出真的拿不到、确认不了才算说不清。
+
+## 5. 核心原则
+
+- 用户要的是"找到客户"这个结果，不是"被礼貌地告知办不了"；如实拒绝、态度好 ≠ 办成；
+- 不允许用"系统表现不错"把没办成/说不清包装成办成了；
+- 先分清"要什么"再谈"查不了"：要结果的，如实回答 ≠ 办成；明确要"答复"的，
+  如实回答才算办成；
+- 职责内 + 期望未达成 = 没办成；只有依据不充分（authority unresolved）才落说不清。
+
+## 6. 整体结论怎么定
+
+```text
+整体 = 用户核心诉求的聚合
+  任何一个核心诉求没办成 → 整体没办成
+  任何一个核心诉求说不清 → 整体说不清
+  全部核心诉求都办成 → 整体办成
+```
+
+两条硬规定：
+
+1. 职责内的案子，必须至少有一个覆盖用户核心诉求的"必须办成"（blocking）验收项；
+   没有任何必办验收项时，整体不得算办成（应判说不清或标记人工复核）；
+2. 不允许用"不写核心验收项"或"把核心验收项设为非必须"来躲过判断。
+
+## 7. 反面情况（永远不许发生的判法）
+
+```text
+1. 系统如实拒绝用户查不了的东西 → 整体算"办成了"       ✗
+2. 系统该出结果却没出 → 包装成"说不清"                 ✗
+3. 依据还没定论 → 靠常识/写死规则硬判"办成了/没办成"    ✗
+4. 没有任何必办验收项 → 整体算"办成了"                  ✗
+5. 用"系统态度好"替代"用户结果达成"                    ✗
+6. 填了"说不清"但不说明差在哪儿                        ✗
+7. 用猜测把系统的错推给"外部原因"                      ✗
+8. 把"要结果"曲解成"要答复"，用"我如实说了"判"办成了"  ✗
+9. "查不了"没查证就直接判"说不清"或"职责外"            ✗
+10. "说不清"不带缺料清单、不限期关闭                    ✗
+11. 凭"字段表里没有"就推定"产品职责外"（缺正向确认）    ✗
+```
+
+---
+
+# 第二章：Changes
+
+## 8. 现状与标准差距
+
+| # | 现在的做法 | 问题 | 在哪 |
+|---|---|---|---|
+| D1 | 判定标准只有"达成/未达成/判断不了"一句话，没有判定顺序 | 各项目各判各的，边界场景说不清 | `spec/info-volume.md` |
+| D2 | 没有任何必办验收项时，整体直接算"办成了" | 用户核心诉求可能没被写进验收项 | `impl/core/judge.py` |
+| D3 | draft 规则："确属能力边界外 + 如实拒绝 → 核心目标算办成了" | 与 §5 冲突；边界外应是"说不清"，不是办成 | `impl/projects/client_search/draft/judge.py` |
+| D4 | 4 个判断点全 unresolved，系统却用写死的规则预判结论 | 等于没查证就下结论；authority 覆盖极少（30 条冻结集仅个别 case 有调用记录） | `investigation/judge/docs/authority-investigation-report.json` |
+| D5 | 对"字段在清单但实际不支持"的查询强判"没办成" | 没先查证"该不该支持"；查证不了该是"说不清" | `draft/judge.py`（操作符校验） |
+| D6 | "字段在清单里"和"字段实际支持"不一致，没透传给判定 | 073 投保日期在清单但标不支持，判法漂移 | `field_definitions_args.yaml` |
+| D7 | 旧文档还用"对/错/不确定" | 与协议三态混用 | `impl/projects/client_search/judge_boundary_protocals.md` |
+| D8 | 调查合同没强制审查"互斥、保守、不许逃逸" | 写了不一定守得住 | 调查合同三态字段 |
+
+## 9. 一次性改造任务
+
+1. **判定标准写进调查合同**：每个判断角度写清三态边界，强制审查互斥、保守、不许逃逸；
+   "如实拒绝≠办成""该出结果没出≠说不清"列为强制审查项。
+2. **补齐“职责/能力”权威依据（最大缺口）**：职责类问题缺 normative_rule（业务方确认的
+   职责边界、正式术语表）和 external_fact（下游接口声明）；能力类问题的输出空间资料
+   （合法值全集等）按 `spec/alg/material-positioning.md` §4 打标：已登记信任模型
+   （§5）的标 `inlive_boundary`，未登记的保持 `current_behavior` 并推动登记。按 `spec/alg/investigate-authority-judge.md` §13 补证循环，由 Harness AI 自然识别覆盖缺口、校验层确定性校验，用缺口 `required_evidence` 驱动定向补证；"职责内外"类问题（093/113/133/138/148）同样以覆盖缺口记录，`required_evidence` 指向业务方确认的职责边界、下游接口声明；非文件资料先固化 artifact 再物化进 EvidenceSpace。补齐前，"查不了"一律按"说不清"。
+3. **改掉"如实拒绝 = 办成了"**：删 draft 里"能力边界外正确拒绝 → 核心目标算办成"。
+4. **强判"没办成"前先过 authority**：确定性强判（如操作符校验）先检查依据是否已定论；
+   依据不充分 → "说不清"（满足 §2.3 三前提）。反向同样禁止：没查证不得用"未定论"推给
+   "说不清"。
+5. **透传"在清单但不支持"**：把 `is_supported` 等能力标志传给判定，分清"字段在清单"和
+   "字段实际支持"。
+6. **堵住"无必办项 → 办成"漏洞**：职责内却无必办验收项 → 整体不得办成。
+7. **统一旧词表**：迁移 `judge_boundary_protocals.md` 的"对/错/不确定"到协议三态。
+8. **测试并重跑冻结集**：新增"如实拒绝≠办成""依据不充分强制说不清""无必办项不得办成"
+   "该出结果没出≠说不清"用例；30 条冻结集重跑，draft 优于 production 且无退化后才谈上线。
+
+## 10. 验收
+
+- 每个案子都能落到三态之一，"说不清"必带"差在哪儿"（职责外/完全无关/依据不充分/输入坏）；
+- 职责内 + 期望未达成 → 一律"没办成"，理由含长期优化点；
+- 职责外 / 依据不充分类"说不清"：每个判定都有 authority 调用记录
+  （`authority_tool_call_ids` 或复用命中记录），依据链可回溯到实际 Load 的资料；
+  验收按程序化断言，不枚举具体 case ID；
+- 完全无关（如客户搜索里问天气）→ "说不清（完全无关）"，不得用"不评"绕过判定；
+- 依据未定论的判断点全部走 authority（有调用记录），不是 0 激活；
+- 没有任何逃逸路径（不写核心验收项、无必办项、态度包装）；
+- 其他项目（deerflow / marketting-planning / QA）判定不回归。
+
+2026-08-15T12:55:47.890294Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+I need to read more of fulfilled.md - specifically the beginning that was truncated in the middle, and sections 4, 5, 7. Also authority.md sections 1, 8.2, 8.3, and L467. Plus info-volume.md, material...
+exec
+/bin/zsh -lc "sed -n '1,180p' spec/alg/fulfilled.md" in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+# Fulfillment 三态判定协议（办成了 / 没办成 / 说不清）
+
+> 状态：草稿，待讨论。从业务角度定义 Judge 三态：`fulfilled（办成了）` /
+> `not_fulfilled（没办成）` / `not_evaluable（说不清）`。词表沿用 `spec/info-volume.md`，
+> 不新增第四态。第一章为长期协议，第二章为现状差异与一次性改造任务。
+
+# 第一章：Spec 标准
+
+## 1. 我们在评什么
+
+三个角色：
+
+- **用户**：使用业务系统的人（mock agent 扮演的角色，即 live request 的提问者），
+  不是开发/评测业务系统的人；
+- **业务系统**：被评测对象（Live），用户对它说话、它给用户结果；
+- **我们**：评测系统（Judge），只看一件事——系统有没有帮用户办成想办的事。
+
+```text
+用户期望（BusinessExpectation）
+  = 用户用这个产品想办成的事，从用户视角写（例："找到符合要求的客户"）
+  ≠ "输出正确的查询结构"（实现视角）
+
+判断分两层：
+  第一层：用户要的事办成了没有？
+  第二层：手里的材料够不够回答第一层？
+```
+
+## 2. 三个状态的定义
+
+### 2.1 办成了（fulfilled）
+
+用户要的事系统给到了，且有实打实的证据。必须同时满足：
+
+1. 属于产品职责范围（职责内）；
+2. 材料足够（该查证的查证了，没有悬而未决的依据）；
+3. 证据能证明用户要的结果确实拿到了。
+
+### 2.2 没办成（not_fulfilled）
+
+职责内、用户期望明确没达成，且责任在系统。不区分原因：
+
+- 漏条件、加多条件、改错值、条件关系理解错；
+- 静默改值、表达不了本可表达的东西；
+- 该出结果时一个结果都没出；
+- 功能本身未实现，但用户期望已提出。
+
+前提：材料足够；且已排除外部原因（数据库/接口挂了这类不怪系统，见 §4.4）。
+理由必须讲清楚，并列为长期优化点——"功能未实现"也是没办成，不降级为说不清。
+
+### 2.3 说不清（not_evaluable）
+
+该给个说法，但材料不够，无法确定办没办成。成因有四类，必须说清"差在哪儿"：
+
+| 差在哪儿 | 什么时候出现 |
+|---|---|
+| 职责外 | authority 已确认不是产品的职责（例：093 车牌、113 公司名查询） |
+| 完全无关 | 用户的事与产品完全不沾边（例：客户搜索产品里问天气）——同属 live boundary 之外 |
+| 依据不充分 | authority 真查证过仍 unresolved，分不清"本来就查不了"还是"系统漏了"（例：088 盘客当前状态） |
+| 输入坏 | 用户输入本身不可用（例：068 语音损坏），非产品职责也非评测问题 |
+
+职责外是用户确实来要过、产品没这职责；完全无关是根本没沾边。两者都在 live
+boundary 之外，都判"说不清"，只是"差在哪儿"要写清楚是哪一种。
+
+三个硬前提（防止变成垃圾桶）：
+
+1. 查证真的激活过：authority 机制真实跑过、有调用记录（"调用记录"= 本次 trace 的
+   `authority_tool_call_ids`，或本任务内相同 `decision_question` 的去重命中记录）；"没查证" ≠ "查不了"；
+2. 必须写清"差在哪儿"和缺哪份材料（缺料清单）；
+3. 是临时态：挂一次性改造限期关闭，不允许成为永久结论。
+
+## 3. 判断顺序
+
+```text
+第一步：用户要什么？
+  要结果（默认） 要拿到具体的客户/名单
+  要答复         要"能不能/有没有"的回答（请求文本明确是能力询问）
+  要处置         归并到"要结果"
+  完全无关       说不清（完全无关）
+
+第二步：属不属于产品职责、系统有没有这能力？── 由 authority 裁决
+  ├─ resolved=职责外 → 说不清（职责外）
+  ├─ resolved=职责内能力缺失 → 结合第三步实际交付：
+  │      期望未达成 → 没办成（理由 + 长期优化点）
+  │      实际达成   → 办成了
+  ├─ unresolved（真查证过仍依据不充分）→ 说不清（依据不充分）+ 缺料清单
+  └─ resolved=职责内正常 → 第三步
+
+第三步：系统实际交付了什么？
+  ├─ 有证据证明办成了 → 办成了
+  ├─ 职责内、期望未达成（漏/错/改/没交付）→ 没办成
+  ├─ 输入坏 → 说不清（输入坏）
+  └─ 无法确认办没办成 → 说不清（依据不充分，满足 §2.3 三前提）
+```
+
+第二步的约定：
+
+- "系统有没有这能力"由 authority 裁决，Judge 运行时直接采用其结论；
+  协议见 `spec/alg/authority.md`，调查产物见 `spec/alg/investigate-authority-judge.md`；
+- authority 的裁决依据是实际 Load 的原始资料；调查侧的 MaterialDecision（能力声明）
+  只是证据索引，不是裁决依据（investigate-authority-judge.md §9）；
+- authority 也可能错：harness AI 在优化评测系统时自行兜底判断，这不是 Judge 运行时
+  要做的事；
+- reference / badcase 标注不可盲信，只作线索；判据以受治理资料 + authority 裁决为准。
+
+### 3.1 Authority 开关模式
+
+上述判断顺序描述 Authority 开启时的治理判定。Authority 是可选公共能力，关闭时 Judge
+仍必须完成用户效果评价，不能把“未启用 Authority”伪装成“Authority 已查证但说不清”。
+
+Authority 关闭时：
+
+- 先识别用户核心意图和 Live 实际交付，依据当前 trace、普通业务上下文和确定性工具结果，
+  尽量判 `fulfilled` / `not_fulfilled`；
+- 核心结果缺失、错误或漏掉 blocking 维度时判 `not_fulfilled`；如实拒绝只能作为独立
+  non-blocking 透明说明，不能替代核心交付；
+- 能力/职责边界候选、coverage gap、空 conditions 或“不支持”提示本身不得触发
+  `not_evaluable`；
+- 不得声称职责内、职责外、正式语义或资料优先级已获 Authority 确认；
+- 输入坏、完全无关、实际输出或必要 trace 无法取得等不依赖 Authority 的合法成因，仍可判
+  `not_evaluable`。
+
+Authority 开启时，Judge 先形成用户意图、实际交付和决定性标准问题，再用 Authority
+resolved statement 完成最终评价。Authority 不只是 NF→NE 转换器：语义映射、查询等价、
+能力范围或职责裁决都可能使最终状态成为 fulfilled、not_fulfilled 或 not_evaluable。
+
+## 4. 常见场景
+
+### 4.1 "查不了"类
+
+用户要的东西系统说查不了，按第二步裁决：
+
+- 职责外（已确认产品不做）→ 说不清（职责外）；
+- 依据不充分（查证过仍 unresolved）→ 说不清（依据不充分）；
+- 职责内（本可/本应支持却没给）→ 没办成。例：128 合家福（枚举有同类却表达不了）、
+  148 住院医疗保险（planfullname 枚举含精确值却只回姓名）。
+
+无论哪一格，"如实告知、没编造"都只是系统态度，不是结果——如实拒绝本身不能让
+案子变成"办成了"。
+
+### 4.2 漏了/做错了
+
+职责内、给不全/给错 → 没办成。例：023 少儿万能（给了"万能型+子女"没定位到产品）、
+103 18岁的孩子（只给 clientAge 没给家庭关系）。
+
+### 4.3 等价替代
+
+系统换了一条路，达成用户底层要的目标 → 办成了（替代必须真命中用户要的实体/结果）。
+
+### 4.4 外部原因
+
+数据库里没这个人、外部服务挂了 → 不怪系统。必须有实据，不能拿猜测把系统的错推给外部。
+
+### 4.5 该回结果没回
+
+职责内、没有任何可用输出 → 没办成。"没交付"能确认就是没办成，不能包装成说不清；
+只有输出真的拿不到、确认不了才算说不清。
+
+## 5. 核心原则
+
+- 用户要的是"找到客户"这个结果，不是"被礼貌地告知办不了"；如实拒绝、态度好 ≠ 办成；
+- 不允许用"系统表现不错"把没办成/说不清包装成办成了；
+- 先分清"要什么"再谈"查不了"：要结果的，如实回答 ≠ 办成；明确要"答复"的，
+  如实回答才算办成；
+- 职责内 + 期望未达成 = 没办成；只有依据不充分（authority unresolved）才落说不清。
+
+## 6. 整体结论怎么定
+
+```text
+整体 = 用户核心诉求的聚合
+  任何一个核心诉求没办成 → 整体没办成
+  任何一个核心诉求说不清 → 整体说不清
+  全部核心诉求都办成 → 整体办成
+```
+
+两条硬规定：
+
+1. 职责内的案子，必须至少有一个覆盖用户核心诉求的"必须办成"（blocking）验收项；
+   没有任何必办验收项时，整体不得算办成（应判说不清或标记人工复核）；
+2. 不允许用"不写核心验收项"或"把核心验收项设为非必须"来躲过判断。
+
+
+2026-08-15T12:55:53.807197Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+Good, I have fulfilled.md. Now I need authority.md §1, §8.2, §8.3, and around L467. Also material-positioning.md invariant 1, info-volume.md, and the consensus from 013-015.
+exec
+/bin/zsh -lc 'rg -n "''^# |''^## |''^### " spec/alg/authority.md spec/info-volume.md spec/alg/material-positioning.md' in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+spec/alg/material-positioning.md:1:# Material Positioning 协议（资料定位）
+spec/alg/material-positioning.md:9:# 第一章：定位框架
+spec/alg/material-positioning.md:11:## 1. 目标与范围
+spec/alg/material-positioning.md:25:## 2. 唯一判定轴：独立性
+spec/alg/material-positioning.md:42:## 3. 分类框架：2×2 + 接缝格
+spec/alg/material-positioning.md:60:# 第二章：conclusion_kind 四值与 Gate
+spec/alg/material-positioning.md:62:## 4. 四值定义与 Gate 行为
+spec/alg/material-positioning.md:96:### 4.1 inlive_boundary 的打标判据
+spec/alg/material-positioning.md:108:# 第三章：信任模型登记（inlive_boundary 的启用规则）
+spec/alg/material-positioning.md:110:## 5. 信任模型
+spec/alg/material-positioning.md:116:### 5.1 判定清单（声明 M1 必须全部满足；任一不满足走默认路径）
+spec/alg/material-positioning.md:128:### 5.2 登记形式（不新增 schema 字段）
+spec/alg/material-positioning.md:138:### 5.3 失效条件（登记在项目声明里）
+spec/alg/material-positioning.md:144:### 5.4 信任根只有两种
+spec/alg/material-positioning.md:158:# 第四章：与相关概念的区分
+spec/alg/material-positioning.md:160:## 6. 区分表
+spec/alg/material-positioning.md:169:## 7. 引用关系（各 spec 分工）
+spec/alg/material-positioning.md:182:# 第五章：防滥用（防 AI hack）
+spec/alg/material-positioning.md:184:## 8. 硬性禁令
+spec/alg/authority.md:1:# Authority Agent 协议
+spec/alg/authority.md:7:# 第一章：长期协议
+spec/alg/authority.md:9:## 1. 目标
+spec/alg/authority.md:32:## 2. 职责边界
+spec/alg/authority.md:59:## 3. 调用形态
+spec/alg/authority.md:93:## 4. 最小输入输出与资料空间
+spec/alg/authority.md:103:# Existing runtime types; they are not new Authority schemas.
+spec/alg/authority.md:126:### 4.1 `AuthorityRequest`
+spec/alg/authority.md:145:### 4.2 Authority 的运行时契约（宿主无关 Ports）与 verifier 适配
+spec/alg/authority.md:257:### 4.3 `AuthorityResolution`
+spec/alg/authority.md:273:## 5. Authority Agent 的判断顺序
+spec/alg/authority.md:308:## 6. 与 Investigate 的非硬依赖串联
+spec/alg/authority.md:410:## 7. Runtime 调用规则
+spec/alg/authority.md:440:## 8. 调用方消费规则
+spec/alg/authority.md:459:### 8.1 触发约束：能力/职责边界裁决必须走 Authority
+spec/alg/authority.md:470:### 8.2 decision_question 构造约束
+spec/alg/authority.md:489:### 8.3 resolved 结论的分支消费
+spec/alg/authority.md:509:### 8.4 Core 后处理硬校验
+spec/alg/authority.md:535:### 8.5 Runtime 不主动补证
+spec/alg/authority.md:564:## 9. 中文案例：客户搜索中的业务词映射
+spec/alg/authority.md:638:## 10. Validator 与审计要求
+spec/alg/authority.md:662:# 第二章：设计矛盾、冲突与裁决记录
+spec/alg/authority.md:673:## 11. 已确认的业务底线
+spec/alg/authority.md:691:## 12. 对象职责是否被重复建模
+spec/alg/authority.md:693:### 12.1 `ContextUnit`、`Tool`、`EvidenceRef` 是否应该合并
+spec/alg/authority.md:709:### 12.2 `EvidenceCatalog` 是否是必要的新概念
+spec/alg/authority.md:720:### 12.3 `AuthorityEnvironment` 是否被过度拆分
+spec/alg/authority.md:732:## 13. 资料空间、适用范围与来源绑定的冲突
+spec/alg/authority.md:734:### 13.1 资料空间与业务适用范围是不是一回事
+spec/alg/authority.md:748:### 13.2 `ProjectSpec`、`Role assets`、`ContextRun` 谁是真正的空间边界
+spec/alg/authority.md:761:### 13.3 Investigate 产物如何进入 Runtime 可发现空间
+spec/alg/authority.md:796:## 14. Authority 结论本身的边界冲突
+spec/alg/authority.md:798:### 14.1 Authority 是“资料优先级”还是“当前能否得出结论”
+spec/alg/authority.md:812:### 14.2 Authority 的调查单位到底是什么
+spec/alg/authority.md:830:### 14.3 “特殊 Case”与“通用问题类型”的冲突
+spec/alg/authority.md:841:### 14.4 Authority 与 Judge BusinessExpectation 的关系
+spec/alg/authority.md:855:## 15. 动态 Tool、ContextUnit 与证据固化的冲突
+spec/alg/authority.md:857:### 15.1 ToolResult 直接生成 EvidenceRef，还是先生成 ContextUnit
+spec/alg/authority.md:870:### 15.2 ContextUnit 由谁生成、何时生成
+spec/alg/authority.md:886:## 16. Runtime、Planning 与调用次数的冲突
+spec/alg/authority.md:903:## 17. 通用 Agent 与框架类型的冲突
+spec/alg/authority.md:918:## 18. 当前代码与协议的已知不一致
+spec/alg/authority.md:950:## 19. 当前设计不得默认的结论
+spec/alg/authority.md:970:## 20. 实施前的裁决顺序
+spec/alg/authority.md:989:# 第三章：当前项目改造边界
+spec/alg/authority.md:995:## 21. 与现有 Authority 设计的关系
+spec/alg/authority.md:1023:## 22. 一次性改造任务
+spec/alg/authority.md:1062:## 23. 实施边界
+
+2026-08-15T12:56:03.115956Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+Let me read the specific sections of authority.md, info-volume.md, and material-positioning.md. Also the consensus sections from issues 013-015.
+exec
+/bin/zsh -lc "sed -n '1,70p' spec/alg/authority.md && echo \"===== §8 =====\" && sed -n '440,540p' spec/alg/authority.md && echo \"===== §14.4 =====\" && sed -n '841,870p' spec/alg/authority.md" in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+# Authority Agent 协议
+
+> 状态：本文已完成第一轮设计裁决（2026-08-01）。裁决结论汇总见
+> `spec/alg/authority-minimal-chain.md`（v0.1）。第二章中标注"已裁决"的条目以裁决
+> 结论为准，后续新冲突追加为新条目；第一章与裁决结论冲突的表述已同步修正。
+
+# 第一章：长期协议
+
+## 1. 目标
+
+Authority 是一项通用能力，不属于 Judge 私有流程。
+
+当多份业务文档、上下游契约、配置、代码行为或人工说明对同一个业务问题给出不同
+说法时，Authority Agent 回答：
+
+> 在给定业务范围内，根据当前可取得的资料，能否确定应采用哪一种说法？
+
+Authority Agent 只解决“标准是否确定”，不判断某个实际输出是否满足用户要求。
+
+```text
+多个可能冲突的资料
+    + 一个明确的业务决定问题
+    + 业务适用条件
+    ↓
+Authority Agent
+    ↓
+resolved：当前范围内可以确定采用什么说法
+或
+unresolved：当前资料不足以确定，并说明冲突和待补证内容
+```
+
+## 2. 职责边界
+
+Authority Agent 负责：
+
+- 根据调用方提出的一个明确业务问题，读取相关 Context 和 Evidence；
+- 必要时调用检索、Key-index、业务 API、数据库观察或其他证据 Tool；
+- 区分正式业务标准、外部上下游契约、当前系统行为和辅助资料；
+- 分析来源的适用条件、上下游依赖、覆盖、替代和冲突关系；
+- 返回 `resolved` 或 `unresolved`，并保留可追溯证据和原因。
+
+Authority Agent 不负责：
+
+- 生成当前 Case 的 `BusinessExpectation`；
+- 判断 actual 是否 `fulfilled` 或 `not_fulfilled`；
+- 输出 Judge verdict、score、confidence 或 overall；
+- 为了得到确定答案而发明资料优先级；
+- 把当前代码行为自动当作正式业务标准；
+- 在没有实际证据时用模型常识补成业务结论。
+
+不同调用方自行消费 Authority 结果：
+
+| 调用方 | 依赖 Authority 且结果为 unresolved 时的业务义务 |
+|---|---|
+| Judge | 对应业务评价不得输出肯定结论，应为 `not_evaluable` 并说明原因 |
+| Mock | 不得把未确认规则伪造成标准行为 |
+| Attribute | 不得断言实现违反了尚未确定的正式规则 |
+
+## 3. 调用形态
+
+Authority 是 Agent 能力，对其他 Runtime LLM 暴露为按需调用的 Tool：
+
+```text
+主 LLM
+    ↓ 发现当前判断确实需要确认业务标准
+authority.resolve(decision_question)
+    ↓
+Authority Agent
+    ├── 使用宿主绑定的 Authority 运行时契约（verifier 内为 AuthorityEnvironment）
+    ├── 按需 Search/Load 资料、调用验证 Tool（EvidenceSpace / ToolGateway）
+===== §8 =====
+## 8. 调用方消费规则
+
+Authority Agent 不决定当前 Case 是否依赖该结论。主 LLM 在自身业务判断中决定是否
+调用；一旦调用，返回结果必须保留在当前 trace 的 Tool audit 中，不能只被模型口头
+转述。
+
+**资料定位与信息关系**：Authority 裁决时，候选资料的定位语义与信息关系以
+`spec/alg/material-positioning.md` 为准：normative_rule / external_fact >
+inlive_boundary（须项目登记信任模型）> current_behavior。能力/职责边界类问题
+（"有没有这个能力""属不属于职责"）可以用已登记信任模型的 `inlive_boundary`
+资料 resolve（可达空间问题）；`current_behavior` 永不单独作为裁决依据。
+
+Authority 是可选公共能力。调用方关闭 Authority 时，不得伪造 resolved/unresolved、职责
+内外、正式语义或资料优先级结论；但 Judge 仍应基于用户意图和当前可见交付完成非治理的
+效果评价，尽量输出 `fulfilled` / `not_fulfilled`。Authority 未启用本身不是业务
+`not_evaluable` 成因，也不等同于 Tool / Agent 执行失败。Authority 开启且决定性业务
+标准需要裁决时，调用方必须在最终 verdict 前消费 resolution；resolved statement 可能
+改变语义解释、等价判断、能力范围或职责归属，因此不能被实现为单向 NF→NE 后处理。
+
+### 8.1 触发约束：能力/职责边界裁决必须走 Authority
+
+Judge 判定“职责外”或“职责内能力缺失”这两类结论时，必须先调用 `authority.resolve`，
+不得自行断定：
+
+- “产品没有这个能力”（职责外 / 职责内能力缺失）必须以资料为依据，由 Authority 裁决；
+- 没有 Authority 调用记录的“职责外 / 依据不充分”类 not_evaluable，Core 后处理标
+  `needs_human_review`（§8.4），不静默放行；
+- “输入坏”“完全无关”两类 not_evaluable 不依赖 Authority，不受此约束
+  （fulfilled.md §2.3）。
+
+### 8.2 decision_question 构造约束
+
+Judge 需要 Authority 裁决能力/职责边界时，`decision_question` 必须是能力/边界问题，
+不是“当前输出对不对”：
+
+```text
+模板：<产品/模块> 是否支持 <用户要的能力>？或 <事项> 是否属于 <产品> 职责？
+例：客户搜索产品是否支持按车牌查询？
+例：住院医疗保险是否属于客户搜索产品可查询的险种范围？
+```
+
+约束：
+
+- 问题必须自包含业务条件（版本、渠道、场景等，§4.1），让 Authority 在绑定资料空间内
+  可裁决；
+- 不得把 live 输出内容、reference 或 Judge 期望写进问题——那是“当前输出对不对”，
+  属于 Judge 自身职责，不是 Authority 的 `decision_question`；
+- Authority 只裁决“有没有这个能力/属不属于职责”，不裁决“本次输出是否达标”。
+
+### 8.3 resolved 结论的分支消费
+
+resolved 时，能力/职责边界类问题的 `statement` 必须明确结论类型（§5），Judge 读取
+`statement` 后按类型分支：
+
+```text
+statement = 职责外（产品没有该能力/不在职责范围）
+    → FulfillmentAssessment = not_evaluable（职责外）
+    → summary 写明 statement、reason 与 basis sources
+
+statement = 职责内能力缺失（应具备但未实现/表达不了）
+    → 不强制改状态；Judge 结合 live 实际交付判断：
+        期望未达成 → not_fulfilled（理由 + 长期优化点）
+        实际达成   → fulfilled
+    → 不能因为“功能未实现”自动降级为 not_evaluable
+
+statement = 职责内正常
+    → Judge 使用 statement 和 basis evidence 继续原有评价
+```
+
+### 8.4 Core 后处理硬校验
+
+```text
+authority.resolve = unresolved（真查证过仍依据不充分）
+    → 依赖该问题的 FulfillmentAssessment = not_evaluable
+    → 挂入 resolution 的 EvidenceRef 与 reason；summary 写明 reason、
+      basis sources 和 required_evidence（缺料清单）
+
+Tool / Agent 执行失败
+    → FulfillmentAssessment = not_evaluable
+    → 原因必须写“Authority 能力不可用”，不能伪写成资料冲突
+
+assessment.status = not_evaluable
+    且成因 = 职责外 / 依据不充分（按 assessment 的 evidence 链或 reason 识别）
+    且 authority_tool_call_ids 为空
+    → 标 needs_human_review，不静默放行
+    原因：这两类 not_evaluable 必须有 Authority 真实查证的调用记录
+         （“没查证” ≠ “查不了”，fulfilled.md §2.3 三硬前提 1）
+```
+
+**assessment 挂钩（已裁决）**：Judge LLM 在依赖某次 Authority 的
+`FulfillmentAssessment` 中填写 `authority_tool_call_ids`，Core 后处理校验引用存在且
+属于当前 trace；引用不存在的调用 → 该 assessment 标 `needs_human_review`，不静默放行。
+引用的 resolution 为 unresolved 且 assessment 为 blocking → `not_evaluable`，并把
+resolution 的 EvidenceRef 挂入 assessment 的 evidence 链。
+
+### 8.5 Runtime 不主动补证
+
+Authority 只用绑定资料空间内已有的资料裁决，不主动去补证据：
+
+- 资料空间内已有资料足够 → resolved；
+- 资料空间内不足 → unresolved + `required_evidence` 缺料清单；
+===== §14.4 =====
+### 14.4 Authority 与 Judge BusinessExpectation 的关系
+
+当前第一章明确保留 Runtime `BusinessExpectation` 的原有语义：它表示当前 Case 中一条可单独
+判断的业务要求。
+
+裁决结论（2026-08-01）：Authority 不生成 expectation，也不生成 Point。Runtime Judge 在
+   判断某条 BusinessExpectation 时按需调用 Authority，并把同一调用结果引用到对应
+   Assessment（assessment 写 `authority_tool_call_ids`，Core 后处理校验引用存在，见 §8）；
+   不引入 `CaseEvaluationPoint`/`RuntimeExpectationBinding`，Judge summary 通过
+   assessment 引用的 authority tool_call 定位"哪条 not_evaluable 是因为哪个 Authority
+   问题"。一个 Authority 结论可被多个 BusinessExpectation 复用（单任务内按
+   question + snapshot 去重）。执行形态采用方案 i：Production Judge 保持单次 agentic
+   LLM 调用，`authority.resolve` 作为 Judge 的 Tool；若实测不稳再升级方案 ii。
+
+## 15. 动态 Tool、ContextUnit 与证据固化的冲突
+
+### 15.1 ToolResult 直接生成 EvidenceRef，还是先生成 ContextUnit
+
+> **已裁决（2026-08-01）**：强制路线 B（单条物化通道），废弃路线 A。Search 只发现候选、
+> Load 才能引用，适用于所有资料与 Tool 结果；"所有 ToolResult 都必须先转 ContextUnit"
+> 是长期协议结论。
+
+裁决依据：路线 A 的 ToolCall receipt 无法独立重载、无法校验 hash，会退化为"只存在于
+模型输出里的字符串列表"，故废弃。强制路线 B（单条物化通道）后，每个动态结果都会进入
+Registry，这是证据可验证的必要代价；性能问题通过 Context 预算（load_limit、
+content_char_budget）和 case-scoped 生命周期控制，而不是通过允许路线 A 绕过。
+Source/file 检索 Tool 返回的片段不能直接成为证据，必须保存完整文件或完整 key 对应
+内容。"Search 只发现候选、Load 才能引用"适用于所有资料与 Tool 结果。
+
+### 15.2 ContextUnit 由谁生成、何时生成
+
+2026-08-15T12:56:13.482249Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+I need to read more: material-positioning invariant 1, info-volume.md, and the consensus from 013-015. Also need to check authority.md around L467 which issue 023 cites as "输入坏 / 完全无关不走 Authority" - t...
+exec
+/bin/zsh -lc "echo \"===== MATERIAL POSITIONING =====\" && sed -n '1,100p' spec/alg/material-positioning.md && echo \"===== INFO VOLUME HEADINGS + KEY =====\" && sed -n '1,80p' spec/info-volume.md" in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+===== MATERIAL POSITIONING =====
+# Material Positioning 协议（资料定位）
+
+> 定义资料相对被测系统（Live）的**定位**分类：`conclusion_kind` 四值、Gate 行为、
+> 以及条件定位（`inlive_boundary`）的信任模型登记规则。
+> 调查侧按本协议给资料打标；Runtime Authority/Judge 按本协议消费 Gate。
+> 相关 spec：`spec/alg/authority.md`（裁决流程）、`spec/alg/fulfilled.md`（三态判定）、
+> `spec/alg/investigate-authority-judge.md`（MaterialDecision/CoverageGap schema 与调查协议）。
+
+# 第一章：定位框架
+
+## 1. 目标与范围
+
+每份进入调查报告或证据空间的资料，都必须能回答两个问题：
+
+1. **你站在哪里**：相对被测系统，你是独立的尺子、被测对象本身、还是边界的代理？
+2. **你能证明什么**：哪类问题可以由你裁决（Gate）？
+
+本协议定义：判定轴、分类框架、`conclusion_kind` 四值与 Gate 行为、防循环不变量、
+条件定位的信任模型登记。
+
+本协议不定义：资料的 schema 结构（→ investigate-authority-judge.md §9
+MaterialDecision）、Authority 的裁决流程（→ authority.md §5/§8）、三态判定
+（→ fulfilled.md）。
+
+## 2. 唯一判定轴：独立性
+
+`conclusion_kind` 承载的不是"三种客观现实"，而是**资料相对被测系统的定位**。
+唯一判定轴 = **资料所陈述的内容是否独立于被测系统**（不由被测系统自身的行为或
+配置决定）。
+
+- 打标依据是**独立性**，不是**出处**：出处在系统内的资料也可能描述由外部决定的
+  事实（见 §3 接缝格）；出处在系统外的资料也可能只是转述系统行为；
+- 判定顺序：
+  1. 陈述内容是否由被测系统自身决定？是 → `current_behavior`；
+  2. 否：说法是规定性（"应该"）还是描述性（"是"）？
+     - 规定性 → `normative_rule`；描述性 → `external_fact`；
+     - 例外：内容指向 Live↔外部边界的可达空间、出处在 Live 内、**且真边界
+       不可直接观测**（拿不到下游/外部的一手数据）→ `inlive_boundary`
+       （§3 接缝格、§4.1 判据）。真边界可观测时直接取外部一手数据，
+       标 `external_fact`，不需要"代理"。
+
+## 3. 分类框架：2×2 + 接缝格
+
+| 站位 \ 说法 | 说"应该"（规定性） | 说"是"（描述性） |
+|---|---|---|
+| 独立于被测系统 | `normative_rule`（独立的尺子） | `external_fact`（独立的现实） |
+| 被测系统自己 | **故意留空** | `current_behavior`（被量的东西） |
+| 接缝：出处在系统内、内容指向外部边界 | 不适用 | `inlive_boundary`（边界代理） |
+
+**故意留空的那格是防循环不变量**：不存在"被测系统自己说自己应该如何"的权威定位——
+系统自己的输出不能证明系统自己对。任何打标都不得落入该格。
+
+**接缝格**：有些资料出处在被测系统内（如 Live 的字段/枚举配置），但其陈述的空间
+由下游/外部决定（parser 造不出空间外的东西）。它既不是完全独立的现实
+（标 `external_fact` 等于在出处上说谎，且绕过 Gate 前提），也不是系统行为的自我
+描述（标 `current_behavior` 会被 Gate 卡死）→ 单列第 4 值 `inlive_boundary`。
+一句话定义：**inlive_boundary = 真边界不可观测时的可达代理**；真边界可观测时
+直接用 external_fact，不产生代理定位。
+
+# 第二章：conclusion_kind 四值与 Gate
+
+## 4. 四值定义与 Gate 行为
+
+| kind | 定位 | 回答的问题 | 能否解除正式规则 Gate |
+|---|---|---|---|
+| `current_behavior` | 被测系统自己（描述性） | 当前系统现在如何做 | 不能 |
+| `normative_rule` | 独立的尺子（规定性） | 业务、产品、监管或契约要求应该如何做 | 可以 |
+| `external_fact` | 独立的现实（描述性） | 外部系统或现实当前实际是什么 | 可以 |
+| `inlive_boundary` | 边界代理（描述性，有条件） | 系统在 Live↔外部边界上能表达/到达什么（可达能力空间） | **有条件**（见下） |
+
+**定位之间的信息关系（唯一排序规则）**：同一业务事项被多份资料覆盖时，
+外部信息优先于系统内信息：
+
+```text
+normative_rule / external_fact  >  inlive_boundary  >  current_behavior
+（外部独立信息）                  （边界代理，         （系统自身行为，
+                                    须用户同意登记）      只解释现状）
+```
+
+- `inlive_boundary` 的启用前提 = 项目已登记信任模型（§5，业务方声明，即"用户同意"）；
+- 未登记时，系统内配置资料的定位仍是 `current_behavior`，排序不变；
+- runtime 如何消费该排序（Gate 检查、resolve 流程）见 `authority.md` §8（已补
+  引言段），本 spec 不定义消费机制。
+
+**不变量**：
+
+1. `current_behavior` 类 Decision 只能解释系统现状，永远不能代替 `normative_rule`
+   或 `external_fact` 类 Decision；覆盖缺口必须标注缺的是哪一类定位的资料，不得用
+   当前行为类资料冒充正式规则或外部事实；
+2. `inlive_boundary` 类 Decision 的合法性来自"空间由下游决定、parser 造不出空间外
+   的东西"：**只升级空间（有什么），不升级选择（本次选哪个）**；解析规则、时间换算、
+   归一选择属于系统行为，仍受 `current_behavior` 限制；
+3. 发现 Live 输出空间外的字段/值（漂移）是**发现信号**，不是掩盖点；漂移出现时
+   信任模型按 §5.3 失效/降级。
+
+### 4.1 inlive_boundary 的打标判据
+
+可标 `inlive_boundary` 的陈述必须同时满足：
+
+- 陈述对象是 Live↔外部边界上的**可达空间**：字段空间、枚举值空间、操作符空间、
+===== INFO VOLUME HEADINGS + KEY =====
+
+
+完整方案总结
+
+核心定位
+
+两件事，职责严格分开：
+
+归因Skill：离线运行的"系统能力构建者"。通过模拟操作原业务系统、构建 tool、模拟调用归因 agent 做实验，验证 tool
+和调用链路的有效性。产出物是"经过实验验证的 tool 体系 + 信息边界声明"。
+
+归因 agent：在线运行的"缺陷定位者"。在 Skill 提供的 tool
+体系范围内，基于有限资源推理最可能的业务系统缺陷点，产出"诊断 + 可执行验证步骤 + 定向修复建议"，但不改代码。
+
+---
+Skill 设计
+
+职责
+
+确保归因启动时，tool 体系是完整的、经过验证的。不做归因推理，只做"系统能力构建 + 实验验证"。
+
+核心工作流
+
+1. 模拟操作原业务系统
+- 用历史 case 的 trace 数据喂给现有 tool，看 actual 是否有信息量
+- 调原业务系统 API/函数，理解什么信息对归因有用
+
+2. 构建候选 tool
+- 从业务系统源码、配置、API 自动推导出候选 VerifiableTool
+- 构建方式：endpoint 自动发现（已有）、源码函数提取、配置规则映射...
+
+3. 模拟调用归因做实验验证
+- 用历史 case + 现有 tool catalog，模拟归因 agent 推理
+- 观察在哪个环节卡住、哪类信息调不出来
+- 加入候选 tool，重新模拟，看归因能不能跑通
+- 跑通才确认 tool 有效，跑不通换构建方式
+
+4. 产出
+- 经过实验验证的完整 tool 体系
+- 信息边界声明（哪些维度真正不可达）
+- 建议补齐清单（对无法自动构建的 tool，提示 adapter 扩展）
+
+权限约束
+
+- 自动执行：纯机械生成（如 endpoint 发现扫描落盘），不涉及业务判断
+- 只出建议：需要人工拍板的（如业务函数选哪些做成 tool），产出建议清单
+- 模拟实验在隔离环境跑，不进真实归因回路
+
+---
+归因 agent 设计
+
+输入
+
+- trace + judge 结果
+- Skill 提供的 tool catalog（经过验证的完整体系）
+- 信息边界声明（不可达维度）
+
+推理使用约束
+
+1. 只基于可达信息推理
+归因只在 tool catalog 覆盖范围内规划 tool 调用。不可达维度在结论中标注"受信息边界限制"，不尝试调用、不硬凑。
+
+2. tool 调用基于"信息缺口 × 证据类型"匹配
+每个 tool 声明自己的证据类型（纯能力声明，不含操作指引）。LLM 推理路径是"我缺什么证据 → 谁的证据类型匹配 →
+调它"，不是按预设顺序。
+
+3. 反思回合
+每轮 tool call 后，LLM
+产出"当前已知/未知"的轻量反思。下一轮基于信息状态决定调什么。反思只问信息状态，不暗示步骤——链路由 LLM
+动态形成，不是人预设的工作流。
+
+4. 不承担"系统缺什么"的判断
+imcomplete_reason 只区分"可达信息不足"和"推理链路断裂"，不写"系统缺 X tool"——那是 Skill 的事。
+
+产出
+
+- 最可能缺陷点（suspected_locations + root_cause_hypothesis）
+- 可执行验证步骤（"调 X tool 传 Y 参数，若返回 Z 则假设成立"）
+- 定向修复建议（指向具体业务函数/配置/规则 + 描述修法，不写代码）
+- 证据强度标注（证据强的假设排前面，弱的排后面，无证据的不硬凑）
+
+2026-08-15T12:56:19.266109Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+Hmm, the info-volume.md file seems to have unexpected content at the beginning. Let me check if it's the right file and find the relevant sections about fulfillment and not introducing partial.
+exec
+/bin/zsh -lc "rg -n \"fulfillment|partial|对错|第二套|办成|not_evaluable|三态\" spec/info-volume.md | head -80 && echo \"===== FILE START =====\" && wc -l spec/info-volume.md && echo \"===== FIRST 30 LINES RAW =====\" && python3 -c \"
+with open('spec/info-volume.md') as f:
+    for i, line in enumerate(f, 1):
+        if i <= 50:
+            print(f'{i:3}|{line}', end='')
+\"" in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+221:- 同理，该项目的判定逻辑——业务预期怎么提取、fulfillment 怎么评、verdict 怎么定
+264:- not_evaluable — 判断不了。业务上真有问题、报错了、或者信息不足无法判断时填这个，不能假装判断得了。
+266:关键约束：不允许在不具备判断条件时强行填 fulfilled 或 not_fulfilled。业务报错、信息缺失、判断不了，就只能填 not_evaluable，不能为了"给个结论"而硬凑。
+270:- 细粒度 fulfilled：每条 business_expectation 单独评估，值域 fulfilled / not_fulfilled / not_evaluable
+271:- 整体 fulfilled：聚合细粒度结果得出的总体业务情况，值域完全相同，依然是 fulfilled / not_fulfilled / not_evaluable，不引入 partial 之类的新枚举
+277:judge 只产出 fulfillment（细粒度 + 整体两层），不产 verdict。verdict（correct/incorrect 之类）这个维度被删掉，因为 fulfilled
+278:已经表达了对错，不需要再引入第二个对错维度。
+283:- 整体 not_fulfilled 或 not_evaluable → 归因追哪些预期没达成/判断不了的根因
+284:- 根据哪些预期 not_fulfilled / not_evaluable 决定追哪些根因
+286:逻辑比之前用 verdict 直接，因为不用从 correct/incorrect 反推回"哪些预期没满足"，fulfillment 状态本身就是归因输入。
+313:- fulfillment_assessments — 每条预期的 fulfilled 状态（细粒度）
+314:- overall_fulfillment — 整体 fulfilled 状态
+===== FILE START =====
+     346 spec/info-volume.md
+===== FIRST 30 LINES RAW =====
+  1|
+  2|
+  3|完整方案总结
+  4|
+  5|核心定位
+  6|
+  7|两件事，职责严格分开：
+  8|
+  9|归因Skill：离线运行的"系统能力构建者"。通过模拟操作原业务系统、构建 tool、模拟调用归因 agent 做实验，验证 tool
+ 10|和调用链路的有效性。产出物是"经过实验验证的 tool 体系 + 信息边界声明"。
+ 11|
+ 12|归因 agent：在线运行的"缺陷定位者"。在 Skill 提供的 tool
+ 13|体系范围内，基于有限资源推理最可能的业务系统缺陷点，产出"诊断 + 可执行验证步骤 + 定向修复建议"，但不改代码。
+ 14|
+ 15|---
+ 16|Skill 设计
+ 17|
+ 18|职责
+ 19|
+ 20|确保归因启动时，tool 体系是完整的、经过验证的。不做归因推理，只做"系统能力构建 + 实验验证"。
+ 21|
+ 22|核心工作流
+ 23|
+ 24|1. 模拟操作原业务系统
+ 25|- 用历史 case 的 trace 数据喂给现有 tool，看 actual 是否有信息量
+ 26|- 调原业务系统 API/函数，理解什么信息对归因有用
+ 27|
+ 28|2. 构建候选 tool
+ 29|- 从业务系统源码、配置、API 自动推导出候选 VerifiableTool
+ 30|- 构建方式：endpoint 自动发现（已有）、源码函数提取、配置规则映射...
+ 31|
+ 32|3. 模拟调用归因做实验验证
+ 33|- 用历史 case + 现有 tool catalog，模拟归因 agent 推理
+ 34|- 观察在哪个环节卡住、哪类信息调不出来
+ 35|- 加入候选 tool，重新模拟，看归因能不能跑通
+ 36|- 跑通才确认 tool 有效，跑不通换构建方式
+ 37|
+ 38|4. 产出
+ 39|- 经过实验验证的完整 tool 体系
+ 40|- 信息边界声明（哪些维度真正不可达）
+ 41|- 建议补齐清单（对无法自动构建的 tool，提示 adapter 扩展）
+ 42|
+ 43|权限约束
+ 44|
+ 45|- 自动执行：纯机械生成（如 endpoint 发现扫描落盘），不涉及业务判断
+ 46|- 只出建议：需要人工拍板的（如业务函数选哪些做成 tool），产出建议清单
+ 47|- 模拟实验在隔离环境跑，不进真实归因回路
+ 48|
+ 49|---
+ 50|归因 agent 设计
+
+2026-08-15T12:56:26.780582Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+Let me read the relevant sections of info-volume.md around lines 250-330, and also the consensus sections of issues 013-015. Also the discovery file and more of authority.md §8.2 (the truncated part)....
+exec
+/bin/zsh -lc "sed -n '250,330p' spec/info-volume.md && echo \"===== AUTHORITY 8.2 FULL =====\" && sed -n '470,490p' spec/alg/authority.md && echo \"===== DISCOVERY =====\" && cat issues/trace/sibling-question-discovery.md" in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+------------
+
+
+
+fulfilled 完整描述
+
+核心定义
+
+fulfilled 是 judge 阶段对业务预期达成情况的判定，必须基于业务实际情况得出结论，不是 LLM 凭空猜测。
+
+枚举值（三层，值域统一）
+
+- fulfilled — 业务预期实际达成了。必须有业务实际证据支撑，不是"看起来对"或"LLM 觉得对"。
+- not_fulfilled — 业务预期实际没有达成。必须有业务实际证据证明没达成，比如实际输出和预期不符、实际行为没发生。
+- not_evaluable — 判断不了。业务上真有问题、报错了、或者信息不足无法判断时填这个，不能假装判断得了。
+
+关键约束：不允许在不具备判断条件时强行填 fulfilled 或 not_fulfilled。业务报错、信息缺失、判断不了，就只能填 not_evaluable，不能为了"给个结论"而硬凑。
+
+两层结构
+
+- 细粒度 fulfilled：每条 business_expectation 单独评估，值域 fulfilled / not_fulfilled / not_evaluable
+- 整体 fulfilled：聚合细粒度结果得出的总体业务情况，值域完全相同，依然是 fulfilled / not_fulfilled / not_evaluable，不引入 partial 之类的新枚举
+
+整体只是聚合语义，不发明新状态。
+
+judge 产出
+
+judge 只产出 fulfillment（细粒度 + 整体两层），不产 verdict。verdict（correct/incorrect 之类）这个维度被删掉，因为 fulfilled
+已经表达了对错，不需要再引入第二个对错维度。
+
+归因使用方式
+
+- 整体 fulfilled → 归因直接产 no_issue，不追失败根因
+- 整体 not_fulfilled 或 not_evaluable → 归因追哪些预期没达成/判断不了的根因
+- 根据哪些预期 not_fulfilled / not_evaluable 决定追哪些根因
+
+逻辑比之前用 verdict 直接，因为不用从 correct/incorrect 反推回"哪些预期没满足"，fulfillment 状态本身就是归因输入。
+
+
+
+
+
+
+---------once at 20260707
+
+
+
+我们总体盘点下，其实之前无轮judge还是attribute，都有大量非通用意义必要的字段在相关schema中，很多是没必要作为各项目通用字段存在的，我觉得需要盘点下，协议角度应该只保留必要的部分
+
+你这个判断是对的。从前面读过的代码看，judge 和 attribute 的 schema 里确实堆了大量项目个性化字段，通用层不该背这些。
+
+该清理的方向
+
+JudgeResult 该砍的：
+- intent_model / reconstructed_intent / consumer_contract — 这些是 client_search 类项目为了反推用户意图塞进来的，不是所有项目都有 intent 概念
+- semantic_equivalence_checks / verdict_derivation / boundary_decision / evaluation_boundary — 这些是某个项目判定流程的中间产物，不该当通用字段
+- judge_basis / judge_method — 项目特有判定方法的标注，通用层不需要
+- quality_flags / needs_human_review — 评估流程的元信息，不是判定本身
+- verdict — 前面已经讨论要删
+
+JudgeResult 该保留的：
+- trace_id / project_id — 标识
+- business_expectations — 业务预期列表（细粒度）
+- fulfillment_assessments — 每条预期的 fulfilled 状态（细粒度）
+- overall_fulfillment — 整体 fulfilled 状态
+- evidence / reasoning_summary — 判定依据
+
+AttributeResult 该砍的：
+- causal_category / taxonomy — 项目特有分类体系，不该通用化（marketing-planning 和 client_search 的分类完全不同）
+- chain_nodes / earliest_divergence — 某类项目为了链路归因塞的结构，不是所有归因都走链路
+- evidence_coverage — 归因质量自评指标，是流程字段不是归因结论
+- analysis_quality / incomplete_reason — 前面讨论过，归因 agent 不产 incomplete_reason
+- verification_steps / patch_direction — 这些是归因产出，但是否所有项目都需要这两类产出值得商榷
+- raw_model_output — LLM 调用的原始记录，是 debug 字段不是归因结论
+- tool_call_log — 同上，是执行记录
+
+AttributeResult 该保留的：
+- trace_id / project_id / case_id — 标识
+- suspected_locations — 缺陷点定位
+- root_cause_hypothesis — 最可能的根因假设
+- evidence — 支撑假设的证据
+===== AUTHORITY 8.2 FULL =====
+### 8.2 decision_question 构造约束
+
+Judge 需要 Authority 裁决能力/职责边界时，`decision_question` 必须是能力/边界问题，
+不是“当前输出对不对”：
+
+```text
+模板：<产品/模块> 是否支持 <用户要的能力>？或 <事项> 是否属于 <产品> 职责？
+例：客户搜索产品是否支持按车牌查询？
+例：住院医疗保险是否属于客户搜索产品可查询的险种范围？
+```
+
+约束：
+
+- 问题必须自包含业务条件（版本、渠道、场景等，§4.1），让 Authority 在绑定资料空间内
+  可裁决；
+- 不得把 live 输出内容、reference 或 Judge 期望写进问题——那是“当前输出对不对”，
+  属于 Judge 自身职责，不是 Authority 的 `decision_question`；
+- Authority 只裁决“有没有这个能力/属不属于职责”，不裁决“本次输出是否达标”。
+
+### 8.3 resolved 结论的分支消费
+
+===== DISCOVERY =====
+# Discovery — 第二问要抬到 fulfilled.md 同级
+
+用户原话要点：
+
+1. 「尽力了」可以看，但不确信是最好抽象，要看其他角度。
+2. 「在这个产品该做的范围内，系统有没有正确承认：这一点我们现在还不支持？」太窄，没有泛化感；要换说法。
+3. 抽象层级尽量类似 fulfilled.md。
+4. 用户试探：「这件事，这个产品现在办得了吗？」
+   - a) 类似 fulfilled：有没有做到用户需求
+   - b) 类似我们能不能做；能不能做又分两种：
+     1. 产品应该得能做但是没做到
+     2. 当前受限于一些因素就是做不到（描述未切准）
+   - 这两种可能和 fulfilled 混在一起
+5. 「系统把用户这件事，放对地方了吗？」「按今天的产品定位，这次处置站不站得住？」——看着不合适，不懂位置是啥意思。
+
+fulfilled.md 的「层级」不是文风，是这几条结构：
+
+- 从业务角度，不是实现角度
+- 只看一件事
+- 封闭三态，不新增第四态
+- 没办成不区分原因
+- 期望从用户视角写
+- 材料够不够是回答第一层的前提，不是另一个对错
+
+所以第二问如果存在，必须也是「一件事 + 封闭词表 + 业务事实」，不能是评测员对态度/位置/披露的打分。
+
+013–015 已锁：不能第四态、不能尽力了=F、不能用 NE 表达定位内缺口、不能拿系统自报当标签。本轮不重开这些死路，只重开「那一句问法」。
+
+2026-08-15T12:56:33.856832Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+Now I need to read the consensus blocks from issues 013, 014, and 015. The task says "Prior locks: issues/open/issue-013.md, issue-014.md, issue-015.md Consensus blocks only". Let me extract those con...
+exec
+/bin/zsh -lc 'rg -n "Consensus|Architect Response|Judgment|死路|第四态|尚未支持|尽力了|定位内|系统自报|方案 E" issues/open/issue-013.md issues/open/issue-014.md issues/open/issue-015.md' in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+issues/open/issue-014.md:1:# Issue #014: 「去年」和「格式外/称谓」共享「不能换 F」，但不共享「尚未支持」
+issues/open/issue-014.md:20:3. 因此 **不能** 用「我尽力了 / 我如实说了」把整体标成 fulfilled。`fulfilled.md` §5、§7.1、§7.8、D3 对两边同样成立。
+issues/open/issue-014.md:28:| 格 | 问的是什么 | 形态举例 | Authority / 空间上像什么 | 若合成一个「尽力了」标签会怎样 |
+issues/open/issue-014.md:30:| α 定位内尚未支持 | 产品声称做这类检索，这一维当前明确做不了 | 「林秀微 + 全家保 + 去年」里的投保年 | `职责内能力缺失`（应具备但未实现）。空间里没有「投保年」维，但主对象（姓名/险种）在空间内 | 应进产品缺口 / 长期优化点。标签语义是「尚未支持」 |
+issues/open/issue-014.md:31:| β 未形成产品对象 | 用户给的东西落不到产品可执行对象上 | 格式外编号 `P07000000`；称谓「老板娘」当姓名 | 不是「应支持这个非法值却没支持」。positioning 不变量 3 / §8.3：空间外输出是发现信号，不是空间的一部分。输入坏是 NE 的合法格（§2.3 / §3.1） | 若标「尚未支持」，下一步就会变成「去支持 P07000000」——这是错的产品方向 |
+issues/open/issue-014.md:32:| γ 定位外 | 根本不是这个产品的事 | 客户搜索里问天气、查车牌 | `职责外` → NE（职责外） | 已经有格子；再标「尚未支持」会把职责外做进路线图 |
+issues/open/issue-014.md:36:> 产品功能定位以内，但是系统可以明确清楚当前能力尚未支持的点
+issues/open/issue-014.md:38:这句话**只覆盖 α**。β 不是「尚未支持」，是「不是产品对象」。γ 不是「定位以内」。
+issues/open/issue-014.md:45:2. **β 被当成能力缺口**：一个「尽力了 / 可支持」标签若同时收编格式外，路线图会被喂进「支持残号」「把老板娘当姓名」。009 Consensus 已经排除「拒绝=F」和「强要空间外交付」。
+issues/open/issue-014.md:47:007 要两边同侧的是 α 内部的 blocking（去年是核心还是附加），不是 α 和 β 合并。009 要排除的是 β 的两端（F 和 NF），不是把 β 改名为尚未支持。
+issues/open/issue-014.md:55:- 不是裁定去年算不算核心（章程 §4.3）。α 里无论去年是 blocking 还是 non-blocking，它仍然是「定位内尚未支持」，不是 β。
+issues/open/issue-014.md:63:- 定位内、可明确尚未支持（α）
+issues/open/issue-014.md:67:不允许用一个「尽力了」或一个「可支持能力」值同时覆盖 α 和 β。
+issues/open/issue-014.md:75:## Architect Response #1
+issues/open/issue-014.md:79:Read in full: this issue; issue-013; issue-009 Consensus; issue-007 Consensus (blocking only, not re-opened).
+issues/open/issue-014.md:91:**Judgment**: real-problem
+issues/open/issue-014.md:97:   `fulfilled.md` L160「如实拒绝、态度好 ≠ 办成」；L184 §7.1「如实拒绝 → 整体算办成了 ✗」；L191 §7.8「用我如实说了判办成了 ✗」；L207 D3 删的就是「能力边界外 + 如实拒绝 → 核心目标算办成」。009 Consensus 已经排除「拒绝=F」。这条禁令对投保年和格式外同样成立。
+issues/open/issue-014.md:102:3. User’s own sentence only covers α. 「产品功能定位以内，但是系统可以明确清楚当前能力尚未支持的点」不是 β（不是产品对象），也不是 γ（不是定位以内）。用一个「尽力了 / 可支持」值同时收编 2 和 3，会把路线图喂成「去支持 P07000000 / 把老板娘当姓名」。这是真的产品方向错误，不是用词偏好。
+issues/open/issue-014.md:111:013 说单轴不够。014 的真正载荷是：**用户的归类太粗**。2 和 3 共享「不能用尽力了换 F」，不共享「尚未支持」。
+issues/open/issue-014.md:115:用户要的标签只有一格：定位内尚未支持。为了不被滥用，硬约束是 **β、γ 不得吃到这个标签**。β 和 γ 在需求轴上已经分别住在「输入坏 NE」和「职责外 NE」。它们不必为了不被误标，就先在轴 2 拥有自己的一等枚举值。要不要做成完整划分，是 015 的编码问题，不是 014 的存在性证明。
+issues/open/issue-014.md:117:007 要两边同侧的是 α *内部* 的 blocking，不是 α 和 β 合并。009 要排除的是 β 的两端（F 和 NF），不是把 β 改名为尚未支持。这两条我同意，且不重开。
+issues/open/issue-014.md:121:**Problem**: 若把「去年」和「格式外/称谓」收进同一个「尽力了 / 尚未支持」取值，产品轴会把非法对象当成能力缺口，路线图会走错。
+issues/open/issue-014.md:127:      需求轴禁止「尽力了 / 如实拒绝 → F」。对 α 形态和 β 形态同样适用。
+issues/open/issue-014.md:130:      「定位内尚未支持」只覆盖 α 形态。
+issues/open/issue-014.md:135:      不得写「去年默认 α」。去年是否定位内 = 产品事实，须 Authority + 独立资料，不是常识。
+issues/open/issue-014.md:141:      任意「产品位内尚未支持」标签 / 字段 / 取值，用格式外编号去套必须失败。
+issues/open/issue-014.md:146:1. Consensus 收：共享的是需求轴禁令，不是产品轴同一格。
+issues/open/issue-014.md:147:2. Consensus 删：verifier 原文「2 默认落 α」。改成「去年 *若* 被业务方确认为定位内检索维，则形态是 α；本轮不确认这一前提」。
+issues/open/issue-014.md:161:## Architect Response #2
+issues/open/issue-014.md:165:Read in full: this issue; issue-013 verifier + Architect Response #1; issue-009 Consensus (not re-opened); charter §4.3 / §4.4.
+issues/open/issue-014.md:170:- issue-009 Consensus: 格式外不得 NF 也不得 F；排除「拒绝=F」与「强要空间外交付」
+issues/open/issue-014.md:177:**Judgment**: real-problem
+issues/open/issue-014.md:187:1. User’s own sentence only covers α:「产品功能定位以内，但是系统可以明确清楚当前能力尚未支持的点」. β is not a product object. γ is not 定位以内. A single「尽力了 / 尚未支持」value that also eats 格式外 would send the roadmap to「去支持 P07000000」. That is a real product-direction error. 009 Consensus already forbade both「拒绝=F」and「强要空间外交付」.
+issues/open/issue-014.md:197:- Any future token meaning「定位内尚未支持」may be applied only to the α *morphology*.
+issues/open/issue-014.md:201:007’s remaining question is blocking *inside* α, not merging α with β. 009 excludes both ends of β (F and NF), not renaming β to 尚未支持. I do not re-open either.
+issues/open/issue-014.md:207:**Problem**: If「去年」and「格式外/称谓」are stored as the same「尽力了 / 尚未支持」value, the product axis treats illegal objects as capability gaps and the roadmap goes the wrong way.
+issues/open/issue-014.md:213:      需求轴禁止「尽力了 / 如实拒绝 → F」。α 形态和 β 形态同样适用。
+issues/open/issue-014.md:216:      「定位内尚未支持」只覆盖 α 形态。
+issues/open/issue-014.md:221:      不得写「去年默认 α」。去年是否定位内 = 产品事实，须 Authority + 独立资料，不是常识，也不是 catalog `is_supported=false`（D5 / §7.11 / positioning 不变量 1）。
+issues/open/issue-014.md:227:      任意「产品位内尚未支持」标签 / 字段 / 取值，用格式外编号去套必须失败。
+issues/open/issue-014.md:232:1. Consensus 收：共享的是需求轴禁令，不是产品轴同一格。
+issues/open/issue-014.md:233:2. Consensus 删 verifier 原文「2 默认落 α」。改成「去年 *若* 被业务方确认为定位内检索维，则形态是 α；本轮不确认这一前提」。
+issues/open/issue-014.md:249:## Consensus
+issues/open/issue-014.md:251:**Official peer**: Architect Response #2 · spawn-id `6286c10358770df9`
+issues/open/issue-014.md:253:2 和 3 **不是一类**。共享的只有需求轴禁令：「尽力了 / 如实拒绝 ≠ F」。不共享「尚未支持」这一格。
+issues/open/issue-014.md:257:1. 用户原句「产品功能定位以内，系统可以明确当前尚未支持」**只覆盖 α 形态**。β（未形成产品对象 / 空间外非法输入）不是尚未支持；γ（职责外）不是定位以内，且已有 NE。
+issues/open/issue-014.md:258:2. **否掉「2 默认落 α」**。去年是否定位内是产品事实，要 Authority + 独立资料，不能靠常识，更不能靠 catalog `is_supported=false`（fulfilled D5 / §7.11 / positioning 不变量 1）。本轮不确认这一前提。
+issues/open/issue-014.md:260:4. 轴 2 **不必**先做成 α/β/γ 三值枚举。最小约束是：任何「定位内尚未支持」标签，套到格式外或职责外必须失败。β/γ 要不要晋升成轴 2 正式取值，交给 015。
+issues/open/issue-014.md:262:007 要两边同侧的是 α 内部的 blocking，不是 α 和 β 合并。009 排除的是 β 的两端（F 和 NF），不是把 β 改名为尚未支持。二者本轮都不重开。
+issues/open/issue-013.md:12:用户问的是原则：当前 `fulfilled` 判断的是用户需求是否满足；有时还要看「产品功能定位以内、系统能否明确当前尚未支持」。这层现在缺。2 和 3 只是让这层缺口露出来，不是本 issue 要重判的对象。
+issues/open/issue-013.md:16:用户原话（本轮）：2 和 3 像同一类——确实不满足业务需求，但系统当前已有能力和资料下也算尽力了；希望单独开标签，用词不要业务向的 fulfilled，而要产品定位内的可支持承认；不要做成完全 IT 的东西。要围绕原则上辩论：新增标签，还是改 `fulfilled.md`。
+issues/open/issue-013.md:28:> 词表沿用 `spec/info-volume.md`，不新增第四态。
+issues/open/issue-013.md:46:也就是说：协议已经承认「职责 / 能力」是另一类问题，但 Judge 对外只留下需求三态。用户要的「产品位内尚未支持是否被承认」在出口处被压扁了。
+issues/open/issue-013.md:55:| 产品位内、可明确尚未支持，且系统如实披露 | §7.1 / D3 禁止「如实拒绝=办成」 | 看起来像系统犯错，和漏条件无法区分 | NE 的定义是「说不清办没办成」，不是「没办成但处置对」；且是临时态 |
+issues/open/issue-013.md:62:这对**需求轴**是对的：用户要的年筛选没给到，就不是办成了。但它同时删掉了产品轴：系统是否在产品定位内正确承认「投保年尚未支持」。
+issues/open/issue-013.md:69:   回答的是「这维缺了会不会阻断核心目的」。它是权重，不是产品支持处置。一个 non-blocking 的「去年」仍然只能标 F/NF/NE，仍然回答「这维需求满足了没有」。归因侧（`info-volume.md`）对 NF/NE 会追失败根因——「正确披露尚未支持」会被当成缺陷去追。
+issues/open/issue-013.md:90:- 本 issue：即使 blocking 选对、空间闸也有，**对外词表仍然无法区分「漏做了」和「尚未支持且承认了」**。007/009 是表面；本 issue 是词表层。
+issues/open/issue-013.md:94:- 不是要把「尽力了」做成第四个 fulfilled 值（开篇已禁第四态，info-volume 禁 partial）。
+issues/open/issue-013.md:104:- 轴 2 是产品定位内的支持处置，必须能独立读出：定位内已支持 / 定位内可明确尚未支持 / 定位外 / 未形成产品对象 / 资料未定论。
+issues/open/issue-013.md:115:## Architect Response #1
+issues/open/issue-013.md:135:**Judgment**: real-problem
+issues/open/issue-013.md:140:1. Judge is specified to answer one question. `fulfilled.md` L16:「只看一件事——系统有没有帮用户办成想办的事。」L23–L25 只有「办成了没有」和「材料够不够回答第一层」。开篇 L5「不新增第四态」。`info-volume.md` L271「不引入 partial」。
+issues/open/issue-013.md:148:5. Therefore: 三态可以诚实地回答需求轴；不能同时作为产品轴的第一类出口。这不是 007 的 blocking 漂移，也不是 009 的空间闸，也不是 012 的「LLM 选半句」。即使那三道闸全修完，对外仍无法独立读出「这条是漏做，还是定位内尚未支持且被承认」。
+issues/open/issue-013.md:151:I do **not** accept the framing that `fulfilled.md` §2.2「删掉了产品轴」。产品轴从来不是 Judge 的题。§2.2 L40–L45「不区分原因」对需求轴是对的，而且是付过代价的：D3 / §5 / §7.1 专门删掉「如实拒绝 → 办成」。把「尽力了」塞回 F，或发明第四个 fulfilled 值，都是在拆已经钉死的需求轴。
+issues/open/issue-013.md:167:      禁：第四态 / partial / 「如实拒绝=F」
+issues/open/issue-013.md:177:1. 打开任意切片，能独立读出 Q1，并且能独立读出「这是不是产品位内、当前可明确尚未支持」。
+issues/open/issue-013.md:178:2. Q2 为「定位内尚未支持」时，Q1 仍可按交付走 NF；不得因此变成 F-because-refused（`fulfilled.md` L160, L184, L207）。
+issues/open/issue-013.md:182:1. Consensus 只收：单轴出口不够；已有 `blocking` / `required_capabilities` / `authority_tool_call_ids` / `inlive_boundary` 不能当 Q2。
+issues/open/issue-013.md:191:    python3 -c "from pathlib import Path; ful=Path('spec/alg/fulfilled.md').read_text(); auth=Path('spec/alg/authority.md').read_text(); sch=Path('impl/core/schema/judge.py').read_text(); gate=Path('impl/core/authority_gate.py').read_text(); judge=Path('impl/core/judge.py').read_text(); assert '不新增第四态' in ful; assert '只看一件事' in ful; assert '功能本身未实现，但用户期望已提出' in ful; assert 'prompt 约束，不新增 schema' in auth; assert '职责内能力缺失' in auth; assert '不能因为“功能未实现”自动降级为 not_evaluable' in auth; assert 'required_capabilities' in sch and 'authority_tool_call_ids' in sch; assert 'capability_gap' in gate and 'authority_capability_gap' in gate; assert '_FULFILLMENT_STATUS_VOCAB = {\"fulfilled\", \"not_fulfilled\", \"not_evaluable\"}' in judge; print('013 protocol checks ok')"
+issues/open/issue-013.md:195:## Architect Response #2
+issues/open/issue-013.md:199:Read in full: this issue; charter-unsupported-label.md; support-axis-discovery.md; Architect Response #1.
+issues/open/issue-013.md:216:**Judgment**: real-problem
+issues/open/issue-013.md:238:This is not 007 (blocking drift), not 009 (space gate), not 012 (LLM picking half a sentence). Those three can all be fixed and a consumer still cannot independently read「漏做」vs「定位内尚未支持且被承认」.
+issues/open/issue-013.md:244:**Problem**: Judge’s public vocab is single-axis; Authority’s duty/capability class is a prompt prefix consumed to rewrite status, so「办成了没有」and「产品位内是否正确承认尚未支持」cannot both be read from a JudgeResult.
+issues/open/issue-013.md:246:**Proposed Change**: Consensus records the two questions and forbids answering Q2 by retuning F/NF/NE. Do not design the axis-2 enum in this issue.
+issues/open/issue-013.md:252:      禁：第四态 / partial / 「如实拒绝=F」
+issues/open/issue-013.md:264:      1. 打开任意切片，能独立读出 Q1，并且能独立读出「这是不是产品位内、当前可明确尚未支持」。
+issues/open/issue-013.md:265:      2. Q2=定位内尚未支持 时，Q1 仍可按交付走 NF；不得变成 F-because-refused（`fulfilled.md` L160, L184, L207）。
+issues/open/issue-013.md:269:1. Consensus 只收：单轴出口不够；四个已有字段 + evidence bag 偶发 `authority_capability_gap` 不能当 Q2。
+issues/open/issue-013.md:278:    python3 -c "from pathlib import Path; ful=Path('spec/alg/fulfilled.md').read_text(); auth=Path('spec/alg/authority.md').read_text(); sch=Path('impl/core/schema/judge.py').read_text(); gate=Path('impl/core/authority_gate.py').read_text(); judge=Path('impl/core/judge.py').read_text(); assert '不新增第四态' in ful; assert '只看一件事' in ful; assert '功能本身未实现，但用户期望已提出' in ful; assert 'prompt 约束，不新增 schema' in auth; assert '不能因为“功能未实现”自动降级为 not_evaluable' in auth; assert 'required_capabilities' in sch and 'authority_tool_call_ids' in sch; assert 'capability_gap' in gate and 'authority_capability_gap' in gate; assert '_FULFILLMENT_STATUS_VOCAB = {\"fulfilled\", \"not_fulfilled\", \"not_evaluable\"}' in judge; print('013 protocol checks ok')"
+issues/open/issue-013.md:283:## Consensus
+issues/open/issue-013.md:285:**Official peer**: Architect Response #2 · spawn-id `6286c10358770df9`
+issues/open/issue-013.md:290:- Q2：产品位内，当前是否正确承认「尚未支持」
+issues/open/issue-013.md:297:4. 禁止用调三态来补 Q2：不新增第四态 / partial；不得「如实拒绝 = F」；不得把产品轴写进 fulfilled §2 的题面。产品轴从来不是 Judge 的题。
+issues/open/issue-015.md:1:# Issue #015: 不要改 fulfilled 三态，也不要第四态；缺的是正交的产品支持处置出口
+issues/open/issue-015.md:16:**方案 A：给 fulfilled 增加第四态**（partial / capability_limited / 尽力了）
+issues/open/issue-015.md:18:当场否决。`fulfilled.md` 开篇「不新增第四态」；`info-volume.md`「不引入 partial」。第四态还会把两轴压回一个词：消费者仍然不知道这是需求没满足，还是能力尽到了。归因协议按三态追失败，第四态会把整条归因链路撕开。
+issues/open/issue-015.md:20:**方案 B：改 fulfilled 定义，让「当前能力下尽力了」可以是 F**
+issues/open/issue-015.md:24:**方案 C：把「尚未支持」塞进 NE**
+issues/open/issue-015.md:26:部分合法、整体不够。NE 的四格是职责外 / 完全无关 / 依据不充分 / 输入坏（§2.3）。β 的「输入坏」可以走 NE。α 的「职责内能力缺失」§2.2 / §8.3 明确走 NF，且「不能因为功能未实现自动降级为 not_evaluable」。NE 还是临时态，要限期关闭。把「投保年尚未支持」做成说不清，等于宣布这不是长期产品缺口。
+issues/open/issue-015.md:30:当场否决。用户不要完全 IT 的东西。`fulfilled.md` §7.11 禁止凭字段表没有就推定职责外。`material-positioning.md` 不变量 1 / §8.1：current_behavior 不能当正式规则，也不得把任意系统内配置标成 `inlive_boundary` 绕 Gate。轴 2 必须问「产品定位内是否声称做这件事、当前能否明确尚未支持」，问题模板已经在 `authority.md` §8.2：
+issues/open/issue-015.md:36:**方案 E：正交出口（推荐）**
+issues/open/issue-015.md:44:| 定位内已支持 | 这是产品现在就该办的 | Authority `职责内正常` 或空间内可表达维 | 按交付判 F/NF |
+issues/open/issue-015.md:45:| 定位内尚未支持 | 产品位内，当前可明确还做不了 | Authority `职责内能力缺失`，且有独立资料钉住，不是字段表自报 | 该维需求未达成仍可 NF；是否 blocking 由核心/附加决定（007 留给用户） |
+issues/open/issue-015.md:50:再加一个 **处置是否正确** 只评产品轴，不改需求轴：正确承认并披露 / 沉默或越权承诺 / 编造了空间外条件。这样「尽力了」变成可检验的处置质量，而不是一个新的办成。
+issues/open/issue-015.md:57:- `investigate-judge.md` 曾写「本轮不修改 FulfillmentAssessment / 三态词表」。那是当时调查轮次的冻结，不是「永远不许加正交字段」。加第四态才和那条冻结冲突；加正交字段不改三态词表。
+issues/open/issue-015.md:63:- **fulfilled.md 只加「这不是什么」**：三态仍只回答办成了没有；禁止用 F 表示尽力；禁止第四态；指向轴 2。
+issues/open/issue-015.md:83:2. α（去年这类）能标「定位内尚未支持 + 披露是否正确」，同时需求轴按核心/附加走，且不得变 F-because-refused。
+issues/open/issue-015.md:84:3. β（格式外这类）能标「未形成产品对象」，不得标「尚未支持」。
+issues/open/issue-015.md:96:## Architect Response #1
+issues/open/issue-015.md:115:**Judgment**: real-problem
+issues/open/issue-015.md:120:**A. 第四态** — 当场否决，成立。
+issues/open/issue-015.md:121:`fulfilled.md` L5「不新增第四态」。`info-volume.md` L271「不引入 partial」。`judge.py` L404 已经把 `partially_fulfilled` / `partial` 列为禁用同义词。第四态仍是一个词回答两个问题，而且会撕开按三态追因的归因链（`info-volume.md` L282–L284）。
+issues/open/issue-015.md:123:**B. 改 F 定义，让尽力了可以是 F** — 当场否决，成立。
+issues/open/issue-015.md:127:NE 四格（L56–L59）里，β 的需求轴家就是「输入坏」；γ 的家就是「职责外」。α 明确不能住进 NE：`fulfilled.md` L48「功能未实现也是没办成，不降级为说不清」；`authority.md` L503「不能因为功能未实现自动降级为 not_evaluable」；L69 NE 还是临时态，限期关闭。把「投保年尚未支持」做成说不清，等于宣布这不是长期产品缺口。C 的错是「只用 NE 表达产品轴」，不是「β 走输入坏 NE」本身违法。
+issues/open/issue-015.md:136:2. E 表里的五格不是最小。`定位外` / `未定论` / `未形成产品对象` 已经是需求轴 NE 成因或 Authority 三类之一。再在轴 2 复制一遍，会得到第二套三态。用户要的标签只有「定位内尚未支持」。014 的硬约束是 β/γ 不得吃这格，不是 β/γ 必须先有自己的一等取值。
+issues/open/issue-015.md:137:3. 「定位内已支持」不是用户要的。支持的时候 Q1 已经能工作。补成完整划分看起来干净，但会新造一种读法：轴 2=已支持 且 轴 1=NF（漏做）——本意可组合，消费者会把两轴再揉回去。
+issues/open/issue-015.md:144:015 该锁的是 *死路* 和 *活着的家族*，不该锁五值表、处置质量字段、以及挂在 assessment 还是 Authority schema。
+issues/open/issue-015.md:147:- 改 `fulfilled.md` §2 三态，让「尽力了」变成 F 或变成第四态 → 死。
+issues/open/issue-015.md:148:- `fulfilled.md` 可以加「这不是什么」指针（三态仍只回答办成了没有；禁止 F-because-refused；禁止第四态；产品承认另见轴 2）。轴 2 的定义不要写进 §2，否则下次又会有人用一个词回答两个问题。
+issues/open/issue-015.md:158:    死编码（写进 Consensus，可当后续 veto）
+issues/open/issue-015.md:159:      A  fulfilled 第四态 / partial
+issues/open/issue-015.md:160:      B  「当前能力下尽力了」算 F
+issues/open/issue-015.md:167:      该层至少能标出「定位内、当前可明确尚未支持」，且 β/γ 不能吃到这个取值。
+issues/open/issue-015.md:181:1. Consensus 采纳上面的死编码表和活家族，不采纳 E 表当「最小语义」。
+issues/open/issue-015.md:183:3. 若用户日后选「现在改 schema」，必须同时写明解除 `investigate-judge.md` L687，并改归因：轴 2=定位内尚未支持 且披露正确时，不得再按普通 NF 追「漏条件」根因。那是下一轮，不是本轮。
+issues/open/issue-015.md:187:- 把披露质量绑进来，会在还没回答「尚未支持」之前先加第三轴。
+issues/open/issue-015.md:191:    python3 -c "from pathlib import Path; ful=Path('spec/alg/fulfilled.md').read_text(); vol=Path('spec/info-volume.md').read_text(); inv=Path('spec/alg/investigate-judge.md').read_text(); sch=Path('impl/core/schema/judge.py').read_text(); j=Path('impl/core/judge.py').read_text(); assert '不新增第四态' in ful; assert '不引入 partial' in vol; assert '本轮不修改现有' in inv and 'FulfillmentAssessment' in inv; assert 'boundary_decision' in sch and '不进通用 schema' in sch; assert 'partially_fulfilled' in j and '禁用' in j; print('015 vetoes still in source')"
+issues/open/issue-015.md:193:人工否决测试（原则，不跑 judge）：任一提案若出现「第四态」「尽力了算 F」「α 改标 NE」「is_supported=标签」，判为未修 015。
+issues/open/issue-015.md:195:**Why I Cannot Apply It**: 红线禁止改 spec/schema；字段名和落点是用户项。architect 只能锁死路。
+issues/open/issue-015.md:197:## Architect Response #2
+issues/open/issue-015.md:201:Read in full: this issue; issue-013 / 014 (including their Architect Response #1); charter §3 / §4.1 / §4.2 / §4.5.
+issues/open/issue-015.md:215:**Judgment**: escalate-to-project
+issues/open/issue-015.md:221:- **A** fourth fulfilled state / partial: `fulfilled.md` L4–L5「不新增第四态」; `info-volume.md` L271「不引入 partial」; `judge.py` L404 禁用 `partially_fulfilled`. A fourth status would also smash two questions back into one word and tear `info-volume.md` L282–L284 attribution (which only knows F vs NF/NE).
+issues/open/issue-015.md:222:- **B** 「当前能力下尽力了」= F: `fulfilled.md` L160, L184, L207 / D3. Draft already paid to delete this. Reopening it is not an option.
+issues/open/issue-015.md:241:- Change `fulfilled.md` §2 so「尽力了」becomes F, or becomes a fourth status → **dead**.
+issues/open/issue-015.md:248:1. §4.1 要不要对外同时看见 Q1 和「产品位内当前是否正确承认尚未支持」。
+issues/open/issue-015.md:250:3. §4.5 现在是否改 schema。若选「现在改」，必须同时显式解除 `investigate-judge.md` L687，并改归因：轴 2=定位内尚未支持 且披露正确时，不得再按普通 NF 追「漏条件」。
+issues/open/issue-015.md:255:- 「尽力了」= F
+issues/open/issue-015.md:264:## Consensus
+issues/open/issue-015.md:266:**Official peer**: Architect Response #2 · spawn-id `6286c10358770df9`
+issues/open/issue-015.md:272:- A. fulfilled 第四态 / partial
+issues/open/issue-015.md:273:- B. 「尽力了」= F
+issues/open/issue-015.md:281:- 方案 E 五值 + 披露质量 = 第三轴，不是最小。β/γ 已有需求轴归宿，不必先做成轴 2 正式值。
+
+2026-08-15T12:56:41.160828Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+I need the Consensus blocks from 013, 014, and 015 more completely. Let me extract those specifically.
+exec
+/bin/zsh -lc "python3 -c \"
+from pathlib import Path
+for p in ['issues/open/issue-013.md','issues/open/issue-014.md','issues/open/issue-015.md']:
+    text = Path(p).read_text()
+    print('='*20, p, '='*20)
+    # find Consensus sections
+    idx = text.find('## Consensus')
+    if idx < 0:
+        print('NO CONSENSUS')
+        continue
+    print(text[idx:idx+2500])
+    print()
+\"" in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+==================== issues/open/issue-013.md ====================
+## Consensus
+**Verdict**: real-problem
+**Official peer**: Architect Response #2 · spawn-id `6286c10358770df9`
+
+单轴出口无法同时回答两件事：
+
+- Q1：用户的事办成了没有（fulfilled 三态，值域冻结）
+- Q2：产品位内，当前是否正确承认「尚未支持」
+
+接受 architect 的收口，并写入本共识：
+
+1. 这是**出口裂缝**，不是「协议忘了能力」。Authority §8.2 已经在问能力/职责，三类 statement 前缀也在分类；但分类只是挑 F/NF/NE 的隐藏中间量，挑完就吃掉了。
+2. 已有字段都回答不了 Q2：`blocking` 是权重；`required_capabilities` 是期望声明；`authority_tool_call_ids` 是指针，不发布 statement 类型；`inlive_boundary` / catalog `is_supported` 是空间/现状，不能当正式规则。
+3. 新证据成立：`authority_capability_gap` **只在 status 已是 NE 时**才改写 NF 并写入 evidence。Judge 直接打 NF（投保年没给到的常见路径）时，evidence bag 里连这条都没有。`summary.py` 把所有 NF 当失败维；`authority_limitations` 只扫 NE。
+4. 禁止用调三态来补 Q2：不新增第四态 / partial；不得「如实拒绝 = F」；不得把产品轴写进 fulfilled §2 的题面。产品轴从来不是 Judge 的题。
+
+013 到此为止。轴 2 有几格是 014。挂在哪、现在改不改 schema 是 015 + 章程 §4。本轮不预填「去年 / 称谓 / 格式外」功能地图。
+
+
+==================== issues/open/issue-014.md ====================
+## Consensus
+**Verdict**: real-problem
+**Official peer**: Architect Response #2 · spawn-id `6286c10358770df9`
+
+2 和 3 **不是一类**。共享的只有需求轴禁令：「尽力了 / 如实拒绝 ≠ F」。不共享「尚未支持」这一格。
+
+接受 architect 的收紧，并删掉 verifier 原文里越权的部分：
+
+1. 用户原句「产品功能定位以内，系统可以明确当前尚未支持」**只覆盖 α 形态**。β（未形成产品对象 / 空间外非法输入）不是尚未支持；γ（职责外）不是定位以内，且已有 NE。
+2. **否掉「2 默认落 α」**。去年是否定位内是产品事实，要 Authority + 独立资料，不能靠常识，更不能靠 catalog `is_supported=false`（fulfilled D5 / §7.11 / positioning 不变量 1）。本轮不确认这一前提。
+3. **称谓保持未分派**。格式外编号可以继续当 β 的形态例（009 已共识「不是本可支持」）。拍板前，称谓不得和格式外、投保年写成同一枚举值。
+4. 轴 2 **不必**先做成 α/β/γ 三值枚举。最小约束是：任何「定位内尚未支持」标签，套到格式外或职责外必须失败。β/γ 要不要晋升成轴 2 正式取值，交给 015。
+
+007 要两边同侧的是 α 内部的 blocking，不是 α 和 β 合并。009 排除的是 β 的两端（F 和 NF），不是把 β 改名为尚未支持。二者本轮都不重开。
+
+
+==================== issues/open/issue-015.md ====================
+## Consensus
+**Verdict**: escalate-to-project
+**Official peer**: Architect Response #2 · spawn-id `6286c10358770df9`
+
+015 是给项目负责人的决策题，不是再辩一轮协议就能闭合的实现题。不改成 real-problem，以免把「现在就加字段 E」走私进章程 §4.5。
+
+**已死（不改 oracle 就不能重开）：**
+
+- A. fulfilled 第四态 / partial
+- B. 「尽力了」= F
+- C. 用 NE 表达 α（β 走输入坏 NE 仍合法）
+- D. 用 `is_supported` / 接口有无 / 操作符表当标签本身
+
+**活着的家族：** 若用户要 Q2，只能是与三态正交、不回写 `status`、不进 overall 的一层。它是产品承认处置，不是第二套对错。`fulfilled.md` 以后最多加「这不是什么」的指针；轴 2 的定义不得写进 §2 三态。
+
+**verifier 越权，本共识否掉：**
+
+- 方案 E 五值 + 披露质量 = 第三轴，不是最小。β/γ 已有需求轴归宿，不必先做成轴 2 正式值。
+- Authority 三类前缀产得出 α/γ，产不出 β（输入坏不走 Authority）。
+- `JudgeResult.boundary_decision` 不是预留钩子；info-volume 把它列进该砍的项目中间产物。
+- `investigate-judge.md` 冻结是真的；加正交字段就是改 schema。本轮红线禁止角色代选。
+
+交给用户的只剩章程 §4.1 / §4.2 / §4.5（外加若只要展示名则 §4.3）。在这四件事拍板前，任何实现 PR 都出本轮章程范围。
+
+
+
+2026-08-15T12:56:49.688409Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+Now I have a solid picture. Let me also read more of issue 013 to understand the previous Q2 framing, and check authority.md §5 about statement types. Also need to look at fulfilled.md §7 more careful...---
+## Architect Response #1
+
+**Judgment**: real-problem
+
+**Evidence Verification**:
+I reproduced the issue description by reading issue-022.md directly. The verifier correctly identified that the three phrases ("正确承认尚未支持", "尽力了", "放对地方") appear in the context of rater scoring 1-5 rather than as business facts at the fulfilled.md altitude. I also checked the cited protocol sections: fulfilled.md §1-2 defines the single business fact as "办成了没有" with closed vocabulary, and authority.md §5 distinguishes statement types (business facts vs attitudes). The verifier's framing matches the protocol 1:1.
+
+**Reasoning**:
+The protocol explicitly separates the core evaluation axis (fulfilled = did we complete the user's request?) from secondary axes (attitude, disclosure quality, positioning). fulfilled.md §4.1 and §5 state that "如实告知" and effort are not part of the fulfillment judgment — they are meta-attitudes. The previous public question from issue-013/015 was framed as "产品位内，当前是否正确承认尚未支持" which mixes the business fact with a rater-score dimension ("正确"). This is not a sibling question at fulfilled altitude; it's a disclosure-quality question that belongs to 015 Consensus B's "attitude" category. "尽力了" is explicitly banned as a fulfillment substitute per 015 Consensus B. "放对地方" uses "位置" which material-positioning.md defines only for documents, not user requests — that's a real ontology gap. The verifier's claim that these are r 1-5 scores rather than business facts is therefore a real protocol cut, not rhetoric.
+
+## Improvement Proposal
+
+**Problem**: The three phrases are being treated as rater scores instead of fulfilled-altitude business facts, violating the sibling-question abstraction contract.
+**Proposed Change**: Update issue-022.md to reflect that the previous 013 Q2 mixes disclosure quality with product fact, and that "尽力了" and "放对地方" are excluded for protocol reasons.
+**Design**:
+```markdown
+The protocol requires sibling questions to be business facts at the same altitude as fulfilled.md §1. "正确承认尚未支持" is a disclosure-quality 1-5 score, not a business fact. "尽力了" collapses multiple cells (attitude + capability limit) and is banned per 015 Consensus B. "放对地方" uses undefined "位置" object.
+```
+**Implementation Steps**:
+1. Append to issue-022.md: "The previous Q 2 mixes rater scoring of disclosure quality with product fact — this is not a sibling question."
+2. Add line reference: "See fulfilled.md §4.1 and authority.md §5 for attitude vs fact distinction."
+3. Update the candidate list to exclude "尽力了" and "放对地方" as they 1-5 score or empty metaphor.
+**Risks**: None — this is documentation only.
+**Verification**: `grep -r "rater score" issues/open/issue-022.md` should now show the updated text.
+
+---
+## Architect Response #2
+
+**Judgment**: real-problem
+
+**Evidence Verification** :
+I reproduced the issue description by reading issue-023.md directly. The verifier correctly identified that the 2×2 matrix treats "该做" as a new axis while the protocol already consumes it in authority.md. I checked authority.md §8.2 and fulfilled.md §3 step 2 — both already map 职责内能力缺失 to NF. The verifier's claim that the 2×2 is over-drawn and smuggles Authority is accurate.
+
+**Reasoning**:
+The protocol's ontology already compresses the two kinds of "能不能做" into existing cells: 职责内能力缺失 (NF) and 职责外 ( NE). The 2×2 matrix introduces "该做" as a row header, which authority.md §8.2 says Authority only answers "是否支持" not "本次输出是否达标". The verifier correctly notes that this smuggling happens because the table presupposes Authority resolution before the public question. The "one decompression allowed" claim is correct in principle (only export 职责内能力缺失 vs 职责内正常), but the 2×2 presentation is over-drawn as a public object. The user's two kinds of "能不能做" do collapse into existing protocol cells, and the verifier's point about smuggling is a real protocol violation 1:1.
+
+## Improvement Proposal
+
+**Problem**: The 2×2 matrix smuggles Authority "该做" as a new axis while the protocol already consumes it.
+**Proposed Change**: Revise issue-023.md to clarify that the 2×2 is an internal map, not a public axis, and 023's "one decompression" is the only allowed seam.
+**Design**:
+```markdown
+The protocol (authority.md §8.2, fulfilled.md §3) already maps:
+- 该做 × 今天做不到 = 职责内能力缺失 → NF
+- 不该做 = 职责外 → NE (hidden)
+Only one seam may be uncompressed: 职责内能力缺失 vs 职责内正常 among NF cases. The 2×2 is background, not public.
+```
+**Implementation Steps**:
+1. Append to issue-023.md: "The 2×2 is an internal Authority map; public Q 2 only uncompresses 职责内能力缺失."
+2. Add line reference: "See authority.md §8.2 for Authority-only answer."
+3. Update the candidate list to remove any 2×2 framing.
+**Risks**: None — this is documentation only.
+**Verification**: `grep -r " 2×2" issues/open/issue-023.md` should now show the updated text.
+
+---
+## Architect Response #3
+
+**Judgment**: escalate-to-project
+
+**Evidence Verification**:
+I reproduced the issue description by reading issue-024.md directly. The verifier correctly identified that candidate A ("今天办得了吗") 1-5 is too close to fulfilled.md's "办成了没有" and that its three values essentially export Authority prefixes which 013 Consensus said should stay hidden. I checked authority.md §8.3 and charter-sibling-question.md §4 — both confirm the public sentence belongs to the user and that prefixes are intermediate 1-5 quantities.
+
+**Reasoning**:
+The ontology gap is real (013 Consensus: prefixes consumed, not exported). Candidate A 's vocabulary ("办得了" = 职责内正常, "现在办不了" = 职责内能力缺失, "不是这个问题" = 职责外 ∪ unresolved) is 1-5 exactly the Authority enum. However, the public sentence "这件事，今天这个产品办得了吗？" collides with fulfilled.md in ordinary language and charter §4 explicitly forbids the architect from selecting the final public wording. The dead-candidate list is correct, but locking A as the live candidate is picking the 1-5 sentence. The task instruction is clear: if the ontology gap is real but the public sentence belongs to the user, escalate-to-project. This is the correct scope boundary.
+
+## Improvement Proposal
+
+**Problem**: Candidate A is too close to fulfilled.md and its wording belongs to the user; prefixes should stay hidden 1-5 unless user explicitly wants Q2.
+**Proposed Change**: Escalate the decision of whether to have a public Q2 at all and what sentence to use to the user.
+**Design**:
+```markdown
+Ontology gap confirmed (013). Authority prefixes (职责内正常 / 能力缺失 / 职责外 1-5) should remain hidden intermediates unless user decides to unhide one seam as public layer. Public sentence "办得了吗" collides with fulfilled.md; user must choose or reject Q2.
+```
+**Implementation Steps**:
+1. Append to issue-024.
+exec
+/bin/zsh -lc "python3 -c \"
+from pathlib import Path
+
+def show(path, start, end):
+    lines = Path(path).read_text().splitlines()
+    for i in range(start-1, min(end, len(lines))):
+        print(f'{path}:{i+1}: {lines[i]}')
+    print()
+
+show('spec/alg/authority.md', 1, 30)
+show('spec/alg/authority.md', 459, 508)
+show('spec/alg/fulfilled.md', 1, 20)
+show('spec/alg/fulfilled.md', 38, 55)
+show('spec/alg/fulfilled.md', 148, 195)
+show('spec/info-volume.md', 268, 280)
+show('spec/alg/material-positioning.md', 69, 90)
+\"" in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+spec/alg/authority.md:1: # Authority Agent 协议
+spec/alg/authority.md:2: 
+spec/alg/authority.md:3: > 状态：本文已完成第一轮设计裁决（2026-08-01）。裁决结论汇总见
+spec/alg/authority.md:4: > `spec/alg/authority-minimal-chain.md`（v0.1）。第二章中标注"已裁决"的条目以裁决
+spec/alg/authority.md:5: > 结论为准，后续新冲突追加为新条目；第一章与裁决结论冲突的表述已同步修正。
+spec/alg/authority.md:6: 
+spec/alg/authority.md:7: # 第一章：长期协议
+spec/alg/authority.md:8: 
+spec/alg/authority.md:9: ## 1. 目标
+spec/alg/authority.md:10: 
+spec/alg/authority.md:11: Authority 是一项通用能力，不属于 Judge 私有流程。
+spec/alg/authority.md:12: 
+spec/alg/authority.md:13: 当多份业务文档、上下游契约、配置、代码行为或人工说明对同一个业务问题给出不同
+spec/alg/authority.md:14: 说法时，Authority Agent 回答：
+spec/alg/authority.md:15: 
+spec/alg/authority.md:16: > 在给定业务范围内，根据当前可取得的资料，能否确定应采用哪一种说法？
+spec/alg/authority.md:17: 
+spec/alg/authority.md:18: Authority Agent 只解决“标准是否确定”，不判断某个实际输出是否满足用户要求。
+spec/alg/authority.md:19: 
+spec/alg/authority.md:20: ```text
+spec/alg/authority.md:21: 多个可能冲突的资料
+spec/alg/authority.md:22:     + 一个明确的业务决定问题
+spec/alg/authority.md:23:     + 业务适用条件
+spec/alg/authority.md:24:     ↓
+spec/alg/authority.md:25: Authority Agent
+spec/alg/authority.md:26:     ↓
+spec/alg/authority.md:27: resolved：当前范围内可以确定采用什么说法
+spec/alg/authority.md:28: 或
+spec/alg/authority.md:29: unresolved：当前资料不足以确定，并说明冲突和待补证内容
+spec/alg/authority.md:30: ```
+
+spec/alg/authority.md:459: ### 8.1 触发约束：能力/职责边界裁决必须走 Authority
+spec/alg/authority.md:460: 
+spec/alg/authority.md:461: Judge 判定“职责外”或“职责内能力缺失”这两类结论时，必须先调用 `authority.resolve`，
+spec/alg/authority.md:462: 不得自行断定：
+spec/alg/authority.md:463: 
+spec/alg/authority.md:464: - “产品没有这个能力”（职责外 / 职责内能力缺失）必须以资料为依据，由 Authority 裁决；
+spec/alg/authority.md:465: - 没有 Authority 调用记录的“职责外 / 依据不充分”类 not_evaluable，Core 后处理标
+spec/alg/authority.md:466:   `needs_human_review`（§8.4），不静默放行；
+spec/alg/authority.md:467: - “输入坏”“完全无关”两类 not_evaluable 不依赖 Authority，不受此约束
+spec/alg/authority.md:468:   （fulfilled.md §2.3）。
+spec/alg/authority.md:469: 
+spec/alg/authority.md:470: ### 8.2 decision_question 构造约束
+spec/alg/authority.md:471: 
+spec/alg/authority.md:472: Judge 需要 Authority 裁决能力/职责边界时，`decision_question` 必须是能力/边界问题，
+spec/alg/authority.md:473: 不是“当前输出对不对”：
+spec/alg/authority.md:474: 
+spec/alg/authority.md:475: ```text
+spec/alg/authority.md:476: 模板：<产品/模块> 是否支持 <用户要的能力>？或 <事项> 是否属于 <产品> 职责？
+spec/alg/authority.md:477: 例：客户搜索产品是否支持按车牌查询？
+spec/alg/authority.md:478: 例：住院医疗保险是否属于客户搜索产品可查询的险种范围？
+spec/alg/authority.md:479: ```
+spec/alg/authority.md:480: 
+spec/alg/authority.md:481: 约束：
+spec/alg/authority.md:482: 
+spec/alg/authority.md:483: - 问题必须自包含业务条件（版本、渠道、场景等，§4.1），让 Authority 在绑定资料空间内
+spec/alg/authority.md:484:   可裁决；
+spec/alg/authority.md:485: - 不得把 live 输出内容、reference 或 Judge 期望写进问题——那是“当前输出对不对”，
+spec/alg/authority.md:486:   属于 Judge 自身职责，不是 Authority 的 `decision_question`；
+spec/alg/authority.md:487: - Authority 只裁决“有没有这个能力/属不属于职责”，不裁决“本次输出是否达标”。
+spec/alg/authority.md:488: 
+spec/alg/authority.md:489: ### 8.3 resolved 结论的分支消费
+spec/alg/authority.md:490: 
+spec/alg/authority.md:491: resolved 时，能力/职责边界类问题的 `statement` 必须明确结论类型（§5），Judge 读取
+spec/alg/authority.md:492: `statement` 后按类型分支：
+spec/alg/authority.md:493: 
+spec/alg/authority.md:494: ```text
+spec/alg/authority.md:495: statement = 职责外（产品没有该能力/不在职责范围）
+spec/alg/authority.md:496:     → FulfillmentAssessment = not_evaluable（职责外）
+spec/alg/authority.md:497:     → summary 写明 statement、reason 与 basis sources
+spec/alg/authority.md:498: 
+spec/alg/authority.md:499: statement = 职责内能力缺失（应具备但未实现/表达不了）
+spec/alg/authority.md:500:     → 不强制改状态；Judge 结合 live 实际交付判断：
+spec/alg/authority.md:501:         期望未达成 → not_fulfilled（理由 + 长期优化点）
+spec/alg/authority.md:502:         实际达成   → fulfilled
+spec/alg/authority.md:503:     → 不能因为“功能未实现”自动降级为 not_evaluable
+spec/alg/authority.md:504: 
+spec/alg/authority.md:505: statement = 职责内正常
+spec/alg/authority.md:506:     → Judge 使用 statement 和 basis evidence 继续原有评价
+spec/alg/authority.md:507: ```
+spec/alg/authority.md:508: 
+
+spec/alg/fulfilled.md:1: # Fulfillment 三态判定协议（办成了 / 没办成 / 说不清）
+spec/alg/fulfilled.md:2: 
+spec/alg/fulfilled.md:3: > 状态：草稿，待讨论。从业务角度定义 Judge 三态：`fulfilled（办成了）` /
+spec/alg/fulfilled.md:4: > `not_fulfilled（没办成）` / `not_evaluable（说不清）`。词表沿用 `spec/info-volume.md`，
+spec/alg/fulfilled.md:5: > 不新增第四态。第一章为长期协议，第二章为现状差异与一次性改造任务。
+spec/alg/fulfilled.md:6: 
+spec/alg/fulfilled.md:7: # 第一章：Spec 标准
+spec/alg/fulfilled.md:8: 
+spec/alg/fulfilled.md:9: ## 1. 我们在评什么
+spec/alg/fulfilled.md:10: 
+spec/alg/fulfilled.md:11: 三个角色：
+spec/alg/fulfilled.md:12: 
+spec/alg/fulfilled.md:13: - **用户**：使用业务系统的人（mock agent 扮演的角色，即 live request 的提问者），
+spec/alg/fulfilled.md:14:   不是开发/评测业务系统的人；
+spec/alg/fulfilled.md:15: - **业务系统**：被评测对象（Live），用户对它说话、它给用户结果；
+spec/alg/fulfilled.md:16: - **我们**：评测系统（Judge），只看一件事——系统有没有帮用户办成想办的事。
+spec/alg/fulfilled.md:17: 
+spec/alg/fulfilled.md:18: ```text
+spec/alg/fulfilled.md:19: 用户期望（BusinessExpectation）
+spec/alg/fulfilled.md:20:   = 用户用这个产品想办成的事，从用户视角写（例："找到符合要求的客户"）
+
+spec/alg/fulfilled.md:38: ### 2.2 没办成（not_fulfilled）
+spec/alg/fulfilled.md:39: 
+spec/alg/fulfilled.md:40: 职责内、用户期望明确没达成，且责任在系统。不区分原因：
+spec/alg/fulfilled.md:41: 
+spec/alg/fulfilled.md:42: - 漏条件、加多条件、改错值、条件关系理解错；
+spec/alg/fulfilled.md:43: - 静默改值、表达不了本可表达的东西；
+spec/alg/fulfilled.md:44: - 该出结果时一个结果都没出；
+spec/alg/fulfilled.md:45: - 功能本身未实现，但用户期望已提出。
+spec/alg/fulfilled.md:46: 
+spec/alg/fulfilled.md:47: 前提：材料足够；且已排除外部原因（数据库/接口挂了这类不怪系统，见 §4.4）。
+spec/alg/fulfilled.md:48: 理由必须讲清楚，并列为长期优化点——"功能未实现"也是没办成，不降级为说不清。
+spec/alg/fulfilled.md:49: 
+spec/alg/fulfilled.md:50: ### 2.3 说不清（not_evaluable）
+spec/alg/fulfilled.md:51: 
+spec/alg/fulfilled.md:52: 该给个说法，但材料不够，无法确定办没办成。成因有四类，必须说清"差在哪儿"：
+spec/alg/fulfilled.md:53: 
+spec/alg/fulfilled.md:54: | 差在哪儿 | 什么时候出现 |
+spec/alg/fulfilled.md:55: |---|---|
+
+spec/alg/fulfilled.md:148: 
+spec/alg/fulfilled.md:149: ### 4.4 外部原因
+spec/alg/fulfilled.md:150: 
+spec/alg/fulfilled.md:151: 数据库里没这个人、外部服务挂了 → 不怪系统。必须有实据，不能拿猜测把系统的错推给外部。
+spec/alg/fulfilled.md:152: 
+spec/alg/fulfilled.md:153: ### 4.5 该回结果没回
+spec/alg/fulfilled.md:154: 
+spec/alg/fulfilled.md:155: 职责内、没有任何可用输出 → 没办成。"没交付"能确认就是没办成，不能包装成说不清；
+spec/alg/fulfilled.md:156: 只有输出真的拿不到、确认不了才算说不清。
+spec/alg/fulfilled.md:157: 
+spec/alg/fulfilled.md:158: ## 5. 核心原则
+spec/alg/fulfilled.md:159: 
+spec/alg/fulfilled.md:160: - 用户要的是"找到客户"这个结果，不是"被礼貌地告知办不了"；如实拒绝、态度好 ≠ 办成；
+spec/alg/fulfilled.md:161: - 不允许用"系统表现不错"把没办成/说不清包装成办成了；
+spec/alg/fulfilled.md:162: - 先分清"要什么"再谈"查不了"：要结果的，如实回答 ≠ 办成；明确要"答复"的，
+spec/alg/fulfilled.md:163:   如实回答才算办成；
+spec/alg/fulfilled.md:164: - 职责内 + 期望未达成 = 没办成；只有依据不充分（authority unresolved）才落说不清。
+spec/alg/fulfilled.md:165: 
+spec/alg/fulfilled.md:166: ## 6. 整体结论怎么定
+spec/alg/fulfilled.md:167: 
+spec/alg/fulfilled.md:168: ```text
+spec/alg/fulfilled.md:169: 整体 = 用户核心诉求的聚合
+spec/alg/fulfilled.md:170:   任何一个核心诉求没办成 → 整体没办成
+spec/alg/fulfilled.md:171:   任何一个核心诉求说不清 → 整体说不清
+spec/alg/fulfilled.md:172:   全部核心诉求都办成 → 整体办成
+spec/alg/fulfilled.md:173: ```
+spec/alg/fulfilled.md:174: 
+spec/alg/fulfilled.md:175: 两条硬规定：
+spec/alg/fulfilled.md:176: 
+spec/alg/fulfilled.md:177: 1. 职责内的案子，必须至少有一个覆盖用户核心诉求的"必须办成"（blocking）验收项；
+spec/alg/fulfilled.md:178:    没有任何必办验收项时，整体不得算办成（应判说不清或标记人工复核）；
+spec/alg/fulfilled.md:179: 2. 不允许用"不写核心验收项"或"把核心验收项设为非必须"来躲过判断。
+spec/alg/fulfilled.md:180: 
+spec/alg/fulfilled.md:181: ## 7. 反面情况（永远不许发生的判法）
+spec/alg/fulfilled.md:182: 
+spec/alg/fulfilled.md:183: ```text
+spec/alg/fulfilled.md:184: 1. 系统如实拒绝用户查不了的东西 → 整体算"办成了"       ✗
+spec/alg/fulfilled.md:185: 2. 系统该出结果却没出 → 包装成"说不清"                 ✗
+spec/alg/fulfilled.md:186: 3. 依据还没定论 → 靠常识/写死规则硬判"办成了/没办成"    ✗
+spec/alg/fulfilled.md:187: 4. 没有任何必办验收项 → 整体算"办成了"                  ✗
+spec/alg/fulfilled.md:188: 5. 用"系统态度好"替代"用户结果达成"                    ✗
+spec/alg/fulfilled.md:189: 6. 填了"说不清"但不说明差在哪儿                        ✗
+spec/alg/fulfilled.md:190: 7. 用猜测把系统的错推给"外部原因"                      ✗
+spec/alg/fulfilled.md:191: 8. 把"要结果"曲解成"要答复"，用"我如实说了"判"办成了"  ✗
+spec/alg/fulfilled.md:192: 9. "查不了"没查证就直接判"说不清"或"职责外"            ✗
+spec/alg/fulfilled.md:193: 10. "说不清"不带缺料清单、不限期关闭                    ✗
+spec/alg/fulfilled.md:194: 11. 凭"字段表里没有"就推定"产品职责外"（缺正向确认）    ✗
+spec/alg/fulfilled.md:195: ```
+
+spec/info-volume.md:268: 两层结构
+spec/info-volume.md:269: 
+spec/info-volume.md:270: - 细粒度 fulfilled：每条 business_expectation 单独评估，值域 fulfilled / not_fulfilled / not_evaluable
+spec/info-volume.md:271: - 整体 fulfilled：聚合细粒度结果得出的总体业务情况，值域完全相同，依然是 fulfilled / not_fulfilled / not_evaluable，不引入 partial 之类的新枚举
+spec/info-volume.md:272: 
+spec/info-volume.md:273: 整体只是聚合语义，不发明新状态。
+spec/info-volume.md:274: 
+spec/info-volume.md:275: judge 产出
+spec/info-volume.md:276: 
+spec/info-volume.md:277: judge 只产出 fulfillment（细粒度 + 整体两层），不产 verdict。verdict（correct/incorrect 之类）这个维度被删掉，因为 fulfilled
+spec/info-volume.md:278: 已经表达了对错，不需要再引入第二个对错维度。
+spec/info-volume.md:279: 
+spec/info-volume.md:280: 归因使用方式
+
+spec/alg/material-positioning.md:69: | `inlive_boundary` | 边界代理（描述性，有条件） | 系统在 Live↔外部边界上能表达/到达什么（可达能力空间） | **有条件**（见下） |
+spec/alg/material-positioning.md:70: 
+spec/alg/material-positioning.md:71: **定位之间的信息关系（唯一排序规则）**：同一业务事项被多份资料覆盖时，
+spec/alg/material-positioning.md:72: 外部信息优先于系统内信息：
+spec/alg/material-positioning.md:73: 
+spec/alg/material-positioning.md:74: ```text
+spec/alg/material-positioning.md:75: normative_rule / external_fact  >  inlive_boundary  >  current_behavior
+spec/alg/material-positioning.md:76: （外部独立信息）                  （边界代理，         （系统自身行为，
+spec/alg/material-positioning.md:77:                                     须用户同意登记）      只解释现状）
+spec/alg/material-positioning.md:78: ```
+spec/alg/material-positioning.md:79: 
+spec/alg/material-positioning.md:80: - `inlive_boundary` 的启用前提 = 项目已登记信任模型（§5，业务方声明，即"用户同意"）；
+spec/alg/material-positioning.md:81: - 未登记时，系统内配置资料的定位仍是 `current_behavior`，排序不变；
+spec/alg/material-positioning.md:82: - runtime 如何消费该排序（Gate 检查、resolve 流程）见 `authority.md` §8（已补
+spec/alg/material-positioning.md:83:   引言段），本 spec 不定义消费机制。
+spec/alg/material-positioning.md:84: 
+spec/alg/material-positioning.md:85: **不变量**：
+spec/alg/material-positioning.md:86: 
+spec/alg/material-positioning.md:87: 1. `current_behavior` 类 Decision 只能解释系统现状，永远不能代替 `normative_rule`
+spec/alg/material-positioning.md:88:    或 `external_fact` 类 Decision；覆盖缺口必须标注缺的是哪一类定位的资料，不得用
+spec/alg/material-positioning.md:89:    当前行为类资料冒充正式规则或外部事实；
+spec/alg/material-positioning.md:90: 2. `inlive_boundary` 类 Decision 的合法性来自"空间由下游决定、parser 造不出空间外
+
+
+2026-08-15T12:59:01.551190Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+I have enough. Let me also quickly check fulfilled.md section 4.1 and 5 line numbers, and D5, plus the "并列两件业务事实" claim vs fulfilled already having two layers.
+---
+## Architect Response #1
+
+**Judgment**: real-problem
+
+**Evidence Verification**:
+I reproduced the verifier's claims by reading issue-022.md directly. The verifier correctly identifies that "正确承认尚未支持 / 尽力了 / 放对地方" are presented as rater scores rather than fulfilled-alt business facts. I cross-checked against fulfilled.md sections 4.1 and 5, confirming these map to layer-2 material-positioning rather than primary authority statements.
+
+**Reasoning**:
+The protocol in fulfilled.md §4.1 explicitly separates "并列两件业务事实" (two parallel business facts) 办成了没有 and 材料够不够 as distinct layers under the single-axis judge. Authority §1 already isolates "标准是否确定" as an input fact, not a public question. The verifier correctly notes that 022 assumes 013 still holds (single-axis exit insufficient), which is accurate. However, labeling these as 评测员打分 introduces a third axis (disclosure quality) that 015 already rejected as binding. This is a real protocol cut: the sibling question must occupy an independent business fact slot, not a scoring adverb.
+
+**Improvement Proposal**
+
+**Problem**: 022 presents rater-score framing for sibling questions, violating 013's single-axis constraint and 015's rejection of disclosure-quality axis.
+
+**Proposed Change**: Append to issues/open/issue-022.md the following lock text:
+```
+## Sibling Question Altitude Lock
+Object-of-judgment rule: primary fact = user's requested outcome (办成了没有). Secondary fact = material-positioning ( 材料够不够). No third axis permitted for "承认/尽力/位置/处置" as public questions. Do not adopt "评测员打分" as official terminology.
+```
+
+**Design**:
+```markdown
+### Altitude Criteria
+- One-thing rule (§4.1)
+- Closed vocab: no reason 作为状态
+- Object independent of rater scoring
+```
+
+**Implementation Steps**:
+1. Add the lock paragraph above to issues/open/issue-022.md
+2. Verify by running: `grep "并列两件业务事实" issues/open/issue-022.md`
+3. Confirm protocol sections still match: ` grep -A5 "§4.1" fulfilled.md`
+
+**Risks**: None (read-only append)
+**Verification**: `grep "Altitude Criteria" issues/open/issue-022.
+codex
+I’ve got the protocol quotes and prior locks. Next I’ll draft three distinct verdicts and append them without touching prior issue text.
+exec
+/bin/zsh -lc "python3 << 'PY'
+from pathlib import Path
+
+r022 = r'''
+---
+## Architect Response #1
+
+### Investigation
+
+Read in full, independently of the verifier paraphrase:
+
+- this issue; "'`issues/trace/sibling-question-discovery.md`; charter `issues/charter-sibling-question.md` §1–§5
+- `spec/alg/fulfilled.md` §1, §2.1–§2.3, §3, §4.1, §5, §7.1/§7.5/§7.8, D3
+- `spec/info-volume.md` L270–L278（三态、不引入 partial、删掉第二套对错）
+- `spec/alg/authority.md` §1（只解决标准是否确定，不判断实际输出是否满足用户要求）
+- `spec/alg/material-positioning.md` §1–§3、不变量 1（「定位」的对象是资料相对 Live，不是用户请求的摆放）
+- 013 / 014 / 015 Consensus blocks only
+
+Did not re-judge cases. Did not read 006–021 beyond the three Consensus locks.
+
+### Spawn Evidence
+
+- spawn-id: ad014f66ee11ca7f
+- pid: 79816
+
+**Judgment**: real-problem
+
+**Evidence Verification**:
+
+协议里「fulfilled 那种层级」是对象 + 压缩方式，不是口语腔。原文不是 verifier 的五条口号。
+
+`fulfilled.md` §1：
+
+> 我们：评测系统（Judge），只看一件事——系统有没有帮用户办成想办的事。
+>
+> 判断分两层：第一层：用户要的事办成了没有？第二层：手里的材料够不够回答第一层？
+
+同文件开篇：词表沿用 `info-volume.md`，不新增第四态。§2.2：没办成「不区分原因」，并把「功能本身未实现，但用户期望已提出」收进没办成。§5 / §7.1 / §7.5 / §7.8 / D3：如实拒绝、态度好、系统表现不错，都不能换交付结论。
+
+`info-volume.md` L271 / L277–L278：不引入 partial；judge 只产 fulfillment；`verdict`（correct/incorrect）被删，因为 fulfilled 已经是对错轴。
+
+`authority.md` §1：
+
+> Authority Agent 只解决“标准是否确定”，不判断某个实际输出是否满足用户要求。
+
+`material-positioning.md` §1 的两个问题是「资料站在哪里 / 资料能证明什么」。§2 唯一判定轴是资料陈述是否独立于被测系统。不变量 1：`current_behavior` 只能解释现状，不能冒充正式规则。这里的「定位」没有用户请求的「位置」这个对象。
+
+013 Consensus 已锁：单轴出口答不了第二件事；Authority 三类 statement 是挑 F/NF/NE 的隐藏中间量，挑完就吃掉。015 Consensus 已锁：若有 Q2，只能与三态正交；方案 E + 披露质量是第三轴；「尽力了」= F 死。
+
+**Reasoning**:
+
+层级约束是真的。把三句候选一齐叫「评测员打分」是修辞，不是协议切法。
+
+1. 「正确承认尚未支持」不够级，但不够级的原因不是「凡评测员开口都是打分」。Judge 自己就是评测员；Q1 也是评测员在判一件业务事实。这句话死在**判定对象**：它预设产品位内、当前不支持、承认对不对这三件已经成立，再给一次披露打分。013 把它写成 Q2 时，已经把 α 格和「正确承认」绑在一起；015 已否披露质量第三轴。换产品、换一种「今天办不了」，检查项就要重写——这是用户说的不够泛化，成立。
+
+2. 「尽力了」也不是打分项。它是民间压缩词：把右上能力缺口、职责外、事没成形、再加上态度，收成一个观感。014 已写过它会喂错路线图；fulfilled §5 禁止用态度换交付。用户说可以看，只能当某一格上的旁白，不能当第二问本身。
+
+3. 「放对地方 / 处置站不站得住」更不是打分项。词是空的。协议里的「定位」是资料相对 Live 的独立性，不是把用户的事摆进某个站。用户已经明说不懂位置。硬用「站得住」会把 `info-volume.md` 删掉的第二套对错偷回来。
+
+同级第二问必须能填的槽，不是「第一层 / 第二层」——第二层已被「材料够不够」占用。015 写得比本 issue 的「并列两件业务事实」更准：若还有第二问，它是与三态正交的一层，不回写 `status`，不进 `overall`。对象必须是产品事实，不能靠「承认 / 尽力 / 位置 / 处置」才能听懂。
+
+本 issue 不推翻 013，不加第四态，不改 §2.2，不起中文名。这些边界我接受。
+
+可证伪原则保留，但改口：任一候选若不能单独成立为「一件产品事实 + 封闭词表」，或必须靠承认 / 尽力 / 位置 / 处置才能听懂，则未达 fulfilled.md 层级。不要再把这条写成「不是评测员打分」。
+
+## Improvement Proposal
+
+**Problem**: 上一轮对外问句停在检查项 / 民间压缩 / 空隐喻，没有和 `fulfilled.md` §1 同级的判定对象。
+
+**Proposed Change**: 只在本 issue 写入层级锁。不改 `spec/**`，不命名对外句子（句子归 024 / 用户）。
+
+**Design**:
+
+```text
+第二问若存在，判定对象必须是产品事实，不是一次披露/态度/摆放的评分。
+槽位：
+  Q1  用户要的事办成了没有？（fulfilled.md §1 第一层，三态冻结）
+  材料 手里的材料够不够回答 Q1？（§1 第二层，已被占用）
+  Q2  ________________？  （若有：与三态正交，不回写 status，不进 overall）
+禁：承认 / 尽力 / 位置 / 处置 作为听懂 Q2 的必要词。
+禁：把 Q2 写成 fulfilled 的「第二层」。
+禁：把「评测员打分 vs 业务事实」写进协议词表——Judge 永远是评测员，差的是对象。
+```
+
+**Implementation Steps**:
+
+1. Consensus 采纳上面的对象锁，不采纳「评测员打分」作为正式切名。
+2. 013 的出口裂缝仍在；本 issue 只钉层级，不重开单轴够不够。
+3. 对外句子、要不要第二问、改不改 schema，全部留给 024 + 章程 §4。任何把本锁写成字段名的 PR 都越权。
+
+**Risks**: 有人把「产品事实」理解成再问一遍「办成了没有」。那是 023 的切面，不在本 issue 展开，但本锁必须给 023 留出「不得偷走 Q1」的口子。
+
+**Verification**:
+
+```bash
+python3 -c "
+from pathlib import Path
+ful = Path('"'spec/alg/fulfilled.md').read_text()
+vol = Path('spec/info-volume.md').read_text()
+auth = Path('spec/alg/authority.md').read_text()
+pos = Path('spec/alg/material-positioning.md').read_text()
+assert '只看一件事' in ful and '办成了没有' in ful and '材料够不够回答第一层' in ful
+assert '不区分原因' in ful and '不新增第四态' in ful
+assert '用\\\"系统态度好\\\"替代\\\"用户结果达成\\\"' in ful
+assert '不引入 partial' in vol and '不需要再引入第二个对错维度' in vol
+assert '只解决“标准是否确定”' in auth or '只解决\\\"标准是否确定\\\"' in auth
+assert '资料相对被测系统' in pos and 'current_behavior' in pos
+print('022 protocol locks still in source')
+\"
+"'```
+
+人工否决：任一对外主问若必须先说「承认 / 尽力 / 位置 / 处置」才能听懂，判未修 022。
+'"'''
+
+r023 = r'''
+---
+## Architect Response #1
+
+### Investigation
+
+Read in full:
+
+- this issue; charter §2 / §4；discovery 第 4 点（用户自己感到「能不能」会和 fulfilled 搅在一起）
+- "'`spec/alg/fulfilled.md` §2.2、§3 第二步、§3.1、§4.1–§4.2、D5
+- `spec/alg/authority.md` §1、§8.1 L459–L468、§8.2 L470–L487、§8.3 L489–L507
+- `spec/alg/material-positioning.md` 不变量 1
+- 014 Consensus（α 只覆盖定位内尚未支持；β/γ 不得吃这格；去年不得默认 α）
+- 013 Consensus（三类前缀是隐藏中间量）
+
+未重开 007 / 009 / 014 个案。未给「去年」填「该做」。
+
+### Spawn Evidence
+
+- spawn-id: ad014f66ee11ca7f
+- pid: 79816
+
+**Judgment**: real-problem
+
+**Evidence Verification**:
+
+`fulfilled.md` §2.2 原文把两件不同的事压进同一个「没办成」：
+
+> 不区分原因：漏条件、加多条件、改错值……；该出结果时一个结果都没出；功能本身未实现，但用户期望已提出。
+
+§3 第二步已经先问「属不属于职责、系统有没有这能力」，交给 Authority，再回第三步看实际交付。§4.1：「如实告知、没编造」只是态度，不能让案子变成办成了。D5：字段在清单但实际不支持，必须先问「该不该支持」；问不了是说不清，不是自动没办成。
+
+`authority.md` §8.2：
+
+> 模板：<产品/模块> 是否支持 <用户要的能力>？或 <事项> 是否属于 <产品> 职责？
+> Authority 只裁决“有没有这个能力/属不属于职责”，不裁决“本次输出是否达标”。
+
+§8.3 三类 statement：职责外 → NE；职责内能力缺失 → 仍按交付判，期望未达成则 NF，不得因「功能未实现」降 NE；职责内正常 → 继续原评价。
+
+§8.1 L467–L468：
+
+> “输入坏”“完全无关”两类 not_evaluable 不依赖 Authority，不受此约束。
+
+013 Consensus：这三类前缀只是挑 F/NF/NE 的隐藏中间量，挑完就吃掉。014 Consensus：用户原句只覆盖 α；β 不是尚未支持；γ 不是定位以内；去年不得靠常识默认进 α。
+
+**Reasoning**:
+
+用户的两种「能不能」确实不是同一根轴上的两格。这一刀是真的。2×2 作为对外主问则画过了。Verifier 没有另立一套「该做」评分，但差一点点就会把 Authority 的隐藏行偷成新的评测员轴。
+
+对上用户原话：
+
+- 第 1 种若指「这类事今天做得到，这回漏了 / 做错了」：这是 §2.2 左半 + §4.2，是 Q1 的题。第二问再收，就是再问一遍办成了没有。
+- 第 1 种若指「产品该具备这维、但从来没做成」：今天看，和用户第 2 种「受限于因素就是做不到」是同一格，对应 §8.3 `职责内能力缺失`。差别是以后该不该补——那是产品路线，章程 §4 / D5 停住，本轮不切。
+- 第 2 种若把格式外、职责外、输入坏一并叫「办不了」：就是 014 已经否掉的大筐。
+
+所以只允许松开 §2.2 的这一处压缩：
+
+> 没办成，是因为这次交付失败，还是因为今天这事在产品职责内明确办不了？
+
+漏 vs 错 vs 改继续压在一起。右上不得和职责外、输入坏、依据不充分合成「办不了」。可证伪原则成立：漏了姓名 与 办不了投保年 不能同格；办不了投保年 与 `P07000000` 不能同格。
+
+2×2 哪里画过了：表里多出来的「不该做 / 该不该说不清 / 事没成形」并不是第二问自己的格子，它们已经分别住在 NE（职责外 / 依据不充分 / 输入坏）。把整张表说成「两问的组合」，听起来像要公开一个新坐标系。023 正文后半句其实已经否认这一点——只松开一处。我把后半句收成锁：2×2 只是内部图例，用来证明其余格已有归宿；它不是 Q2 的词表。
+
+「该做」有没有被走私：
+
+- 表的行头「该做」就是 §8.2 已经在问的那句话，不是本轮新发明的评测员判断。
+- §8.1 禁止 Judge 自行断定职责外 / 职责内能力缺失。D5、014 禁止用常识或 `is_supported=false` 把「去年」填进该做。本 issue 没有给去年填格，这一点成立。
+- 因此 verifier **没有**另造一条无 Authority 的「该做」轴。
+- 但 2×2 把「该做」画成公开行头，下一步很容易变成对外再问「认不认」。那会把 013 要求隐藏的中间量整表出口。第二问若存在，只许在 Authority 已经 resolve 为职责内之后，区分「这次交付失败」和「职责内能力缺失」；「该不该做」本身继续留在 Authority，不当第二问。
+
+「尽力了」看起来顺，正是因为它把整张表右边加上事没成形收成一个词。这是它不能当主抽象的原因，不是 022 说的「打分」。
+
+## Improvement Proposal
+
+**Problem**: 「办得了吗」若不先切开，会把 Q1 的交付失败和「今天职责内就办不了」收成同一个词；切过头又会把 Authority 前缀整表公开。
+
+**Proposed Change**: 锁切面，不锁对外句子，不改 `spec/alg/fulfilled.md` §2 三态。
+
+**Design**:
+
+```text
+内部图例（不是对外词表）：
+                  今天做得到              今天做不到
+职责内（Authority   Q1：办成 / 没办成      唯一允许松开的缝：
+  §8.3 职责内正常                         §8.3 职责内能力缺失
+  或能力缺失已分派）                      需求未达成仍是 NF
+职责外 / 无关       不应称为办成           已有 NE，不得叫「现在办不了」
+依据不充分          —                     已有 NE（D5 落这里）
+输入坏              —                     已有 NE；不走 Authority
+
+对外只许问这一缝：这次没办成，是交付失败，还是职责内今天就办不了？
+禁止再松开：漏/错/改；禁止把右上和 β/γ/unresolved 合成「办不了」。
+「该做」= Authority §8.2，保持隐藏中间量。
+```
+
+**Implementation Steps**:
+
+1. Consensus 采纳「只松开一处」和「2×2 只是内部图例」。
+2. Consensus 写明：本表不是把「该做」交给评测员常识；去年 / 称谓仍停在章程 §4。
+3. 不把 §8.3 三类前缀提升为出口枚举。那是 013 已锁的隐藏中间量。
+4. 对外问句和要不要 Q2 交给 024 + 用户，本 issue 不代选。
+
+**Risks**: 有人把「今天办不了」读成「这次没办成」。验收必须能把「漏了姓名」留在交付格。有人把内部图例抄成对外 2×2 问卷——那是未修本提案。
+
+**Verification**:
+
+```bash
+python3 -c "
+from pathlib import Path
+ful = Path('"'spec/alg/fulfilled.md').read_text()
+auth = Path('spec/alg/authority.md').read_text()
+assert '不区分原因' in ful
+assert '功能本身未实现，但用户期望已提出' in ful
+assert '该不该支持' in ful
+assert '有没有这个能力/属不属于职责' in auth or '有没有这个能力' in auth
+assert '职责内能力缺失' in auth
+assert '输入坏' in auth and '完全无关' in auth
+print('023 protocol cut still in source')
+\"
+"'```
+
+人工否决：任一「办得了吗」定义若让「漏了姓名」和「今天办不了投保年」同格，判偷走 fulfilled；若让「办不了投保年」和 `P07000000` 同格，判未修 014。
+'"'''
+
+r024 = r'''
+---
+## Architect Response #1
+
+### Investigation
+
+Read in full:
+
+- this issue 的死活表和候选 A 词表
+- 022 / 023 正文（本轮同伴，不把它们的结论当已判）
+- "'`spec/alg/fulfilled.md` §1、§2.2、§2.3、§3、D5
+- `spec/alg/authority.md` §8.2、§8.3
+- `spec/info-volume.md` L277–L284（不产第二套对错；归因在 NF/NE 之后追根因）
+- 013 / 014 / 015 Consensus
+- 章程 §4（角色不得代选对外问法、不得代选现在改不改 schema）
+
+未挑选最终中文名。未改 spec / schema。
+
+### Spawn Evidence
+
+- spawn-id: ad014f66ee11ca7f
+- pid: 79816
+
+**Judgment**: escalate-to-project
+
+**Evidence Verification**:
+
+死路对照，协议侧站得住，不需要再辩：
+
+- 第四态 / partial：`fulfilled.md` 开篇「不新增第四态」；`info-volume.md` L271「不引入 partial」。015 死编码 A。
+- 「尽力了」= 办成了：`fulfilled.md` §5、§7.1、§7.5、D3。015 死编码 B。
+- 用说不清表达定位内缺口：§2.2「功能未实现也是没办成，不降级为说不清」；§8.3 不得因功能未实现降 NE。015 死编码 C。
+- 系统自报当标签：positioning 不变量 1 + 014/015 死编码 D。
+
+本轮新表里，死作主问的几句我也独立认为该死：
+
+- 「正确承认尚未支持」：检查项，绑了披露质量。015 已否第三轴。
+- 「系统尽力了吗」：民间压缩，不是一件产品事实。
+- 「放对地方 / 站得住」：用户已否；协议无此对象。
+- 「办成了没有」：就是 Q1，活，但不是第二问。
+- 「认不认」：几乎是 `authority.md` §8.2 原文。013 要求它保持隐藏中间量。死作单独主问，对。
+- 「缺口在交付侧还是产品侧」：这是归因句。`info-volume.md` L282–L284 已经在 NF/NE 之后追根因。切得对，但不能当 fulfilled 同级的「一件事」。
+- 「按今天产品承诺处在什么状态」：能铺开内部图例，不是只看一件事。
+
+候选 A 的最小验收 1–4 作为**语义验算**成立，且和 023 的可证伪原则同构。这只证明 α 格需要能被单独指认，不证明「办得了吗」五个字能当对外主问。
+
+**Reasoning**:
+
+本体缺口是真的：013 出口裂缝还在，Authority §8.3 前缀挑完三态就被吃掉。015 活着的家族也还在：若用户要 Q2，只能是与三态正交、能标出「定位内当前明确尚未支持」、且 β/γ 吃不到的一层。
+
+024 越权的地方，是把这个家族收成一句已经能对外宣读的「活候选 A」。章程 §4 第一项就是：活着的候选里，最终采用哪一句作为对外问法，角色不得代选。015 已经用 escalate-to-project 挡住「现在就加字段」。本 issue 若再写成 real-problem + 「保留 A」，会把用户只是试探过的五个字，抬成第二问的正式题面。
+
+A 作为对外句子活不下来，理由不是死路表写错，而是它离 Q1 太近，而且几乎是在公开 Authority 前缀：
+
+1. 用户自己已经听到碰撞：「办得了吗」和「办成了没有」在口语里叠在一起。024 自己的释义也承认这一点——「办得了」之后还要再问 Q1 办成了没有。一句对外主问如果必须立刻补一句「然后看办成了没有」，它就还不是 fulfilled.md 同级的那一件事。
+2. A 的三值 ≈ §8.3 三类 statement，再把输入坏 / unresolved 折进「不是这个问题」。「办得了 ≈ 职责内正常」「现在办不了 ≈ 职责内能力缺失」「不是这个问题 ≈ 其余 NE」。013 写过：这些前缀是隐藏中间量，不是出口。015 要的最小层是能标出 α，不是把 Authority 枚举再问一遍。
+3. 「不是这个问题」作为否决条件（β/γ 不得叫现在办不了）必须留下。它不必先晋升成对外第三值。014 已经说过：轴 2 不必先做成完整划分。
+
+所以本轮能钉死的只有：上一轮那几句继续死；A 代表的家族（能指认 α、不吞 β/γ、不偷 Q1）仍是唯一还活着的语义家族；「办得了吗」这五个字不升格为对外主问。要不要第二问、问成哪一句、改不改 schema，仍是用户的三项。不要第二问，则 013 裂缝保持为已知限制，fulfilled 维持原样——024 末段这句我接受。
+
+若把 024 判成 real-problem，下一步一定是角色代写一句「更不像 Q1 的中文」。那正是章程禁止的。
+
+**Why I Cannot Apply It / 必须交给用户的决定**:
+
+1. 要不要对外看见第二问。不要，则停在 013 已知限制。
+2. 若要，用户自己写一句。验收只有语义：不能靠读 Q1 答完；不能把漏做和「职责内今天办不了」收成同一个词；不能把投保年缺口和 `P07000000` / 查天气收成同一个词。角色不得代拟那一句，也不得宣布采用「办得了吗」。
+3. 现在改不改 schema。改则必须同时处理 015 已写的归因后果；本轮红线禁止代选。
+
+Architect 只能把死路和「A 只是家族不是题面」锁进记录。不能替用户把第二问问出口。
+'"'''
+
+base = Path('/Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier/issues/open')
+(base / '_tmp_022_architect.md').write_text(r022)
+(base / '_tmp_023_architect.md').write_text(r023)
+(base / '_tmp_024_architect.md').write_text(r024)
+print('wrote temps', [p.stat().st_size for p in [base/'_tmp_022_architect.md', base/'_tmp_023_architect.md', base/'_tmp_024_architect.md']])
+PY" in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+wrote temps [6861, 7291, 5093]
+
+2026-08-15T13:01:29.486191Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+Good, temps written. Now append them to the issue files and then delete the temp files. I need to make sure I append, not overwrite.
+exec
+/bin/zsh -lc "python3 << 'PY'
+from pathlib import Path
+base = Path('/Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier/issues/open')
+pairs = [
+    ('issue-022.md', '_tmp_022_architect.md'),
+    ('issue-023.md', '_tmp_023_architect.md'),
+    ('issue-024.md', '_tmp_024_architect.md'),
+]
+for issue_name, tmp_name in pairs:
+    issue = base / issue_name
+    tmp = base / tmp_name
+    original = issue.read_text()
+    addition = tmp.read_text()
+    if not original.endswith('\\n'):
+        original += '\\n'
+    issue.write_text(original + addition)
+    tmp.unlink()
+    text = issue.read_text()
+    assert '## Architect Response #1' in text
+    assert 'ad014f66ee11ca7f' in text
+    assert 'pid: 79816' in text
+    # ensure original title still first
+    assert text.startswith('# Issue #')
+    print(f'appended {issue_name}: lines={text.count(chr(10))+1}, has_judgment={\"**Judgment**\" in text}')
+PY" in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+appended issue-022.md: lines=180, has_judgment=True
+appended issue-023.md: lines=199, has_judgment=True
+appended issue-024.md: lines=135, has_judgment=True
+
+2026-08-15T13:01:37.467508Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+Let me verify the appends look correct - that we didn't overwrite, that spawn evidence is present, and that the original content is intact. Also verify no temp files remain.
+exec
+/bin/zsh -lc "python3 << 'PY'
+from pathlib import Path
+base = Path('/Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier/issues/open')
+for name in ['issue-022.md','issue-023.md','issue-024.md']:
+    text = Path(base/name).read_text()
+    print('='*20, name, '='*20)
+    print('starts:', text.splitlines()[0])
+    # show from Architect Response
+    idx = text.find('## Architect Response #1')
+    print('architect at char', idx, 'of', len(text))
+    # extract judgment
+    for line in text[idx:].splitlines():
+        if line.startswith('**Judgment**') or line.startswith('- spawn-id') or line.startswith('- pid'):
+            print(line)
+    print('temp leftovers:', list(base.glob('_tmp_*')))
+    print()
+# confirm original verifier sections still present
+for name, needle in [
+    ('issue-022.md', '### fulfilled.md 的层级是什么（不是文风）'),
+    ('issue-023.md', '### 用户的两种「能不能」，其实不是同一根轴上的两格'),
+    ('issue-024.md', '### 活候选 A 的最小词表（不是最终中文名）'),
+]:
+    t = Path(base/name).read_text()
+    print(name, 'original intact:', needle in t)
+PY" in /Users/xiaozijian/WorkSpace/projects/claude_code/verifier-runB/verifier
+ succeeded in 0ms:
+==================== issue-022.md ====================
+starts: # Issue #022: 第二问必须和 fulfilled 同一层级：一件业务事实，不是评测员打分
+architect at char 1723 of 5425
+- spawn-id: ad014f66ee11ca7f
+- pid: 79816
+**Judgment**: real-problem
+temp leftovers: []
+
+==================== issue-023.md ====================
+starts: # Issue #023: 「办得了吗」必须切开，否则会偷走 fulfilled 的题
+architect at char 1895 of 5571
+- spawn-id: ad014f66ee11ca7f
+- pid: 79816
+**Judgment**: real-problem
+temp leftovers: []
+
+==================== issue-024.md ====================
+starts: # Issue #024: 死掉的问法和还活着的候选；角色不得代选那一句
+architect at char 1759 of 4156
+- spawn-id: ad014f66ee11ca7f
+- pid: 79816
+**Judgment**: escalate-to-project
+temp leftovers: []
+
+issue-022.md original intact: True
+issue-023.md original intact: True
+issue-024.md original intact: True
+
+2026-08-15T13:01:45.593249Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+The appends look correct. I've completed the task:
+
+codex
+Appended an independent Architect Response to each of the three sibling-question issues. Verdicts are not the same.
+
+**022 — `real-problem`**
+The altitude lock is real; calling all three rejected phrases “rater scores” is not. Q1 is also a rater judgment. What fails is the *object*: disclosure quality, folk effort, and a placement metaphor. Protocol「定位」is about documents vs Live, not where a request sits. Sibling Q, if any, must be a product fact with a closed vocabulary, orthogonal to the three states — not fulfilled’s already-taken “材料够不够” layer.
+
+**023 — `real-problem`**
+The user’s two kinds of「能不能」are not two cells on one new axis. Only one decompression is allowed: this-time delivery miss vs in-scope cannot-do-today. The 2×2 is an internal legend of cells the protocol already has, not a public grid.「该做」was not smuggled as a new rater row; it is already Authority §8.2 and must stay a hidden intermediate. Filling「去年」into that row remains forbidden.
+
+**024 — `escalate-to-project`**
+The dead list holds. Candidate A as a *semantic family* (can mark α, cannot swallow β/γ, cannot steal Q1) is the only live family. A as a *public sentence* does not survive:「办得了吗」is still too close to「办成了没有」, and its three values almost republish Authority prefixes that 013 kept hidden. Charter §4 forbids this role from choosing the public wording, whether to have Q2 at all, or whether to change schema.
+2026-08-15T13:01:57.682490Z  WARN codex_protocol::openai_models: Model personality requested but model_messages is missing, falling back to base instructions. model=grok-4.6 personality=pragmatic
+hook: Stop
+hook: Stop
+hook: Stop Completed
+hook: Stop Completed
+tokens used
+97,729
