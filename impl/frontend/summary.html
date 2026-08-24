@@ -487,6 +487,13 @@ function carrierFilterMatches(text, filter){
   if(filter==='empty'){return !text;}
   return text.includes('$'+filter);
 }
+function executionStatus(item){
+  const view=caseView(item);
+  if(item.status==='running'||view.status==='running'){return 'running';}
+  if(item.status==='error'||item.error||view.status==='error'||view.error){return 'error';}
+  if(hasStoredResult(view)||['done','fulfilled','not_fulfilled','not_evaluable'].includes(item.status)||['done','fulfilled','not_fulfilled','not_evaluable'].includes(view.status)){return 'done';}
+  return 'pending';
+}
 function currentFilteredCaseViews(){
   const filter=document.getElementById('caseFilter')?.value || 'all';
   const scenarioFilter=document.getElementById('scenarioFilter')?.value || 'all';
