@@ -24,7 +24,7 @@ from impl.core.schema import (
     to_dict,
 )
 from impl.core.protocol_base import check_forbidden_overrides
-from impl.core.live_transport import LiveTransport, validate_real_transport
+from impl.core.live_transport import LiveHTTPStatusError, LiveTransport, validate_real_transport
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +35,17 @@ _TURN_FACTS: ContextVar[Optional[Dict[str, Any]]] = ContextVar("live_turn_facts"
 
 class LiveServiceUnavailableError(RuntimeError):
     """业务服务不可达；区别于 request/output schema 等协议实现错误。"""
+
+
+def _is_service_unavailable(exc: BaseException) -> bool:
+    """服务不可达（recoverable）的分类判定。
+
+    LiveHTTPStatusError 继承 URLError/OSError，但语义是服务已响应并以
+    4xx/5xx 明确拒绝，不是不可达，也不应标记 recoverable。
+    """
+    if isinstance(exc, LiveHTTPStatusError):
+        return False
+    return isinstance(exc, (LiveServiceUnavailableError, OSError))
 
 
 class _LiveProtocol(ABC):
@@ -176,7 +187,7 @@ class _LiveProtocol(ABC):
         except Exception as exc:
             runtime_ms = int((time.time() - start) * 1000)
             facts = self._take_turn_facts()
-            fallback = self._build_fallback(request, str(exc), unavailable=isinstance(exc, (LiveServiceUnavailableError, OSError)))
+            fallback = self._build_fallback(request, str(exc), unavailable=_is_service_unavailable(exc))
             ctx.record_turn(
                 request=request,
                 raw_response=facts.get("raw_response"),
@@ -258,7 +269,7 @@ class _LiveProtocol(ABC):
             except Exception as exc:
                 runtime_ms = int((time.time() - start) * 1000)
                 facts = self._take_turn_facts()
-                fallback = self._build_fallback(request, str(exc), unavailable=isinstance(exc, (LiveServiceUnavailableError, OSError)))
+                fallback = self._build_fallback(request, str(exc), unavailable=_is_service_unavailable(exc))
                 ctx.record_turn(
                     request=request,
                     raw_response=facts.get("raw_response"),
