@@ -34,7 +34,7 @@ from impl.projects.client_search.judge import (
 )
 from impl.projects.client_search.live import FIELD_PATTERNS, boundary_from_trace, capability_manifest, external_boundary_sources, value_mappings
 from impl.projects.client_search.draft.enhanced_rules_key_index import (
-    retrieve_enhanced_rules_for_fields,
+    provide_enhanced_rules_for_fields,
 )
 from impl.projects.client_search.draft.catalog import (
     FIELD_INDEX_KEY,
@@ -1441,10 +1441,12 @@ def _build_core_context(
     intent_frame["capability_manifest"] = compact_manifest
     semantic_rules = _compact_semantic_rules(context, trace_fields)
     mapping_values = _compact_value_mappings(context, trace_fields)
-    enhanced = retrieve_enhanced_rules_for_fields(
+    # key_live 经 g-provider 合同消费（provider-contract.md §4.1）：Judge 只取
+    # value（与旧直连输出逐字节一致），三件套与锚点留在 ProvidedValue 上供审计。
+    enhanced = provide_enhanced_rules_for_fields(
         trace_fields,
         spec_id=spec.project_id,
-    )
+    ).value
     critical_dimensions = (
         intent_frame.get("critical_intent_dimensions")
         or context.get("critical_intent_dimensions")
