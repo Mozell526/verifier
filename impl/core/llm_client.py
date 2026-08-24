@@ -628,10 +628,6 @@ class LlmClient:
             "max_retries": 0,
             "supports_native_structured_outputs": False,
             "supports_json_schema_outputs": False,
-            # openai SDK 默认 UA（OpenAI/Python x.y.z）会被部分中转站的 Cloudflare
-            # WAF 拦截（403 "Your request was blocked."），换成中性 UA 规避；对官方
-            # DeepSeek 等正规端点无副作用（服务端不校验 UA）。
-            "default_headers": {"User-Agent": "curl/8.4.0"},
         }
         effective_reasoning_effort = (
             self.reasoning_effort if reasoning_effort is _USE_CONFIG else reasoning_effort
