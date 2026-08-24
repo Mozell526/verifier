@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 
 from impl.core.judge_protocol import ProjectJudge
+from impl.core.live_transport import _redact_headers
 from impl.core.schema import JudgeResult, RunTrace, normalize_judge_result, to_dict
 from impl.projects.llm_probe.capability import resolve_capability
 
@@ -13,10 +14,8 @@ def _request_payload(trace: RunTrace) -> Dict[str, Any]:
 
 
 def _capability(trace: RunTrace) -> str:
-    try:
-        return resolve_capability(_request_payload(trace))
-    except ValueError as exc:
-        return str(exc)
+    # 能力解析失败必须 fail-fast：错误消息不能被当成 user_intent 喂给 judge。
+    return resolve_capability(_request_payload(trace))
 
 
 class LlmProbeJudge(ProjectJudge):
@@ -51,7 +50,7 @@ class LlmProbeJudge(ProjectJudge):
                 "request": {
                     "url": request.get("url") or "",
                     "method": request.get("method"),
-                    "headers": request.get("headers") or {},
+                    "headers": _redact_headers(request.get("headers") or {}),
                     "body": request.get("body") or {},
                     "capability_ref": request.get("capability_ref") or "",
                 },
