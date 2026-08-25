@@ -112,3 +112,16 @@ llm_probe 的档位来自观测（`current_behavior`，过期重探）。同一�
 **物化缓存**，天然带 staleness（judge.md §5）。缓存过期 ≠ 判定逻辑变化，
 按漂移协议路由重算/重验即可；缓存条目复用时，三件套照原样携带，
 不因"从缓存读"而升档或洗掉出处。
+
+## 6. 实施状态（judge.md §8 的落地进度）
+
+- **g 路：已显式化。** `capability_provider` 装载合同 fail-fast
+  （`impl/core/capability_carrier.py`，getattr 探测链已删）；`key_live` 剥离为
+  显式 g-provider 实例（§4.1，`impl/core/provider_contract.py` 承载合同形状）。
+- **d / e 路：显式化延期。** 当前的隐式约定（如 live 模块的
+  `REQUEST_SCHEMA` / `EXTRACT_OUTPUT_SCHEMA` 发现式 getattr、期望物料的
+  项目内直连装载）横跨全部项目的 `live.py` 接入面与 mock/schema 校验链，
+  剥离不是局部改动。延期理由：d/e 的值形状（交付快照/期望）今天由协议层
+  模板方法与 schema 校验兜住，缺三件套戳记的代价尚未在判定质量上暴露；
+  等第一个需要跨项目对比 d/e 出处与新鲜度的真实用例出现时再动，
+  避免为抽象完备性做无消费者的迁移。届时按本合同 §2 逐路声明，不留双轨。
