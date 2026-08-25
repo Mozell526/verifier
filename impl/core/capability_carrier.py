@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib
+import importlib.util
 import json
 import threading
 from abc import ABC, abstractmethod
@@ -451,35 +452,53 @@ class CapabilityCarrierBase(ABC):
         return place_not_fulfilled_payload(payload, cache=self)
 
 
-def _live_module(spec: Any):
-    project_id = str(getattr(spec, "project_id", "") or "").strip()
-    if not project_id:
-        return None
-    try:
-        return importlib.import_module(f"impl.projects.{project_id}.live")
-    except ImportError:
-        return None
-
-
-def _capability_provider(spec: Any):
-    module = _live_module(spec)
-    loader = getattr(module, "capability_provider", None) if module else None
-    return loader if callable(loader) else None
-
-
 def _project_id(spec: Any) -> str:
     return str(getattr(spec, "project_id", "") or "").strip()
+
+
+def resolve_capability_provider(spec: Any):
+    """g-provider 的显式装载合同（judge.md §8：不再是散落的 getattr 约定）。
+
+    装载期 fail-fast，四种失败各有其名，不互相伪装：
+    - spec 缺 project_id / live 模块不存在 / 模块未声明 capability_provider /
+      声明不可调用 → CapabilityCarrierNotBound（接入未完成）；
+    - live 模块存在但装载崩溃（依赖缺失、语法错误）→ 原始异常原样上抛
+      （装载期失败，judge.md §7.7：不得伪装成"缺 capability_provider"）。
+    """
+    project_id = _project_id(spec)
+    if not project_id:
+        raise CapabilityCarrierNotBound(
+            "轴2接入未完成：spec 缺 project_id，无法定位 capability_provider"
+        )
+    module_name = f"impl.projects.{project_id}.live"
+    try:
+        found = importlib.util.find_spec(module_name)
+    except ModuleNotFoundError:
+        found = None  # 父包都不存在，同样是声明缺失
+    if found is None:
+        raise CapabilityCarrierNotBound(
+            f"轴2接入未完成：{project_id} 缺 capability_provider"
+            f"（模块 {module_name} 不存在）"
+        )
+    module = importlib.import_module(module_name)
+    provider = getattr(module, "capability_provider", None)
+    if provider is None:
+        raise CapabilityCarrierNotBound(
+            f"轴2接入未完成：{project_id} 的 {module_name} 未声明 capability_provider"
+        )
+    if not callable(provider):
+        raise CapabilityCarrierNotBound(
+            f"轴2接入未完成：{project_id} 的 capability_provider 不可调用"
+            f"（{type(provider).__name__}）"
+        )
+    return provider
 
 
 def bind_capability_carrier(spec: Any, *, shared: bool = False) -> CapabilityCarrierBase | None:
     if not capability_carrier_enabled(spec):
         return None
-    provider = _capability_provider(spec)
+    provider = resolve_capability_provider(spec)
     project_id = _project_id(spec)
-    if provider is None:
-        raise CapabilityCarrierNotBound(
-            f"轴2接入未完成：{project_id or '<unknown>'} 缺 capability_provider"
-        )
     if not shared:
         return _instantiate_provider(provider, spec, project_id)
     with _LIVE_LOCK:
