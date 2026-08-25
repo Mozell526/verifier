@@ -197,6 +197,10 @@ def ensure_business_expectation(
 def finalize_judge_result(result: JudgeResult) -> JudgeResult:
     """Apply the single public derivation after all project extensions have finished."""
     normalized = normalize_judge_result(result) or result
+    # 口径输出义务（judge.md §6）在 overall 派生前强制执行：
+    # 无担保/分歧口径 → not_evaluable，参与 blocking 聚合。
+    from .interpretation_gate import apply_interpretation_gate
+    normalized = apply_interpretation_gate(normalized)
     overall = dict(normalized.overall_fulfillment or {})
     overall["status"] = _derive_overall_status(
         list(normalized.business_expectations or []),
@@ -393,6 +397,21 @@ def judge_trace(
         "- fulfillment_assessments 只判断对应 expectation 的 status 和证据，不得重新定义 blocking\n"
         "- expectation_id 必须是描述性的中文短语，禁止使用 E1/E2/exp_01 等占位符 ID\n"
         "- reasoning_summary 必须是中文写成的判断依据\n\n"
+        "## 期望口径纪律（字面闭合）\n"
+        "期望默认字面闭合：business_expectations 只从用户诉求字面与项目判定材料对账，"
+        "此时 interpretations 留空数组（这是正确缺省）。\n"
+        "- 仅当某条 expectation 附加了超出诉求字面的口径（派生解释/业务换算/术语改写）时，"
+        "必须把每条口径写进该 expectation 的 interpretations，"
+        "形如 {\"statement\": 口径内容, \"warrant\": 材料引用, \"divergent\": 是否读法分歧}\n"
+        "- warrant 必须指向可回溯材料（项目评估文档、受治理规则、调查产物、authority.resolve 调用）；"
+        "常识、行业惯例、举一反三不构成担保，给不出担保就把 warrant 留空\n"
+        "- warrant 为空的口径 → 对应 assessment 必须判 not_evaluable，"
+        "actual_evidence 写「结论类型：口径无担保」并列缺料清单（补什么材料才能担保该口径）\n"
+        "- 多条有担保口径互相冲突、或读法分歧无法由材料定夺 → 相关条目 divergent 设 true，"
+        "对应 assessment 判 not_evaluable，actual_evidence 写「结论类型：口径分歧」，不得静默选边\n"
+        "- 已给出有担保口径（warrant 非空）时，判定必须按该口径落地，不得用常识改写或绕开\n"
+        "- 代码层会按 interpretations 结构强制以上规则（无担保/分歧口径 → not_evaluable），"
+        "隐瞒口径不会改变结论，只会丢失缺料清单\n\n"
     )
     if has_actual:
         system += (

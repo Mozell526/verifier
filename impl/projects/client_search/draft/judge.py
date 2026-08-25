@@ -1503,11 +1503,12 @@ def _build_core_context(
             [(
                 "## not_evaluable 成因契约（fulfilled.md §2.3/§10、authority.md §8.4）\n"
                 "判 not_evaluable 时，必须在对应 assessment 的 actual_evidence 中显式写明成因标签，"
-                "只允许四种：「结论类型：职责外」「结论类型：完全无关」「结论类型：依据不充分」"
-                "「结论类型：输入坏」。"
+                "只允许六种：「结论类型：职责外」「结论类型：完全无关」「结论类型：依据不充分」"
+                "「结论类型：输入坏」「结论类型：口径无担保」「结论类型：口径分歧」。"
                 "Authority 开启时，职责外/职责内能力缺失/依据不充分必须真实调用 authority.resolve"
                 "（在 authority_tool_call_ids 引用该次调用）；依据不充分同时给出缺料清单。"
-                "完全无关/输入坏不需要 authority。缺标签或标签不可识别的 not_evaluable 会被标 "
+                "完全无关/输入坏不需要 authority；口径无担保/口径分歧由期望的 interpretations "
+                "结构担保（judge.md §6），也不需要 authority。缺标签或标签不可识别的 not_evaluable 会被标 "
                 "needs_human_review（不静默放行）。"
             )]
             if authority_enabled
