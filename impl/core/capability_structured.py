@@ -411,7 +411,28 @@ def catalog_prompt(snapshot: Mapping[str, Any]) -> str:
     lex = lexicon_prompt(snapshot)
     if lex:
         body = f"{body}\n\n受治理业务词口径：\n{lex}" if body else f"受治理业务词口径：\n{lex}"
+    hints = attention_prompt(snapshot)
+    if hints:
+        section = (
+            "调用方注意力提示（caller_stated 最低档：仅提示读法注意某处，"
+            "不构成承载证据，不改变任何断言档位）：\n" + hints
+        )
+        body = f"{body}\n\n{section}" if body else section
     return body
+
+
+def attention_prompt(snapshot: Mapping[str, Any]) -> str:
+    """caller-stated 注意力提示（judge.md §7.3 第二用途）：只进提示面，不进断言。"""
+    lines = []
+    for item in snapshot.get("attention") or []:
+        if not isinstance(item, Mapping):
+            continue
+        note = str(item.get("note") or "").strip()
+        if not note:
+            continue
+        field = str(item.get("field") or "").strip()
+        lines.append(f"{field}：{note}" if field else note)
+    return "\n".join(lines)
 
 
 def normalize_lexicon(raw: Any) -> list[dict[str, Any]]:

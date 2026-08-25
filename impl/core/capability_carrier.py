@@ -58,6 +58,21 @@ LOW_TRUST_TIER = TIER_CALLER_STATED
 
 STAMP_KEYS = ("provenance", "trust_tier", "staleness")
 
+CALLER_STATED_PROVENANCE = "caller_stated"
+
+# e / 轴1 的载荷键：caller-stated 声明里出现任何一个即拒（judge.md §7.3——
+# 调用方声明不得作为 e 的来源、不得给 C 的对账结果洗分；结构保证，非纪律要求）。
+AXIS1_PAYLOAD_KEYS = frozenset({
+    "business_expectations",
+    "fulfillment_assessments",
+    "overall_fulfillment",
+    "expectations",
+    "expectation_id",
+    "acceptance_criteria",
+    "expected_outcome",
+    "user_intent",
+})
+
 
 class CapabilityCarrierNotBound(RuntimeError):
     """Scope is on but the project has not declared capability_provider."""
@@ -65,6 +80,10 @@ class CapabilityCarrierNotBound(RuntimeError):
 
 class CapabilityClaimsUnstamped(RuntimeError):
     """断言集戳记不完整或档位非法：装载期 fail-fast，不进判定。"""
+
+
+class CallerStatedOverlayRejected(RuntimeError):
+    """caller-stated 声明只准进 g/注意力：携带期望/轴1载荷或形状非法即拒。"""
 
 
 def assertion_warrant(entry: Mapping[str, Any]) -> str:
@@ -139,6 +158,99 @@ def require_stamped_claims(snapshot: Mapping[str, Any], *, owner: str = "") -> N
             f"{owner or '<claims>'} 断言戳记不完整（出处/信任档位/新鲜度）："
             + "; ".join(errors[:8])
         )
+
+
+def caller_stated_provenance(caller: str = "") -> str:
+    name = str(caller or "").strip()
+    return f"{CALLER_STATED_PROVENANCE}:{name}" if name else CALLER_STATED_PROVENANCE
+
+
+def _reject_axis1_payload(keys: Iterable[Any], owner: str) -> None:
+    hit = sorted({str(key) for key in keys} & AXIS1_PAYLOAD_KEYS)
+    if hit:
+        raise CallerStatedOverlayRejected(
+            f"{owner}：caller-stated 声明携带期望/轴1载荷键 {hit}；"
+            "调用方声明只进 g/注意力，不得作为 e 的来源（judge.md §7.3）"
+        )
+
+
+def overlay_caller_stated(
+    snapshot: Mapping[str, Any],
+    declarations: Mapping[str, Any] | None = None,
+    *,
+    caller: str = "",
+    attention: Sequence[str] = (),
+) -> dict[str, Any]:
+    """caller-stated 叠加层（judge.md §5/§7.3）：调用方声明只进 g / 注意力。
+
+    - 只落最低信任档：声明的 trust_tier / warrant / source / provenance 一律
+      改写为 caller_stated——调用方不能自我担保出更高档位（防循环格挡，§7.4）；
+    - 只叠加不覆盖：G 已有的断言按原样保留（字节不变），同名声明降级为
+      注意力提示，不得改写既有档位、operators、is_supported 等任何承载语义；
+    - 不进 e / 轴1：声明或其条目携带期望/轴1载荷键即拒（结构保证）。
+    """
+    fields = snapshot.get("fields") if isinstance(snapshot, Mapping) else None
+    if not isinstance(fields, Mapping):
+        raise CallerStatedOverlayRejected(
+            "caller-stated 是 G 的叠加层：能力空间快照不可用时无叠加对象，"
+            "不得由调用方声明凭空构成 G"
+        )
+    declared = declarations if isinstance(declarations, Mapping) else {}
+    if declarations is not None and not isinstance(declarations, Mapping):
+        raise CallerStatedOverlayRejected("caller-stated 声明必须是 字段名→断言 的映射")
+    _reject_axis1_payload(declared.keys(), "<declarations>")
+
+    out = dict(snapshot)
+    merged = dict(fields)
+    revision = str(out.get("revision") or "").strip() or snapshot_id(snapshot)[:16]
+    provenance = caller_stated_provenance(caller)
+    notes = [dict(item) for item in (out.get("attention") or []) if isinstance(item, Mapping)]
+
+    for name, entry in declared.items():
+        field = str(name)
+        if not isinstance(entry, Mapping):
+            raise CallerStatedOverlayRejected(
+                f"{field}: caller-stated 声明条目必须是断言映射"
+            )
+        _reject_axis1_payload(entry.keys(), field)
+        note_text = str(entry.get("note") or entry.get("description") or "").strip()
+        if field in merged:
+            # 已有断言不覆盖：同名声明降级为注意力提示（§7.3 的第二用途）。
+            notes.append({
+                "field": field,
+                "tier": TIER_CALLER_STATED,
+                "provenance": provenance,
+                "note": note_text or "调用方声明与既有断言同名：未覆盖，仅注意力提示",
+            })
+            continue
+        item = {
+            key: value
+            for key, value in entry.items()
+            if key not in ("trust_tier", "provenance", "warrant", "source")
+        }
+        item["trust_tier"] = TIER_CALLER_STATED
+        item["provenance"] = provenance
+        item["source"] = provenance
+        if not str(item.get("staleness") or "").strip():
+            item["staleness"] = revision
+        merged[field] = item
+
+    for text in attention:
+        note = str(text or "").strip()
+        if not note:
+            continue
+        notes.append({
+            "field": "",
+            "tier": TIER_CALLER_STATED,
+            "provenance": provenance,
+            "note": note,
+        })
+
+    out["fields"] = merged
+    out.setdefault("revision", revision)
+    if notes:
+        out["attention"] = notes
+    return out
 
 
 @dataclass(frozen=True)
@@ -292,14 +404,24 @@ def carrier_from_claims(
     *,
     spec: Any = None,
     owner: str = "",
+    caller_stated: Mapping[str, Any] | None = None,
+    caller: str = "",
+    attention: Sequence[str] = (),
 ) -> CapabilityCarrierBase:
     """g 的恒等下界（judge.md §4）：项目已持有戳记完整的 G 时，校验后恒等交出。
 
     这里不补缺省戳记——最低要求是可问责的 G 本身，缺三件套在装载期 fail-fast。
     需要缺省映射的供给方走 StructuredCarrier.from_materials（YAML 装载路径）。
+    caller_stated / attention 是调用方声明的低档叠加层（judge.md §7.3）：
+    先校验基座 G，再叠加（叠加只落 caller_stated 档，不覆盖既有断言）。
     """
     snapshot = dict(claims) if "fields" in claims else {"fields": dict(claims)}
     require_stamped_claims(snapshot, owner=owner)
+    if caller_stated or attention:
+        snapshot = overlay_caller_stated(
+            snapshot, caller_stated, caller=caller or owner, attention=attention,
+        )
+        require_stamped_claims(snapshot, owner=owner)
     from .capability_structured import StructuredCarrier
 
     return StructuredCarrier(snapshot, spec=spec)
