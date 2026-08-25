@@ -60,6 +60,17 @@ STAMP_KEYS = ("provenance", "trust_tier", "staleness")
 
 CALLER_STATED_PROVENANCE = "caller_stated"
 
+# 探针供给（judge.md §5：llm_probe 是 G 的供给方）。探到的是当下行为，
+# 缺省 current_behavior；目标系统的明确边界声明经信任模型登记（带 warrant）
+# 可作 inlive_boundary；探针证据永不 normative_rule / external_fact
+#（provider-contract §4.2，防被测系统自述自我背书）。
+PROBE_PROVENANCE_PREFIX = "llm_probe:"
+PROBE_ALLOWED_TIERS = frozenset({TIER_CURRENT_BEHAVIOR, TIER_INLIVE_BOUNDARY})
+
+# provider 只交值不交结论（judge.md §5 判别式）：断言载荷里出现三态/承载结论键
+# 即冒充 J，拒绝入 G。
+VERDICT_PAYLOAD_KEYS = frozenset({"placement", "carry"})
+
 # e / 轴1 的载荷键：caller-stated 声明里出现任何一个即拒（judge.md §7.3——
 # 调用方声明不得作为 e 的来源、不得给 C 的对账结果洗分；结构保证，非纪律要求）。
 AXIS1_PAYLOAD_KEYS = frozenset({
@@ -84,6 +95,11 @@ class CapabilityClaimsUnstamped(RuntimeError):
 
 class CallerStatedOverlayRejected(RuntimeError):
     """caller-stated 声明只准进 g/注意力：携带期望/轴1载荷或形状非法即拒。"""
+
+
+class ProbeClaimsRejected(RuntimeError):
+    """探针断言非法：档位越界（探针永不 normative_rule）、缺回溯出处、
+    或携带期望/结论载荷（provider 只交值不交结论）。装载期 fail-fast。"""
 
 
 def assertion_warrant(entry: Mapping[str, Any]) -> str:
@@ -172,6 +188,95 @@ def _reject_axis1_payload(keys: Iterable[Any], owner: str) -> None:
             f"{owner}：caller-stated 声明携带期望/轴1载荷键 {hit}；"
             "调用方声明只进 g/注意力，不得作为 e 的来源（judge.md §7.3）"
         )
+
+
+def probe_provenance(run_id: str) -> str:
+    """探针断言的出处：可回溯到具体一次探测（provider-contract §4.2）。"""
+    run = str(run_id or "").strip()
+    if not run:
+        raise ProbeClaimsRejected("探针断言必须可回溯到具体探测：缺 run_id")
+    return f"{PROBE_PROVENANCE_PREFIX}{run}"
+
+
+def _require_probe_entry(field: str, entry: Mapping[str, Any]) -> None:
+    keys = {str(key) for key in entry.keys()}
+    hit = sorted(keys & (AXIS1_PAYLOAD_KEYS | VERDICT_PAYLOAD_KEYS))
+    if hit:
+        raise ProbeClaimsRejected(
+            f"{field}: 探针断言携带期望/结论载荷键 {hit}；"
+            "provider 只交值不交结论（judge.md §5 判别式）"
+        )
+    provenance = str(entry.get("provenance") or "").strip()
+    if not provenance.startswith(PROBE_PROVENANCE_PREFIX):
+        raise ProbeClaimsRejected(
+            f"{field}: 探针断言出处必须回溯到探测运行"
+            f"（{PROBE_PROVENANCE_PREFIX}<run>），得到 {provenance!r}"
+        )
+    tier = str(entry.get("trust_tier") or "").strip()
+    if tier not in PROBE_ALLOWED_TIERS:
+        raise ProbeClaimsRejected(
+            f"{field}: 探针证据档位只能是 {sorted(PROBE_ALLOWED_TIERS)}，"
+            f"得到 {tier!r}（探到的是当下行为，永不 normative_rule）"
+        )
+    if tier == TIER_INLIVE_BOUNDARY and not str(entry.get("warrant") or "").strip():
+        raise ProbeClaimsRejected(
+            f"{field}: inlive_boundary 档需信任模型登记担保（warrant）；"
+            "探针自身只担保到 current_behavior"
+        )
+    if not str(entry.get("staleness") or "").strip():
+        raise ProbeClaimsRejected(
+            f"{field}: 探针断言缺 staleness（定格于探测时刻，过期重探）"
+        )
+
+
+def overlay_probe_claims(
+    snapshot: Mapping[str, Any],
+    probe_claims: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    """探针供给入 G（judge.md §5）：叠加已戳记的探针断言，不覆盖既有断言。
+
+    - 每条探针断言必须完整戳记且出处回溯到探测运行；档位只允许
+      current_behavior / inlive_boundary（后者需登记担保）；
+    - 只叠加不覆盖：G 已有同名断言按原样保留（字节不变），探针结果降级为
+      注意力提示——受治理断言的改写走治理，不走探针旁路；
+    - 不进 e / 轴1：断言携带期望/结论载荷键即拒（结构保证）。
+    """
+    fields = snapshot.get("fields") if isinstance(snapshot, Mapping) else None
+    if not isinstance(fields, Mapping):
+        raise ProbeClaimsRejected(
+            "探针断言是 G 的叠加层：能力空间快照不可用时无叠加对象；"
+            "探针独立构成 G 走 carrier_from_claims 的恒等路径"
+        )
+    if probe_claims is not None and not isinstance(probe_claims, Mapping):
+        raise ProbeClaimsRejected("探针断言必须是 字段名→断言 的映射")
+    declared = probe_claims or {}
+
+    out = dict(snapshot)
+    merged = dict(fields)
+    notes = [dict(item) for item in (out.get("attention") or []) if isinstance(item, Mapping)]
+
+    for name, entry in declared.items():
+        field = str(name)
+        if not isinstance(entry, Mapping):
+            raise ProbeClaimsRejected(f"{field}: 探针断言条目必须是断言映射")
+        _require_probe_entry(field, entry)
+        if field in merged:
+            # 已有断言不覆盖：探针差异降级为注意力提示，改写走治理。
+            note_text = str(entry.get("note") or entry.get("description") or "").strip()
+            notes.append({
+                "field": field,
+                "tier": str(entry.get("trust_tier")),
+                "provenance": str(entry.get("provenance")),
+                "note": note_text or "探针结果与既有断言同名：未覆盖，仅注意力提示",
+            })
+            continue
+        merged[field] = dict(entry)
+
+    out["fields"] = merged
+    out.setdefault("revision", str(out.get("revision") or "").strip() or snapshot_id(snapshot)[:16])
+    if notes:
+        out["attention"] = notes
+    return out
 
 
 def overlay_caller_stated(
@@ -404,6 +509,7 @@ def carrier_from_claims(
     *,
     spec: Any = None,
     owner: str = "",
+    probe_claims: Mapping[str, Any] | None = None,
     caller_stated: Mapping[str, Any] | None = None,
     caller: str = "",
     attention: Sequence[str] = (),
@@ -412,11 +518,16 @@ def carrier_from_claims(
 
     这里不补缺省戳记——最低要求是可问责的 G 本身，缺三件套在装载期 fail-fast。
     需要缺省映射的供给方走 StructuredCarrier.from_materials（YAML 装载路径）。
-    caller_stated / attention 是调用方声明的低档叠加层（judge.md §7.3）：
-    先校验基座 G，再叠加（叠加只落 caller_stated 档，不覆盖既有断言）。
+    probe_claims 是探针供给（judge.md §5：llm_probe 是 G 的供给方），
+    先于 caller-stated 叠加：探针档位（current_behavior）高于调用方声明档。
+    caller_stated / attention 是调用方声明的低档叠加层（judge.md §7.3）。
+    两路叠加都只叠加不覆盖既有断言。
     """
     snapshot = dict(claims) if "fields" in claims else {"fields": dict(claims)}
     require_stamped_claims(snapshot, owner=owner)
+    if probe_claims:
+        snapshot = overlay_probe_claims(snapshot, probe_claims)
+        require_stamped_claims(snapshot, owner=owner)
     if caller_stated or attention:
         snapshot = overlay_caller_stated(
             snapshot, caller_stated, caller=caller or owner, attention=attention,
