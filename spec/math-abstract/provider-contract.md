@@ -48,7 +48,7 @@
 |---|---|
 | value | 值本身：一份交付快照 / 一条期望 / 一件能力证据 |
 | provenance（出处） | 从哪份资料、哪次运行、谁的声明来，可回溯到具体源 |
-| trust tier（信任档位） | `normative_rule` / `external_fact` > `inlive_boundary`（须信任模型登记）> `current_behavior` 的定位序或形态等价分档（`spec/alg/material-positioning.md`）；caller-stated 天然低档；被测系统自述不得自我背书（judge.md §7.4） |
+| trust tier（信任档位） | 档位随"谁担保 / 担保多强"定，不由内容类型单独决定（judge.md §6）；`normative_rule` / `external_fact` > `inlive_boundary`（须信任模型登记）> `current_behavior` 的定位序保留为典型担保强度的缺省映射（`spec/alg/material-positioning.md`）；caller-stated（`caller_stated`）无独立担保时落低档；被测系统自述不得自我背书（judge.md §7.4） |
 | staleness（新鲜度） | 值定格于哪个 revision / 时刻；源漂移后按消费模式路由重算或重验（`spec/grill/staleness_public_facility.md`） |
 | citation 锚点 | 该值在已声明引用空间内的定位标识，供 J 的 citations 回溯 |
 

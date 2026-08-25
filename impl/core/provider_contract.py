@@ -17,21 +17,29 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, Mapping
 
+from .capability_carrier import (
+    TIER_CALLER_STATED,
+    TIER_CURRENT_BEHAVIOR,
+    TIER_EXTERNAL_FACT,
+    TIER_INLIVE_BOUNDARY,
+    TIER_NORMATIVE_RULE,
+    TRUST_TIERS,
+)
+
 LANE_D = "d"
 LANE_E = "e"
 LANE_G = "g"
 _LANES = frozenset({LANE_D, LANE_E, LANE_G})
 
-TRUST_NORMATIVE_RULE = "normative_rule"
-TRUST_EXTERNAL_FACT = "external_fact"
-TRUST_INLIVE_BOUNDARY = "inlive_boundary"
-TRUST_CURRENT_BEHAVIOR = "current_behavior"
-_TRUST_TIERS = frozenset({
-    TRUST_NORMATIVE_RULE,
-    TRUST_EXTERNAL_FACT,
-    TRUST_INLIVE_BOUNDARY,
-    TRUST_CURRENT_BEHAVIOR,
-})
+# 档位常量的单一真相源在 capability_carrier（judge.md §6：档位随担保强度定）。
+# 此处仅做别名再导出，避免两套常量各自漂移；caller_stated 是合法低档
+#（judge.md §7.3：caller-stated 是 G 的低信任叠加层供给方）。
+TRUST_NORMATIVE_RULE = TIER_NORMATIVE_RULE
+TRUST_EXTERNAL_FACT = TIER_EXTERNAL_FACT
+TRUST_INLIVE_BOUNDARY = TIER_INLIVE_BOUNDARY
+TRUST_CURRENT_BEHAVIOR = TIER_CURRENT_BEHAVIOR
+TRUST_CALLER_STATED = TIER_CALLER_STATED
+_TRUST_TIERS = frozenset(TRUST_TIERS)
 
 # 声明的失败面必须覆盖三态（§3）：装载期失败 / 运行期失败 / 合法值缺失。
 FAILURE_STAGE_LOAD = "load"
