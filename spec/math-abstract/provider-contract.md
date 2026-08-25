@@ -19,8 +19,8 @@
 
 1. provider 只交**值**，不交结论。探针探到"目标返回 4xx 明确拒绝"是值；
    探针宣布"该期望做不了"是冒充 J。
-2. provider 不因供料方式获得特权。人工写的、探出来的、调用方声明的，
-   都压进 §2 的元数据；J 不看出身，只看档位（judge.md §1、§6）。
+2. provider 不因供料方式获得特权。YAML 装的、探出来的、调用方声明的能力证据，
+   都压进 §2 的戳记；J 不看出身，只看档位（judge.md §1、§6）。
 3. 一个机制可以同时为多路供料（如 source 阅读既可产 g 证据也可佐证 e 的口径），
    但每一路各自过一遍本合同，不共享失败语义。
 
@@ -40,20 +40,29 @@
 直接报错，不进运行期（capability_carrier-generalization §2b 已落地此模式，
 `capability_provider` 是本合同在轴2 g 路上的第一个实例）。
 
-### 2.2 运行期输出（值 + 三件套 + 引用锚点）
+### 2.2 运行期输出（值 + 戳记 + 引用锚点）
 
-每个输出值必须携带（judge.md §6 三件套 + 引用锚点）：
+戳记随路而定（judge.md §6：三件套只构成 G）。
+
+**g 路输出**（能力证据）必须携带（三件套 + 引用锚点）：
 
 | 字段 | 内容 |
 |---|---|
-| value | 值本身：一份交付快照 / 一条期望 / 一件能力证据 |
-| provenance（出处） | 从哪份资料、哪次运行、谁的声明来，可回溯到具体源 |
+| value | 一件能力证据 |
+| provenance（出处） | 从哪份资料、哪次探测、谁的声明来，可回溯到具体源 |
 | trust tier（信任档位） | 档位随"谁担保 / 担保多强"定，不由内容类型单独决定（judge.md §6）；`normative_rule` / `external_fact` > `inlive_boundary`（须信任模型登记）> `current_behavior` 的定位序保留为典型担保强度的缺省映射（`spec/alg/material-positioning.md`）；caller-stated（`caller_stated`）无独立担保时落低档；被测系统自述不得自我背书（judge.md §7.4） |
 | staleness（新鲜度） | 值定格于哪个 revision / 时刻；源漂移后按消费模式路由重算或重验（`spec/grill/staleness_public_facility.md`） |
 | citation 锚点 | 该值在已声明引用空间内的定位标识，供 J 的 citations 回溯 |
 
 J 消费这五项的方式是确定性的（judge.md §6）：g 缺失或低置信 → 诚实的
 "说不清 + 差在哪儿 + 缺料清单"，不是自信的错误结论。
+
+**e 路输出**默认无戳记：期望的出处结构上就是诉求文本 y 本身。仅当期望附加了
+超出诉求字面的口径（派生解释）时，那条口径必须携带担保/出处，
+给不出 → 诚实的"说不清（口径无担保）"（judge.md §6）。
+
+**d 路输出**无戳记合同：交付快照的出处结构上就是本次运行，C 不消费信任档位
+与新鲜度，J 永不看 d(x)（judge.md §6、§7.2）。
 
 ## 3. 失败语义
 
@@ -110,7 +119,7 @@ llm_probe 的档位来自观测（`current_behavior`，过期重探）。同一�
 
 调查资料（investigation 产物）不是第四种 provider：它是 f / g 映射输出的
 **物化缓存**，天然带 staleness（judge.md §5）。缓存过期 ≠ 判定逻辑变化，
-按漂移协议路由重算/重验即可；缓存条目复用时，三件套照原样携带，
+按漂移协议路由重算/重验即可；缓存条目复用时，原有戳记照原样携带，
 不因"从缓存读"而升档或洗掉出处。
 
 ## 6. 实施状态（judge.md §8 的落地进度）
@@ -118,10 +127,7 @@ llm_probe 的档位来自观测（`current_behavior`，过期重探）。同一�
 - **g 路：已显式化。** `capability_provider` 装载合同 fail-fast
   （`impl/core/capability_carrier.py`，getattr 探测链已删）；`key_live` 剥离为
   显式 g-provider 实例（§4.1，`impl/core/provider_contract.py` 承载合同形状）。
-- **d / e 路：显式化延期。** 当前的隐式约定（如 live 模块的
+- **d / e 路：无戳记合同。** judge.md §6 收窄后，d 不带戳记、e 默认无戳记
+  （仅附加口径须带担保）。现有的隐式装载约定（live 模块的
   `REQUEST_SCHEMA` / `EXTRACT_OUTPUT_SCHEMA` 发现式 getattr、期望物料的
-  项目内直连装载）横跨全部项目的 `live.py` 接入面与 mock/schema 校验链，
-  剥离不是局部改动。延期理由：d/e 的值形状（交付快照/期望）今天由协议层
-  模板方法与 schema 校验兜住，缺三件套戳记的代价尚未在判定质量上暴露；
-  等第一个需要跨项目对比 d/e 出处与新鲜度的真实用例出现时再动，
-  避免为抽象完备性做无消费者的迁移。届时按本合同 §2 逐路声明，不留双轨。
+  项目内直连装载）不欠三件套——这不是延期，是合同本来就不覆盖。
