@@ -36,9 +36,109 @@ RECOG_MISSING_VALUE = "missing_value"
 RECOG_MISSING_OPERATOR = "missing_operator"
 RECOG_UNMAPPED = "unmapped"
 
+# 信任档位（spec/math-abstract/judge.md §6）：档位随"谁担保/担保多强"定，
+# 不由内容类型单独决定。定位序保留为典型担保强度的缺省映射。
+TIER_NORMATIVE_RULE = "normative_rule"
+TIER_EXTERNAL_FACT = "external_fact"
+TIER_INLIVE_BOUNDARY = "inlive_boundary"
+TIER_CURRENT_BEHAVIOR = "current_behavior"
+TIER_CALLER_STATED = "caller_stated"
+
+TRUST_TIERS = (
+    TIER_NORMATIVE_RULE,
+    TIER_EXTERNAL_FACT,
+    TIER_INLIVE_BOUNDARY,
+    TIER_CURRENT_BEHAVIOR,
+    TIER_CALLER_STATED,
+)
+# 受治理 YAML 物料担保的断言的缺省档位（既有项目零迁移）。
+DEFAULT_TRUST_TIER = TIER_NORMATIVE_RULE
+# 担保缺失（w 偏关系暂缺）落低档，不硬拒（judge.md §3/§6）。
+LOW_TRUST_TIER = TIER_CALLER_STATED
+
+STAMP_KEYS = ("provenance", "trust_tier", "staleness")
+
 
 class CapabilityCarrierNotBound(RuntimeError):
     """Scope is on but the project has not declared capability_provider."""
+
+
+class CapabilityClaimsUnstamped(RuntimeError):
+    """断言集戳记不完整或档位非法：装载期 fail-fast，不进判定。"""
+
+
+def assertion_warrant(entry: Mapping[str, Any]) -> str:
+    """担保 w：断言回溯到为它背书的材料（judge.md §3）。source 键即历史担保链，保留不删。"""
+    return str(entry.get("warrant") or entry.get("source") or "").strip()
+
+
+def assertion_tier(entry: Mapping[str, Any]) -> str:
+    """档位随担保强度定：显式声明优先；有担保材料走缺省档，担保暂缺落低档。"""
+    declared = str(entry.get("trust_tier") or "").strip()
+    if declared:
+        return declared
+    return DEFAULT_TRUST_TIER if assertion_warrant(entry) else LOW_TRUST_TIER
+
+
+def stamp_claims(
+    snapshot: Mapping[str, Any],
+    *,
+    default_provenance: str = "capability_manifest",
+) -> dict[str, Any]:
+    """为快照断言补三件套缺省戳记（出处/信任档位/新鲜度）。
+
+    既有 YAML 项目零迁移：source 即出处与担保，档位按担保强度走缺省映射，
+    新鲜度定格到快照 revision。不改任何承载性语义字段。
+    """
+    out = dict(snapshot)
+    fields = out.get("fields")
+    if not isinstance(fields, Mapping):
+        return out
+    revision = str(out.get("revision") or "").strip() or snapshot_id(snapshot)[:16]
+    stamped: dict[str, Any] = {}
+    for name, entry in fields.items():
+        if not isinstance(entry, Mapping):
+            stamped[name] = entry
+            continue
+        item = dict(entry)
+        if not str(item.get("provenance") or "").strip():
+            item["provenance"] = assertion_warrant(entry) or default_provenance
+        if not str(item.get("trust_tier") or "").strip():
+            item["trust_tier"] = assertion_tier(entry)
+        if not str(item.get("staleness") or "").strip():
+            item["staleness"] = revision
+        stamped[str(name)] = item
+    out["fields"] = stamped
+    out.setdefault("revision", revision)
+    return out
+
+
+def validate_claim_stamps(snapshot: Mapping[str, Any]) -> list[str]:
+    """校验断言集是否可问责：每条断言必须带完整三件套且档位合法。"""
+    fields = snapshot.get("fields") if isinstance(snapshot, Mapping) else None
+    if not isinstance(fields, Mapping):
+        return ["claims missing fields"]
+    errors: list[str] = []
+    for name, entry in fields.items():
+        if not isinstance(entry, Mapping):
+            errors.append(f"{name}: assertion is not a mapping")
+            continue
+        for key in STAMP_KEYS:
+            if not str(entry.get(key) or "").strip():
+                errors.append(f"{name}: missing {key}")
+        tier = str(entry.get("trust_tier") or "").strip()
+        if tier and tier not in TRUST_TIERS:
+            errors.append(f"{name}: unknown trust_tier {tier}")
+    return errors
+
+
+def require_stamped_claims(snapshot: Mapping[str, Any], *, owner: str = "") -> None:
+    errors = validate_claim_stamps(snapshot)
+    if errors:
+        raise CapabilityClaimsUnstamped(
+            f"{owner or '<claims>'} 断言戳记不完整（出处/信任档位/新鲜度）："
+            + "; ".join(errors[:8])
+        )
 
 
 @dataclass(frozen=True)
@@ -177,11 +277,32 @@ def bind_capability_carrier(spec: Any, *, shared: bool = False) -> CapabilityCar
 
 def _instantiate_provider(provider, spec: Any, project_id: str) -> CapabilityCarrierBase:
     carrier = provider(spec)
-    if not isinstance(carrier, CapabilityCarrierBase):
-        raise CapabilityCarrierNotBound(
-            f"轴2接入未完成：{project_id or '<unknown>'} capability_provider 未返回 CapabilityCarrierBase"
-        )
-    return carrier
+    if isinstance(carrier, CapabilityCarrierBase):
+        return carrier
+    if isinstance(carrier, Mapping):
+        return carrier_from_claims(carrier, spec=spec, owner=project_id)
+    raise CapabilityCarrierNotBound(
+        f"轴2接入未完成：{project_id or '<unknown>'} capability_provider "
+        "未返回 CapabilityCarrierBase 或已戳记断言集"
+    )
+
+
+def carrier_from_claims(
+    claims: Mapping[str, Any],
+    *,
+    spec: Any = None,
+    owner: str = "",
+) -> CapabilityCarrierBase:
+    """g 的恒等下界（judge.md §4）：项目已持有戳记完整的 G 时，校验后恒等交出。
+
+    这里不补缺省戳记——最低要求是可问责的 G 本身，缺三件套在装载期 fail-fast。
+    需要缺省映射的供给方走 StructuredCarrier.from_materials（YAML 装载路径）。
+    """
+    snapshot = dict(claims) if "fields" in claims else {"fields": dict(claims)}
+    require_stamped_claims(snapshot, owner=owner)
+    from .capability_structured import StructuredCarrier
+
+    return StructuredCarrier(snapshot, spec=spec)
 
 
 _LIVE_CARRIERS: dict[str, CapabilityCarrierBase] = {}
