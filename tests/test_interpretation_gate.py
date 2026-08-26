@@ -125,9 +125,31 @@ def test_normalize_coerces_bare_string_interpretation_fail_closed():
         "blocking": True,
         "interpretations": ["裸字符串口径"],
     })
-    assert expectation.interpretations == [{"statement": "裸字符串口径"}]
+    assert expectation.interpretations == [
+        {"statement": "裸字符串口径", "warrant": "", "divergent": False},
+    ]
     out = apply_interpretation_gate(_result(expectation))
     assert out.fulfillment_assessments[0].status == "not_evaluable"
+
+
+def test_normalize_aliases_statement_and_never_maps_basis_to_warrant():
+    expectation = normalize_business_expectation({
+        "expectation_id": "核心交付",
+        "blocking": True,
+        "interpretations": [
+            {"interpretation": "近30天按自然日", "basis": "行业惯例", "note": "应忽略"},
+            {"spoken": "在职单", "normalized": "在职有效客户"},
+            {"statement": "有担保口径", "warrant": "doc:rule#1"},
+            {"meaning": "无内容可丢", "basis": "常识"},  # meaning 可作 statement；basis 非 warrant
+            {"判定": "只剩别名垃圾", "dimension": "x"},  # 无可恢复 statement → 丢弃
+        ],
+    })
+    assert expectation.interpretations == [
+        {"statement": "近30天按自然日", "warrant": "", "divergent": False},
+        {"statement": "在职单 → 在职有效客户", "warrant": "", "divergent": False},
+        {"statement": "有担保口径", "warrant": "doc:rule#1", "divergent": False},
+        {"statement": "无内容可丢", "warrant": "", "divergent": False},
+    ]
 
 
 def test_authority_gate_accepts_interpretation_cause_tags():

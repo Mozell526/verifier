@@ -399,15 +399,69 @@ def normalize_mock_spec(value: Any) -> Optional[MockSpec]:
     )
 
 
+# 口径字段别名 → 合同三键。LLM 偶发写错键名时归一，不把推理叙述（basis 等）当 warrant。
+_STATEMENT_ALIASES = (
+    "statement",
+    "interpretation",
+    "meaning",
+    "note",
+    "text",
+    "content",
+    "phrase",
+    "含义",
+    "语义解释",
+    "业务解释",
+    "表达解释",
+)
+_WARRANT_ALIASES = ("warrant", "citation", "source_ref", "material_ref")
+_DIVERGENT_ALIASES = ("divergent", "conflict")
+
+
+def _first_nonempty_str(data: dict, keys: tuple[str, ...]) -> str:
+    for key in keys:
+        text = str(data.get(key) or "").strip()
+        if text:
+            return text
+    return ""
+
+
+def _normalize_interpretation_entry(item: Any) -> Optional[dict]:
+    # judge.md §6：超出诉求字面的口径。裸字符串 / 别名键 → 合同三键；
+    # 无 statement 可恢复则丢弃（无法构成口径条目）；无 warrant → fail-closed
+    # 交 interpretation_gate（说不清·口径无担保）。basis/判定/维度等不得映射为 warrant。
+    if hasattr(item, "__dataclass_fields__"):
+        item = asdict(item)
+    if isinstance(item, str):
+        text = item.strip()
+        return {"statement": text, "warrant": "", "divergent": False} if text else None
+    if not isinstance(item, dict):
+        return None
+    data = dict(item)
+    statement = _first_nonempty_str(data, _STATEMENT_ALIASES)
+    if not statement:
+        spoken = str(data.get("spoken") or data.get("用户表述") or data.get("用户表达") or "").strip()
+        normalized = str(data.get("normalized") or "").strip()
+        if spoken and normalized:
+            statement = f"{spoken} → {normalized}"
+        else:
+            statement = spoken or normalized
+    if not statement:
+        return None
+    warrant = _first_nonempty_str(data, _WARRANT_ALIASES)
+    divergent = False
+    for key in _DIVERGENT_ALIASES:
+        if key in data:
+            divergent = bool(data.get(key))
+            break
+    return {"statement": statement, "warrant": warrant, "divergent": divergent}
+
+
 def _normalize_interpretations(value: Any) -> list:
-    # judge.md §6：超出诉求字面的口径。裸字符串条目按无担保口径收敛
-    # （fail-closed，交由 interpretation_gate 处理），不静默丢弃。
     entries = []
     for item in _as_list(value):
-        if isinstance(item, dict):
-            entries.append(item)
-        elif str(item or "").strip():
-            entries.append({"statement": str(item)})
+        entry = _normalize_interpretation_entry(item)
+        if entry is not None:
+            entries.append(entry)
     return entries
 
 
