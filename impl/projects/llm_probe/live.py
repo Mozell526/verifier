@@ -43,7 +43,7 @@ def resolve_http(request: Dict[str, Any], spec: ProjectSpec) -> tuple[str, str, 
     timeout = float(primary["timeout_seconds"])
     ref = str(request.get("capability_ref") or "").strip()
     if ref:
-        # capability 预设自包含端点配置（capability_map.yaml service 块），与项目注册表解耦；
+        # capability 预设自包含端点配置（资料管理页维护的 service 块），与项目注册表解耦；
         # url 显式与否不改变 timeout/method 来源。
         service = capability_service(ref)
         if not url:

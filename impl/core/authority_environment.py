@@ -27,7 +27,7 @@ from pydantic import Field
 from impl.core.context.errors import ContextValidationError
 from impl.core.context.runtime import ContextRun, ContextRuntime
 from impl.core.context.bootstrap import DEFAULT_CONTEXT_DATA_ROOT, build_context_runtime
-from impl.core.context.resolvers import CompositeContentResolver, FileContentResolver
+from impl.core.context.resolvers import CompositeContentResolver, standard_content_resolver
 from impl.core.context.tools import (
     GuardedContextTools,
     load_context_units_tool,
@@ -308,7 +308,7 @@ def _content_resolver(spec: Any) -> CompositeContentResolver:
         source_root = resolve_project_source_root(spec)
         if source_root not in roots:
             roots.append(source_root)
-    return CompositeContentResolver([FileContentResolver(roots)] if roots else [])
+    return standard_content_resolver(roots)
 
 
 def _build_context_runtime(

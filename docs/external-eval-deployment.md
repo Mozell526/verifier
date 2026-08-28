@@ -112,19 +112,10 @@ case 信封里直接给 url：
 { "url": "http://127.0.0.1:15001/api/v1/xxx", "method": "POST", "body": { ... } }
 ```
 
-或在 `impl/projects/llm_probe/capability_map.yaml` 加预设：
-
-```yaml
-my_local_service:
-  capability: |
-    （能力口径描述）
-  service:
-    url: http://127.0.0.1:15001/api/v1/xxx
-    method: POST
-    timeout_seconds: 60
-  mock_body:
-    user_text: '{query}'
-```
+或在前端「资料管理」页（`/frontend/materials.html`）新建 capability 预设：
+填能力口径描述、探测端点（url 用 `http://127.0.0.1:1500X/...`、method、超时）、
+mock_body 模板（`{query}` 占位符），保存后 case 用 `capability_ref: 预设名` 引用，即存即用。
+预设数据落在服务器 `impl/data/<project>/capability_map.json`，属用户资料，不随代码部署覆盖。
 
 ## 当前部署实例(2026-08-28)
 
@@ -144,6 +135,28 @@ ssh -N -o ServerAliveInterval=30 \
 ```
 
 浏览器访问 `http://localhost:18080`,评测目标填 `http://127.0.0.1:15001/...`。
+
+## 更新代码（重要）
+
+服务器上 `impl/data/`（case 池、capability 预设、资料库、context 记录等运行数据）和 `.env`
+（服务器专属配置，PYTHON_EXECUTABLE 指向服务器 venv）**重新部署代码时必须排除，
+否则会被本地版本覆盖**。槽位声明在 `impl/projects/<id>/materials.yaml`，随代码走。
+
+排除项必须**锚定到仓库根**（前导 `/`）。不锚定的 `--exclude experiments` 会把
+`impl/projects/*/investigation/*/experiments`（调查包的冻结产物）也剔掉，导致服务器上调查包残缺：
+
+```bash
+rsync -az --exclude /.git --exclude /.env --exclude /tmp --exclude /experiments \
+    --exclude /issues --exclude /tests --exclude '__pycache__' --exclude '/impl/data' \
+    ./ root@154.9.252.35:/opt/verifier/ && ssh root@154.9.252.35 'systemctl restart verifier'
+```
+
+首次让 `client_search` 能跑时，若服务器还没有口径表，单独种入（之后由资料页维护，不要每次覆盖）：
+
+```bash
+rsync -az impl/data/client_search/materials/field_glossary/ \
+    root@154.9.252.35:/opt/verifier/impl/data/client_search/materials/field_glossary/
+```
 
 ## 多人共用
 

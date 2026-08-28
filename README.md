@@ -66,6 +66,7 @@ VERIFIER_PORT=8022 bash run.sh server
 - `http://127.0.0.1:8020/frontend/index.html`
 - `http://127.0.0.1:8020/frontend/live.html`
 - `http://127.0.0.1:8020/frontend/summary.html`
+- `http://127.0.0.1:8020/frontend/materials.html`（资料管理：槽位填充、自由资料、capability 预设）
 
 以上地址对应 `impl/config.yaml` 中默认的 `server.host` / `server.port`。
 
@@ -91,7 +92,7 @@ ssh -N -o ServerAliveInterval=30 \
 - 三个 `-R` 对应本地业务服务：8000 client_search → 15001、8050 policy_search → 15002、9006 营销意图 → 15003；只评一个服务时其余 `-R` 可省；
 - 评测期间保持终端开着，断了重跑即可；
 - 浏览器访问 `http://localhost:18080` 即 verifier 前端；
-- 服务器上 llm_probe 的 `capability_map.yaml` 预设已指向隧道端口，直接选预设即可；预设外的服务 URL 填 `http://127.0.0.1:1500X/...`。
+- capability 预设在前端「资料管理」页维护（能力口径 + 探测端点 + mock 模板），服务器实例的预设已指向隧道端口；预设外的服务 URL 填 `http://127.0.0.1:1500X/...`。
 
 `eval-tunnel` 为密钥登录、不可开 shell 的隧道专用账号；多人共用时每人固定一个端口（15001/15002/15003），把公钥加进该账号的 `authorized_keys`。
 
