@@ -75,6 +75,28 @@ VERIFIER_PORT=8022 bash run.sh server
 curl http://127.0.0.1:8020/health
 ```
 
+## 远程评测接入（外网服务器 + 本地业务系统）
+
+verifier 已部署在远程服务器（`154.9.252.35`，systemd 服务 `verifier`，绑定 `127.0.0.1:8022`，无公网 HTTP 暴露）。被测业务系统跑在本机时，用一条 ssh 命令接入，**零安装**：
+
+```bash
+ssh -N -o ServerAliveInterval=30 \
+    -R 15001:127.0.0.1:8000 \
+    -R 15002:127.0.0.1:8050 \
+    -R 15003:127.0.0.1:9006 \
+    -L 18080:127.0.0.1:8022 \
+    eval-tunnel@154.9.252.35
+```
+
+- 三个 `-R` 对应本地业务服务：8000 client_search → 15001、8050 policy_search → 15002、9006 营销意图 → 15003；只评一个服务时其余 `-R` 可省；
+- 评测期间保持终端开着，断了重跑即可；
+- 浏览器访问 `http://localhost:18080` 即 verifier 前端；
+- 服务器上 llm_probe 的 `capability_map.yaml` 预设已指向隧道端口，直接选预设即可；预设外的服务 URL 填 `http://127.0.0.1:1500X/...`。
+
+`eval-tunnel` 为密钥登录、不可开 shell 的隧道专用账号；多人共用时每人固定一个端口（15001/15002/15003），把公钥加进该账号的 `authorized_keys`。
+
+完整部署与原理说明见 `docs/external-eval-deployment.md`。
+
 ## CLI 用法
 
 列出项目：
