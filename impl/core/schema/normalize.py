@@ -399,18 +399,6 @@ def normalize_mock_spec(value: Any) -> Optional[MockSpec]:
     )
 
 
-def _normalize_interpretations(value: Any) -> list:
-    # judge.md §6：超出诉求字面的口径。裸字符串条目按无担保口径收敛
-    # （fail-closed，交由 interpretation_gate 处理），不静默丢弃。
-    entries = []
-    for item in _as_list(value):
-        if isinstance(item, dict):
-            entries.append(item)
-        elif str(item or "").strip():
-            entries.append({"statement": str(item)})
-    return entries
-
-
 def normalize_business_expectation(value: Any) -> Optional[BusinessExpectation]:
     if value is None or isinstance(value, BusinessExpectation):
         return value
@@ -430,7 +418,6 @@ def normalize_business_expectation(value: Any) -> Optional[BusinessExpectation]:
         priority=str(data.get("priority") or "normal"),
         blocking=bool(data.get("blocking")),
         evidence_refs=_as_list(data.get("evidence_refs")),
-        interpretations=_normalize_interpretations(data.get("interpretations")),
     )
 
 

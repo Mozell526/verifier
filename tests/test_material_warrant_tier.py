@@ -32,7 +32,7 @@ _ALL_KINDS = ("current_behavior", "normative_rule", "external_fact", "inlive_bou
 _LOCATION = "project_package:materials/field-catalog.yaml"
 _EVIDENCE = {"field-catalog": _LOCATION}
 _CLIENT_SEARCH_REPORT = Path(
-    "impl/projects/client_search/draft/investigation/judge/docs/authority-investigation-report.json"
+    "impl/projects/client_search/investigation/judge/docs/authority-investigation-report.json"
 )
 
 

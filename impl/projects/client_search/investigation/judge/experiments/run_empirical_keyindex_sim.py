@@ -525,7 +525,7 @@ def load_xlsx_queries(path: Path) -> list[dict[str, Any]]:
 
 
 def load_iteration_queries(path: Path) -> list[dict[str, Any]]:
-    cases = json.loads(path.read_text())
+    cases = json.loads(path.read_text(encoding="utf-8"))
     out = []
     for case in cases:
         cid = case.get("id") or case.get("source_case_id")
@@ -654,11 +654,11 @@ def metrics_labeled(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def main() -> int:
-    field_doc = yaml.safe_load((SRC / "field_definitions_args.yaml").read_text()) or {}
+    field_doc = yaml.safe_load((SRC / "field_definitions_args.yaml").read_text(encoding="utf-8")) or {}
     intents = [x for x in (field_doc.get("intents") or []) if isinstance(x, dict)]
-    rules_doc = yaml.safe_load((SRC / "enhanced_rules_args.yaml").read_text()) or {}
+    rules_doc = yaml.safe_load((SRC / "enhanced_rules_args.yaml").read_text(encoding="utf-8")) or {}
     rules = [x for x in (rules_doc.get("rules") or []) if isinstance(x, dict)]
-    abbr_doc = yaml.safe_load((SRC / "abbrname_enums_args.yaml").read_text()) or {}
+    abbr_doc = yaml.safe_load((SRC / "abbrname_enums_args.yaml").read_text(encoding="utf-8")) or {}
 
     field_v0 = build_field_entries_v0(intents)
     field_v1 = build_field_entries_v1(intents)
@@ -707,8 +707,8 @@ def main() -> int:
     }
     smoke["abbr"] = {"n": len(abbr_members), "金凤": _normalise("金凤") in abbr_members}
 
-    dev = json.loads((SRC / "development_probes.json").read_text())
-    hold = json.loads((SRC / "holdout_probes.json").read_text())
+    dev = json.loads((SRC / "development_probes.json").read_text(encoding="utf-8"))
+    hold = json.loads((SRC / "holdout_probes.json").read_text(encoding="utf-8"))
     labeled = [{**p, "split": "development"} for p in dev] + [{**p, "split": "holdout"} for p in hold]
 
     # I078/I036/I210-style extras from iteration

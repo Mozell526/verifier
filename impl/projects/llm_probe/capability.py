@@ -36,6 +36,15 @@ def resolve_capability(request: dict[str, Any]) -> str:
     return text
 
 
+def capability_service(ref: str) -> dict[str, Any]:
+    """capability 预设自带的探测端点配置（url/method/timeout_seconds）。"""
+    entry = load_capability_map().get(ref)
+    service = entry.get("service") if isinstance(entry, dict) else None
+    if not isinstance(service, dict) or not str(service.get("url") or "").strip():
+        raise ValueError(f"capability_map.yaml 没有 {ref} 的 service.url 配置")
+    return service
+
+
 def default_capability_ref() -> str:
     mapping = load_capability_map()
     # 按 key 排序取默认项，避免依赖 YAML 键的书写顺序。

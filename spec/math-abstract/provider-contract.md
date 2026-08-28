@@ -132,8 +132,10 @@ llm_probe 的档位来自观测（`current_behavior`，过期重探）。同一�
   （仅附加口径须带担保）。现有的隐式装载约定（live 模块的
   `REQUEST_SCHEMA` / `EXTRACT_OUTPUT_SCHEMA` 发现式 getattr、期望物料的
   项目内直连装载）不欠三件套——这不是延期，是合同本来就不覆盖。
-- **e 路口径义务：运行期已结构化落地。** 期望的 `interpretations` 字段
-  （`impl/core/schema/judge.py`）+ 口径 gate（`impl/core/interpretation_gate.py`）
-  强制 §2.2 的 e 路输出规则：无担保口径 → 说不清（口径无担保）+ 缺料清单，
-  分歧 → 说不清（口径分歧）。e-provider 的显式装载期拆分仍是 judge.md §8 的
+- **e 路口径义务：无运行期执行机制（判后自报方案已证伪）。** §2.2 的 e 路
+  输出规则是装配期合同：无担保口径不得进入期望集。判后自报落地
+  （interpretations 字段 + 口径 gate）已于 2026-08-26 实施并当日回滚——
+  "是否超字面"不可由产出口径的同一判定 LLM 自判，fail-closed 使诚实上报自毁
+  （误杀数据与固化约束见 judge.md §8）。执行时机只能是 e-provider 显式拆分后
+  的装载期校验，或 semantic_mapping authority 裁决；拆分仍是 judge.md §8 的
   刻意暂缓待办（收益条件 / 合同复用 / 不变量见该节）。

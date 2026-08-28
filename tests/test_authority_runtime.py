@@ -306,7 +306,7 @@ def test_environment_fail_closed_on_missing_source(client_search_spec):
     """§13.3：已有 EvidenceRef 找不到原始来源 → Environment 构造失败（fail-closed）。"""
     manifest_path = (
         client_search_spec.project_package_path(must_exist=False)
-        / "draft/investigation/judge/manifest.json"
+        / "investigation/judge/manifest.json"
     )
     raw = manifest_path.read_text(encoding="utf-8")
     broken = raw.replace(
@@ -1032,7 +1032,7 @@ def test_claim_mode_rejects_comparison_that_rewrites_independent_result(authorit
 
 
 def test_client_search_field_navigation_budget_preserves_authority_capacity(monkeypatch):
-    from impl.projects.client_search.draft import judge as draft_judge
+    from impl.projects.client_search import judge as draft_judge
     from impl.tools import ToolResult, VerifiableTool
 
     executed = []
@@ -1081,7 +1081,7 @@ def test_client_search_field_navigation_budget_preserves_authority_capacity(monk
 def test_client_search_draft_prompt_declares_llm_owned_field_allowlist():
     from pathlib import Path
 
-    source = Path("impl/projects/client_search/draft/judge.py").read_text(encoding="utf-8")
+    source = Path("impl/projects/client_search/judge.py").read_text(encoding="utf-8")
     assert "以本节为唯一准则" in source
     assert "禁止输出 overall_fulfillment、confidence、evidence_refs、authority_analysis_ids、actual" in source
     assert "boundary 必须是 JSON object" in source
@@ -1377,7 +1377,7 @@ def test_field_slice_projects_evidence_locator_index_closed_loop():
     assert "在职有效客户" in rules_index.entries[0].search_text
 
     report = load_authority_investigation_report(
-        Path("impl/projects/client_search/draft/investigation/judge/docs/authority-investigation-report.json")
+        Path("impl/projects/client_search/investigation/judge/docs/authority-investigation-report.json")
     )
     registry = build_authority_key_index_registry(
         report,

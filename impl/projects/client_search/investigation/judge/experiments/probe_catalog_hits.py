@@ -62,13 +62,13 @@ def main() -> int:
         p = spec.source_path(k)
         exists = bool(p) and Path(p).is_file()
         print("SOURCE", k, exists, p)
-    from impl.projects.client_search.draft.catalog import (
+    from impl.projects.client_search.catalog import (
         STRONG_HIT_FLOOR,
         build_draft_catalog_registry,
         hit_strength,
         search_catalog,
     )
-    from impl.projects.client_search.draft.catalog_embedding import (
+    from impl.projects.client_search.catalog_embedding import (
         resolve_catalog_embedding_provider,
     )
     registry = build_draft_catalog_registry(spec)

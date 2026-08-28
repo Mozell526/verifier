@@ -21,11 +21,6 @@ class BusinessExpectation:
     boundary: Dict[str, Any] = field(default_factory=dict)
     priority: str = "normal"
     evidence_refs: List[Dict[str, Any]] = field(default_factory=list)
-    # 超出诉求字面的口径（派生解释，judge.md §6）。期望默认字面闭合：本列表为空
-    # 是正确缺省。每条 {"statement": 口径内容, "warrant": 可回溯材料引用（cite 进 z），
-    # "divergent": 读法分歧标记}；warrant 为空或标 divergent 的口径由
-    # interpretation_gate 强制 说不清（口径无担保/口径分歧）。
-    interpretations: List[Dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -93,10 +88,6 @@ class JudgeBusinessExpectationOutput:
     acceptance_criteria: List[Any] = field(default_factory=list)
     boundary: Dict[str, Any] = field(default_factory=dict)
     priority: str = "normal"
-    # 超出诉求字面的口径（judge.md §6）：字面对账时留空；附加派生解释时每条
-    # {"statement", "warrant", "divergent"}，warrant 空/divergent 会被口径 gate
-    # 强制 not_evaluable（口径无担保/口径分歧）。
-    interpretations: List[Dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass

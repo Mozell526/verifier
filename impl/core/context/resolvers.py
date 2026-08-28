@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Iterable, List
 from urllib.parse import unquote, urlparse
+from urllib.request import url2pathname
 
 from .errors import ContextResolutionError
 from .models import ContextUnitRecord
@@ -44,12 +45,13 @@ class FileContentResolver:
         parsed = urlparse(content_ref)
         if parsed.scheme != "file":
             raise ContextResolutionError(f"unsupported file reference: {content_ref}")
-        raw_path = unquote(parsed.path or "")
         if parsed.netloc and parsed.netloc != "localhost":
             # Treat file://docs/guide.md as a project-relative reference, never as a remote host.
-            candidate = Path(parsed.netloc) / raw_path.lstrip("/")
+            candidate = Path(parsed.netloc) / unquote(parsed.path or "").lstrip("/")
         else:
-            candidate = Path(raw_path)
+            # url2pathname is the platform-aware inverse of Path.as_uri(): on Windows it
+            # strips the leading slash before drive letters (file:///D:/x -> D:\x).
+            candidate = Path(url2pathname(parsed.path or ""))
         if not candidate.is_absolute():
             candidate = self._allowed_roots[0] / candidate
         resolved = candidate.expanduser().resolve()

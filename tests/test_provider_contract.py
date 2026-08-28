@@ -138,7 +138,7 @@ def key_live_fixture(tmp_path, monkeypatch):
     source.write_text(_ENHANCED_RULES_FIXTURE, encoding="utf-8")
     monkeypatch.setenv("CLIENT_SEARCH_REPO", str(tmp_path))
 
-    from impl.projects.client_search.draft import enhanced_rules_key_index as module
+    from impl.projects.client_search import enhanced_rules_key_index as module
 
     module._enhanced_rules_source_path.cache_clear()
     module._load_enhanced_rules_document.cache_clear()

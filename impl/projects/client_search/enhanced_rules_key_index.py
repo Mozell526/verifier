@@ -149,7 +149,7 @@ def provide_enhanced_rules_for_fields(
         provenance={
             "source": "project.yaml:enhanced_rules（受治理源 YAML）",
             "source_path": str(_enhanced_rules_source_path(spec_id)),
-            "key_index": "impl/projects/client_search/draft/enhanced_rules_key_index.py",
+            "key_index": "impl/projects/client_search/enhanced_rules_key_index.py",
             "requested_fields": wanted,
         },
         trust_tier=TRUST_NORMATIVE_RULE,

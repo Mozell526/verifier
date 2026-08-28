@@ -85,14 +85,14 @@ def main() -> int:
     load_dotenv(repo / ".env")
     table_path = repo / "impl/projects/client_search/draft/.state/judge/iterations/001-run-comparison-table.md"
     cases_path = repo / "impl/projects/client_search/draft/.state/judge/iteration-cases.json"
-    out_path = repo / "impl/projects/client_search/draft/investigation/judge/experiments/catalog-hits-dump.json"
+    out_path = repo / "impl/projects/client_search/investigation/judge/experiments/catalog-hits-dump.json"
     rows = parse_table(table_path.read_text(encoding="utf-8"))
     traces = {c["id"]: c for c in json.loads(cases_path.read_text(encoding="utf-8"))}
     from impl.core.project_loader import load_project
-    from impl.projects.client_search.draft.catalog import (
+    from impl.projects.client_search.catalog import (
         STRONG_HIT_FLOOR, build_draft_catalog_registry, hit_strength, search_catalog,
     )
-    from impl.projects.client_search.draft.catalog_embedding import resolve_catalog_embedding_provider
+    from impl.projects.client_search.catalog_embedding import resolve_catalog_embedding_provider
     spec = load_project("client_search")
     registry = build_draft_catalog_registry(spec)
     try:

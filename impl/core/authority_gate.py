@@ -30,14 +30,7 @@ NOT_EVALUABLE = "not_evaluable"
 # 「结论类型：职责外 / 依据不充分 / 输入坏 / 完全无关」（authority.md §5/§8.3、
 # fulfilled.md §2.3），gate 只消费显式标记，不做自由文本关键词猜测——
 # 关键词表会误伤（普通叙述里出现"无法确认"等词）或漏判，属于规则化反模式。
-# 口径无担保/口径分歧是 e 路成因（judge.md §6）：由期望的 interpretations 结构
-# 与 interpretation_gate 担保，不需要 authority 审计记录，故归入豁免类。
-_NE_EXEMPT_CAUSE_TAGS = (
-    "结论类型：输入坏",
-    "结论类型：完全无关",
-    "结论类型：口径无担保",
-    "结论类型：口径分歧",
-)
+_NE_EXEMPT_CAUSE_TAGS = ("结论类型：输入坏", "结论类型：完全无关")
 _NE_TRIGGER_CAUSE_TAGS = (
     "结论类型：职责外",
     "结论类型：依据不充分",

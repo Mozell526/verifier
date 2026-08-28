@@ -601,7 +601,7 @@ def main() -> int:
     repo = Path(os.environ.get("VERIFIER_REPO") or Path.cwd()).resolve()
     sys.path.insert(0, str(repo))
     load_dotenv(repo / ".env")
-    out_dir = Path(os.environ.get("SIM_OUT_DIR") or repo / "impl/projects/client_search/draft/investigation/judge/experiments")
+    out_dir = Path(os.environ.get("SIM_OUT_DIR") or repo / "impl/projects/client_search/investigation/judge/experiments")
     out_dir.mkdir(parents=True, exist_ok=True)
 
     table_path = repo / "impl/projects/client_search/draft/.state/judge/iterations/001-run-comparison-table.md"
@@ -621,11 +621,11 @@ def main() -> int:
     search_catalog = None
     try:
         from impl.core.project_loader import load_project
-        from impl.projects.client_search.draft.catalog import (
+        from impl.projects.client_search.catalog import (
             build_draft_catalog_registry,
             search_catalog as search_catalog_fn,
         )
-        from impl.projects.client_search.draft.catalog_embedding import (
+        from impl.projects.client_search.catalog_embedding import (
             resolve_catalog_embedding_provider,
         )
 

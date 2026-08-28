@@ -20,10 +20,10 @@ repo = Path.cwd()
 sys.path.insert(0, str(repo))
 load_dotenv(repo / ".env")
 from impl.core.project_loader import load_project
-from impl.projects.client_search.draft.catalog import (
+from impl.projects.client_search.catalog import (
     STRONG_HIT_FLOOR, FIELD_INDEX_KEY, build_draft_catalog_registry, hit_strength, search_catalog,
 )
-from impl.projects.client_search.draft.catalog_embedding import resolve_catalog_embedding_provider
+from impl.projects.client_search.catalog_embedding import resolve_catalog_embedding_provider
 spec = load_project("client_search")
 reg = build_draft_catalog_registry(spec)
 provider = resolve_catalog_embedding_provider()
