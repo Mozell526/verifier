@@ -112,11 +112,18 @@ def main(argv=None):
     p.add_argument("--project", required=True)
     p.add_argument("--role", required=True, choices=("attribute", "judge", "mock"))
     p.add_argument("--apply", action="store_true", help="写入 impl/data/<project>/materials/；默认只校验")
-    p.add_argument("--candidate", action="store_true", help="使用 draft 调查包")
+    source_group = p.add_mutually_exclusive_group()
+    source_group.add_argument("--candidate", action="store_true", help="强制使用 draft 调查包（默认跟随 role draft.enabled，与 runtime 一致）")
+    source_group.add_argument("--production", action="store_true", help="强制使用生产调查包")
     p.add_argument(
         "--slot",
         default="",
         help="可选：把拼接正文写入该资料 id（不得绑定任何角色，否则会撑爆 judge 预算）",
+    )
+    p.add_argument(
+        "--push",
+        default="",
+        help="物化后把写入的资料同步到远端评测机：user@host[:/opt/verifier]，需配合 --apply",
     )
 
     args = parser.parse_args(argv)
@@ -202,19 +209,50 @@ def main(argv=None):
     elif args.cmd == "materialize":
         from .core.materials_materialize import MaterializeError, materialize_project
 
+        if args.push and not args.apply:
+            print("--push 需要配合 --apply（先写盘再同步）", file=sys.stderr)
+            raise SystemExit(1)
+        source = "candidate" if args.candidate else "production" if args.production else "auto"
         try:
-            emit(
-                materialize_project(
-                    args.project,
-                    args.role,
-                    apply=args.apply,
-                    candidate=args.candidate,
-                    slot_id=args.slot,
-                )
+            result = materialize_project(
+                args.project,
+                args.role,
+                apply=args.apply,
+                source=source,
+                slot_id=args.slot,
             )
         except MaterializeError as exc:
             print(str(exc), file=sys.stderr)
             raise SystemExit(1) from exc
+        emit(result)
+        if args.push:
+            _push_materials(args.project, result, args.push)
+
+
+def _push_materials(project_id: str, result: dict, push_target: str) -> None:
+    """materialize --push：把本次写入的资料目录经 scripts/sync_materials.sh 同步到远端。"""
+    import subprocess
+
+    ids = [item["id"] for item in result.get("written") or [] if item.get("id")]
+    if not ids:
+        print("没有写入任何资料，跳过 --push", file=sys.stderr)
+        return
+    host, _, remote_path = str(push_target).partition(":")
+    if not host:
+        print(f"--push 目标非法: {push_target!r}（期望 user@host[:/opt/verifier]）", file=sys.stderr)
+        raise SystemExit(1)
+    repo_root = Path(__file__).resolve().parents[1]
+    cmd = [
+        "bash", "scripts/sync_materials.sh",
+        "--host", host,
+        "--project", project_id,
+        "--ids", ",".join(ids),
+    ]
+    if remote_path:
+        cmd += ["--remote-path", remote_path]
+    proc = subprocess.run(cmd, cwd=repo_root)
+    if proc.returncode != 0:
+        raise SystemExit(proc.returncode)
 
 
 def _cli_check_request(project_id: str, input_data: Any) -> None:

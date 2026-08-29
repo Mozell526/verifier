@@ -142,30 +142,48 @@ ssh -N -o ServerAliveInterval=30 \
 （服务器专属配置，PYTHON_EXECUTABLE 指向服务器 venv）**重新部署代码时必须排除，
 否则会被本地版本覆盖**。槽位声明在 `impl/projects/<id>/materials.yaml`，随代码走。
 
-排除项必须**锚定到仓库根**（前导 `/`）。不锚定的 `--exclude experiments` 会把
-`impl/projects/*/investigation/*/experiments`（调查包的冻结产物）也剔掉，导致服务器上调查包残缺：
+全量部署用封装脚本（排除项已内置且**锚定到仓库根**——不锚定的 `--exclude experiments`
+会把 `impl/projects/*/investigation/*/experiments` 调查包冻结产物也剔掉）：
 
 ```bash
-rsync -az --exclude /.git --exclude /.env --exclude /tmp --exclude /experiments \
-    --exclude /issues --exclude /tests --exclude '__pycache__' --exclude '/impl/data' \
-    ./ root@154.9.252.35:/opt/verifier/ && ssh root@154.9.252.35 'systemctl restart verifier'
+scripts/deploy_verifier.sh root@154.9.252.35            # 部署到 /opt/verifier 并重启 verifier
+scripts/deploy_verifier.sh root@154.9.252.35 /opt/verifier --dry-run   # 先看会同步什么
+scripts/deploy_verifier.sh root@154.9.252.35 --no-restart
 ```
 
-首次让 `client_search` 能跑时，若服务器还没有口径表，单独种入（之后由资料页维护，不要每次覆盖）：
+（等价的原始命令：`rsync -az --exclude /.git --exclude /.env --exclude /tmp --exclude /experiments
+--exclude /issues --exclude /tests --exclude '__pycache__' --exclude /impl/data ./ root@…:/opt/verifier/`
+后接 `systemctl restart verifier`。）
+
+## 同步资料（只拷目录，不碰其余 impl/data）
+
+`scripts/sync_materials.sh` 按 `impl/data/<project>/materials/<id>/` 逐目录 rsync，
+绝不全量覆盖 `impl/data`。资料来源三选一：
 
 ```bash
-rsync -az impl/data/client_search/materials/field_glossary/ \
-    root@154.9.252.35:/opt/verifier/impl/data/client_search/materials/field_glossary/
+# 指定 id（如首次种入口径表；之后由资料页维护，不要每次覆盖）
+scripts/sync_materials.sh --host root@154.9.252.35 --project client_search --ids field_glossary
+
+# 物化后按 materialize 输出的 written[].id 同步（管道直读 stdout JSON）
+bash run.sh cli materialize --project client_search --role judge --apply \
+    | scripts/sync_materials.sh --host root@154.9.252.35 --project client_search --from-materialize-json -
+
+# 项目全部自由资料
+scripts/sync_materials.sh --host root@154.9.252.35 --project client_search --all-free
 ```
 
-业务源码证据要在远程阅读时，在**有业务仓库的机器**上物化，再只同步新生成的资料目录（保留 manifest，provenance 才是 `investigation`）：
+更省事的一步式：物化 + 同步（等价于上面第二条）：
 
 ```bash
-bash run.sh cli materialize --project client_search --role judge --apply
-# 然后按输出的 written[].id 逐份 rsync impl/data/client_search/materials/<id>/
+bash run.sh cli materialize --project client_search --role judge --apply --push root@154.9.252.35:/opt/verifier
 ```
 
-不要把这些快照写入 `field_glossary` 或任何 `roles: [judge]` 槽位——体积会撑爆 binding 预算。
+物化必须在**有业务仓库的机器**上执行（哈希校验通过 provenance 才是 `investigation`）。
+调查包选择与运行时一致：角色 `draft.enabled` 时物化 draft 候选包（资料 id 带 `-draft-` 中缀），
+`--candidate` / `--production` 可显式强制。不要把这些快照写入 `field_glossary` 或任何
+`roles: [judge]` 槽位——体积会撑爆 binding 预算。
+
+两个脚本都依赖 bash/rsync/ssh；Windows 用户请在 WSL 里运行。
 
 ## 多人共用
 

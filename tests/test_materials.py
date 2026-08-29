@@ -226,6 +226,31 @@ def test_asset_view_readonly_projection():
         asset_view("client_search", "no-such-asset")
 
 
+def test_asset_view_reports_actually_active_package():
+    """asset_view 展示的必须是 runtime 真正读的那个包（role draft.enabled → candidate）。"""
+    from impl.core.materials_overview import asset_view, project_overview
+
+    # client_search judge 无 draft：生效生产包
+    judge = asset_view("client_search", "judge_investigation")
+    assert judge["active_source"] == "production"
+    assert judge["active_path"] == judge["production_path"]
+
+    # client_search attribute draft.enabled=true 且有 candidate_path：生效 draft 候选包
+    attribute = asset_view("client_search", "attribute_investigation")
+    assert attribute["active_source"] == "candidate"
+    assert attribute["active_path"] == attribute["candidate_path"]
+    assert attribute["candidate_path"].startswith("project://draft/")
+
+    # overview 列表两个 exists 都保留，并标注 active_source
+    overview = project_overview("client_search")
+    investigation = next(s for s in overview["sections"] if s["kind"] == "investigation")
+    items = {item["asset_id"]: item for item in investigation["items"]}
+    assert items["judge_investigation"]["active_source"] == "production"
+    assert items["attribute_investigation"]["active_source"] == "candidate"
+    assert "production_exists" in items["attribute_investigation"]
+    assert "candidate_exists" in items["attribute_investigation"]
+
+
 def test_asset_view_expands_business_source_evidence():
     """调查对象清单必须把被调查的业务源码文件逐份列出，不能只给计数。"""
     from impl.core.materials_overview import asset_view
@@ -311,6 +336,55 @@ def test_materialize_apply_writes_free_materials_not_bound_to_judge(demo_project
     assert result["index_id"] in free_ids
     bound = materials_store.binding_materials_for_role(demo_project, "judge")
     assert [item["id"] for item in bound] == ["glossary"]
+
+
+def test_materialize_candidate_ids_coexist_with_production(demo_project, tmp_path):
+    """candidate 来源带 -draft- 中缀，不覆盖 production 物化结果。"""
+    source_root, manifest, digest, body = _business_tree(tmp_path)
+    prod = materialize_evidence(
+        project_id=demo_project,
+        role="judge",
+        manifest=manifest,
+        source_root=source_root,
+        apply=True,
+    )
+    draft = materialize_evidence(
+        project_id=demo_project,
+        role="judge",
+        manifest=manifest,
+        source_root=source_root,
+        apply=True,
+        package_source="candidate",
+    )
+    assert prod["package_source"] == "production"
+    assert draft["package_source"] == "candidate"
+    assert prod["snapshots"][0]["id"] == "judge-business-config"
+    assert draft["snapshots"][0]["id"] == "judge-draft-business-config"
+    assert draft["index_id"] == "judge-draft-investigation-snapshot"
+    free_ids = [item["id"] for item in materials_store.list_materials(demo_project)["free"]]
+    assert "judge-business-config" in free_ids
+    assert "judge-draft-business-config" in free_ids
+    loaded = materials_store.get_material(demo_project, "judge-draft-business-config")
+    assert loaded["provenance"]["package_source"] == "candidate"
+    kept = materials_store.get_material(demo_project, "judge-business-config")
+    assert kept["provenance"]["package_source"] == "production"
+
+
+def test_materialize_source_selection_follows_runtime():
+    """auto 跟随 role draft.enabled（与 runtime 一致）；candidate/production 强制。"""
+    from impl.core.materials_materialize import _use_candidate_for_source
+
+    class Spec:
+        def role_draft(self, role):
+            return {"enabled": True} if role == "attribute" else {}
+
+    spec = Spec()
+    assert _use_candidate_for_source(spec, "attribute", "auto") is True
+    assert _use_candidate_for_source(spec, "judge", "auto") is False
+    assert _use_candidate_for_source(spec, "judge", "candidate") is True
+    assert _use_candidate_for_source(spec, "attribute", "production") is False
+    with pytest.raises(MaterializeError, match="source"):
+        _use_candidate_for_source(spec, "judge", "bogus")
 
 
 def test_materialize_dry_run_does_not_write(demo_project, tmp_path):
@@ -436,3 +510,26 @@ def test_cli_materialize_llm_probe_exits(capsys):
         main(["materialize", "--project", "llm_probe", "--role", "judge"])
     assert exc.value.code == 1
     assert "investigation" in capsys.readouterr().err
+
+
+def test_cli_materialize_source_flags_mutually_exclusive(capsys):
+    from impl.cli import main
+
+    with pytest.raises(SystemExit) as exc:
+        main([
+            "materialize", "--project", "llm_probe", "--role", "judge",
+            "--candidate", "--production",
+        ])
+    assert exc.value.code == 2  # argparse conflict
+
+
+def test_cli_materialize_push_requires_apply(capsys):
+    from impl.cli import main
+
+    with pytest.raises(SystemExit) as exc:
+        main([
+            "materialize", "--project", "llm_probe", "--role", "judge",
+            "--push", "user@host:/opt/verifier",
+        ])
+    assert exc.value.code == 1
+    assert "--apply" in capsys.readouterr().err

@@ -332,6 +332,7 @@ async function selectAsset(id){
     if(!(selected&&selected.type==='asset'&&selected.key===id)){return;}
     const meta=['kind '+(view.asset_kind||''),'roles '+((view.roles||[]).join('/')||'-'),view.enabled?'启用':'停用','生产 '+(view.production_path||'-')];
     if(view.candidate_path){meta.push('候选 '+view.candidate_path);}
+    if(view.active_source){meta.push('生效 '+(view.active_source==='candidate'?'draft 候选包':'生产包'));}
     document.getElementById('avMeta').textContent=meta.join(' · ')+(view.missing?' · 生产文件缺失':'');
     if(view.manifest){
       const m=view.manifest;

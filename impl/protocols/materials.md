@@ -17,7 +17,7 @@ The materials page is a read model over four layers, split by **writer × mutabi
 
 Investigation operations are 查看 / 重新调查 / 采纳 / 丢弃; on a remote host only 查看 exists (re-investigate and adopt need the business source, which never ships to the server). Adopt is the V1.5 `materialize` CLI, not a page button. Trust tiers are displayed, not enforced (`min_trust` gating deferred until there is a second operator).
 
-`/api/materials` returns `{project_id, sections: [...]}` where each section carries `kind` (`slots` / `free` / `investigation` / `system_assets` / `capability_map`), `editable`, and its items. The frontend renders sections purely from this response — project differences are declaration-driven, nothing is hardcoded per project. `/api/material/asset_view` gives the read-only projection of one asset (investigation package: manifest summary + `overview.md` + file list; context/tool: truncated body).
+`/api/materials` returns `{project_id, sections: [...]}` where each section carries `kind` (`slots` / `free` / `investigation` / `system_assets` / `capability_map`), `editable`, and its items. The frontend renders sections purely from this response — project differences are declaration-driven, nothing is hardcoded per project. `/api/material/asset_view` gives the read-only projection of one asset (investigation package: manifest summary + `overview.md` + file list; context/tool: truncated body). Asset projections show the **actually-in-use** package, matching runtime selection: when a role's `draft.enabled` is true and the asset has a `candidate_path`, the candidate package is read; `active_source` (`candidate` | `production`) and `active_path` state which one. Overview items keep both `production_exists` / `candidate_exists` plus `active_source`; `asset_file` with scope `artifact_package` opens files from the same active package.
 
 ## Entities
 
@@ -71,14 +71,15 @@ Users fill slots and create free materials on `materials.html`. They do not crea
 Investigation artifacts stay in `draft/investigation/` (candidate) and `investigation/` (production). They remain reference-shaped (path + source hash + summary). Adopting them into materials is the V1.5 CLI:
 
 ```
-bash run.sh cli materialize --project <id> --role {attribute,judge,mock} [--apply] [--candidate] [--slot ID]
+bash run.sh cli materialize --project <id> --role {attribute,judge,mock} [--apply] [--candidate|--production] [--slot ID] [--push user@host[:/opt/verifier]]
 ```
 
 - Runs only on a machine that can read the business repository. Missing source root or a source-hash mismatch refuses the whole export ("请先重新调查").
-- Default is dry-run (hash check, no writes). `--apply` writes one free material per `business_source` evidence (`{role}-{ref_id}`) plus an index `{role}-investigation-snapshot`. Provenance is `{source: investigation, execution: local, source_revision, source_sha256}`.
+- Package selection matches runtime: with `draft.enabled` on the role, the candidate investigation package is materialized; otherwise production. `--candidate` / `--production` force one side explicitly (mutually exclusive).
+- Default is dry-run (hash check, no writes). `--apply` writes one free material per `business_source` evidence plus an index. Production-sourced ids are `{role}-{ref_id}` + `{role}-investigation-snapshot`; candidate-sourced ids are `{role}-draft-{ref_id}` + `{role}-draft-investigation-snapshot`, so both exports coexist without overwriting each other. Provenance is `{source: investigation, execution: local, source_revision, source_sha256, package_source}`.
 - Snapshots are **reference / free materials**. They must not fill a slot whose `roles` is non-empty — concatenated business yaml would blow the 30k judge binding budget. `--slot ID` is allowed only for an undeclared id or a slot with empty `roles`.
 - Remote eval reads the inlined body via the materials page / `material://`; it does not open business files. Copying `impl/data/<project>/materials/<id>/` preserves investigation provenance. Re-pasting the same text through `/api/material/upload` becomes `user_upload`.
-- Do not rsync the whole `impl/data` tree on deploy (that would wipe the eval host's materials). Copy only the materialized directories.
+- Do not rsync the whole `impl/data` tree on deploy (that would wipe the eval host's materials). Copy only the materialized directories — `scripts/sync_materials.sh` does exactly that (`--ids` / `--from-materialize-json` / `--all-free`), and `materialize --apply --push user@host[:/path]` runs it automatically for the ids just written.
 
 V2 (`source_bind` / `investigate_http`) and V3 (queryable) are not part of this runtime.
 

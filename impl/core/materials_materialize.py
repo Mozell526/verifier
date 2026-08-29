@@ -35,9 +35,20 @@ def cli_hint(project_id: str, roles: Optional[List[str]] = None) -> str:
     return (
         f"业务源码正文不在调查包内。请在有业务代码的机器运行："
         f"`bash run.sh cli materialize --project {project_id} --role {role} --apply`。"
-        "结果写入自由资料（不注入 judge）；同步到评测机时只拷贝对应 materials 目录，"
-        "不要全量覆盖 impl/data。"
+        "结果写入自由资料（不注入 judge）；同步到评测机用 scripts/sync_materials.sh"
+        "（或 materialize --push），只拷贝对应 materials 目录，不要全量覆盖 impl/data。"
     )
+
+
+def _use_candidate_for_source(spec: Any, role: str, source: str) -> bool:
+    """物化用哪个调查包：auto 跟随 runtime（role draft.enabled），或显式强制。"""
+    if source == "auto":
+        return spec.role_draft(role).get("enabled") is True
+    if source == "candidate":
+        return True
+    if source == "production":
+        return False
+    raise MaterializeError(f"不支持的 source: {source!r}（auto|candidate|production）")
 
 
 def materialize_project(
@@ -45,15 +56,20 @@ def materialize_project(
     role: str,
     *,
     apply: bool = False,
-    candidate: bool = False,
+    source: str = "auto",
     slot_id: str = "",
 ) -> Dict[str, Any]:
-    """从项目角色调查包物化 business_source 证据。"""
+    """从项目角色调查包物化 business_source 证据。
+
+    调查包选择与 runtime 一致：role draft.enabled 时用 candidate，否则 production；
+    source=candidate/production 可显式强制。
+    """
     spec = load_project(project_id)
+    use_candidate = _use_candidate_for_source(spec, role, source)
     try:
         packages = [
             item
-            for item in resolve_role_assets(spec, role, use_candidate=candidate)
+            for item in resolve_role_assets(spec, role, use_candidate=use_candidate)
             if item["mapping"].kind == "investigation"
         ]
     except FileNotFoundError as exc:
@@ -64,9 +80,14 @@ def materialize_project(
             "请检查 project.yaml assets。"
         )
     selected = packages[0]
+    package_source = str(selected.get("source") or "production")
     package = Path(selected["path"])
     if not package.is_dir():
-        hint = "（可试 --candidate 使用 draft 调查包）" if not candidate else ""
+        hint = (
+            "（可试 --candidate 使用 draft 调查包）"
+            if package_source == "production"
+            else "（可试 --production 使用生产调查包）"
+        )
         raise MaterializeError(f"{role} 调查包目录不存在: {package}{hint}")
     manifest_path = package / "manifest.json"
     if not manifest_path.is_file():
@@ -85,6 +106,7 @@ def materialize_project(
         source_root=source_root,
         apply=apply,
         slot_id=slot_id.strip(),
+        package_source=package_source,
     )
 
 
@@ -96,9 +118,17 @@ def materialize_evidence(
     source_root: Optional[Path],
     apply: bool = False,
     slot_id: str = "",
+    package_source: str = "production",
 ) -> Dict[str, Any]:
-    """核心物化：校验 business_source 哈希并内联正文。"""
+    """核心物化：校验 business_source 哈希并内联正文。
+
+    candidate 来源的资料 id 带 `-draft-` 中缀（{role}-draft-{ref_id}），
+    与 production 物化结果并存，互不覆盖。
+    """
     slot_id = str(slot_id or "").strip()
+    if package_source not in ("production", "candidate"):
+        raise MaterializeError(f"不支持的 package_source: {package_source!r}")
+    id_prefix = f"{role}-draft" if package_source == "candidate" else role
     business_refs = [
         evidence
         for evidence in manifest.evidence_refs
@@ -123,10 +153,12 @@ def materialize_evidence(
                 source_root=Path(source_root),
                 source_revision=manifest.source_revision,
                 role=role,
+                id_prefix=id_prefix,
+                package_source=package_source,
             )
         )
 
-    index_id = _material_id(f"{role}-investigation-snapshot")
+    index_id = _material_id(f"{id_prefix}-investigation-snapshot")
     if slot_id:
         if not NAME_PATTERN.fullmatch(slot_id):
             raise MaterializeError(f"非法槽位 id: {slot_id!r}")
@@ -165,16 +197,18 @@ def materialize_evidence(
                     provenance=item["provenance"],
                 )
             )
+        title_suffix = "（draft 调查包）" if package_source == "candidate" else ""
         written.append(
             materials_store.save_material(
                 project_id,
                 index_id,
                 content=index_body,
-                title=f"{role} 调查物化目录",
+                title=f"{role} 调查物化目录{title_suffix}",
                 description=f"source_revision {manifest.source_revision}",
                 provenance=_investigation_provenance(
                     role=role,
                     source_revision=manifest.source_revision,
+                    package_source=package_source,
                     extra={"kind": "index"},
                 ),
             )
@@ -185,11 +219,12 @@ def materialize_evidence(
                     project_id,
                     slot_id,
                     content=pack,
-                    title=f"{role} 调查物化（业务源码快照）",
+                    title=f"{role} 调查物化（业务源码快照）{title_suffix}",
                     description=f"source_revision {manifest.source_revision}；{len(snapshots)} 份证据内联",
                     provenance=_investigation_provenance(
                         role=role,
                         source_revision=manifest.source_revision,
+                        package_source=package_source,
                         extra={"kind": "slot_pack", "evidence_count": len(snapshots)},
                     ),
                 )
@@ -198,6 +233,7 @@ def materialize_evidence(
     return {
         "project_id": project_id,
         "role": role,
+        "package_source": package_source,
         "source_revision": manifest.source_revision,
         "applied": apply,
         "slot_id": slot_id or None,
@@ -231,6 +267,8 @@ def _snapshot_business_ref(
     source_root: Path,
     source_revision: str,
     role: str,
+    id_prefix: str,
+    package_source: str,
 ) -> Dict[str, Any]:
     location_ref = evidence.location_ref
     relative = str(location_ref.location or "").strip()
@@ -259,7 +297,7 @@ def _snapshot_business_ref(
         raise MaterializeError(
             f"证据 {evidence.ref_id} 不是 UTF-8 文本，无法物化: {relative}"
         ) from exc
-    material_id = _material_id(f"{role}-{evidence.ref_id}")
+    material_id = _material_id(f"{id_prefix}-{evidence.ref_id}")
     title = Path(relative).name
     revision = str((evidence.metadata or {}).get("source_revision") or source_revision)
     body = _snapshot_markdown(
@@ -287,6 +325,7 @@ def _snapshot_business_ref(
         "provenance": _investigation_provenance(
             role=role,
             source_revision=revision,
+            package_source=package_source,
             extra={
                 "evidence_ref_id": str(evidence.ref_id),
                 "source_ref": {
@@ -351,6 +390,7 @@ def _investigation_provenance(
     *,
     role: str,
     source_revision: str,
+    package_source: str = "production",
     extra: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     payload: Dict[str, Any] = {
@@ -358,6 +398,7 @@ def _investigation_provenance(
         "execution": "local",
         "role": role,
         "source_revision": source_revision,
+        "package_source": package_source,
     }
     if extra:
         payload.update(extra)

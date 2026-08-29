@@ -56,6 +56,28 @@ def project_overview(project_id: str) -> Dict[str, Any]:
     return {"project_id": project_id, "sections": sections}
 
 
+def _asset_selection(spec: Any, mapping: Any) -> Dict[str, Any]:
+    """按 runtime 规则选出实际生效的资产路径：role draft.enabled 时用 candidate。
+
+    与 project_loader.resolve_role_assets 的 use_candidate 选择保持一致，
+    资料页展示的就是运行时真正读到的那个包。
+    """
+    production = _resolve_optional(spec, mapping.logical_production_path, f"verifier.assets.{mapping.asset_id}.production_path")
+    candidate = _resolve_optional(spec, mapping.logical_candidate_path, f"verifier.assets.{mapping.asset_id}.candidate_path")
+    use_candidate = candidate is not None and any(
+        spec.role_draft(role).get("enabled") is True for role in mapping.roles
+    )
+    return {
+        "production": production,
+        "candidate": candidate,
+        "active_source": "candidate" if use_candidate else "production",
+        "active": candidate if use_candidate else production,
+        "active_logical": (
+            mapping.logical_candidate_path if use_candidate else mapping.logical_production_path
+        ),
+    }
+
+
 def _asset_items(project_id: str) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], str]:
     """project.yaml assets 的只读投影；项目声明缺失/损坏不阻塞资料页，但要如实报错。"""
     try:
@@ -65,8 +87,9 @@ def _asset_items(project_id: str) -> Tuple[List[Dict[str, Any]], List[Dict[str, 
     investigation_items: List[Dict[str, Any]] = []
     asset_items: List[Dict[str, Any]] = []
     for mapping in mappings:
-        production = _resolve_optional(spec, mapping.logical_production_path, f"verifier.assets.{mapping.asset_id}.production_path")
-        candidate = _resolve_optional(spec, mapping.logical_candidate_path, f"verifier.assets.{mapping.asset_id}.candidate_path")
+        selection = _asset_selection(spec, mapping)
+        production = selection["production"]
+        candidate = selection["candidate"]
         item: Dict[str, Any] = {
             "asset_id": mapping.asset_id,
             "asset_kind": mapping.kind,
@@ -76,9 +99,10 @@ def _asset_items(project_id: str) -> Tuple[List[Dict[str, Any]], List[Dict[str, 
             "production_exists": production is not None and production.exists(),
             "candidate_path": mapping.logical_candidate_path,
             "candidate_exists": candidate is not None and candidate.exists(),
+            "active_source": selection["active_source"],
         }
         if mapping.kind == "investigation":
-            item["manifest"] = _investigation_summary(production)
+            item["manifest"] = _investigation_summary(selection["active"])
             investigation_items.append(item)
         else:
             asset_items.append(item)
@@ -86,12 +110,17 @@ def _asset_items(project_id: str) -> Tuple[List[Dict[str, Any]], List[Dict[str, 
 
 
 def asset_view(project_id: str, asset_id: str) -> Dict[str, Any]:
-    """单个资产的只读查看：调查包给 overview + 文件清单，文档/工具给正文截断。"""
+    """单个资产的只读查看：调查包给 overview + 文件清单，文档/工具给正文截断。
+
+    展示实际生效的那个包（role draft.enabled 时是 candidate），与 runtime 一致；
+    active_source/active_path 明示当前读的是哪份。
+    """
     mappings, spec = _load_asset_mappings(project_id)
     mapping = next((m for m in mappings if m.asset_id == str(asset_id or "")), None)
     if mapping is None:
         raise ValueError(f"项目 {project_id} 没有资产 {asset_id!r}")
-    production = _resolve_optional(spec, mapping.logical_production_path, f"verifier.assets.{mapping.asset_id}.production_path")
+    selection = _asset_selection(spec, mapping)
+    active = selection["active"]
     view: Dict[str, Any] = {
         "project_id": project_id,
         "asset_id": mapping.asset_id,
@@ -100,12 +129,14 @@ def asset_view(project_id: str, asset_id: str) -> Dict[str, Any]:
         "enabled": mapping.enabled,
         "production_path": mapping.logical_production_path,
         "candidate_path": mapping.logical_candidate_path,
+        "active_source": selection["active_source"],
+        "active_path": selection["active_logical"],
     }
-    if production is None or not production.exists():
+    if active is None or not active.exists():
         view["missing"] = True
         return view
-    if production.is_dir():
-        manifest = _load_manifest_raw(production)
+    if active.is_dir():
+        manifest = _load_manifest_raw(active)
         view["manifest"] = _summarize_manifest(manifest) if manifest else None
         if manifest:
             evidence = [_evidence_ref_view(ref) for ref in manifest.get("evidence_refs") or [] if isinstance(ref, dict)]
@@ -114,12 +145,12 @@ def asset_view(project_id: str, asset_id: str) -> Dict[str, Any]:
             view["artifact_refs"] = [_artifact_ref_view(ref) for ref in manifest.get("artifact_refs") or [] if isinstance(ref, dict)]
             if any(ref.get("scope") == "business_source" for ref in view["evidence_refs"]):
                 view["materialize_hint"] = cli_hint(project_id, list(mapping.roles))
-        overview_path = production / "overview.md"
+        overview_path = active / "overview.md"
         if overview_path.is_file():
             view["content"] = _truncate(overview_path.read_text(encoding="utf-8"))
-        view["files"] = _file_list(production)
+        view["files"] = _file_list(active)
     else:
-        view["content"] = _truncate(production.read_text(encoding="utf-8"))
+        view["content"] = _truncate(active.read_text(encoding="utf-8"))
     return view
 
 
@@ -163,10 +194,11 @@ def asset_file(project_id: str, asset_id: str, scope: str, relative_path: str) -
 
 def _scope_root(spec: Any, mapping: Any, scope: str) -> Path:
     if scope == "artifact_package":
-        production = _resolve_optional(spec, mapping.logical_production_path, f"verifier.assets.{mapping.asset_id}.production_path")
-        if production is None or not production.is_dir():
+        # 与 asset_view 一致：文件清单来自生效包，打开也必须从生效包读
+        active = _asset_selection(spec, mapping)["active"]
+        if active is None or not active.is_dir():
             raise ValueError(f"资产 {mapping.asset_id} 没有包目录")
-        return production
+        return active
     if scope == "project_package":
         from .project_loader import resolve_project_package_root
 
