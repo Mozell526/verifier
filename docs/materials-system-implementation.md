@@ -1,6 +1,6 @@
 # 资料系统实施文档
 
-状态：V1 已实施。本文档是 2026-08-28 数轮设计讨论的完整收敛，
+状态：V1 已实施；V1.5 物化导出器已实施。本文档是 2026-08-28 数轮设计讨论的完整收敛，
 覆盖协议、可行性核查结论、现状盘点与分期实施计划。
 协议运行时合同见 `impl/protocols/materials.md`。
 
@@ -240,13 +240,16 @@ binding/reference 展开时校验字符预算（复用 config 的 char budget �
 验收：client_search 未填口径表 → 评测拒跑且报错指向资料页；填了 → judge 上下文
 含口径表内容，trace 记录资料 sha；llm_probe 全链路回归不受影响。
 
-### V1.5：物化导出器（第一次真的要送调查结果上服务器时做）
+### V1.5：物化导出器（已实施）
 
-本地 CLI：`materialize --project X --role attribute` → 自包含资料包；
-上传通道复用 V1；provenance=investigation(external) 分档展示。
+本地 CLI：`bash run.sh cli materialize --project X --role {attribute,judge,mock} [--apply] [--candidate] [--slot ID]`。
 
-验收：本地物化 client_search 调查产物 → 上传远程槽位 → 远程 judge 消费，
-全程服务器无业务代码。
+- 只内联 `business_source` 证据（远程看不到的就是这些文件）。
+- 源哈希不符或源码不可达 → 整次导出拒绝。
+- `--apply` 写入自由资料，provenance=`investigation` / `execution=local`。不绑定 judge。
+- 上传通道复用 V1；要保留调查 provenance，拷贝 `impl/data/<project>/materials/<id>/`，不要经页面重新粘贴。
+
+验收：本地物化 client_search 调查产物 → 同步资料目录到评测机 → 远程资料页能打开业务配置正文，服务器无业务代码。
 
 ### V2：source_bind 槽位 + investigate_http 填充
 

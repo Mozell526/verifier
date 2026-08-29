@@ -1,9 +1,14 @@
-"""资料系统 V1：槽位门禁、内容封口、binding 预算、material:// 引用。"""
+"""资料系统：槽位门禁、内容封口、binding 预算、material:// 引用、V1.5 物化导出。"""
 from __future__ import annotations
+
+import hashlib
 
 import pytest
 
 from impl.core import materials_store
+from impl.core.materials_materialize import MaterializeError, materialize_evidence, materialize_project
+from impl.core.path_contract import LogicalPathRef, PathScope
+from impl.core.schema import EvidenceRef, InvestigationManifest
 
 
 SLOTS_YAML = """
@@ -233,6 +238,8 @@ def test_asset_view_expands_business_source_evidence():
     assert any("field_definitions_args.yaml" in path for path in paths)
     assert all(ref["source_revision"] for ref in business)
     assert evidence[0]["scope"] == "business_source", "业务源码证据应排在最前"
+    assert "materialize" in (view.get("materialize_hint") or "")
+    assert "client_search" in view["materialize_hint"]
     artifacts = view["artifact_refs"]
     assert any("experiments/" in (ref["path"] or "") for ref in artifacts), \
         "冻结的 key-index 实验产物是包的一部分，必须出现在清单里"
@@ -251,3 +258,181 @@ def test_asset_file_opens_package_and_rejects_traversal():
         asset_file("client_search", "judge_investigation", "elsewhere", "overview.md")
     with pytest.raises(ValueError, match="不可达"):
         asset_file("client_search", "judge_investigation", "artifact_package", "no-such-file.md")
+
+
+def _business_tree(tmp_path, *, body="foo: 1\n", relative="src/config.yaml", ref_id="business-config"):
+    source_root = tmp_path / "biz"
+    path = source_root / relative
+    path.parent.mkdir(parents=True)
+    path.write_text(body, encoding="utf-8")
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    evidence = EvidenceRef(
+        ref_id=ref_id,
+        source="biz",
+        kind="source",
+        summary="config snapshot",
+        location_ref=LogicalPathRef(PathScope.BUSINESS_SOURCE, relative, sha256=digest),
+        metadata={"source_revision": "abc123", "sha256": digest},
+    )
+    manifest = InvestigationManifest(
+        schema_version=2,
+        project_id="demo",
+        role="judge",
+        source_revision="abc123",
+        evidence_refs=[evidence],
+    )
+    return source_root, manifest, digest, body
+
+
+def test_materialize_apply_writes_free_materials_not_bound_to_judge(demo_project, tmp_path):
+    source_root, manifest, digest, body = _business_tree(tmp_path)
+    materials_store.save_material(demo_project, "glossary", content="字段A：含义A")
+    result = materialize_evidence(
+        project_id=demo_project,
+        role="judge",
+        manifest=manifest,
+        source_root=source_root,
+        apply=True,
+    )
+    assert result["applied"] is True
+    material_id = result["snapshots"][0]["id"]
+    assert material_id == "judge-business-config"
+    loaded = materials_store.get_material(demo_project, material_id)
+    assert body.strip() in loaded["content"]
+    assert digest in loaded["content"]
+    assert loaded["provenance"]["source"] == "investigation"
+    assert loaded["provenance"]["execution"] == "local"
+    assert loaded["provenance"]["source_ref"]["sha256"] == digest
+    assert loaded["provenance"]["source_ref"]["location"] == "src/config.yaml"
+    index = materials_store.get_material(demo_project, result["index_id"])
+    assert "material://demo/judge-business-config" in index["content"]
+    free_ids = [item["id"] for item in materials_store.list_materials(demo_project)["free"]]
+    assert material_id in free_ids
+    assert result["index_id"] in free_ids
+    bound = materials_store.binding_materials_for_role(demo_project, "judge")
+    assert [item["id"] for item in bound] == ["glossary"]
+
+
+def test_materialize_dry_run_does_not_write(demo_project, tmp_path):
+    source_root, manifest, _, _ = _business_tree(tmp_path)
+    result = materialize_evidence(
+        project_id=demo_project,
+        role="judge",
+        manifest=manifest,
+        source_root=source_root,
+        apply=False,
+    )
+    assert result["applied"] is False
+    assert result["written"] == []
+    assert materials_store.load_manifest(demo_project, result["snapshots"][0]["id"]) is None
+
+
+def test_materialize_hash_mismatch_refuses_entire_export(demo_project, tmp_path):
+    source_root, manifest, _, _ = _business_tree(tmp_path)
+    (source_root / "src/config.yaml").write_text("changed: true\n", encoding="utf-8")
+    with pytest.raises(MaterializeError, match="哈希"):
+        materialize_evidence(
+            project_id=demo_project,
+            role="judge",
+            manifest=manifest,
+            source_root=source_root,
+        )
+    assert materials_store.list_materials(demo_project)["free"] == []
+
+
+def test_materialize_missing_source_refuses(demo_project):
+    manifest = InvestigationManifest(
+        schema_version=2,
+        project_id="demo",
+        role="judge",
+        source_revision="abc123",
+        evidence_refs=[
+            EvidenceRef(
+                ref_id="business-config",
+                kind="source",
+                location_ref=LogicalPathRef(
+                    PathScope.BUSINESS_SOURCE,
+                    "src/config.yaml",
+                    sha256="a" * 64,
+                ),
+            )
+        ],
+    )
+    with pytest.raises(MaterializeError, match="业务源码根不可达"):
+        materialize_evidence(
+            project_id=demo_project,
+            role="judge",
+            manifest=manifest,
+            source_root=None,
+        )
+
+
+def test_materialize_missing_file_refuses(demo_project, tmp_path):
+    source_root, manifest, _, _ = _business_tree(tmp_path)
+    (source_root / "src/config.yaml").unlink()
+    with pytest.raises(MaterializeError, match="不存在"):
+        materialize_evidence(
+            project_id=demo_project,
+            role="judge",
+            manifest=manifest,
+            source_root=source_root,
+        )
+
+
+def test_materialize_binding_slot_refuses_and_writes_nothing(demo_project, tmp_path):
+    source_root, manifest, _, _ = _business_tree(tmp_path)
+    with pytest.raises(MaterializeError, match="绑定"):
+        materialize_evidence(
+            project_id=demo_project,
+            role="judge",
+            manifest=manifest,
+            source_root=source_root,
+            apply=True,
+            slot_id="glossary",
+        )
+    assert materials_store.load_manifest(demo_project, "glossary") is None
+    assert materials_store.list_materials(demo_project)["free"] == []
+
+
+def test_materialize_empty_roles_slot_ok(demo_project, tmp_path):
+    path = materials_store.ROOT / "projects" / "demo" / "materials.yaml"
+    path.write_text(
+        SLOTS_YAML
+        + """
+  - slot_id: snapshot
+    title: 调查快照
+    required: false
+    roles: []
+""",
+        encoding="utf-8",
+    )
+    source_root, manifest, _, body = _business_tree(tmp_path)
+    materials_store.save_material(demo_project, "glossary", content="字段A：含义A")
+    result = materialize_evidence(
+        project_id=demo_project,
+        role="judge",
+        manifest=manifest,
+        source_root=source_root,
+        apply=True,
+        slot_id="snapshot",
+    )
+    pack = materials_store.get_material(demo_project, "snapshot")
+    assert body.strip() in pack["content"]
+    assert pack["provenance"]["kind"] == "slot_pack"
+    bound = materials_store.binding_materials_for_role(demo_project, "judge")
+    assert [item["id"] for item in bound] == ["glossary"]
+    assert result["slot_id"] == "snapshot"
+
+
+def test_materialize_llm_probe_has_no_investigation():
+    with pytest.raises(MaterializeError, match="investigation"):
+        materialize_project("llm_probe", "judge")
+
+
+def test_cli_materialize_llm_probe_exits(capsys):
+    from impl.cli import main
+
+    with pytest.raises(SystemExit) as exc:
+        main(["materialize", "--project", "llm_probe", "--role", "judge"])
+    assert exc.value.code == 1
+    assert "investigation" in capsys.readouterr().err

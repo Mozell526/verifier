@@ -108,6 +108,17 @@ def main(argv=None):
     mode.add_argument("--check", action="store_true")
     mode.add_argument("--apply", action="store_true")
 
+    p = sub.add_parser("materialize", help="把调查包的业务源码证据物化为自包含资料")
+    p.add_argument("--project", required=True)
+    p.add_argument("--role", required=True, choices=("attribute", "judge", "mock"))
+    p.add_argument("--apply", action="store_true", help="写入 impl/data/<project>/materials/；默认只校验")
+    p.add_argument("--candidate", action="store_true", help="使用 draft 调查包")
+    p.add_argument(
+        "--slot",
+        default="",
+        help="可选：把拼接正文写入该资料 id（不得绑定任何角色，否则会撑爆 judge 预算）",
+    )
+
     args = parser.parse_args(argv)
     if args.cmd == "projects":
         emit({"projects": list_projects()})
@@ -188,6 +199,22 @@ def main(argv=None):
 
         spec = load_project(args.project)
         emit(apply_draft_promotion(spec, args.role) if args.apply else plan_draft_promotion(spec, args.role))
+    elif args.cmd == "materialize":
+        from .core.materials_materialize import MaterializeError, materialize_project
+
+        try:
+            emit(
+                materialize_project(
+                    args.project,
+                    args.role,
+                    apply=args.apply,
+                    candidate=args.candidate,
+                    slot_id=args.slot,
+                )
+            )
+        except MaterializeError as exc:
+            print(str(exc), file=sys.stderr)
+            raise SystemExit(1) from exc
 
 
 def _cli_check_request(project_id: str, input_data: Any) -> None:

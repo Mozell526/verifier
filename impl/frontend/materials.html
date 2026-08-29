@@ -65,6 +65,7 @@
       <h2 id="avTitle">资产</h2>
       <div id="avMeta" class="meta"></div>
       <div id="avManifest" class="hint" style="margin-top:10px"></div>
+      <div id="avHint" class="hint" style="display:none;margin-top:10px"></div>
       <div id="avEvidence"></div>
       <div id="avArtifacts"></div>
       <h3 class="sec" id="avContentTitle" style="display:none"></h3>
@@ -318,6 +319,8 @@ async function selectAsset(id){
   document.getElementById('avTitle').textContent=(item.asset_kind==='investigation'?'调查产物：':'系统资产：')+id;
   document.getElementById('avMeta').textContent='加载中…';
   document.getElementById('avManifest').textContent='';
+  document.getElementById('avHint').style.display='none';
+  document.getElementById('avHint').textContent='';
   document.getElementById('avEvidence').innerHTML='';
   document.getElementById('avArtifacts').innerHTML='';
   document.getElementById('avContent').style.display='none';
@@ -340,6 +343,11 @@ async function selectAsset(id){
       if(m.unresolved_reason){lines.push('unresolved: '+m.unresolved_reason);}
       if(m.error){lines.push(m.error);}
       document.getElementById('avManifest').textContent=lines.join(' · ');
+    }
+    const hintEl=document.getElementById('avHint');
+    if(view.materialize_hint){
+      hintEl.textContent=view.materialize_hint;
+      hintEl.style.display='block';
     }
     if(view.evidence_refs&&view.evidence_refs.length){
       const rows=view.evidence_refs.map(r=>{

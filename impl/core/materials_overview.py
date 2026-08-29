@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from . import capability_store, materials_store
+from .materials_materialize import cli_hint
 from .path_contract import PathScope
 
 ASSET_CONTENT_MAX_CHARS = 60_000
@@ -111,6 +112,8 @@ def asset_view(project_id: str, asset_id: str) -> Dict[str, Any]:
             # 业务源码证据排最前：这是使用者最关心的"调查了业务系统什么"
             view["evidence_refs"] = sorted(evidence, key=lambda ref: 0 if ref.get("scope") == "business_source" else 1)
             view["artifact_refs"] = [_artifact_ref_view(ref) for ref in manifest.get("artifact_refs") or [] if isinstance(ref, dict)]
+            if any(ref.get("scope") == "business_source" for ref in view["evidence_refs"]):
+                view["materialize_hint"] = cli_hint(project_id, list(mapping.roles))
         overview_path = production / "overview.md"
         if overview_path.is_file():
             view["content"] = _truncate(overview_path.read_text(encoding="utf-8"))
@@ -138,9 +141,12 @@ def asset_file(project_id: str, asset_id: str, scope: str, relative_path: str) -
     if not resolved.is_relative_to(root.resolve()):
         raise ValueError(f"路径越界: {relative!r}")
     if not resolved.is_file():
+        extra = ""
+        if scope == "business_source":
+            extra = " " + cli_hint(project_id, list(mapping.roles))
         raise ValueError(
-            f"文件不可达: {relative}（{scope}）。业务源码类文件只在有业务代码的机器上可读，"
-            "远程环境请以 sha256/source_revision 为准。"
+            f"文件不可达: {relative}（{scope}）。业务源码类文件只在有业务代码的机器上可读。"
+            + extra
         )
     try:
         content = resolved.read_text(encoding="utf-8")
@@ -173,7 +179,10 @@ def _scope_root(spec: Any, mapping: Any, scope: str) -> Path:
         except Exception:
             root = None
         if root is None or not root.is_dir():
-            raise ValueError("业务源码根在本机不可达（远程部署环境没有业务代码），请以 sha256/source_revision 核对版本。")
+            raise ValueError(
+                "业务源码根在本机不可达（远程部署环境没有业务代码）。"
+                + cli_hint(spec.project_id, list(mapping.roles))
+            )
         return root
     raise ValueError(f"不支持的 scope: {scope!r}")
 

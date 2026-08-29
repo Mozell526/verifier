@@ -158,6 +158,15 @@ rsync -az impl/data/client_search/materials/field_glossary/ \
     root@154.9.252.35:/opt/verifier/impl/data/client_search/materials/field_glossary/
 ```
 
+业务源码证据要在远程阅读时，在**有业务仓库的机器**上物化，再只同步新生成的资料目录（保留 manifest，provenance 才是 `investigation`）：
+
+```bash
+bash run.sh cli materialize --project client_search --role judge --apply
+# 然后按输出的 written[].id 逐份 rsync impl/data/client_search/materials/<id>/
+```
+
+不要把这些快照写入 `field_glossary` 或任何 `roles: [judge]` 槽位——体积会撑爆 binding 预算。
+
 ## 多人共用
 
 每人固定一个隧道端口（15001/15002/15003，需在 `PermitListen` 中放行），
