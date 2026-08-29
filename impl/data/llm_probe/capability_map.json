@@ -1,0 +1,81 @@
+{
+  "client_search": {
+    "capability": "接收自然语言的客户群体描述，输出可执行的结构化搜索条件（字段 × 操作符 × 值）。\n不支持的表述应明确拒绝或给出能力边界，而不是编造条件。",
+    "mock_body": {
+      "extra_input_params": {},
+      "session_id": "mock_session_dyn",
+      "source": "mock",
+      "trace_id": "mock_trace_dyn",
+      "user_id": "mock_user_001",
+      "user_text": "{query}"
+    },
+    "service": {
+      "method": "POST",
+      "timeout_seconds": 60.0,
+      "url": "http://127.0.0.1:8000/api/v1/client_search_query_parse_no_encipher"
+    }
+  },
+  "marketting-planning-intent": {
+    "capability": "对单轮营销规划问句做意图识别，给出意图标签和必要槽位。\n不进入多轮规划、不生成 SSE 卡片。",
+    "mock_body": {
+      "extra_input_params": {
+        "agent_args": {
+          "conversation_id": "mock_session_dyn",
+          "message": {
+            "content": "{query}",
+            "content_type": "text"
+          }
+        },
+        "args": {
+          "contexts": [],
+          "extensions": {}
+        }
+      },
+      "org_id": "default_org",
+      "session_id": "mock_session_dyn",
+      "trace_id": "mock_trace_dyn",
+      "user_text": "{query}"
+    },
+    "service": {
+      "method": "POST",
+      "timeout_seconds": 60.0,
+      "url": "http://127.0.0.1:9006/api/v1/marketing-planning/intent-recognition"
+    }
+  },
+  "policy_search": {
+    "capability": "把自然语言保单筛选意图转成可执行的查询语法树。\n只负责解析与过滤条件，不负责下游保单列表检索。",
+    "mock_body": {
+      "action_scenario": "policySearch",
+      "app_scenario": "policy_search_parse",
+      "application_setting": null,
+      "extra_input_params": {
+        "agent_args": null,
+        "args": {
+          "contexts": []
+        },
+        "policySearchParseArgs": {
+          "agentCode": "A12345678",
+          "currentTime": "2026-08-06 10:30:00",
+          "query": "{query}"
+        }
+      },
+      "history": [],
+      "org_id": "verifier-org",
+      "org_name": "verifier",
+      "scenario": null,
+      "session_id": "mock_session_dyn",
+      "source": "verifier",
+      "token": "",
+      "trace_id": "mock_trace_dyn",
+      "ts": 1785983400000,
+      "user_action": "write",
+      "user_id": "verifier-user",
+      "user_text": ""
+    },
+    "service": {
+      "method": "POST",
+      "timeout_seconds": 120.0,
+      "url": "http://127.0.0.1:8050/api/v1/policy-search/policy-search-parse"
+    }
+  }
+}

@@ -66,6 +66,7 @@ VERIFIER_PORT=8022 bash run.sh server
 - `http://127.0.0.1:8020/frontend/index.html`
 - `http://127.0.0.1:8020/frontend/live.html`
 - `http://127.0.0.1:8020/frontend/summary.html`
+- `http://127.0.0.1:8020/frontend/materials.html`（资料管理：槽位填充、自由资料、capability 预设）
 
 以上地址对应 `impl/config.yaml` 中默认的 `server.host` / `server.port`。
 
@@ -74,6 +75,28 @@ VERIFIER_PORT=8022 bash run.sh server
 ```bash
 curl http://127.0.0.1:8020/health
 ```
+
+## 远程评测接入（外网服务器 + 本地业务系统）
+
+verifier 已部署在远程服务器（`154.9.252.35`，systemd 服务 `verifier`，绑定 `127.0.0.1:8022`，无公网 HTTP 暴露）。被测业务系统跑在本机时，用一条 ssh 命令接入，**零安装**：
+
+```bash
+ssh -N -o ServerAliveInterval=30 \
+    -R 15001:127.0.0.1:8000 \
+    -R 15002:127.0.0.1:8050 \
+    -R 15003:127.0.0.1:9006 \
+    -L 18080:127.0.0.1:8022 \
+    eval-tunnel@154.9.252.35
+```
+
+- 三个 `-R` 对应本地业务服务：8000 client_search → 15001、8050 policy_search → 15002、9006 营销意图 → 15003；只评一个服务时其余 `-R` 可省；
+- 评测期间保持终端开着，断了重跑即可；
+- 浏览器访问 `http://localhost:18080` 即 verifier 前端；
+- capability 预设在前端「资料管理」页维护（能力口径 + 探测端点 + mock 模板），服务器实例的预设已指向隧道端口；预设外的服务 URL 填 `http://127.0.0.1:1500X/...`。
+
+`eval-tunnel` 为密钥登录、不可开 shell 的隧道专用账号；多人共用时每人固定一个端口（15001/15002/15003），把公钥加进该账号的 `authorized_keys`。
+
+完整部署与原理说明见 `docs/external-eval-deployment.md`。
 
 ## CLI 用法
 

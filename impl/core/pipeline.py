@@ -106,6 +106,8 @@ def live_run(project_id: str, case: SingleTurnCase) -> RunTrace:
     """
     if not isinstance(case, SingleTurnCase):
         raise TypeError("live_run requires a runtime SingleTurnCase; convert transport input at the boundary")
+    from .materials_store import require_materials
+    require_materials(project_id)
     spec = load_project(project_id)
     if spec.local_deployment_enabled:
         from .local_service import ensure_project_service
@@ -678,6 +680,8 @@ def batch_run(
         check_report = check(project_id, None, None, None, cluster_summary)
         table = build_case_pool_table_from_runs(project_id, [])
         return BatchRunResult(project_id=project_id, total=0, runs=[], cluster=cluster_summary, check=check_report, table=table)
+    from .materials_store import require_materials
+    require_materials(project_id)
     max_workers = min(resolve_batch_concurrency(concurrency), len(case_list))
     runs_by_index: Dict[int, Dict[str, Any]] = {}
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
