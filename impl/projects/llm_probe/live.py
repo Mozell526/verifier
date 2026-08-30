@@ -141,3 +141,10 @@ class LlmProbeLive(RealServiceLive, SingleTurnLive):
                 evidence={"output_chars": len(str((extracted_output or {}).get("output_text") or ""))},
             ),
         ]
+
+
+def capability_provider(spec: ProjectSpec):
+    """轴2 g-provider：TextCarrier 从本次 live request 取本 case 的 boundary。"""
+    from impl.projects.llm_probe.text_carrier import TextCarrier
+
+    return TextCarrier(spec=spec)

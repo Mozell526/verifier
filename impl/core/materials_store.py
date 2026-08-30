@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import shutil
 import time
 from pathlib import Path
@@ -26,10 +27,14 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTENT_FILENAME = "content.md"
 MAX_CONTENT_CHARS = 1_000_000
 BINDING_BUDGET_CHARS = 30_000
+REFERENCE_EXPAND_BUDGET_CHARS = 50_000
 ALLOWED_FILL = ("upload", "investigate_http", "source_bind")
 ALLOWED_PROVENANCE = ("user_upload", "investigation", "derived")
 ALLOWED_ROLES = ("judge", "mock", "attribute")
 ALLOWED_STORES = ("capability_map",)
+# 唯一合法记号：{material://<project>/<id>}。定界符让解析器和周围文本无关。
+_MATERIAL_REF_TOKEN = re.compile(r"\{material://[A-Za-z][A-Za-z0-9_-]*/[a-z][a-z0-9_-]*\}")
+_MATERIAL_URI_LOOSE = re.compile(r"material://[^\s，。；）\]\}\>\"'`]+")
 
 
 def _require_name(value: str, kind: str) -> str:
@@ -285,7 +290,31 @@ def list_materials(project_id: str) -> Dict[str, Any]:
             manifest = load_manifest(project_id, directory.name)
             if manifest:
                 free.append(_manifest_summary(manifest))
-    return {"project_id": project_id, "slots": slot_views, "free": free}
+    references = []
+    seen = set()
+    for slot in slots:
+        manifest = load_manifest(project_id, slot["slot_id"])
+        if not manifest:
+            continue
+        uri = f"material://{project_id}/{slot['slot_id']}"
+        seen.add(uri)
+        references.append({
+            "uri": uri,
+            "id": slot["slot_id"],
+            "title": manifest.get("title") or slot["title"],
+            "kind": "slot",
+        })
+    for manifest in free:
+        uri = f"material://{project_id}/{manifest['id']}"
+        if uri in seen:
+            continue
+        references.append({
+            "uri": uri,
+            "id": manifest["id"],
+            "title": manifest.get("title") or manifest["id"],
+            "kind": "free",
+        })
+    return {"project_id": project_id, "slots": slot_views, "free": free, "references": references}
 
 
 def missing_required_slots(project_id: str) -> List[Dict[str, Any]]:
@@ -346,3 +375,52 @@ def resolve_material_uri(uri: str) -> str:
     if len(parts) != 2:
         raise ValueError(f"material 引用格式必须是 material://<project>/<id>: {uri!r}")
     return read_content(parts[0], parts[1])
+
+
+def _format_near_reference_error(raw: str) -> str:
+    hints = []
+    for match in _MATERIAL_URI_LOOSE.finditer(raw):
+        hints.append(match.group(0))
+    if not hints:
+        return ""
+    return (
+        "发现疑似资料引用但不是合法记号："
+        + "、".join(hints)
+        + "。合法形式是 {material://<project>/<id>}（必须有 {} 定界，资料 id 小写字母开头，可含数字/_/-）。"
+    )
+
+
+def expand_material_uris(
+    text: str,
+    *,
+    budget: int = REFERENCE_EXPAND_BUDGET_CHARS,
+) -> str:
+    """把正文里的 {material://} 记号替换为封口正文。超预算报错，不静默截断。
+
+    裸写 material:// 会被判定为疑似记号并报错，引导加 {} 定界。
+    """
+    raw = str(text or "")
+    if not raw:
+        return raw
+
+    near_error = _format_near_reference_error(_MATERIAL_REF_TOKEN.sub(" ", raw))
+    if near_error:
+        raise ValueError(near_error)
+
+    stripped = raw.strip()
+    if _MATERIAL_REF_TOKEN.fullmatch(stripped):
+        expanded = resolve_material_uri(stripped[1:-1])
+    elif _MATERIAL_REF_TOKEN.search(raw):
+        def replace(match: re.Match[str]) -> str:
+            uri = match.group(0)[1:-1]
+            body = resolve_material_uri(uri)
+            return f"\n--- {uri} ---\n{body.rstrip()}\n--- end {uri} ---\n"
+
+        expanded = _MATERIAL_REF_TOKEN.sub(replace, raw)
+    else:
+        expanded = raw
+    if len(expanded) > budget:
+        raise ValueError(
+            f"资料引用展开后共 {len(expanded)} 字符，超过 {budget} 上限。请精简资料或拆分引用。"
+        )
+    return expanded

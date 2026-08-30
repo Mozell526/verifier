@@ -13,8 +13,10 @@ import importlib.util
 import json
 import threading
 from abc import ABC, abstractmethod
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any, Iterable, Iterator, Mapping, Sequence
 from typing import final as typing_final
 
 from .authority_scopes import capability_carrier_enabled
@@ -36,6 +38,7 @@ RECOG_UNSUPPORTED = "unsupported"
 RECOG_MISSING_VALUE = "missing_value"
 RECOG_MISSING_OPERATOR = "missing_operator"
 RECOG_UNMAPPED = "unmapped"
+RECOG_BOUNDARY_STATEMENT = "boundary_statement"
 
 # 信任档位（spec/math-abstract/judge.md §6）：档位随"谁担保/担保多强"定，
 # 不由内容类型单独决定。定位序保留为典型担保强度的缺省映射。
@@ -665,6 +668,7 @@ _CANNOT_RECOGNITIONS = {
     RECOG_MISSING_VALUE,
     RECOG_MISSING_OPERATOR,
     RECOG_UNMAPPED,
+    RECOG_BOUNDARY_STATEMENT,
 }
 
 
@@ -906,10 +910,36 @@ def format_carrier_errors(errors: Sequence[Mapping[str, Any]]) -> str:
     return "; ".join(parts) if parts else "capability_carrier 归位失败"
 
 
-def live_carrier_report(spec: Any, judge: Any, *, carrier: CapabilityCarrierBase | None = None) -> dict[str, Any] | None:
+_placement_request: ContextVar[Mapping[str, Any] | None] = ContextVar(
+    "capability_carrier_request", default=None,
+)
+
+
+def placement_request() -> Mapping[str, Any] | None:
+    """本次归位所属的 live request。文本形态据此取本 case 的能力边界。"""
+    return _placement_request.get()
+
+
+@contextmanager
+def using_placement_request(request: Mapping[str, Any] | None) -> Iterator[None]:
+    token = _placement_request.set(request)
+    try:
+        yield
+    finally:
+        _placement_request.reset(token)
+
+
+def live_carrier_report(
+    spec: Any,
+    judge: Any,
+    *,
+    carrier: CapabilityCarrierBase | None = None,
+    request: Mapping[str, Any] | None = None,
+) -> dict[str, Any] | None:
     bound = carrier or bind_capability_carrier(spec, shared=True)
     if bound is None or judge is None:
         return None
     from .schema import to_dict
     payload = judge if isinstance(judge, Mapping) else to_dict(judge)
-    return bound.place(payload)
+    with using_placement_request(request):
+        return bound.place(payload)

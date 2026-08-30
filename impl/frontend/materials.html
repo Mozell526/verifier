@@ -25,6 +25,10 @@
       <div id="matSlotInfo" class="hint"></div>
       <label id="matIdLabel">资料 id</label>
       <input id="matId" placeholder="小写字母开头，可含数字 / _ / -" />
+      <div class="hint" id="matUriLine" style="margin:6px 0">
+        引用标识符：<code id="matUri"></code>
+        <button class="secondary small" style="margin-top:0;padding:2px 8px" onclick="copyMatUri()">复制</button>
+      </div>
       <label>标题</label>
       <input id="matTitleInput" />
       <label>说明（可选）</label>
@@ -44,8 +48,15 @@
       <h2 id="editorTitle">新建预设</h2>
       <label>预设名（小写字母开头，可含数字 / _ / -；作为 case 里的 capability_ref）</label>
       <input id="name" placeholder="如 client_search" />
-      <label>capability 能力口径描述（judge 依据它评估输出；可写 material://项目/资料id 引用自由资料）</label>
-      <textarea id="capability" style="min-height:140px" placeholder="这个接口应该做什么、不该做什么、边界在哪。"></textarea>
+      <label>能力描述（judge 据此判断每次调用是否达成预期；可写 {material://项目/资料id} 引用自由资料）</label>
+      <textarea id="capability" class="uri-textarea" style="min-height:140px" placeholder="这个接口应该做什么、不该做什么。"></textarea>
+      <label>能力边界（选填。填写后启用承载性判定：当调用未达预期时，判断是「接口确实做不到」还是「本该做到但没做对」。可写 {material://项目/资料id}）</label>
+      <textarea id="boundary" class="uri-textarea" style="min-height:120px" placeholder="这个接口能做什么、不能做什么。例如：仅支持按客户姓名和手机号检索，不支持按年龄筛选。"></textarea>
+      <div class="row">
+        <select id="refPicker" style="flex:2"><option value="">插入资料引用…</option></select>
+        <button class="secondary small" style="margin-top:0" onclick="insertRef()">插入到光标处</button>
+        <span class="hint" id="refStatus"></span>
+      </div>
       <label>探测端点 service（可选；不填则每个 case 必须自带 url）</label>
       <div class="grid2">
         <input id="serviceUrl" placeholder="http://127.0.0.1:15001/api/..." />
@@ -127,6 +138,7 @@ async function loadAll(){
     return;
   }
   renderSections();
+  refreshRefPicker();
 }
 function provenanceLabel(prov){
   if(!prov){return '';}
@@ -220,6 +232,7 @@ async function selectSlot(id){
   document.getElementById('matContent').value='';
   document.getElementById('matDeleteBtn').style.display=slot.status==='filled'?'inline-block':'none';
   document.getElementById('matMeta').innerHTML=materialMetaLine(slot.manifest);
+  updateMatUri();
   setStatus('');
   if(slot.status!=='filled'){
     document.getElementById('matContent').placeholder='粘贴资料正文，或选择文件读入。';
@@ -238,7 +251,7 @@ async function selectFree(id){
   const m=freeById(id)||{};
   show('mat');renderSections();
   document.getElementById('matTitle').textContent='自由资料：'+(m.title||id);
-  document.getElementById('matSlotInfo').innerHTML='可在 capability 描述中以 <code>material://'+escapeHtml(project())+'/'+escapeHtml(id)+'</code> 引用。';
+  document.getElementById('matSlotInfo').innerHTML='可在能力描述或能力边界中以 <code>{material://'+escapeHtml(project())+'/'+escapeHtml(id)+'}</code> 引用。';
   document.getElementById('matId').value=id;
   document.getElementById('matId').disabled=true;
   document.getElementById('matIdLabel').textContent='资料 id（固定）';
@@ -248,6 +261,7 @@ async function selectFree(id){
   document.getElementById('matContent').placeholder='加载中…';
   document.getElementById('matDeleteBtn').style.display='inline-block';
   document.getElementById('matMeta').innerHTML=materialMetaLine(m);
+  updateMatUri();
   setStatus('');
   try{
     const content=await fetchContent(id);
@@ -270,6 +284,7 @@ function newMaterial(){
   document.getElementById('matContent').placeholder='粘贴资料正文，或选择文件读入。';
   document.getElementById('matDeleteBtn').style.display='none';
   document.getElementById('matMeta').textContent='';
+  updateMatUri();
   setStatus('');
 }
 function readFileToTextarea(){
@@ -399,6 +414,84 @@ async function openAssetFile(scope, path){
 }
 
 /* ---------- capability 预设（仅声明了 capability_map 的项目） ---------- */
+const REF_TOKEN_RE=/\{material:\/\/[A-Za-z][A-Za-z0-9_-]*\/[a-z][a-z0-9_-]*\}/g;
+const URI_LOOSE_RE=/material:\/\/[^\s，。；）\]\}\>"'`]+/g;
+let lastCapFocus='capability';
+let refOptions=[];
+function toRefToken(uri){return '{'+uri+'}';}
+function collectReferences(){
+  if(overview.references&&overview.references.length){return overview.references;}
+  const refs=[];
+  for(const m of ((sectionByKind('free')||{}).items)||[]){
+    refs.push({uri:'material://'+project()+'/'+m.id,id:m.id,title:m.title||m.id,kind:'free'});
+  }
+  for(const slot of ((sectionByKind('slots')||{}).slots)||[]){
+    if(slot.status==='filled'){
+      refs.push({uri:'material://'+project()+'/'+slot.slot_id,id:slot.slot_id,title:slot.title||slot.slot_id,kind:'slot'});
+    }
+  }
+  return refs;
+}
+function refreshRefPicker(){
+  const select=document.getElementById('refPicker');
+  const refs=collectReferences();
+  refOptions=refs;
+  select.innerHTML='<option value="">插入资料引用…</option>'+refs.map(item=>'<option value="'+escapeHtml(toRefToken(item.uri))+'">'+escapeHtml(item.title)+' ('+escapeHtml(item.id)+')</option>').join('');
+  if(!refs.length){
+    select.innerHTML='<option value="">先建自由资料，再来插入</option>';
+  }
+  validateRefs();
+}
+function validateRefs(){
+  const valid=new Set((refOptions||[]).map(item=>toRefToken(item.uri)));
+  const problems=[];
+  for(const taId of ['capability','boundary']){
+    const text=document.getElementById(taId).value||'';
+    const masked=text.replace(REF_TOKEN_RE,' ');
+    for(const m of text.matchAll(REF_TOKEN_RE)){
+      const token=m[0];
+      if(valid.size&&!valid.has(token)){
+        problems.push('资料 '+token+' 不存在');
+      }
+    }
+    for(const m of masked.matchAll(URI_LOOSE_RE)){
+      problems.push('「'+m[0]+'」不是合法引用，请写成 {material://…}');
+    }
+  }
+  const el=document.getElementById('refStatus');
+  el.textContent=problems.length?problems[0]:'';
+  el.style.color=problems.length?'#dc2626':'#64748b';
+}
+function insertRef(){
+  const select=document.getElementById('refPicker');
+  const token=select.value;
+  if(!token){setStatus('先选一条资料。', true);return;}
+  const ta=document.getElementById(lastCapFocus)||document.getElementById('capability');
+  const start=ta.selectionStart||ta.value.length;
+  const end=ta.selectionEnd||start;
+  ta.value=ta.value.slice(0,start)+token+ta.value.slice(end);
+  const cursor=start+token.length;
+  ta.focus();ta.setSelectionRange(cursor,cursor);
+  select.value='';
+  validateRefs();
+}
+document.getElementById('matId').addEventListener('input',updateMatUri);
+function updateMatUri(){
+  const id=document.getElementById('matId').value.trim();
+  document.getElementById('matUri').textContent=id?('{material://'+project()+'/'+id+'}'):'（先填资料 id）';
+}
+function copyMatUri(){
+  const text=document.getElementById('matUri').textContent||'';
+  if(!text.startsWith('{material://')){setStatus('先填资料 id。', true);return;}
+  navigator.clipboard.writeText(text);
+  setStatus('已复制 '+text);
+}
+document.addEventListener('focusin',ev=>{
+  const target=ev.target;
+  if(target&&target.classList&&target.classList.contains('uri-textarea')){lastCapFocus=target.id;}
+});
+document.getElementById('capability').addEventListener('input',validateRefs);
+document.getElementById('boundary').addEventListener('input',validateRefs);
 function selectCap(name){
   selected={type:'cap',key:name};
   const entry=capEntries()[name]||{};
@@ -407,12 +500,14 @@ function selectCap(name){
   document.getElementById('name').value=name;
   document.getElementById('name').disabled=true;
   document.getElementById('capability').value=entry.capability||'';
+  document.getElementById('boundary').value=entry.boundary||'';
   const service=entry.service||{};
   document.getElementById('serviceUrl').value=service.url||'';
   document.getElementById('serviceMethod').value=(service.method||'POST').toUpperCase();
   document.getElementById('serviceTimeout').value=service.timeout_seconds||'';
   document.getElementById('mockBody').value=entry.mock_body?JSON.stringify(entry.mock_body,null,2):'';
   document.getElementById('deleteBtn').style.display='inline-block';
+  validateRefs();
   setStatus('');
 }
 function newCap(){
@@ -422,17 +517,24 @@ function newCap(){
   document.getElementById('name').value='';
   document.getElementById('name').disabled=false;
   document.getElementById('capability').value='';
+  document.getElementById('boundary').value='';
   document.getElementById('serviceUrl').value='';
   document.getElementById('serviceMethod').value='POST';
   document.getElementById('serviceTimeout').value='';
   document.getElementById('mockBody').value='';
   document.getElementById('deleteBtn').style.display='none';
+  validateRefs();
   setStatus('');
 }
 async function saveCap(){
   const name=document.getElementById('name').value.trim();
   if(!name){setStatus('预设名不能为空', true);return;}
+  validateRefs();
+  const refError=document.getElementById('refStatus').textContent.trim();
+  if(refError){setStatus(refError, true);return;}
   const entry={capability:document.getElementById('capability').value};
+  const boundary=document.getElementById('boundary').value.trim();
+  if(boundary){entry.boundary=boundary;}
   const url=document.getElementById('serviceUrl').value.trim();
   if(url){
     entry.service={url:url,method:document.getElementById('serviceMethod').value};

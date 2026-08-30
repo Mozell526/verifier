@@ -74,6 +74,61 @@ def test_free_material_and_uri_resolution(demo_project):
         materials_store.resolve_material_uri("material://demo/doc-1")
 
 
+def test_list_materials_exposes_insertable_references(demo_project):
+    """资料页下拉用：references 只含已填充、合法的 material:// URI。"""
+    materials_store.save_material(demo_project, "glossary", content="x")
+    materials_store.save_material(demo_project, "doc-1", content="y", title="文档一")
+    listing = materials_store.list_materials(demo_project)
+    uris = {item["uri"] for item in listing["references"]}
+    assert "material://demo/glossary" in uris
+    assert "material://demo/doc-1" in uris
+    by_uri = {item["uri"]: item for item in listing["references"]}
+    assert by_uri["material://demo/doc-1"]["title"] == "文档一"
+    # notes 槽位未填，不应进 references
+    assert "material://demo/notes" not in uris
+
+
+def test_expand_material_uris_inlines_embedded_reference(demo_project):
+    """唯一合法记号是 {material://<project>/<id>}；定界符让前后可粘连。"""
+    materials_store.save_material(demo_project, "api-spec", content="字段：姓名、手机号", title="口径")
+    expanded = materials_store.expand_material_uris(
+        "字段口径见 {material://demo/api-spec}。以上为准。"
+    )
+    assert "字段：姓名、手机号" in expanded
+    assert "--- material://demo/api-spec ---" in expanded
+    assert expanded.startswith("字段口径见")
+    # 粘连也安全
+    glued = materials_store.expand_material_uris("见{material://demo/api-spec}即可")
+    assert "字段：姓名、手机号" in glued
+
+
+def test_expand_material_uris_rejects_malformed_identifier(demo_project):
+    """疑似引用但不是 {material://} 记号时报错，不再静默当普通文本。"""
+    for bad in (
+        "见 material://demo/NoSuch",
+        "见 material://demo/a/b",
+        "见 material://demo/中文",
+        "见 material://demo/api-spec 。以上为准。",   # 裸写也拦
+        "见material://demo/api-spec即可",
+    ):
+        with pytest.raises(ValueError, match="不是合法记号"):
+            materials_store.expand_material_uris(bad)
+
+
+def test_expand_material_uris_passes_plain_text(demo_project):
+    assert materials_store.expand_material_uris("见说明书，按姓名检索") == "见说明书，按姓名检索"
+    assert materials_store.expand_material_uris("字段口径见附件 material 文档") == "字段口径见附件 material 文档"
+
+
+def test_expand_material_uris_rejects_over_budget(demo_project):
+    materials_store.save_material(demo_project, "huge", content="x" * 200, title="大资料")
+    with pytest.raises(ValueError, match="上限"):
+        materials_store.expand_material_uris(
+            "见 {material://demo/huge}",
+            budget=50,
+        )
+
+
 def test_content_tamper_detected(demo_project):
     materials_store.save_material(demo_project, "glossary", content="原始内容")
     content_path = (
@@ -106,7 +161,7 @@ def test_capability_material_reference(demo_project):
     materials_store.save_material(demo_project, "cap-doc", content="能力口径全文……")
     from impl.projects.llm_probe.capability import resolve_capability
 
-    text = resolve_capability({"capability": "material://demo/cap-doc"})
+    text = resolve_capability({"capability": "{material://demo/cap-doc}"})
     assert text == "能力口径全文……"
 
 
@@ -212,6 +267,8 @@ def test_overview_sections_declaration_driven():
     assert "capability_map" in lp_kinds  # llm_probe 声明了 stores
     slots_section = next(s for s in lp["sections"] if s["kind"] == "slots")
     assert slots_section["slots"] == []
+    sample_uris = {item["uri"] for item in lp.get("references") or []}
+    assert "material://llm_probe/client-search-match-rule" in sample_uris
 
 
 def test_asset_view_readonly_projection():

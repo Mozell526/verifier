@@ -18,13 +18,32 @@ def capability_text(entry: Any) -> str:
     return ""
 
 
-def _expand_material_reference(text: str) -> str:
-    """capability 描述允许写 material://<project>/<id> 引用资料页上传的文档。"""
-    if text.startswith("material://"):
-        from impl.core.materials_store import resolve_material_uri
+def boundary_text(entry: Any) -> str:
+    """轴2能力边界描述：可选，空字符串表示未填写。"""
+    if not isinstance(entry, dict):
+        return ""
+    return str(entry.get("boundary") or "").strip()
 
-        return resolve_material_uri(text).strip()
-    return text
+
+def _expand_material_reference(text: str) -> str:
+    """capability / boundary 文本里的 material:// 引用展开为资料正文。"""
+    from impl.core.materials_store import expand_material_uris
+
+    return expand_material_uris(text).strip()
+
+
+def resolve_boundary(request: dict[str, Any]) -> str:
+    """从请求或 capability 预设中取 boundary 文本，展开 material:// 引用。"""
+    explicit = str(request.get("boundary") or "").strip()
+    if explicit:
+        return _expand_material_reference(explicit)
+    ref = str(request.get("capability_ref") or "").strip()
+    if not ref:
+        return ""
+    text = boundary_text(load_capability_map().get(ref))
+    if not text:
+        return ""
+    return _expand_material_reference(text)
 
 
 def resolve_capability(request: dict[str, Any]) -> str:

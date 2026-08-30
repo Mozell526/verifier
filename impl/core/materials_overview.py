@@ -53,7 +53,11 @@ def project_overview(project_id: str) -> Dict[str, Any]:
                 "editable": True,
                 "capabilities": capabilities,
             })
-    return {"project_id": project_id, "sections": sections}
+    return {
+        "project_id": project_id,
+        "sections": sections,
+        "references": list(listing.get("references") or []),
+    }
 
 
 def _asset_selection(spec: Any, mapping: Any) -> Dict[str, Any]:

@@ -28,12 +28,12 @@ Each material lives at `impl/data/<project>/materials/<id>/`:
 
 `id` is a slot id when the material fills a declared slot; otherwise it is a free material id. Both must match `^[a-z][a-z0-9_-]*$`.
 
-Reference scheme: `material://<project>/<id>`. Resolvers expand it to the sealed body. Consumption modes on a material are combinable:
+Reference scheme: the only valid token is `{material://<project>/<id>}` — braces are the delimiter, so surrounding text never glues onto the reference. Bare `material://…` is rejected with a format error (it reads as a malformed reference, not plain text). Resolvers expand the token to the sealed body. Consumption modes on a material are combinable:
 
 | Mode | When it applies | Missing / over-budget |
 |---|---|---|
 | binding | slot `roles` include the current role | required slot missing → refuse the run; total bound chars > 30000 → refuse |
-| reference | a `material://` URI is expanded | missing id → resolution error |
+| reference | a `{material://}` token is expanded | missing id → resolution error; bare `material://` → format error |
 | queryable | not in V1 | — |
 
 Server verifies **content hash** only. Source hashes (business-repo revision) are declarative metadata and are not checked on a remote eval host.
@@ -78,7 +78,7 @@ bash run.sh cli materialize --project <id> --role {attribute,judge,mock} [--appl
 - Package selection matches runtime: with `draft.enabled` on the role, the candidate investigation package is materialized; otherwise production. `--candidate` / `--production` force one side explicitly (mutually exclusive).
 - Default is dry-run (hash check, no writes). `--apply` writes one free material per `business_source` evidence plus an index. Production-sourced ids are `{role}-{ref_id}` + `{role}-investigation-snapshot`; candidate-sourced ids are `{role}-draft-{ref_id}` + `{role}-draft-investigation-snapshot`, so both exports coexist without overwriting each other. Provenance is `{source: investigation, execution: local, source_revision, source_sha256, package_source}`.
 - Snapshots are **reference / free materials**. They must not fill a slot whose `roles` is non-empty — concatenated business yaml would blow the 30k judge binding budget. `--slot ID` is allowed only for an undeclared id or a slot with empty `roles`.
-- Remote eval reads the inlined body via the materials page / `material://`; it does not open business files. Copying `impl/data/<project>/materials/<id>/` preserves investigation provenance. Re-pasting the same text through `/api/material/upload` becomes `user_upload`.
+- Remote eval reads the inlined body via the materials page / `{material://…}`; it does not open business files. Copying `impl/data/<project>/materials/<id>/` preserves investigation provenance. Re-pasting the same text through `/api/material/upload` becomes `user_upload`.
 - Do not rsync the whole `impl/data` tree on deploy (that would wipe the eval host's materials). Copy only the materialized directories — `scripts/sync_materials.sh` does exactly that (`--ids` / `--from-materialize-json` / `--all-free`), and `materialize --apply --push user@host[:/path]` runs it automatically for the ids just written.
 
 V2 (`source_bind` / `investigate_http`) and V3 (queryable) are not part of this runtime.

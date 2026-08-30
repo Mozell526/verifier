@@ -404,6 +404,14 @@ def _generate_reference_for_case(spec, case, project_id):
     return case
 
 
+def _request_from_trace(trace) -> dict | None:
+    for attr in ("normalized_request", "input"):
+        payload = getattr(trace, attr, None)
+        if isinstance(payload, dict) and payload:
+            return payload
+    return None
+
+
 def _run_payload(trace, judge_result, attribute_result, case_id="", execution_mode="", output_source="", error=""):
     spec = load_project(trace.project_id)
     if not trace.config_fingerprint:
@@ -416,7 +424,11 @@ def _run_payload(trace, judge_result, attribute_result, case_id="", execution_mo
         "execution_mode": execution_mode or trace.execution_mode,
         "output_source": output_source or trace.output_source,
     }
-    report = live_carrier_report(spec, judge_result)
+    report = live_carrier_report(
+        spec,
+        judge_result,
+        request=_request_from_trace(trace),
+    )
     if report is not None:
         run["capability_carrier"] = report
         carrier_errors = collect_report_errors(report)

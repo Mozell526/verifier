@@ -50,6 +50,7 @@ def validate_entry(name: str, entry: Any) -> Dict[str, Any]:
         raise ValueError("capability 描述不能为空")
     if len(capability) > MAX_CAPABILITY_CHARS:
         raise ValueError(f"capability 描述超过 {MAX_CAPABILITY_CHARS} 字符上限")
+    _require_material_refs(capability, field="capability")
     clean: Dict[str, Any] = {"capability": capability}
     service = entry.get("service")
     if service not in (None, "", {}):
@@ -74,7 +75,27 @@ def validate_entry(name: str, entry: Any) -> Dict[str, Any]:
         if not isinstance(mock_body, dict):
             raise ValueError("mock_body 必须是 JSON 对象模板")
         clean["mock_body"] = mock_body
+    raw_boundary = entry.get("boundary")
+    if raw_boundary not in (None, ""):
+        if not isinstance(raw_boundary, str):
+            raise ValueError("boundary 必须是字符串")
+        boundary = raw_boundary.strip()
+        if len(boundary) > MAX_CAPABILITY_CHARS:
+            raise ValueError(f"boundary 描述超过 {MAX_CAPABILITY_CHARS} 字符上限")
+        if boundary:
+            _require_material_refs(boundary, field="boundary")
+            clean["boundary"] = boundary
     return clean
+
+
+def _require_material_refs(text: str, *, field: str) -> None:
+    """保存时校验正文里的 material://：格式非法或资料不存在则拒写，正文仍原样保存。"""
+    from .materials_store import expand_material_uris
+
+    try:
+        expand_material_uris(text)
+    except ValueError as exc:
+        raise ValueError(f"{field} 资料引用无效: {exc}") from exc
 
 
 def save_capability(project_id: str, name: str, entry: Any) -> Dict[str, Any]:

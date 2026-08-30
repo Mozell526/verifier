@@ -209,7 +209,12 @@ def build_frontend_view(
             extensions["trace_show"] = {"available": False, "reason": str(exc)}
     table_row = None
     if trace:
-        report = live_carrier_report(spec, judge)
+        request = None
+        if isinstance(trace.normalized_request, dict) and trace.normalized_request:
+            request = trace.normalized_request
+        elif isinstance(trace.input, dict) and trace.input:
+            request = trace.input
+        report = live_carrier_report(spec, judge, request=request)
         table_row = build_trace_table_row(
             trace,
             judge,
