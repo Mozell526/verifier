@@ -303,7 +303,11 @@ def test_environment_materializes_manifest_evidence_refs(authority_env):
 
 
 def test_environment_fail_closed_on_missing_source(client_search_spec):
-    """§13.3：已有 EvidenceRef 找不到原始来源 → Environment 构造失败（fail-closed）。"""
+    """§13.3：已有 EvidenceRef 找不到原始来源 → Environment 构造失败（fail-closed）。
+
+    显式 use_candidate=False 读 production 包（judge draft 开关开启后
+    use_candidate=True 会读 draft 包，与本测试意图无关）。
+    """
     manifest_path = (
         client_search_spec.project_package_path(must_exist=False)
         / "investigation/judge/manifest.json"
@@ -319,7 +323,7 @@ def test_environment_fail_closed_on_missing_source(client_search_spec):
             build_authority_environment(
                 client_search_spec,
                 role="judge",
-                use_candidate=True,
+                use_candidate=False,
                 embedding_provider=DeterministicHashEmbeddingProvider(),
                 business_source_staleness_policy="warn",
             )

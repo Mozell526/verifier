@@ -88,4 +88,4 @@ V2 (`source_bind` / `investigate_http`) and V3 (queryable) are not part of this 
 - `live_run` / `run_chain` / non-empty `batch_run` call `require_materials(project_id)` before work. Missing required slots raise with slot titles and point at the materials page.
 - Judge loads `binding_materials_for_role(project_id, "judge")`, injects the bodies into the system prompt, and records `kind: bound_material` evidence with uri + sha256.
 
-Limits: body ≤ 200_000 characters; sum of bound bodies for one role ≤ 30_000 characters. Over-budget is an error, not a silent trim.
+Limits: body ≤ 1_000_000 characters; sum of bound bodies for one role ≤ 30_000 characters. Over-budget is an error, not a silent trim.

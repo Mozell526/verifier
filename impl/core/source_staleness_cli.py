@@ -12,6 +12,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import hashlib
 import json
 import subprocess
@@ -290,7 +291,9 @@ def _cmd_refresh_absorbable(spec: Any, role: str) -> int:
             continue
         metadata = ref.metadata
         if ref.location_ref is not None:
-            ref.location_ref.sha256 = report.actual_sha256
+            ref.location_ref = dataclasses.replace(
+                ref.location_ref, sha256=report.actual_sha256
+            )
         metadata["sha256"] = report.actual_sha256
         slice_spec = metadata.get("slice") if isinstance(metadata.get("slice"), dict) else None
         if slice_spec is not None and report.actual_sha256:

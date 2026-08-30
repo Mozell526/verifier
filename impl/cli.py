@@ -126,6 +126,34 @@ def main(argv=None):
         help="物化后把写入的资料同步到远端评测机：user@host[:/opt/verifier]，需配合 --apply",
     )
 
+    p = sub.add_parser(
+        "investigation-lifecycle",
+        help="调查增量门禁：baseline（production→draft 复制）/ drift（算增量范围）/ increment（按确认范围重钉）",
+    )
+    p.add_argument("--project", required=True)
+    p.add_argument("--role", required=True, choices=("attribute", "judge", "mock"))
+    p.add_argument(
+        "--gate",
+        required=True,
+        choices=("baseline", "drift", "increment"),
+        help="baseline=Gate1 范围型复制；drift=机器算增量范围；increment=按 --refs 执行重钉",
+    )
+    p.add_argument(
+        "--refs",
+        default="",
+        help="increment 的人确认范围：逗号分隔的 EvidenceRef id 清单",
+    )
+    p.add_argument(
+        "--source-revision",
+        default="",
+        help="increment 目标业务源 revision；默认取业务仓库当前 HEAD",
+    )
+    p.add_argument(
+        "--force",
+        action="store_true",
+        help="baseline 时允许覆盖已存在的 draft 调查包",
+    )
+
     args = parser.parse_args(argv)
     if args.cmd == "projects":
         emit({"projects": list_projects()})
@@ -227,6 +255,34 @@ def main(argv=None):
         emit(result)
         if args.push:
             _push_materials(args.project, result, args.push)
+    elif args.cmd == "investigation-lifecycle":
+        from .core.investigation_lifecycle import (
+            InvestigationLifecycleError,
+            apply_increment,
+            create_baseline,
+            drift_report,
+        )
+        from .core.project_loader import load_project
+
+        spec = load_project(args.project)
+        try:
+            if args.gate == "baseline":
+                emit(create_baseline(spec, args.role, overwrite=args.force))
+            elif args.gate == "drift":
+                drift_report(spec, args.role)
+            else:
+                refs = [item.strip() for item in str(args.refs or "").split(",") if item.strip()]
+                emit(
+                    apply_increment(
+                        spec,
+                        args.role,
+                        refs,
+                        source_revision=args.source_revision,
+                    )
+                )
+        except InvestigationLifecycleError as exc:
+            print(str(exc), file=sys.stderr)
+            raise SystemExit(1) from exc
 
 
 def _push_materials(project_id: str, result: dict, push_target: str) -> None:

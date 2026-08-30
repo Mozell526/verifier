@@ -151,9 +151,11 @@ scripts/deploy_verifier.sh root@154.9.252.35 /opt/verifier --dry-run   # 先看�
 scripts/deploy_verifier.sh root@154.9.252.35 --no-restart
 ```
 
-（等价的原始命令：`rsync -az --exclude /.git --exclude /.env --exclude /tmp --exclude /experiments
---exclude /issues --exclude /tests --exclude '__pycache__' --exclude /impl/data ./ root@…:/opt/verifier/`
-后接 `systemctl restart verifier`。）
+脚本还会排除报告与笔记（`info-dense` / `report` / `reviews-of-propose` / `openspec`）、
+调查循环历史（任意层级的 `.state`，主要是 `draft/.state` 的数十 MB 迭代记录）、
+以及 `.DS_Store` / `__pycache__` / `.pytest_cache`。
+`.agents` / `.claude` / `.codex` / `.github`，以及 `search-test-case` / `demand` / `hooks` / `agents` / 仓库根 `data/` **会同步**。
+`--dry-run` 按 checksum 比较内容，只打印相对远端会新增或内容变更的文件（含总大小），不因 git checkout 的 mtime 差异列出整包。
 
 ## 同步资料（只拷目录，不碰其余 impl/data）
 

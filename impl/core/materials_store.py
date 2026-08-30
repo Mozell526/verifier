@@ -24,7 +24,7 @@ from .portable_artifact import write_active_artifact
 ROOT = Path(__file__).resolve().parents[1]
 
 CONTENT_FILENAME = "content.md"
-MAX_CONTENT_CHARS = 200_000
+MAX_CONTENT_CHARS = 1_000_000
 BINDING_BUDGET_CHARS = 30_000
 ALLOWED_FILL = ("upload", "investigate_http", "source_bind")
 ALLOWED_PROVENANCE = ("user_upload", "investigation", "derived")

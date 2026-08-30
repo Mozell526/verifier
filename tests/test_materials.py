@@ -230,10 +230,11 @@ def test_asset_view_reports_actually_active_package():
     """asset_view 展示的必须是 runtime 真正读的那个包（role draft.enabled → candidate）。"""
     from impl.core.materials_overview import asset_view, project_overview
 
-    # client_search judge 无 draft：生效生产包
+    # client_search judge draft.enabled=true 且有 candidate_path：生效 draft 候选包
     judge = asset_view("client_search", "judge_investigation")
-    assert judge["active_source"] == "production"
-    assert judge["active_path"] == judge["production_path"]
+    assert judge["active_source"] == "candidate"
+    assert judge["active_path"] == judge["candidate_path"]
+    assert judge["candidate_path"].startswith("project://draft/")
 
     # client_search attribute draft.enabled=true 且有 candidate_path：生效 draft 候选包
     attribute = asset_view("client_search", "attribute_investigation")
@@ -245,7 +246,7 @@ def test_asset_view_reports_actually_active_package():
     overview = project_overview("client_search")
     investigation = next(s for s in overview["sections"] if s["kind"] == "investigation")
     items = {item["asset_id"]: item for item in investigation["items"]}
-    assert items["judge_investigation"]["active_source"] == "production"
+    assert items["judge_investigation"]["active_source"] == "candidate"
     assert items["attribute_investigation"]["active_source"] == "candidate"
     assert "production_exists" in items["attribute_investigation"]
     assert "candidate_exists" in items["attribute_investigation"]

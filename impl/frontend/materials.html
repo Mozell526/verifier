@@ -167,11 +167,14 @@ function renderSections(){
       const entries=items.map(item=>{
         const active=(selected&&selected.type==='asset'&&selected.key===item.asset_id)?' active':'';
         const kindBadge=section.kind==='system_assets'?'<span class="badge ro">'+escapeHtml(item.asset_kind)+'</span>':'';
+        const activeBadge=section.kind==='investigation'
+          ?(item.active_source==='candidate'?'<span class="badge warn">生效 draft</span>':'<span class="badge ok">生效生产</span>')
+          :'';
         const prodBadge=item.production_exists?'<span class="badge ok">生产</span>':'<span class="badge bad">生产缺</span>';
         const candBadge=item.candidate_exists?'<span class="badge warn">候选</span>':'';
         const enabledBadge=item.enabled?'':'<span class="badge">停用</span>';
         const roles=(item.roles||[]).join('/');
-        return '<div class="entry'+active+'" onclick="selectAsset(\''+escapeHtml(item.asset_id)+'\')"><b>'+escapeHtml(item.asset_id)+'</b>'+kindBadge+prodBadge+candBadge+enabledBadge+'<div class="preview">'+escapeHtml(roles?('roles: '+roles):'')+'</div></div>';
+        return '<div class="entry'+active+'" onclick="selectAsset(\''+escapeHtml(item.asset_id)+'\')"><b>'+escapeHtml(item.asset_id)+'</b>'+kindBadge+activeBadge+prodBadge+candBadge+enabledBadge+'<div class="preview">'+escapeHtml(roles?('roles: '+roles):'')+'</div></div>';
       }).join('');
       if(section.kind==='system_assets'){
         // verifier 侧"怎么评"的资产：折叠降权，别挤占业务视野

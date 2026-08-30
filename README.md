@@ -3,7 +3,6 @@
 通用评测与验证工具，用于把项目配置、实时请求、judge、归因、聚类、check 和前端视图串成一套可验证流程。
 本项目的核心目标是旨在通过构建一些模拟case案例，对业务系统进行模拟交互、输出评估、问题归因，从而看到业务系统当前有哪些问题（包括业务系统功能、算法能力，特别是算法能力方面）
 
-
 ## 目录
 
 - `impl/`：核心实现、项目适配、协议和前端页面。
@@ -76,53 +75,121 @@ VERIFIER_PORT=8022 bash run.sh server
 curl http://127.0.0.1:8020/health
 ```
 
-## 远程评测接入（外网服务器 + 本地业务系统）
+## 接入你自己的 API 做评测（llm_probe）
 
-verifier 已部署在远程服务器（`154.9.252.35`，systemd 服务 `verifier`，绑定 `127.0.0.1:8022`，无公网 HTTP 暴露）。被测业务系统跑在本机时，用一条 ssh 命令接入，**零安装**：
+这是最常见的场景：你有一个带 LLM 的 HTTP 接口，想接入 verifier 评测它"答得对不对"。
+`llm_probe` 项目就是为此准备的——它不关心你接口的业务，只按你给的**能力描述**（capability）
+和可选的**输出结构**（show_schema）来 judge。
+
+### 整体图景：谁在哪
+
+```
+你的机器（本机）                     远程评测机（154.9.252.35）
+┌────────────────────┐   ssh 隧道    ┌────────────────────┐
+│ 你的 API :8000     │◄───── -R ────│ verifier :8022     │
+│                    │              │  （judge/归因/页面） │
+│ 浏览器 :18080      │───── -L ────►│                    │
+└────────────────────┘              └────────────────────┘
+```
+
+verifier 跑在远程评测机上，它要**主动调你的 API** 拿真实输出。但你的 API 在本机、
+没有公网地址，所以用一条 ssh 反向隧道把本机端口"搬"到评测机上。
+`-L` 则把评测机的页面搬回你本机浏览器。
+
+### 第 1 步：建隧道（人类做，一条命令）
 
 ```bash
 ssh -N -o ServerAliveInterval=30 \
     -R 15001:127.0.0.1:8000 \
-    -R 15002:127.0.0.1:8050 \
-    -R 15003:127.0.0.1:9006 \
     -L 18080:127.0.0.1:8022 \
     eval-tunnel@154.9.252.35
 ```
 
-- 三个 `-R` 对应本地业务服务：8000 client_search → 15001、8050 policy_search → 15002、9006 营销意图 → 15003；只评一个服务时其余 `-R` 可省；
-- 评测期间保持终端开着，断了重跑即可；
-- 浏览器访问 `http://localhost:18080` 即 verifier 前端；
-- capability 预设在前端「资料管理」页维护（能力口径 + 探测端点 + mock 模板），服务器实例的预设已指向隧道端口；预设外的服务 URL 填 `http://127.0.0.1:1500X/...`。
+参数怎么填：
 
-`eval-tunnel` 为密钥登录、不可开 shell 的隧道专用账号；多人共用时每人固定一个端口（15001/15002/15003），把公钥加进该账号的 `authorized_keys`。
+| 参数 | 含义 | 怎么填 |
+|---|---|---|
+| `-R 15001:127.0.0.1:8000` | 把**你本机** 8000 端口映射到评测机 15001 | 右边 `127.0.0.1:8000` 改成你 API 的本机地址端口；左边 `15001` 是评测机上的端口，多人共用时每人固定一个（15001/15002/15003） |
+| `-L 18080:127.0.0.1:8022` | 把评测机的 verifier 页面映射到你本机 18080 | 右边固定 `8022`（评测机 verifier 端口）；左边随便选个本机空闲端口 |
+| `-N` | 只建隧道不开 shell | 固定 |
+| `eval-tunnel@...` | 隧道专用账号（密钥登录、不可开 shell） | 固定；把公钥加进该账号 `authorized_keys` |
 
-完整部署与原理说明见 `docs/external-eval-deployment.md`。
+多个 API 就加多条 `-R`（15002、15003…）。评测期间保持终端开着，断了重跑即可。
+内置业务项目的对应关系：client_search 8000→15001、policy_search 8050→15002、营销意图 9006→15003。
 
-## CLI 用法
+**隧道和 API 的联系**：verifier 在评测机上发请求到 `http://127.0.0.1:15001/...`，
+经隧道落到你本机 `8000`。所以 capability 预设里的 service URL 一律写
+`http://127.0.0.1:1500X/...`（评测机视角），不是你本机的真实端口。
 
-列出项目：
+建好后浏览器访问 `http://localhost:18080` 即 verifier 前端。
+
+### 第 2 步：建 capability 预设（人类做，在资料页）
+
+打开「资料管理」页 → 项目选 `llm_probe` → 「capability 预设」→ 新建。填三块：
+
+1. **预设名**：小写标识，如 `my-api`，case 里用 `capability_ref` 引用它；
+2. **能力口径描述**：这个接口应该做什么、不该做什么、边界在哪。judge 拿它当评判依据。
+   可以引用你上传的资料：`material://llm_probe/<资料id>`（见第 4 步）；
+3. **探测端点 service**（可选）：`url` 填 `http://127.0.0.1:1500X/你的路径`、method、超时。
+   填了之后 case 可以不写 url，只写 `capability_ref`。
+
+注意：预设里的 1500X 端口是**远程评测机**视角（经隧道）。本地用 CLI 直连跑时，
+不写 `capability_ref`、直接写本机 `url`（如 `http://127.0.0.1:8000/...`）即可。
+
+### 第 3 步：跑一个 case（人类做）
+
+CLI 方式（本机直连 verifier）：
 
 ```bash
-bash run.sh cli projects
+bash run.sh cli live-run --project llm_probe --input '{
+  "capability_ref": "my-api",
+  "url": "http://127.0.0.1:8000/你的路径",
+  "body": {"query": "你的测试问题"}
+}'
 ```
 
-查看项目分析：
+`capability_ref` 提供能力口径文本；`url` 覆盖本次请求的端点（本地直连写本机端口，
+经远程页面跑时写 1500X）。不写 `url` 时用预设里的 service url。
+
+或显式 url + 内联口径（不建预设时直接写 capability）：
 
 ```bash
-bash run.sh cli analysis --project client_search
+bash run.sh cli live-run --project llm_probe --input '{
+  "url": "http://127.0.0.1:8000/你的路径",
+  "method": "POST",
+  "capability": "这个接口应该……（能力口径，judge 据此评判）",
+  "body": {"query": "你的测试问题"}
+}'
 ```
 
-执行 mock 单例链路：
+case 信封字段：`body`（JSON 对象，必填）；`url`/`method`（POST/PUT/PATCH）/`headers`；
+`capability_ref` 或 `capability` 二选一必填（预设或内联口径）；`show_schema`（可选，
+描述期望输出结构，judge 据此校验）。`url` 和 `capability_ref` 也二选一必填。只允许非流式响应。
 
-```bash
-bash run.sh cli run-chain --project client_search --mock --input '{"query":"示例查询"}'
-```
+页面方式：经隧道打开 `http://localhost:18080`，在 live 页提交同样形状的信封，
+看 judge 结论和归因。
 
-执行批量 mock：
+### 第 4 步：上传资料让评测更准（人类做，在资料页）
 
-```bash
-bash run.sh cli batch-run --project client_search --mock --inputs '[{"query":"示例查询"}]'
-```
+judge 默认只靠 capability 描述判断。你的接口有领域知识（字段口径、业务规则、
+接口说明）时，上传成**自由资料**，再在 capability 描述里引用，judge 就有了依据：
+
+1. 资料页 → 「自由资料」→ 新建资料，粘贴正文或选择本地文件（.md/.txt/.yaml/.json）；
+2. 记下资料 id（如 `my-api-spec`）；
+3. 在 capability 预设的描述里写：`字段口径见 material://llm_probe/my-api-spec`。
+
+资料内容哈希封口，手改会标记「内容已非原样」。
+
+### 人类 vs AI 分工（全生命周期）
+
+| 阶段 | 人类做 | AI 做 |
+|---|---|---|
+| 首次接入 | 提供 API、评测机账号；授权部署 | 部署、加固、首次调查/物化 |
+| 日常评测 | 起本地 API；跑隧道命令；建预设/传资料；跑 case 看结果 | 无 |
+| 业务代码更新 | 说一句"业务代码更新了"；确认增量范围；确认逻辑型漂移 | baseline→drift→increment→materialize→sync→deploy 全串 |
+| 优化 judge / 重调查 | 发起意图；审 draft 结果；授权晋升 | Investigate/Solidify/Loop、晋升执行 |
+
+人类真正要记的只有：一条隧道命令、建预设/传资料、对 AI 说"业务代码更新了"、两次确认。
 
 ## client_search 本地验证流程
 
@@ -145,3 +212,29 @@ bash run.sh cli batch-run --project client_search --mock --inputs '[{"query":"�
 - `mock.md`
 
 协议说明见 `impl/protocols/`。
+
+## 附录：调查增量更新命令（AI 执行参考，人类不用记）
+
+业务源码更新后 production 调查包哈希过期时，AI 按此顺序执行；人类只需说
+"业务代码更新了"并确认增量范围。协议细则见 `spec/alg/investigate.md`「增量门禁」。
+
+```bash
+# Gate 1 baseline：production→draft 复制（纯机器）
+bash run.sh cli investigation-lifecycle --project client_search --role judge --gate baseline
+# Gate 2 drift：算增量范围（只读；逻辑型漂移只报不钉，待人复核）
+bash run.sh cli investigation-lifecycle --project client_search --role judge --gate drift
+# Gate 2 increment：按人确认的范围重钉
+bash run.sh cli investigation-lifecycle --project client_search --role judge --gate increment \
+  --refs business-field-definitions,business-field-enums,business-enhanced-rules,business-time-knowledge
+# 物化 + 同步到评测机
+bash run.sh cli materialize --project client_search --role judge --apply \
+  --push root@154.9.252.35:/opt/verifier
+# 部署代码（project.yaml / draft 文件有改动时）
+scripts/deploy_verifier.sh root@154.9.252.35 /opt/verifier --dry-run
+scripts/deploy_verifier.sh root@154.9.252.35 /opt/verifier
+# 晋升（draft 验证通过后，可选）
+bash run.sh cli draft-promote --project client_search --role judge --apply
+```
+
+开 draft 模式（首次）：`project.yaml` 里 `judge_investigation.candidate_path` 指向
+`project://draft/investigation/judge`，并加 `roles.judge.draft.enabled: true`。

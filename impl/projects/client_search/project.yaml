@@ -110,6 +110,11 @@ verifier:
         module: project://draft/attribute.py
         tool_call_limit: 8
         reason: Batch attribution validation through the 8021 UAT frontend.
+    judge:
+      draft:
+        enabled: true
+        module: project://draft/judge.py
+        reason: 增量调查 draft 模式（investigate.md 增量门禁）；实现为薄 wrapper，零行为变化。
   check_rules:
     core_forbidden_markers: [matched_level, clientAge, annPremSegNum, clientSex]
     evidence:
@@ -208,7 +213,7 @@ verifier:
       enabled: true
       roles: [judge]
       production_path: project://investigation/judge
-      candidate_path: ""
+      candidate_path: project://draft/investigation/judge
       replace: true
     - asset_id: judge_business_contract
       kind: context

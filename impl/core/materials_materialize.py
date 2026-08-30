@@ -82,6 +82,18 @@ def materialize_project(
     selected = packages[0]
     package_source = str(selected.get("source") or "production")
     package = Path(selected["path"])
+    if package_source == "candidate":
+        # 增量门禁出口条件（spec/alg/investigate.md）：候选包必须先过
+        # baseline + increment 闭合，才允许物化导出。
+        from .investigation_lifecycle import (
+            InvestigationLifecycleError,
+            require_increment_closed,
+        )
+
+        try:
+            require_increment_closed(spec, role)
+        except InvestigationLifecycleError as exc:
+            raise MaterializeError(str(exc)) from exc
     if not package.is_dir():
         hint = (
             "（可试 --candidate 使用 draft 调查包）"
