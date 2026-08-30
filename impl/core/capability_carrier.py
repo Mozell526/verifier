@@ -384,6 +384,8 @@ class CarrierVerdict:
     missing_material: str = ""
     citations: tuple[Mapping[str, str], ...] = ()
     recognition: str = ""
+    # 检索式消费的审计轨迹：判定期间的工具调用（tool/arguments/result 摘要）。
+    tool_trail: tuple[Mapping[str, Any], ...] = ()
 
     def as_dict(self) -> dict[str, Any]:
         payload = {
@@ -397,6 +399,8 @@ class CarrierVerdict:
             payload["missing_material"] = self.missing_material
         if self.recognition:
             payload["recognition"] = self.recognition
+        if self.tool_trail:
+            payload["tool_trail"] = [dict(item) for item in self.tool_trail]
         return payload
 
 
@@ -821,12 +825,29 @@ def format_placement_cell(report: Mapping[str, Any] | None) -> str:
     return "；".join(parts) if parts else "-"
 
 
+def _material_citation_refs(item: Mapping[str, Any]) -> str:
+    """资料引用回指（仅 material:// 来源；boundary/快照字段引用不进表格单元）。"""
+    refs = []
+    for cite in item.get("citations") or []:
+        if not isinstance(cite, Mapping):
+            continue
+        source = str(cite.get("source") or "")
+        if not source.startswith("material://"):
+            continue
+        ref = str(cite.get("ref") or "").strip()
+        refs.append(f"{source}#{ref}" if ref and ref != "boundary" else source)
+    return "、".join(dict.fromkeys(refs))
+
+
 def _placement_cell(item: Mapping[str, Any]) -> str:
     label = str(item.get("expectation_id") or "").strip()
     extra = str(item.get("reason") or "").strip()
     missing = str(item.get("missing_material") or "").strip()
     if missing:
         extra = f"{extra}；缺{missing}".strip("；")
+    citations = _material_citation_refs(item)
+    if citations:
+        extra = f"{extra}；引 {citations}".strip("；")
     if extra:
         return f"{label}（{extra}）" if label else extra
     return label

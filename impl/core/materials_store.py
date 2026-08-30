@@ -393,12 +393,14 @@ def _format_near_reference_error(raw: str) -> str:
 def expand_material_uris(
     text: str,
     *,
-    budget: int = REFERENCE_EXPAND_BUDGET_CHARS,
+    budget: int | None = None,
 ) -> str:
     """把正文里的 {material://} 记号替换为封口正文。超预算报错，不静默截断。
 
     裸写 material:// 会被判定为疑似记号并报错，引导加 {} 定界。
     """
+    if budget is None:
+        budget = REFERENCE_EXPAND_BUDGET_CHARS
     raw = str(text or "")
     if not raw:
         return raw
@@ -424,3 +426,88 @@ def expand_material_uris(
             f"资料引用展开后共 {len(expanded)} 字符，超过 {budget} 上限。请精简资料或拆分引用。"
         )
     return expanded
+
+
+def _catalog_entry(project_id: str, material_id: str) -> Dict[str, Any]:
+    manifest = load_manifest(project_id, material_id)
+    if manifest is None:
+        raise ValueError(f"资料 {project_id}/{material_id} 不存在")
+    return {
+        "uri": f"material://{project_id}/{material_id}",
+        "project_id": project_id,
+        "id": material_id,
+        "title": str(manifest.get("title") or material_id),
+        "description": str(manifest.get("description") or ""),
+        "size_chars": int(manifest.get("size_chars") or 0),
+        "sha256": str(manifest.get("sha256") or ""),
+    }
+
+
+def _catalog_stub(entry: Dict[str, Any]) -> str:
+    description = entry["description"] or entry["title"]
+    return (
+        f"\n[大资料未内联] {entry['uri']} · {entry['title']} · "
+        f"{entry['size_chars']} 字符 · sha256 {entry['sha256'][:8]}\n"
+        f"描述：{description}\n"
+        f"正文未进上下文，用检索工具查询（material_id=\"{entry['id']}\"）。\n"
+    )
+
+
+def expand_material_uris_with_catalog(
+    text: str,
+    *,
+    budget: int | None = None,
+) -> tuple[str, List[Dict[str, Any]]]:
+    """检索式消费的展开：装得下预算的资料内联，装不下的转可检索目录条目。
+
+    返回 (expanded_text, catalog)。与 expand_material_uris 的区别：
+    - 单个资料内联后累计超预算 → 不报错，改为目录 stub 进文本 + catalog 条目；
+    - 格式错误（裸 material://）和资料不存在照旧报错——引用有效性不因大小豁免。
+    catalog 条目字段：uri/project_id/id/title/description/size_chars/sha256。
+    """
+    if budget is None:
+        budget = REFERENCE_EXPAND_BUDGET_CHARS
+    raw = str(text or "")
+    if not raw:
+        return raw, []
+
+    near_error = _format_near_reference_error(_MATERIAL_REF_TOKEN.sub(" ", raw))
+    if near_error:
+        raise ValueError(near_error)
+
+    catalog: List[Dict[str, Any]] = []
+    tokens = list(_MATERIAL_REF_TOKEN.finditer(raw))
+    if not tokens:
+        if len(raw) > budget:
+            raise ValueError(
+                f"能力边界文本共 {len(raw)} 字符，超过 {budget} 上限。请精简为陈述句并把细节放进资料。"
+            )
+        return raw, []
+
+    whole = _MATERIAL_REF_TOKEN.fullmatch(raw.strip()) is not None
+    parts: List[str] = []
+    cursor = 0
+    length = 0
+    for match in tokens:
+        parts.append(raw[cursor:match.start()])
+        length += len(parts[-1])
+        uri = match.group(0)[1:-1]
+        project_id, material_id = uri[len("material://"):].split("/")
+        entry = _catalog_entry(project_id, material_id)
+        body = read_content(project_id, material_id)
+        inline = (
+            body.rstrip() if whole
+            else f"\n--- {uri} ---\n{body.rstrip()}\n--- end {uri} ---\n"
+        )
+        if length + len(inline) <= budget:
+            parts.append(inline)
+            length += len(inline)
+        else:
+            stub = _catalog_stub(entry)
+            parts.append(stub)
+            length += len(stub)
+            catalog.append(entry)
+        cursor = match.end()
+    parts.append(raw[cursor:])
+    expanded = "".join(parts)
+    return expanded, catalog

@@ -38,12 +38,13 @@ def _nf(expectation_id: str) -> dict:
 
 def _completer(carry: str, **extra):
     def complete(_expectation_text: str, boundary: str) -> dict:
+        # 引用默认逐字引用边界文本本身：机械核验（引句必须在原文中）才放行。
         payload = {
             "carry": carry,
             "reason": extra.get("reason") or f"boundary={boundary}",
             "self_recognition": extra.get("self_recognition", ""),
             "citations": extra.get("citations", [
-                {"source": "capability_boundary", "note": extra.get("note") or "仅支持姓名检索"}
+                {"source": "boundary", "ref": "boundary", "note": extra.get("note") or boundary}
             ]),
             "gap_kind": extra.get("gap_kind", ""),
             "missing_material": extra.get("missing_material", ""),
@@ -113,12 +114,17 @@ def test_llm_probe_scope_on_and_provider_binds_text_carrier() -> None:
     assert isinstance(bound, TextCarrier)
 
 
-def test_existing_presets_without_boundary_place_ungoverned() -> None:
+def test_existing_presets_without_boundary_place_ungoverned(monkeypatch) -> None:
+    # capability_map.json 是用户数据，可能随时被填上 boundary；这里固定一个无 boundary 预设。
+    monkeypatch.setattr(
+        "impl.projects.llm_probe.capability.load_capability_map",
+        lambda: {"no-boundary-api": {"capability": "按条件检索客户"}},
+    )
     spec = load_project("llm_probe")
     report = live_carrier_report(
         spec,
         _nf("按年龄检索"),
-        request={"capability_ref": "client_search"},
+        request={"capability_ref": "no-boundary-api"},
     )
     assert report is not None
     assert report["placements"][0]["placement"] == PLACEMENT_UNCLEAR
@@ -155,23 +161,95 @@ def test_inline_request_boundary_wins_over_preset(monkeypatch) -> None:
         "impl.projects.llm_probe.capability.load_capability_map",
         lambda: {"alpha": {"capability": "搜人", "boundary": "预设边界不应出现"}},
     )
-    assert resolve_boundary({
+    bundle = resolve_boundary({
         "capability_ref": "alpha",
         "boundary": "本案内联边界",
-    }) == "本案内联边界"
+    })
+    assert bundle["text"] == "本案内联边界"
+    assert bundle["catalog"] == []
 
 
 def test_text_carrier_boundary_expands_sample_material() -> None:
     """轴2 读到的 G 必须是样例资料正文，不是 {material://} 记号本身。"""
     token = "{material://llm_probe/client-search-match-rule}"
-    expanded = resolve_boundary({"boundary": token})
-    assert "姓名全值等值匹配" in expanded
-    assert expanded != token
+    bundle = resolve_boundary({"boundary": token})
+    assert "姓名全值等值匹配" in bundle["text"]
+    assert bundle["text"] != token
+    assert bundle["catalog"] == []
     carrier = TextCarrier()
     with using_placement_request({"boundary": f"能力范围见 {token}"}):
         current = carrier._current_boundary()
-    assert "姓名全值等值匹配" in current
-    assert "--- material://llm_probe/client-search-match-rule ---" in current
+    assert "姓名全值等值匹配" in current["text"]
+    assert "--- material://llm_probe/client-search-match-rule ---" in current["text"]
+
+
+def test_boundary_large_material_becomes_catalog_entry(monkeypatch) -> None:
+    """超预算的资料不内联：转目录条目，正文靠检索工具查。"""
+    import impl.core.materials_store as ms
+
+    token = "{material://llm_probe/client-search-match-rule}"
+    monkeypatch.setattr(ms, "REFERENCE_EXPAND_BUDGET_CHARS", 10)
+    bundle = resolve_boundary({"boundary": f"能力见 {token}"})
+    assert bundle["catalog"], "超预算资料必须进 catalog"
+    entry = bundle["catalog"][0]
+    assert entry["id"] == "client-search-match-rule"
+    assert entry["uri"] == "material://llm_probe/client-search-match-rule"
+    assert entry["sha256"]
+    assert "[大资料未内联]" in bundle["text"]
+    assert "姓名全值等值匹配" not in bundle["text"]
+
+
+def test_fake_citation_is_rejected_and_exhausts_retries() -> None:
+    """机械核验：引句不在原文 → 打回重试 → 耗尽落归位失败，不放行假引用。"""
+    carrier = TextCarrier(
+        boundary_loader=lambda: "本接口支持按客户姓名检索。",
+        completer=_completer(CARRY_YES, note="资料里根本没有这句话"),
+        retries=2,
+        retry_backoff=(0, 0),
+    )
+    from impl.core.capability_carrier import CarrierError
+
+    outcome = carrier.verdict_for({"expectation_id": "按姓名检索"})
+    assert isinstance(outcome, CarrierError)
+    assert "引用核验" in outcome.last_error
+
+
+def test_material_citation_verified_against_locator() -> None:
+    from impl.projects.llm_probe.text_carrier import _verify_citations
+    from impl.projects.llm_probe.material_tools import search as material_search
+
+    hit = material_search("llm_probe", "client-search-match-rule", "等值匹配")
+    locator = hit["snippets"][0]["locator"]
+    good = CarrierVerdictFactory(
+        citations=({"source": "material://llm_probe/client-search-match-rule",
+                    "ref": locator, "note": "姓名全值等值匹配"},),
+    )
+    assert _verify_citations(good, "边界文本") == []
+    bad = CarrierVerdictFactory(
+        citations=({"source": "material://llm_probe/client-search-match-rule",
+                    "ref": locator, "note": "原文没有的话"},),
+    )
+    failures = _verify_citations(bad, "边界文本")
+    assert failures and "未找到引句" in failures[0]
+
+
+def CarrierVerdictFactory(citations):
+    from impl.core.capability_carrier import CarrierVerdict
+    return CarrierVerdict(CARRY_YES, "理由", citations=citations)
+
+
+def test_verdict_tool_trail_serializes() -> None:
+    from impl.core.capability_carrier import CarrierVerdict
+
+    verdict = CarrierVerdict(
+        CARRY_YES, "资料覆盖",
+        citations=({"source": "material://llm_probe/x", "ref": "L5-L7", "note": "支持等值"},),
+        tool_trail=({"tool": "material_search", "material_id": "x", "query": "等值",
+                     "returned_locators": ["L5-L7"]},),
+    )
+    payload = verdict.as_dict()
+    assert payload["tool_trail"][0]["tool"] == "material_search"
+    assert payload["citations"][0]["ref"] == "L5-L7"
 
 
 def test_validate_entry_keeps_optional_boundary() -> None:
@@ -232,3 +310,29 @@ def test_config_check_accepts_bound_llm_probe() -> None:
     report = ConfigCheckReport()
     _check_capability_carrier_binding(report, spec, spec.project_package_path() / "project.yaml")
     assert report.issues == []
+
+
+def test_frontend_view_exposes_carrier_panel() -> None:
+    """live 页轴2面板的数据源：build_frontend_view 必须带 capability_carrier_panel。"""
+    from impl.core.frontend_view import build_frontend_view
+    from impl.core.schema import JudgeResult, RunTrace
+
+    spec = load_project("llm_probe")
+    trace = RunTrace(
+        trace_id="t1", project_id="llm_probe",
+        normalized_request={"capability_ref": "client_search"},
+        extracted_output={"output_text": "{}"},
+    )
+    judge = JudgeResult(
+        trace_id="t1", project_id="llm_probe",
+        overall_fulfillment={"status": "fulfilled"},
+    )
+    view = build_frontend_view(spec, trace, judge, None, None, None, {})
+    panel = view.capability_carrier_panel
+    assert panel.get("applicable") is False
+    assert panel.get("axis1_status") == "fulfilled"
+    # API 出口走 to_public_dict 白名单投影（occam.py），面板必须活着穿过这层。
+    from impl.core.schema import to_public_dict
+
+    public = to_public_dict(view)
+    assert public.get("capability_carrier_panel", {}).get("applicable") is False

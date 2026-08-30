@@ -89,11 +89,18 @@ def validate_entry(name: str, entry: Any) -> Dict[str, Any]:
 
 
 def _require_material_refs(text: str, *, field: str) -> None:
-    """保存时校验正文里的 material://：格式非法或资料不存在则拒写，正文仍原样保存。"""
-    from .materials_store import expand_material_uris
+    """保存时校验正文里的 material://：格式非法或资料不存在则拒写，正文仍原样保存。
+
+    capability 是 prompt-load 消费，超预算即拒；boundary 走检索式消费，
+    超预算的资料运行时自动转可检索目录条目，保存时不因大小拒写。
+    """
+    from .materials_store import expand_material_uris, expand_material_uris_with_catalog
 
     try:
-        expand_material_uris(text)
+        if field == "boundary":
+            expand_material_uris_with_catalog(text)
+        else:
+            expand_material_uris(text)
     except ValueError as exc:
         raise ValueError(f"{field} 资料引用无效: {exc}") from exc
 

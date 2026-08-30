@@ -32,18 +32,25 @@ def _expand_material_reference(text: str) -> str:
     return expand_material_uris(text).strip()
 
 
-def resolve_boundary(request: dict[str, Any]) -> str:
-    """从请求或 capability 预设中取 boundary 文本，展开 material:// 引用。"""
+def resolve_boundary(request: dict[str, Any]) -> dict[str, Any]:
+    """从请求或 capability 预设中取 boundary，展开 {material://} 引用。
+
+    返回 {"text": str, "catalog": list}：装得下预算的资料内联进 text；
+    装不下的转 catalog 条目（正文由 TextCarrier 的检索工具按需查）。
+    未填 boundary 时 text 为空、catalog 为空。
+    """
+    from impl.core.materials_store import expand_material_uris_with_catalog
+
     explicit = str(request.get("boundary") or "").strip()
-    if explicit:
-        return _expand_material_reference(explicit)
-    ref = str(request.get("capability_ref") or "").strip()
-    if not ref:
-        return ""
-    text = boundary_text(load_capability_map().get(ref))
-    if not text:
-        return ""
-    return _expand_material_reference(text)
+    raw = explicit
+    if not raw:
+        ref = str(request.get("capability_ref") or "").strip()
+        if ref:
+            raw = boundary_text(load_capability_map().get(ref))
+    if not raw:
+        return {"text": "", "catalog": []}
+    expanded, catalog = expand_material_uris_with_catalog(raw)
+    return {"text": expanded.strip(), "catalog": catalog}
 
 
 def resolve_capability(request: dict[str, Any]) -> str:

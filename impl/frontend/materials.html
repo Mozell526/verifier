@@ -48,10 +48,10 @@
       <h2 id="editorTitle">新建预设</h2>
       <label>预设名（小写字母开头，可含数字 / _ / -；作为 case 里的 capability_ref）</label>
       <input id="name" placeholder="如 client_search" />
-      <label>能力描述（judge 据此判断每次调用是否达成预期；可写 {material://项目/资料id} 引用自由资料）</label>
-      <textarea id="capability" class="uri-textarea" style="min-height:140px" placeholder="这个接口应该做什么、不该做什么。"></textarea>
-      <label>能力边界（选填。填写后启用承载性判定：当调用未达预期时，判断是「接口确实做不到」还是「本该做到但没做对」。可写 {material://项目/资料id}）</label>
-      <textarea id="boundary" class="uri-textarea" style="min-height:120px" placeholder="这个接口能做什么、不能做什么。例如：仅支持按客户姓名和手机号检索，不支持按年龄筛选。"></textarea>
+      <label>能力描述（轴1：系统定位，回答三问——①用户拿它办什么事（用户视角，勿写实现视角）②交付物被谁怎么消费执行（judge 据此把输出放到消费方语义下推演）③什么算办成/没办成。可写 {material://项目/资料id} 引用自由资料）</label>
+      <textarea id="capability" class="uri-textarea" style="min-height:140px" placeholder="例：用户拿它办的事：从客户库（ES）检回正好符合描述的那群客户。交付物是给 ES 执行的查询谓词集（同从表多条件落同一记录），达成=执行后检回的集合恰好是意图人群。等价表达算办成；互斥/放大/缩小/编造/丢条件算没办成。支持范围写到下面的能力边界。"></textarea>
+      <label>能力边界（选填，轴2：能做什么、不能做什么，写成陈述句清单，不写解析规则。填写后启用承载性判定：当调用未达预期时，判断是「接口确实做不到」还是「本该做到但没做对」。可写 {material://项目/资料id}；引用的大资料自动转检索式消费）</label>
+      <textarea id="boundary" class="uri-textarea" style="min-height:120px" placeholder="陈述句清单，例如：支持按客户姓名等值检索完整姓名；仅对单姓输入做前缀匹配；不支持按年龄筛选。"></textarea>
       <div class="row">
         <select id="refPicker" style="flex:2"><option value="">插入资料引用…</option></select>
         <button class="secondary small" style="margin-top:0" onclick="insertRef()">插入到光标处</button>

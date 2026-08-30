@@ -33,8 +33,84 @@ Reference scheme: the only valid token is `{material://<project>/<id>}` — brac
 | Mode | When it applies | Missing / over-budget |
 |---|---|---|
 | binding | slot `roles` include the current role | required slot missing → refuse the run; total bound chars > 30000 → refuse |
-| reference | a `{material://}` token is expanded | missing id → resolution error; bare `material://` → format error |
-| queryable | not in V1 | — |
+| reference | a `{material://}` token is expanded | missing id → resolution error; bare `material://` → format error; expansion > 50000 chars → error (prompt-load paths) |
+| agentic (toolbox) | a `{material://}` token in an **axis-2 boundary** whose body does not fit the 50000-char expand budget | auto-degrades: the token becomes a catalog stub (`[大资料未内联] uri · title · size · sha256`) and the consumer role gets the material toolbox (below), scoped to the referenced materials only. Missing id / bare uri still error — reference validity is not size-exempt |
+
+Capability (axis-1) text stays prompt-load only: over-budget references there are an error, because the judge runs without material tools.
+
+## Material toolbox (agentic retrieval consumption)
+
+Design stance: the LLM does agentic retrieval over deterministic, read-only tools. Pre-built
+indexes are accelerators, never dependencies. What must stay uniform is **not one retrieval
+algorithm** but three thin behavioral contracts (the load-bearing walls):
+
+1. the axis-2 verdict shape — `J(F, G) → 三态 + 自认 + 引用` (predates this design, judge.md);
+2. verifiable citations — a citation carries (source, locator, quote) and a deterministic
+   resolver can re-read and check it;
+3. tool admission — read-only + receipt-bearing + scope-restricted.
+
+Everything opinionated (which tools, lexical vs embedding, format handlers, prompts, budgets)
+is replaceable without touching those walls.
+
+**Incubation status**: the toolbox implementation lives in
+`impl/projects/llm_probe/material_tools.py` — it is deliberately **not** core yet. Promotion
+criteria: a second project needs it AND the baseline set proves its effect. The catalog
+degradation (`expand_material_uris_with_catalog`) and the `tool_trail` field on placements are
+protocol pieces and stay in core. `investigation.search_index` / `load_entry`
+(`impl/core/investigation_key_index.py`) remain the mature pre-built-index door: when a
+project registers indexes they join the toolbox as accelerators; their absence never blocks —
+outline computes structure on demand.
+
+### Locator
+
+```text
+material://<project>/<id>            whole material
+L<start>-L<end>                      line range inside one material (1-based, closed)
+```
+
+Line ranges are the universal verification floor — they only assume "text". Structural labels
+(yaml `intents/name_exact`, markdown headings) appear as outline entry **labels** and are
+always translated to line ranges by the format handler, so the resolver and the citation
+verifier speak line ranges only. Non-text materials later (databases, APIs) extend the grammar
+with their own resolver namespace; contract 2 only requires "re-readable".
+
+### Tools (incubating in llm_probe; read-only, receipt-bearing, scope-guarded)
+
+| Tool | Contract | Format assumption |
+|---|---|---|
+| `material_outline(material_id)` | skeleton menu with locators; the just-in-time coarse index | format handlers: yaml (top keys + identity-keyed list items), markdown (heading tree); unknown formats degrade honestly — line-block map plus an explicit note 「该格式尚无结构化切片方案」 |
+| `material_search(material_id, query)` | deterministic lexical hits with locators | text only — universal |
+| `material_read(material_id, locator)` | exact slice, capped lines | text only — universal |
+
+Format handler governance: handlers recognize **formats, never projects** (no project ids in
+handler logic). Project-specific processing belongs to project-declared `VerifiableTool`s via
+`project_llm_client(tools=...)` — the toolbox is an optional kit, not a mandatory path.
+Deferred extension points (declared, not built): embedding as a channel **inside**
+`material_search`; per-material `consumption.tools` declarations in the manifest; user-supplied
+tools (needs a sandbox/review contract). Today users steer consumption in plain text: the
+material **description** rides the catalog stub into the prompt, and the **boundary** text can
+carry retrieval hints — both are prompt-visible instruction channels that cost zero new config.
+
+Every call is recorded as a receipt (tool, arguments, returned locators). Consumers attach the
+receipts to their outputs; axis-2 placements carry them as `tool_trail`.
+
+### Low-effort discipline (how a weak model stays accurate)
+
+- **Outline first**: skeleton → pick entry → read. Choosing from a menu beats inventing
+  grep queries.
+- **Copy, never compute**: locators are returned ready-made; the model copies them into the
+  next call and into citations. It never derives positions.
+- **Mechanical citation enforcement**: for 做错了/做不了 conclusions, each citation's quote is
+  re-read at its locator (whitespace-normalized containment). Mismatch → reject and retry with
+  the failure details; retries exhausted → placement failure in `errors`, never a silent pass
+  and never laundered into 说不清. This is a **production-time contract**: verification happens
+  when the conclusion is produced; archived locator strings are display/audit references and
+  are not re-verified retroactively.
+- **Honest exit**: search miss ≠ statement absent. Retry with a different query/tool inside
+  `tool_call_limit`; only budget exhaustion yields 说不清 + missing_material.
+
+With this shell the consumer runs at `reasoning_effort=low`: correctness is guaranteed by
+verification, not model intelligence.
 
 Server verifies **content hash** only. Source hashes (business-repo revision) are declarative metadata and are not checked on a remote eval host.
 
