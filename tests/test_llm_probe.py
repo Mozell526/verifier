@@ -269,6 +269,7 @@ def test_mock_dynamic_request_is_valid_for_default_capability():
     class _Intent:
         query = "五十岁以上的客户都有谁"
         user_intent = "筛选五十岁以上的客户"
+        scenario = ""
 
     mock = LlmProbeMock(load_project("llm_probe"))
     request = mock.build_initial_request(_Intent())
@@ -276,6 +277,19 @@ def test_mock_dynamic_request_is_valid_for_default_capability():
     assert probe_schema.check.request(request)
     assert request["body"]["user_text"] == _Intent.query
     assert "text" not in request["body"]
+
+
+def test_mock_dynamic_request_follows_scenario_capability():
+    class _Intent:
+        query = "合同号码里带4826的"
+        user_intent = "按保单号片段筛保单"
+        scenario = "policy_search"
+
+    mock = LlmProbeMock(load_project("llm_probe"))
+    request = mock.build_initial_request(_Intent())
+    assert request["capability_ref"] == "policy_search"
+    assert probe_schema.check.request(request)
+    assert request["body"]["extra_input_params"]["policySearchParseArgs"]["query"] == _Intent.query
 
 
 def test_default_capability_ref_does_not_depend_on_yaml_key_order(monkeypatch):
@@ -320,6 +334,13 @@ def test_mock_cases_fixture_restores_regression_cases_and_passes_schema():
     assert restored.issubset(set(ids))
     for case in cases:
         assert probe_schema.check.request(case["live_request"]), case["id"]
+        ref = case["live_request"]["capability_ref"]
+        assert case["scenario"] == ref, case["id"]
+        assert ref in {
+            "client_search",
+            "policy_search",
+            "marketting-planning-intent",
+        }
 
 
 def test_streaming_response_is_rejected_before_body_read(monkeypatch):
