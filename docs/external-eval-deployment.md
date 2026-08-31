@@ -1,12 +1,170 @@
-# 外网评测部署：远程 verifier + 本地业务系统（SSH 反向隧道）
+# 远程评测接入（外网 verifier + 本机 API）
 
-适用场景：verifier 部署在一台外网服务器上，被测业务系统跑在使用者本机（或使用者能触达的机器）。
-使用者侧**零安装**：只需要系统自带的 ssh 客户端，粘贴一条命令。
+评测机：`154.9.252.35`。verifier 跑在这台机器上；你的业务 API 跑在本机。
+使用者本机**零安装**，只要系统自带的 `ssh` 和浏览器。
+
+- **要评测**：看第一章，三步。
+- **想知道为什么、或负责部署**：看第二章。
+
+---
+
+# 第一章 远程用户接入指南
+
+你要做的只有三件事：建隧道、在页面上配 API（可顺带传资料）、评测。
+部署、judge、密钥、服务器进程都不是你的事。
+
+本章整条流程**专指 `llm_probe` 项目**（远程评测的主路径）。`llm_probe` 适用于**任意单轮、非流式的 HTTP JSON API 评测**：不管接口做什么业务，给出请求体和能力描述就能当黑盒评；不支持多轮对话和流式/SSE 接口。
+页面里其他项目（client_search、QA 等）是内置业务项目，各有自己的字段合同，不适用本章的填法。
+
+前置：本机 API 已经能在本机端口访问；管理员已经把你的 SSH 公钥加进 `eval-tunnel`。
+（没有公钥：`cat ~/.ssh/id_ed25519.pub` 或 `id_rsa.pub`，发给管理员。）
+
+## 1. 建隧道
+
+本机开一个终端，保持开着：
+
+```bash
+ssh -N -o ServerAliveInterval=30 \
+    -R 15001:127.0.0.1:8000 \
+    -L 18080:127.0.0.1:8022 \
+    eval-tunnel@154.9.252.35
+```
+
+| 你可能要改的 | 含义 |
+|---|---|
+| 右边 `8000` | 本机 API 端口。不是 8000 就改成实际端口 |
+| 左边 `15001` | 评测机上分给你的隧道口。多人共用时每人一个：15001 / 15002 / 15003 |
+| 左边 `18080` | 本机浏览器端口，被占用就换一个空闲端口 |
+
+这条命令同时做两件事：把本机 API 搬到评测机 `127.0.0.1:15001`，把评测页面搬回本机 `localhost:18080`。
+
+浏览器打开：
+
+- 首页：http://localhost:18080/frontend/index.html
+- 资料管理：http://localhost:18080/frontend/materials.html
+- Live（单条）：http://localhost:18080/frontend/live.html
+- 归因总结（批量）：http://localhost:18080/frontend/summary.html
+
+默认项目是 `llm_probe`。评测期间不要关隧道终端；断了重跑同一条命令即可。
+
+## 2. 配置 API（上传资料）
+
+打开「资料管理」，确认项目是 `llm_probe`。
+
+### 2.1 建 capability 预设（必做）
+
+「capability 预设」→ 新建，填：
+
+1. **预设名**：小写，如 `my-api`。之后 case 用 `capability_ref` 引用它。
+2. **探测端点 service.url**：**必须写评测机视角**  
+   `http://127.0.0.1:15001/你的接口路径`  
+   （`15001` 换成你的隧道口；**不要**写成你本机的 `8000`。）  
+   method 一般 `POST`，超时按接口耗时留足（例如 60～120 秒）。
+3. **能力描述**（judge 轴1）：用用户视角写这个接口办成什么事、交付物被谁怎么用、什么算办成。几行即可，不要写「输出某种 JSON 结构」。
+4. **能力边界**（选填，轴2）：能做什么 / 不能做什么，陈述句。不填则轴2会「说不清」。
+5. **mock_body**（选填）：造 case 时的请求体模板，用 `{query}` 占位。
+
+保存后即存即用，数据在评测机上，不会被下次代码部署覆盖。
+
+### 2.2 上传资料（选做，评测更准）
+
+接口有字段表、规则、说明时：
+
+1. 「自由资料」→ 新建，粘贴或上传 `.md` / `.txt` / `.yaml` / `.json`；
+2. 复制 `{material://llm_probe/<资料id>}`；
+3. 在能力描述或能力边界里插入这条引用。
+
+大表（几十万字）可以整份上传后只在**能力边界**里引用。
+
+## 3. 评测
+
+### 单条：Live
+
+打开 Live 页，项目 `llm_probe`。信封最小形状：
+
+```json
+{
+  "capability_ref": "my-api",
+  "body": { "user_text": "你的测试问句" }
+}
+```
+
+`body` 按你接口真实字段填（有 `mock_body` 的按模板改）。点「请求业务服务」再「请求 Judge」，或直接「统一全链路」。
+
+### 批量：归因总结
+
+评你自己的 API 要**上传自己的数据集**：一个 `.json` 文件（或直接粘贴同样内容的文本），
+内容是一个 **case 数组**——你想测的每个问句/请求占一条。通过「上传/导入用例 JSON」
+选文件或粘贴 →「导入候选区」→ 勾选 →「批量运行」。
+（「加载 Mock 数据集」加载的是仓库内置的示例用例，打的是内置业务服务，不是你的 API；只用来看样例。）
+
+数据集长这样（两条 case 的例子）。**以下填法是 `llm_probe` 专属的**：
+
+```json
+[
+  {
+    "id": "my-api-case-1",
+    "project_id": "llm_probe",
+    "scenario": "my-api",
+    "intent": null,
+    "live_request": {
+      "capability_ref": "my-api",
+      "body": { "user_text": "测试问句1" }
+    },
+    "output": null,
+    "reference": null
+  },
+  {
+    "id": "my-api-case-2",
+    "project_id": "llm_probe",
+    "scenario": "my-api",
+    "intent": null,
+    "live_request": {
+      "capability_ref": "my-api",
+      "body": { "user_text": "测试问句2" }
+    },
+    "output": null,
+    "reference": null
+  }
+]
+```
+
+- **`live_request` 就是这条 case 实际要发给你 API 的那次 HTTP 调用**：`body` 是你接口的请求体（字段照你接口的真实入参写，不是 verifier 的格式）；`capability_ref` 指向你建的预设，端点和能力口径都从预设来。也可以不建预设，直接在 `live_request` 里写 `url` / `method` / `capability`。
+- 在 `llm_probe` 下，其余字段是信封样板：`id` 每条唯一；`project_id` 固定 `llm_probe`；`scenario` 建议填预设名（只影响页面按场景筛选）；`intent` / `output` / `reference` 固定 `null`。
+- 七个字段都要在，少一个导入会报「不是 VNext MockCase」。
+
+准备数据集时通常就是：把上面模板复制 N 份，每份换 `id` 和 `body` 里的问句。
+
+> 这份七字段信封是所有项目通用的 case 协议，但**各字段怎么填因项目而异**。
+> 上面的 null 样板只适用于 `llm_probe`；用其他项目（如 QA 要给 `reference` 金标、
+> 多轮项目要给 `intent`）时按该项目的合同填，不要照抄这份模板。
+
+跑完一批可在「用例池库」起个名字保存，下次直接加载，不用重新导。
+
+看结果时：
+
+- 轴1：办成了没有（fulfilled / not_fulfilled）；
+- 轴2：没办成时是「做错了 / 做不了 / 说不清」。
+
+### 常见卡点
+
+| 现象 | 先查 |
+|---|---|
+| 浏览器打不开 18080 | 隧道终端是否还在；本机端口是否被占用 |
+| 业务请求失败 / 连不上 | 本机 API 是否在听；`-R` 右边端口是否真是 API 端口；capability 的 url 是否写成了 `15001` 而不是本机 `8000` |
+| 轴2 全是「说不清」 | 能力边界没填 |
+| 业务自己返回失败码（如「解析失败」） | 是被测服务的问题，不是隧道或 verifier 信封 |
+
+---
+
+# 第二章 原理与部署记录
+
+给要看机制的人，以及部署/更新代码时用。使用者评测不必往下读。
 
 ## 拓扑
 
 ```
-使用者本机                                外网服务器
+使用者本机                                评测机 154.9.252.35
 ┌──────────────────────┐                ┌──────────────────────────────┐
 │ 业务系统 127.0.0.1:8000 │                │ verifier  127.0.0.1:8022      │
 │ 浏览器 → localhost:18080│ ←── ssh ────→ │ 隧道口    127.0.0.1:15001     │
@@ -14,33 +172,56 @@
                                         └──────────────────────────────┘
 ```
 
-一条 ssh 连接同时承载两个方向：
-- `-R`：业务系统被"搬到"服务器的 `127.0.0.1:15001`，verifier 像调本机服务一样调它；
-- `-L`：verifier 前端被"搬到"使用者本机的 `localhost:18080`，浏览器直接访问。
+一条 ssh 同时两个方向：
 
-verifier 与隧道口都只绑服务器 loopback，**服务器上没有任何公网暴露的 HTTP 端口**，
-因此现阶段无需给 verifier 加鉴权。
+- `-R`：业务系统被搬到服务器 `127.0.0.1:15001`，verifier 像调本机一样调它；
+- `-L`：verifier 前端被搬到使用者 `localhost:18080`。
 
-## 核查结论：评测代码零改动
+verifier 与隧道口都只绑 loopback，**服务器没有对公网暴露的 HTTP 端口**，因此现阶段不给 verifier 加页面鉴权。
 
-- 真实请求唯一出口是 `impl/core/live_transport.py` 的 `LiveTransport`，llm_probe 的
-  `resolve_http` 只校验 scheme 为 http/https，case 信封本来就接受任意 URL——
-  填 `http://127.0.0.1:15001/...` 即走隧道，RealLive 真实性不变量原样成立。
-- 前端全部同源相对路径挂在 `/frontend`，经 `-L` 转发访问无任何地址假设问题。
-- `impl/config.yaml` server 默认绑 `127.0.0.1:8022`，保持不动。
-- judge/attribute 走 OpenAI 兼容端点（.env 的 `LLM_BASE_URL`），与隧道无关。
+评测主路径是 **`llm_probe`**：任意非流式 HTTP JSON 接口，按 capability 描述 + 可选资料做 judge。前端默认项目已是 `llm_probe`。内置业务项目若也要从本机打到评测机，端口习惯是：
+
+| 本机服务 | 本机端口 | 评测机隧道口 |
+|---|---|---|
+| 一般自有 API / client_search | 8000 | 15001 |
+| policy_search | 8050 | 15002 |
+| 营销意图 | 9006 | 15003 |
+
+capability 里的 service URL 永远是评测机视角：`http://127.0.0.1:1500X/...`。
+
+## 为什么评测代码不用为隧道改
+
+- 真实请求唯一出口是 `impl/core/live_transport.py` 的 `LiveTransport`。llm_probe 的 `resolve_http` 只校验 http/https；信封接受任意 URL，填 `http://127.0.0.1:15001/...` 即走隧道。
+- 前端全部同源相对路径，挂在 `/frontend`，经 `-L` 访问没有写死公网地址。
+- `impl/config.yaml` 的 server 默认绑 `127.0.0.1:8022`，远程实例保持这个绑定，不要改成 `0.0.0.0`。
+- judge / attribute 走 OpenAI 兼容端点（服务器 `.env` 的 `LLM_BASE_URL`），与隧道无关。
+- 资料和 capability 预设落在服务器 `impl/data/<project>/`，经页面 API 读写；远程用户不能（也不该）ssh 进机器改文件。
+
+## llm_probe 在评什么（和页面字段的关系）
+
+- **轴1（能力描述）**：系统定位三问——用户拿它办什么事（用户视角，不要写实现视角）；交付物被谁怎么消费；什么算办成。judge 按消费方语义推演，不是做输出形状比对。
+- **轴2（能力边界）**：能做 / 不能做。未达成时归位「做错了 / 做不了 / 说不清」。空边界 → 说不清。大资料用 `{material://llm_probe/<id>}`，超预算走检索工具，引用带行号。
+- **show_schema**：可选，是 live 信封上的 judge 焦点，**不是 mock 场景字段**。不要往 mock 数据里塞。
+- **scenario**：mock 按被探测能力分桶，与 `capability_ref` 同名。
+
+## 当前部署实例（2026-08-31）
+
+- 服务器：`154.9.252.35`（Debian 11，与其它服务共存）
+- 代码：`/opt/verifier`，Python 3.11 venv 于 `/opt/verifier/venv`
+- 服务：`systemctl {status,restart} verifier`（开机自启，绑 `127.0.0.1:8022`）
+- 隧道账号：`eval-tunnel`（密钥登录，不能开 shell）
+- 使用者入口：第一章的 ssh 命令；浏览器 `http://localhost:18080`
 
 ## 服务器侧一次性准备
 
-### 1. 部署 verifier
+### 部署 verifier
 
 ```bash
-# Python 3.11
 python3.11 -m venv ~/verifier-venv && source ~/verifier-venv/bin/activate
 pip install -r requirements.txt
 ```
 
-`.env` 最小配置（参照 impl/config.yaml environment 节）：
+`.env` 最小配置（对照 `impl/config.yaml` 的 environment 节）：
 
 ```
 DEEPSEEK_API_KEY=...            # 或所用网关的 key
@@ -49,28 +230,29 @@ LLM_MODEL=...
 EMBEDDING_ENABLED=false         # 或配 BAILIAN_API_KEY
 ```
 
-**部署时必须验证**：当前 .env 用的 LLM 网关（如 ai.ainsv.com）从这台服务器是否可达。
-不可达就换成从公网可达的端点（DeepSeek 官方 API 等）。验证方式：
+部署时必须验证：当前 `.env` 的 LLM 网关从这台服务器可达。不可达就换公网可达端点。
 
 ```bash
 bash run.sh config-check
 curl -s $LLM_BASE_URL/models -H "Authorization: Bearer $KEY" | head
 ```
 
-启动（保持默认 127.0.0.1 绑定，不要改成 0.0.0.0）：
+启动（保持 127.0.0.1，不要 0.0.0.0）：
 
 ```bash
 bash run.sh server
 ```
 
-### 2. 建隧道账号并加固 sshd
+生产实例用 systemd，不要用临时前台进程冒充。
+
+### 隧道账号与 sshd
 
 ```bash
 sudo useradd -m -s /usr/sbin/nologin eval-tunnel
-sudo passwd eval-tunnel        # 或配 authorized_keys，推荐密钥
+sudo passwd eval-tunnel        # 或只配 authorized_keys，推荐密钥
 ```
 
-`/etc/ssh/sshd_config` 追加（然后 `sudo systemctl reload sshd`）：
+`/etc/ssh/sshd_config` 追加后 `sudo systemctl reload sshd`：
 
 ```
 Match User eval-tunnel
@@ -83,112 +265,57 @@ Match User eval-tunnel
     ForceCommand /bin/false
 ```
 
-要点：
-- 该账号不能开 shell、不能执行命令，只能建隧道；
-- `PermitListen` 限死反向隧道可用端口（每个使用者固定一个：15001/15002/…）；
-- `PermitOpen` 限死正向转发只能指向 verifier 前端；
-- sshd 默认 `GatewayPorts no`，`-R` 端口只绑服务器 loopback，公网碰不到隧道口。
+要点：该账号不能开 shell；`PermitListen` 限死反向隧道端口；`PermitOpen` 限死正向转发只能到 verifier；sshd 默认 `GatewayPorts no`，`-R` 只绑 loopback。若出站 22 被拦，sshd 可追加听 443。
 
-若使用者网络封锁出站 22 端口，让 sshd 追加监听 443：`Port 22` + `Port 443`。
+新用户：把公钥追加到 `eval-tunnel` 的 `authorized_keys`，并分配一个 1500X 端口。
 
-## 使用者接入（唯一要做的事）
+## 更新代码
+
+服务器上 `impl/data/`（case 池、capability 预设、资料库、context 记录）和 `.env` **重新部署时必须排除**，否则会盖掉用户资料和服务器专属配置。槽位声明在 `impl/projects/<id>/materials.yaml`，随代码走。
 
 ```bash
-ssh -N -o ServerAliveInterval=30 \
-    -R 15001:127.0.0.1:8000 \
-    -L 18080:127.0.0.1:8022 \
-    eval-tunnel@<服务器地址>
-```
-
-- `8000` 换成本地业务系统实际端口；`15001` 用分配给自己的端口；
-- 评测期间保持该终端开着；断了重跑一遍即可；
-- 浏览器访问 `http://localhost:18080` 即 verifier 前端。
-
-评测目标地址填隧道口，两种方式任选：
-
-case 信封里直接给 url：
-
-```json
-{ "url": "http://127.0.0.1:15001/api/v1/xxx", "method": "POST", "body": { ... } }
-```
-
-或在前端「资料管理」页（`/frontend/materials.html`）新建 capability 预设：
-填能力口径描述、探测端点（url 用 `http://127.0.0.1:1500X/...`、method、超时）、
-mock_body 模板（`{query}` 占位符），保存后 case 用 `capability_ref: 预设名` 引用，即存即用。
-预设数据落在服务器 `impl/data/<project>/capability_map.json`，属用户资料，不随代码部署覆盖。
-
-## 当前部署实例(2026-08-28)
-
-- 服务器:`154.9.252.35`(Debian 11,与 llm_client_search/livekit 等服务共存)
-- 代码:`/opt/verifier`,Python 3.11.16 venv 于 `/opt/verifier/venv`
-- 服务:`systemctl {status,restart} verifier`(开机自启,绑 `127.0.0.1:8022`)
-- 隧道账号:`eval-tunnel`(密钥登录,已装入部署机的公钥;不能开 shell)
-- 已验证:LLM 网关可达;端到端评测(隧道→本地 mock API→judge)judge 判定 fulfilled
-
-接入命令:
-
-```bash
-ssh -N -o ServerAliveInterval=30 \
-    -R 15001:127.0.0.1:8000 \
-    -L 18080:127.0.0.1:8022 \
-    eval-tunnel@154.9.252.35
-```
-
-浏览器访问 `http://localhost:18080`,评测目标填 `http://127.0.0.1:15001/...`。
-
-## 更新代码（重要）
-
-服务器上 `impl/data/`（case 池、capability 预设、资料库、context 记录等运行数据）和 `.env`
-（服务器专属配置，PYTHON_EXECUTABLE 指向服务器 venv）**重新部署代码时必须排除，
-否则会被本地版本覆盖**。槽位声明在 `impl/projects/<id>/materials.yaml`，随代码走。
-
-全量部署用封装脚本（排除项已内置且**锚定到仓库根**——不锚定的 `--exclude experiments`
-会把 `impl/projects/*/investigation/*/experiments` 调查包冻结产物也剔掉）：
-
-```bash
-scripts/deploy_verifier.sh root@154.9.252.35            # 部署到 /opt/verifier 并重启 verifier
-scripts/deploy_verifier.sh root@154.9.252.35 /opt/verifier --dry-run   # 先看会同步什么
+scripts/deploy_verifier.sh root@154.9.252.35            # 部署到 /opt/verifier 并重启
+scripts/deploy_verifier.sh root@154.9.252.35 /opt/verifier --dry-run
 scripts/deploy_verifier.sh root@154.9.252.35 --no-restart
 ```
 
-脚本还会排除报告与笔记（`info-dense` / `report` / `reviews-of-propose` / `openspec`）、
-调查循环历史（任意层级的 `.state`，主要是 `draft/.state` 的数十 MB 迭代记录）、
-以及 `.DS_Store` / `__pycache__` / `.pytest_cache`。
+脚本排除报告与笔记、调查循环历史（`.state`）、`.DS_Store` / `__pycache__` 等。
 `.agents` / `.claude` / `.codex` / `.github`，以及 `search-test-case` / `demand` / `hooks` / `agents` / 仓库根 `data/` **会同步**。
-`--dry-run` 按 checksum 比较内容，只打印相对远端会新增或内容变更的文件（含总大小），不因 git checkout 的 mtime 差异列出整包。
+`--dry-run` 按 checksum 比较，不因 git checkout 的 mtime 列出整包。
+排除项已锚定仓库根：不锚定的 `--exclude experiments` 会误伤调查包里的 `experiments/`。
 
-## 同步资料（只拷目录，不碰其余 impl/data）
+## 同步资料（部署者 / AI，不是远程用户日常操作）
 
-`scripts/sync_materials.sh` 按 `impl/data/<project>/materials/<id>/` 逐目录 rsync，
-绝不全量覆盖 `impl/data`。资料来源三选一：
+远程用户日常用页面上传即可。下面是本机物化后推到评测机的通道：
 
 ```bash
-# 指定 id（如首次种入口径表；之后由资料页维护，不要每次覆盖）
 scripts/sync_materials.sh --host root@154.9.252.35 --project client_search --ids field_glossary
 
-# 物化后按 materialize 输出的 written[].id 同步（管道直读 stdout JSON）
 bash run.sh cli materialize --project client_search --role judge --apply \
     | scripts/sync_materials.sh --host root@154.9.252.35 --project client_search --from-materialize-json -
 
-# 项目全部自由资料
 scripts/sync_materials.sh --host root@154.9.252.35 --project client_search --all-free
-```
 
-更省事的一步式：物化 + 同步（等价于上面第二条）：
-
-```bash
 bash run.sh cli materialize --project client_search --role judge --apply --push root@154.9.252.35:/opt/verifier
 ```
 
-物化必须在**有业务仓库的机器**上执行（哈希校验通过 provenance 才是 `investigation`）。
-调查包选择与运行时一致：角色 `draft.enabled` 时物化 draft 候选包（资料 id 带 `-draft-` 中缀），
-`--candidate` / `--production` 可显式强制。不要把这些快照写入 `field_glossary` 或任何
-`roles: [judge]` 槽位——体积会撑爆 binding 预算。
+物化必须在**有业务仓库的机器**上执行。远程评测机不承诺源码级调查。
+不要把调查快照写入 `field_glossary` 或 `roles: [judge]` 槽位——会撑爆 binding 预算。
 
-两个脚本都依赖 bash/rsync/ssh；Windows 用户请在 WSL 里运行。
+Windows 上跑部署/同步脚本请用 WSL（依赖 bash/rsync/ssh）。
 
 ## 多人共用
 
-每人固定一个隧道端口（15001/15002/15003，需在 `PermitListen` 中放行），
-case/预设里各用各的端口。当前部署形态是单实例共用一个 verifier，
-case pool 等数据不隔离，适合小团队探索用途；需要隔离时再考虑每人一实例。
+每人固定一个隧道口（15001/15002/15003，须在 `PermitListen` 里）。capability / case 各写各的端口。
+当前是单实例共用一个 verifier，case pool 不隔离，适合小团队。要隔离再考虑每人一实例。
+
+## 人类 vs 部署者 / AI
+
+| 阶段 | 远程用户 | 部署者 / AI |
+|---|---|---|
+| 日常评测 | 起本机 API；隧道；资料页配 capability；Live / 总结页跑 | 无 |
+| 首次开通 | 交公钥；说本机 API 端口 | 加 authorized_keys；分配 1500X |
+| 更新评测代码 | 无 | `scripts/deploy_verifier.sh`（排除 impl/data 和 .env） |
+| 业务源码更新后刷新调查资料 | 说一声即可 | baseline → drift → increment → materialize → sync |
+
+备份：改版前原文在 `docs/bak/2026-08-31-external-eval-deployment.md`。

@@ -77,6 +77,8 @@ curl http://127.0.0.1:8020/health
 
 ## 接入你自己的 API 做评测（llm_probe）
 
+远程评测（API 在你本机、verifier 在 `154.9.252.35`）按三步走即可：建隧道、资料页配 API、Live/总结页评测。逐步说明见 [`docs/external-eval-deployment.md`](docs/external-eval-deployment.md) 第一章。下面是同一套流程的摘要，以及本机直连 verifier 时的差异。
+
 这是最常见的场景：你有一个带 LLM 的 HTTP 接口，想接入 verifier 评测它"答得对不对"。
 `llm_probe` 项目就是为此准备的——它不关心你接口的业务，只按你给的**能力描述**（capability）
 和可选的**输出结构**（show_schema）来 judge。

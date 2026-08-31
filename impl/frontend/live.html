@@ -100,9 +100,9 @@ function switchProject(){
 async function initProjects(){
   const res=await fetch('/projects');
   const data=await res.json();
-  const projects=data.projects || ['client_search'];
+  const projects=data.projects || ['llm_probe'];
   document.getElementById('project').innerHTML=projects.map(item=>'<option value="'+escapeHtml(item)+'">'+escapeHtml(item)+'</option>').join('');
-  if(projects.includes('client_search')){document.getElementById('project').value='client_search';}
+  if(projects.includes('llm_probe')){document.getElementById('project').value='llm_probe';}
   switchProject();
 }
 function payload(){sessionStorage.setItem(scopedKey('input'),document.getElementById('input').value);return {project:project(),input:JSON.parse(document.getElementById('input').value)}}
