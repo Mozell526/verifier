@@ -10,14 +10,34 @@
 
 # 第一章 远程用户接入指南
 
-你要做的只有三件事：建隧道、在页面上配 API（可顺带传资料）、评测。
-部署、judge、密钥、服务器进程都不是你的事。
+本章「你」= 要测自己 API 的远程用户。评测机上的账号、sshd、公钥名单都不是你改的。
+
+你日常只做三件事：建隧道、在页面上配 API（可顺带传资料）、评测。
+部署、judge、服务器密钥、往机器上加公钥，都不是你的事。
 
 本章整条流程**专指 `llm_probe` 项目**（远程评测的主路径）。`llm_probe` 适用于**任意单轮、非流式的 HTTP JSON API 评测**：不管接口做什么业务，给出请求体和能力描述就能当黑盒评；不支持多轮对话和流式/SSE 接口。
 页面里其他项目（client_search、QA 等）是内置业务项目，各有自己的字段合同，不适用本章的填法。
 
-前置：本机 API 已经能在本机端口访问；管理员已经把你的 SSH 公钥加进 `eval-tunnel`。
-（没有公钥：`cat ~/.ssh/id_ed25519.pub` 或 `id_rsa.pub`，发给管理员。）
+## 开通一次（每人一次，不是每次评测）
+
+新用户**不能自己**把公钥写进服务器。分两边：
+
+| 谁 | 做什么 | 做几次 |
+|---|---|---|
+| 远程用户 | 把本机 **公钥**（一行文本）发给评测机管理员；告诉管理员本机 API 端口 | 每人一次 |
+| 评测机管理员 | 把这行公钥追加到服务器 `eval-tunnel` 的 `authorized_keys`，并告诉用户分到的隧道口（15001 / 15002 / …） | 每来一个新人做一次 |
+
+用户侧没有公钥时，本机生成再发出去（只发 `.pub`，**不要发没有 `.pub` 后缀的私钥**）：
+
+```bash
+# 没有密钥才跑这一行
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N ""
+cat ~/.ssh/id_ed25519.pub
+```
+
+管理员开通完成后，用户才有第一章后面的 ssh 命令可用。日常评测不再碰公钥。
+
+前置检查：本机 API 已经能在本机端口访问；管理员已经开通你的公钥，并告诉你隧道口。
 
 ## 1. 建隧道
 
@@ -267,7 +287,23 @@ Match User eval-tunnel
 
 要点：该账号不能开 shell；`PermitListen` 限死反向隧道端口；`PermitOpen` 限死正向转发只能到 verifier；sshd 默认 `GatewayPorts no`，`-R` 只绑 loopback。若出站 22 被拦，sshd 可追加听 443。
 
-新用户：把公钥追加到 `eval-tunnel` 的 `authorized_keys`，并分配一个 1500X 端口。
+### 开通一个新远程用户（评测机管理员做）
+
+这是**评测机负责人**的开通动作，不是远程用户自己做的，也不是每次评测都做。`eval-tunnel` 账号和 sshd 规则只建一次；之后每来一个人只做下面几步。
+
+1. 向对方要一行公钥（`cat ~/.ssh/id_ed25519.pub` 或 `id_rsa.pub` 的输出），以及本机 API 端口。
+2. 在评测机上追加（把引号里换成对方那一行）：
+
+```bash
+sudo mkdir -p ~eval-tunnel/.ssh
+echo 'ssh-ed25519 AAAA... comment' | sudo tee -a ~eval-tunnel/.ssh/authorized_keys
+sudo chown -R eval-tunnel:eval-tunnel ~eval-tunnel/.ssh
+sudo chmod 700 ~eval-tunnel/.ssh
+sudo chmod 600 ~eval-tunnel/.ssh/authorized_keys
+```
+
+3. 从 `PermitListen` 里分一个空闲口（15001 / 15002 / 15003），把口告诉对方，让对方改第一章 ssh 命令里的 `-R 1500X`。口不够就先改 `PermitListen` 再 `sudo systemctl reload sshd`。
+4. 不要把 root 或 `eval-tunnel` 的密码发给远程用户；他们只用自己的私钥连 `eval-tunnel@154.9.252.35`。
 
 ## 更新代码
 
@@ -309,12 +345,12 @@ Windows 上跑部署/同步脚本请用 WSL（依赖 bash/rsync/ssh）。
 每人固定一个隧道口（15001/15002/15003，须在 `PermitListen` 里）。capability / case 各写各的端口。
 当前是单实例共用一个 verifier，case pool 不隔离，适合小团队。要隔离再考虑每人一实例。
 
-## 人类 vs 部署者 / AI
+## 谁做什么
 
-| 阶段 | 远程用户 | 部署者 / AI |
+| 阶段 | 远程用户 | 评测机管理员 |
 |---|---|---|
-| 日常评测 | 起本机 API；隧道；资料页配 capability；Live / 总结页跑 | 无 |
-| 首次开通 | 交公钥；说本机 API 端口 | 加 authorized_keys；分配 1500X |
+| 日常评测 | 起本机 API；隧道；资料页配 capability；Live / 总结页跑 | 无（不碰公钥） |
+| 首次开通 | 生成本机密钥（若无）；把 `.pub` 发给管理员；说本机 API 端口 | 追加 `authorized_keys`；分配 1500X；把隧道口告诉用户 |
 | 更新评测代码 | 无 | `scripts/deploy_verifier.sh`（排除 impl/data 和 .env） |
 | 业务源码更新后刷新调查资料 | 说一声即可 | baseline → drift → increment → materialize → sync |
 
