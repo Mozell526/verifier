@@ -35,6 +35,8 @@ class TraceTableRow:
     score: Optional[float] = None
     fulfillment_status: str = ""
     carrier_placement: str = ""
+    # 扩展评估轴（试验）：每轴一条 {axis_id, title, status, verdict, text, items[]}；预设没启用框时为空。
+    eval_axes_summary: List[Dict[str, Any]] = field(default_factory=list)
     judge_summary: Dict[str, Any] = field(default_factory=dict)
     attribution_summary: Dict[str, Any] = field(default_factory=dict)
     check_summary: Dict[str, Any] = field(default_factory=dict)

@@ -223,6 +223,7 @@ def normalize_trace_table_row(value: Any) -> Optional[TraceTableRow]:
         score=data.get("score"),
         fulfillment_status=_normalize_fulfillment_status(data.get("fulfillment_status")),
         carrier_placement=str(data.get("carrier_placement") or ""),
+        eval_axes_summary=[item for item in _as_list(data.get("eval_axes_summary")) if isinstance(item, dict)],
         judge_summary=data.get("judge_summary") if isinstance(data.get("judge_summary"), dict) else {},
         attribution_summary=data.get("attribution_summary") if isinstance(data.get("attribution_summary"), dict) else {},
         check_summary=data.get("check_summary") if isinstance(data.get("check_summary"), dict) else {},

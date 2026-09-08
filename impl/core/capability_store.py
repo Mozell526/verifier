@@ -16,6 +16,7 @@ from .portable_artifact import write_active_artifact
 ROOT = Path(__file__).resolve().parents[1]
 
 NAME_PATTERN = re.compile(r"^[a-z][a-z0-9_-]*$")
+AXIS_TYPE_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
 # 项目 id 允许大写（如 QA）；此校验的目的只是防路径穿越，不是命名政策。
 PROJECT_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_-]*$")
 MAX_CAPABILITY_CHARS = 20000
@@ -104,10 +105,45 @@ def validate_entry(name: str, entry: Any) -> Dict[str, Any]:
         if boundary:
             _require_material_refs(boundary, field="boundary")
             clean["boundary"] = boundary
+    raw_axes = entry.get("axes")
+    if raw_axes not in (None, "", []):
+        clean["axes"] = _validate_axes(raw_axes)
     return clean
 
 
-def _require_material_refs(text: str, *, field: str) -> None:
+def _validate_axes(raw: Any) -> list[Dict[str, Any]]:
+    """扩展评估轴的框（spec/adapter/axe-v4.md §4.2）：这里只校形状，类型是否注册由
+    impl/projects/llm_probe/eval_axes 在加载时查——core 不 import 项目代码。"""
+    if not isinstance(raw, list):
+        raise ValueError("axes 必须是列表")
+    axes: list[Dict[str, Any]] = []
+    seen: set[str] = set()
+    for index, item in enumerate(raw):
+        label = f"axes[{index}]"
+        if not isinstance(item, dict):
+            raise ValueError(f"{label} 必须是 JSON 对象")
+        type_id = str(item.get("type") or "").strip()
+        if not AXIS_TYPE_PATTERN.fullmatch(type_id):
+            raise ValueError(f"{label}.type 必须是小写字母开头、由小写字母/数字/_ 组成的标识符")
+        if type_id in seen:
+            raise ValueError(f"axes: 同一类型 {type_id} 只允许一个框")
+        seen.add(type_id)
+        enabled = item.get("enabled", False)
+        if not isinstance(enabled, bool):
+            raise ValueError(f"{label}.enabled 必须是布尔值")
+        description = item.get("description")
+        if not isinstance(description, str) or not description.strip():
+            raise ValueError(f"{label}.description 不能为空")
+        description = description.strip()
+        if len(description) > MAX_CAPABILITY_CHARS:
+            raise ValueError(f"{label}.description 超过 {MAX_CAPABILITY_CHARS} 字符上限")
+        # 保存时按检索式口径校引用有效性（不因大小拒写）；prompt-load 类型的预算在加载时由该类型自己查。
+        _require_material_refs(description, field=f"{label}.description", catalog=True)
+        axes.append({"type": type_id, "enabled": enabled, "description": description})
+    return axes
+
+
+def _require_material_refs(text: str, *, field: str, catalog: bool | None = None) -> None:
     """保存时校验正文里的 material://：格式非法或资料不存在则拒写，正文仍原样保存。
 
     capability 是 prompt-load 消费，超预算即拒；boundary 走检索式消费，
@@ -115,8 +151,10 @@ def _require_material_refs(text: str, *, field: str) -> None:
     """
     from .materials_store import expand_material_uris, expand_material_uris_with_catalog
 
+    if catalog is None:
+        catalog = field == "boundary"
     try:
-        if field == "boundary":
+        if catalog:
             expand_material_uris_with_catalog(text)
         else:
             expand_material_uris(text)

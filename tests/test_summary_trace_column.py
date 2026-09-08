@@ -30,10 +30,14 @@ def test_case_pool_keeps_output_reference_adjacent_and_puts_trace_last():
 
     assert (
         "<th>Output / 被评估输出</th><th>Reference</th><th>状态</th>"
-        "<th>Score / Judge</th><th>归因摘要</th><th>Trace</th><th>裁决</th>"
+        "<th>Score / Judge</th><th>归因摘要</th><th>Trace</th><th>裁决</th><th>扩展轴（试验）</th>"
     ) in source
     assert "<td class=\"case-output\">'+renderOutputCell(v)+'</td><td class=\"case-reference\">'+renderReferenceCell(v)+'</td>" in source
-    assert "<td class=\"case-trace\">'+renderTraceCell(v)+'</td><td class=\"case-carrier\">'+escapeHtml(carrierPlacementText(v) || '')+'</td></tr>" in source
+    # 旧轴2的"裁决"紧跟 Trace；扩展评估轴（试验）作为最后一列挂在它右边，新旧同行可对读。
+    assert (
+        "<td class=\"case-trace\">'+renderTraceCell(v)+'</td><td class=\"case-carrier\">'+escapeHtml(carrierPlacementText(v) || '')+'</td>"
+        "<td class=\"case-axes\">'+renderEvalAxesCell(v)+'</td></tr>"
+    ) in source
 
 
 def test_trace_cell_uses_only_current_case_trace_and_is_collapsed():
@@ -124,7 +128,8 @@ def test_trace_column_is_wide_enough_for_full_trace_json():
 def test_case_pool_empty_row_spans_new_trace_column():
     source = _summary_source()
 
-    assert source.count('colspan="13"') == 1
+    assert source.count('colspan="14"') == 1
+    assert 'colspan="13"' not in source
     assert 'colspan="12"' not in source
     assert 'colspan="11"' not in source
 

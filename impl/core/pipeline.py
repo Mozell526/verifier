@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, Mapping, Optional
 
 from .capability_carrier import collect_report_errors, format_carrier_errors, live_carrier_report
+from .eval_axes import eval_axes_report
 from .analysis import analyze_project
 from .check import check_chain
 from .cluster import cluster_attributes
@@ -424,6 +425,10 @@ def _run_payload(trace, judge_result, attribute_result, case_id="", execution_mo
         "execution_mode": execution_mode or trace.execution_mode,
         "output_source": output_source or trace.output_source,
     }
+    # 扩展评估轴（试验）：判后 pass，预设有启用的框才跑；自身失败只落在 eval_axes 键里，不影响下面的裁决和 run_status。
+    axes_report = eval_axes_report(spec, trace, judge_result)
+    if axes_report is not None:
+        run["eval_axes"] = axes_report
     report = live_carrier_report(
         spec,
         judge_result,

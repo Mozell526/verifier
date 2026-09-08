@@ -27,8 +27,9 @@ const exporter = sandbox.CasePoolExporter;
 if (typeof exporter.formatTraceShow !== "function") {
   throw new Error("formatTraceShow is not a function");
 }
-if (exporter.COLUMNS[exporter.COLUMNS.length - 1].key !== "carrierPlacement") {
-  throw new Error("裁决 is not the last export column");
+const lastKeys = exporter.COLUMNS.slice(-2).map((column) => column.key);
+if (lastKeys.join(",") !== "carrierPlacement,evalAxes") {
+  throw new Error("expected 裁决 then 扩展轴（试验） as the last export columns, got " + lastKeys.join(","));
 }
 
 const show = {

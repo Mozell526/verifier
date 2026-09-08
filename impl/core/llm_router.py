@@ -29,7 +29,8 @@ __all__ = [
 # 冷却期：端点被打入冷却后，至少等这么久才允许 probe。用户拍板 3 分钟。
 DEFAULT_COOLDOWN_SECONDS = 180.0
 DEFAULT_HEALTH_TTL_SECONDS = 180.0
-DEFAULT_PROBE_WAIT_SECONDS = 10.0
+# 探活等待：实测中转站回 5 个 token 要 5–20s，10s 会把活着的端点误判为不健康并打入冷却。
+DEFAULT_PROBE_WAIT_SECONDS = 45.0
 
 # 连续失败达到该阈值才真正把端点降级（避免单次抖动导致乒乓切换）。
 FAILURE_THRESHOLD = 2

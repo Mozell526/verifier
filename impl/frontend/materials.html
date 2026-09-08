@@ -57,6 +57,15 @@
         <button class="secondary small" style="margin-top:0" onclick="insertRef()">插入到光标处</button>
         <span class="hint" id="refStatus"></span>
       </div>
+      <!-- 扩展评估轴（试验）：新链路的框。与上面两栏（生产轴1/轴2）独立，互不影响。 -->
+      <div id="axesSection" style="display:none;margin-top:14px;border-top:1px dashed #cbd5e1;padding-top:6px">
+        <label>扩展评估轴（试验）<span class="hint" style="font-weight:400"> · 新链路：每个框 = 选类型 + 写本场景描述 + 启用。不影响上面的能力描述/能力边界（生产轴1/轴2）；在 Live 页点「扩展轴试验」运行并与生产结果对照。</span></label>
+        <div id="axesList"></div>
+        <div class="row">
+          <button class="secondary small" style="margin-top:0" onclick="addAxisBox()">+ 添加轴</button>
+          <span class="hint" id="axesHint"></span>
+        </div>
+      </div>
       <label>探测端点 service（可选；不填则每个 case 必须自带 url）</label>
       <div class="grid2">
         <input id="serviceUrl" placeholder="http://127.0.0.1:15001/api/..." />
@@ -143,6 +152,7 @@ async function loadAll(){
   }
   renderSections();
   refreshRefPicker();
+  await loadAxisTypes();
 }
 function provenanceLabel(prov){
   if(!prov){return '';}
@@ -449,8 +459,8 @@ function refreshRefPicker(){
 function validateRefs(){
   const valid=new Set((refOptions||[]).map(item=>toRefToken(item.uri)));
   const problems=[];
-  for(const taId of ['capability','boundary']){
-    const text=document.getElementById(taId).value||'';
+  for(const ta of document.querySelectorAll('#capEditor textarea.uri-textarea')){
+    const text=ta.value||'';
     const masked=text.replace(REF_TOKEN_RE,' ');
     for(const m of text.matchAll(REF_TOKEN_RE)){
       const token=m[0];
@@ -496,6 +506,75 @@ document.addEventListener('focusin',ev=>{
 });
 document.getElementById('capability').addEventListener('input',validateRefs);
 document.getElementById('boundary').addEventListener('input',validateRefs);
+// ---- 扩展评估轴（试验）的框：{type, enabled, description}，存进预设条目的 axes[] ----
+let axisTypes=[];      // /api/eval_axes/types 的类型声明；空 = 本项目没有扩展轴体系，整节隐藏
+let axisBoxes=[];      // 当前编辑器里的框
+async function loadAxisTypes(){
+  try{axisTypes=(await post('/api/eval_axes/types',{project:project()})).types||[];}
+  catch(err){axisTypes=[];}
+  document.getElementById('axesSection').style.display=axisTypes.length?'block':'none';
+}
+function axisTypeById(id){return axisTypes.find(t=>t.type_id===id)||null}
+function axisTypeInfo(t){
+  if(!t){return '';}
+  const enums=(t.verdict_enum||[]).map(v=>v.value).join(' / ');
+  const dep=(t.depend_on||[]).length?'依赖 '+t.depend_on.join('、'):'不依赖其他轴';
+  const trig=t.trigger_when?('仅 '+t.trigger_when.axis+' 结论为 '+t.trigger_when.verdict_in.join('/')+' 的样本判'):'所有样本都判';
+  const reads=(t.inputs||[]).map(i=>i.source+(i.fields&&i.fields.length?'['+i.fields.join(',')+']':'')).join('；')||'—';
+  return '结论（'+(t.verdict_scope==='item'?'逐条':'整轴')+'）：'+enums+' · '+dep+' · '+trig+' · 读：'+reads;
+}
+function syncAxisBoxesFromDom(){
+  axisBoxes=axisBoxes.map((box,i)=>{
+    const desc=document.getElementById('axisDesc-'+i);
+    const on=document.getElementById('axisEnabled-'+i);
+    return {type:box.type,enabled:on?on.checked:box.enabled,description:desc?desc.value:box.description};
+  });
+}
+function legacyDescriptionFor(typeId){
+  // 新建框时预填旧字段，省得重敲，也让对照时两边描述一致；之后各自独立编辑。
+  if(typeId==='fulfillment'){return document.getElementById('capability').value;}
+  if(typeId==='carryability'){return document.getElementById('boundary').value;}
+  return '';
+}
+function renderAxisBoxes(){
+  const list=document.getElementById('axesList');
+  if(!axisTypes.length){list.innerHTML='';return;}
+  const used=new Set(axisBoxes.map(b=>b.type));
+  list.innerHTML=axisBoxes.map((box,i)=>{
+    const t=axisTypeById(box.type);
+    const options=axisTypes.map(x=>'<option value="'+escapeHtml(x.type_id)+'"'+(x.type_id===box.type?' selected':'')+((used.has(x.type_id)&&x.type_id!==box.type)?' disabled':'')+'>'+escapeHtml(x.title+' ('+x.type_id+')')+'</option>').join('');
+    return '<div class="entry" style="cursor:default;background:white">'+
+      '<div class="row" style="align-items:center">'+
+        '<span style="font-weight:700">轴 '+(i+1)+'</span>'+
+        '<select style="flex:2;padding:6px" onchange="changeAxisType('+i+', this.value)">'+options+'</select>'+
+        '<label style="margin:0;display:flex;align-items:center;gap:6px;font-weight:400"><input type="checkbox" id="axisEnabled-'+i+'" style="width:auto" '+(box.enabled?'checked':'')+' onchange="syncAxisBoxesFromDom()" />启用</label>'+
+        '<button class="danger small" style="margin-top:0" onclick="removeAxisBox('+i+')">删除</button>'+
+      '</div>'+
+      '<div class="hint" style="margin:6px 0">'+escapeHtml(t?t.summary:'未知类型（未注册）')+'</div>'+
+      '<textarea id="axisDesc-'+i+'" class="uri-textarea" style="min-height:110px" placeholder="本场景下这个轴按什么口径评；可写 {material://项目/资料id}" oninput="syncAxisBoxesFromDom();validateRefs()">'+escapeHtml(box.description||'')+'</textarea>'+
+      '<div class="hint" style="margin-top:6px">'+escapeHtml(axisTypeInfo(t))+'</div>'+
+    '</div>';
+  }).join('')||'<div class="empty">尚未添加扩展评估轴。</div>';
+  const remaining=axisTypes.filter(x=>!used.has(x.type_id));
+  document.getElementById('axesHint').textContent=remaining.length?('可添加：'+remaining.map(x=>x.title).join('、')):'所有类型都已添加（一个预设每种类型只一个）';
+  validateRefs();
+}
+function addAxisBox(){
+  syncAxisBoxesFromDom();
+  const used=new Set(axisBoxes.map(b=>b.type));
+  const next=axisTypes.find(x=>!used.has(x.type_id));
+  if(!next){setStatus('所有类型都已添加。', true);return;}
+  axisBoxes.push({type:next.type_id,enabled:false,description:legacyDescriptionFor(next.type_id)});
+  renderAxisBoxes();
+}
+function removeAxisBox(i){syncAxisBoxesFromDom();axisBoxes.splice(i,1);renderAxisBoxes();}
+function changeAxisType(i, typeId){
+  syncAxisBoxesFromDom();
+  const box=axisBoxes[i];
+  box.type=typeId;
+  if(!box.description.trim()){box.description=legacyDescriptionFor(typeId);}
+  renderAxisBoxes();
+}
 function selectCap(name){
   selected={type:'cap',key:name};
   const entry=capEntries()[name]||{};
@@ -512,6 +591,8 @@ function selectCap(name){
   document.getElementById('serviceResponseMode').value=service.response_mode||'json';
   document.getElementById('mockBody').value=entry.mock_body?JSON.stringify(entry.mock_body,null,2):'';
   document.getElementById('deleteBtn').style.display='inline-block';
+  axisBoxes=(entry.axes||[]).map(a=>({type:a.type,enabled:!!a.enabled,description:a.description||''}));
+  renderAxisBoxes();
   validateRefs();
   setStatus('');
 }
@@ -529,6 +610,8 @@ function newCap(){
   document.getElementById('serviceResponseMode').value='json';
   document.getElementById('mockBody').value='';
   document.getElementById('deleteBtn').style.display='none';
+  axisBoxes=[];
+  renderAxisBoxes();
   validateRefs();
   setStatus('');
 }
@@ -541,6 +624,12 @@ async function saveCap(){
   const entry={capability:document.getElementById('capability').value};
   const boundary=document.getElementById('boundary').value.trim();
   if(boundary){entry.boundary=boundary;}
+  syncAxisBoxesFromDom();
+  if(axisBoxes.length){
+    const emptyBox=axisBoxes.findIndex(b=>!b.description.trim());
+    if(emptyBox>=0){setStatus('扩展评估轴 第 '+(emptyBox+1)+' 个框的描述不能为空', true);return;}
+    entry.axes=axisBoxes.map(b=>({type:b.type,enabled:b.enabled,description:b.description.trim()}));
+  }
   const url=document.getElementById('serviceUrl').value.trim();
   if(url){
     entry.service={url:url,method:document.getElementById('serviceMethod').value};

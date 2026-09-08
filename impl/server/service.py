@@ -98,6 +98,8 @@ def compact_run(run: Dict[str, Any]) -> Dict[str, Any]:
     }
     if run.get("capability_carrier") is not None:
         compact["capability_carrier"] = run.get("capability_carrier")
+    if run.get("eval_axes") is not None:
+        compact["eval_axes"] = run.get("eval_axes")
     table_row = build_trace_table_row_from_run(compact)
     compact["table_row"] = to_dict(table_row)
     compact["status"] = table_row.status
@@ -319,6 +321,36 @@ def save_capability(data: Dict[str, Any]) -> Any:
 
 def delete_capability(data: Dict[str, Any]) -> Any:
     return capability_store.delete_capability(project_from(data), str(data.get("name") or ""))
+
+
+_EVAL_AXES_PROJECT = "llm_probe"
+
+
+def _require_eval_axes_project(project: str) -> str:
+    # 扩展评估轴试验体系目前只在 llm_probe 内（spec/adapter/axe-v4.md 范围）。
+    if project != _EVAL_AXES_PROJECT:
+        raise ValueError(f"扩展评估轴目前只支持项目 {_EVAL_AXES_PROJECT}，收到 {project!r}")
+    return project
+
+
+def eval_axes_types(data: Dict[str, Any]) -> Any:
+    project = _require_eval_axes_project(project_from(data))
+    from ..projects.llm_probe.eval_axes.registry import describe_axis_types
+
+    return {"project_id": project, "types": describe_axis_types()}
+
+
+def eval_axes_run(data: Dict[str, Any]) -> Any:
+    """试验入口：对页面上已有的同一个 trace 跑新链路，不落盘、不经过生产 judge。"""
+    project = _require_eval_axes_project(project_from(data))
+    trace = normalize_run_trace(data.get("trace"))
+    if trace is None:
+        raise ValueError("缺 trace：先发一次 live 得到 RunTrace，再运行扩展轴试验")
+    from ..core.project_loader import load_project
+    from ..projects.llm_probe.eval_axes import build_report
+
+    report = build_report(load_project(project), trace, run_id=str(data.get("run_id") or ""))
+    return {"project_id": project, **report}
 
 
 def judge(data: Dict[str, Any]) -> Any:

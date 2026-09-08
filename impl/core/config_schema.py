@@ -17,6 +17,11 @@ ROLE_NAME_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
 SUPPORTED_LLM_PROVIDERS = frozenset({"deepseek"})
 SUPPORTED_LLM_PROTOCOLS = frozenset({"openai_compatible"})
 SUPPORTED_EMBEDDING_PROVIDERS = frozenset({"bailian"})
+# 扩展评估轴的模型策略（spec/adapter/axe-v4.md D12）：
+# any        按公共路由回退，哪个端点可用就用哪个（与生产 judge 一致）；
+# same_model 只允许与角色策略同名模型的端点（中转站可不同），同模型都不可用则该轴 failed，不换模型顶替。
+SUPPORTED_EVAL_AXES_MODEL_POLICIES = frozenset({"any", "same_model"})
+DEFAULT_EVAL_AXES_MODEL_POLICY = "any"
 
 
 class ConfigError(ValueError):
@@ -223,6 +228,9 @@ class LlmConfig:
     capabilities: LlmCapabilities
     role_policies: Mapping[str, LlmRolePolicyOverride] = field(default_factory=dict)
     fallbacks: Sequence[LlmFallback] = field(default_factory=tuple)
+    # 流式取回：中转站前面的网关（ALB 60s / Cloudflare 100s）看的是两次收包间隔，
+    # 非流式要等整段生成完才回第一个字节，大 prompt 必撞超时；流式 prefill 一结束就开始收包。
+    stream: bool = True
 
     def policy_for(self, role: str) -> LlmRolePolicy:
         override = self.role_policies.get(str(role or ""), LlmRolePolicyOverride())
@@ -298,6 +306,12 @@ class AttributeConfig:
 
 
 @dataclass(frozen=True)
+class EvalAxesConfig:
+    # 只影响扩展评估轴（impl/projects/<id>/eval_axes），不影响生产 judge / 裁决的模型路由。
+    model_policy: str
+
+
+@dataclass(frozen=True)
 class RuntimeConfig:
     schema_version: int
     python: PythonConfig
@@ -310,6 +324,7 @@ class RuntimeConfig:
     context: ContextConfig
     judge: JudgeConfig
     attribute: AttributeConfig
+    eval_axes: EvalAxesConfig
     environment: EnvironmentRegistry
     sources: Mapping[str, ConfigValueSource]
     warnings: tuple[str, ...] = ()
@@ -357,6 +372,7 @@ class RuntimeConfig:
                 "temperature": self.llm.temperature,
                 "reasoning_effort": self.llm.reasoning_effort,
                 "request_timeout_seconds": self.llm.request_timeout_seconds,
+                "stream": self.llm.stream,
                 "capabilities": {
                     "json_mode": self.llm.capabilities.json_mode,
                     "tool_calls": self.llm.capabilities.tool_calls,
@@ -410,6 +426,7 @@ class RuntimeConfig:
                     "judge_reasoning_chars": self.attribute.compaction.judge_reasoning_chars,
                 },
             },
+            "eval_axes": {"model_policy": self.eval_axes.model_policy},
             "sources": {
                 path: {"kind": source.kind, "name": source.name, "secret": source.secret}
                 for path, source in sorted(self.sources.items())
@@ -436,6 +453,7 @@ class ParsedRuntimeConfig:
     context: ContextConfig
     judge: JudgeConfig
     attribute: AttributeConfig
+    eval_axes: EvalAxesConfig
     environment: EnvironmentRegistry
 
 
@@ -478,7 +496,7 @@ def parse_runtime_document(data: Mapping[str, Any]) -> ParsedRuntimeConfig:
     root = _mapping(data, "config")
     _reject_unknown(
         root,
-        {"schema_version", "python", "server", "uat", "browser", "llm", "embedding", "execution", "context", "judge", "attribute", "environment"},
+        {"schema_version", "python", "server", "uat", "browser", "llm", "embedding", "execution", "context", "judge", "attribute", "eval_axes", "environment"},
         "",
     )
     schema_version = _integer(_required(root, "schema_version", ""), "schema_version", minimum=1, maximum=1)
@@ -521,6 +539,7 @@ def parse_runtime_document(data: Mapping[str, Any]) -> ParsedRuntimeConfig:
             "temperature",
             "reasoning_effort",
             "request_timeout_seconds",
+            "stream",
             "capabilities",
             "role_policies",
         },
@@ -553,6 +572,7 @@ def parse_runtime_document(data: Mapping[str, Any]) -> ParsedRuntimeConfig:
             "llm.request_timeout_seconds",
             minimum=0.001,
         ),
+        stream=_boolean(llm_data.get("stream", True), "llm.stream"),
         capabilities=LlmCapabilities(
             json_mode=_boolean(_required(capability_data, "json_mode", "llm.capabilities"), "llm.capabilities.json_mode"),
             tool_calls=_boolean(_required(capability_data, "tool_calls", "llm.capabilities"), "llm.capabilities.tool_calls"),
@@ -678,6 +698,17 @@ def parse_runtime_document(data: Mapping[str, Any]) -> ParsedRuntimeConfig:
         }),
     )
 
+    # 节可缺省（默认 any）：它只管扩展评估轴，已有部署的 config.yaml 不必为此改动。
+    eval_axes_data = _mapping(root.get("eval_axes") or {}, "eval_axes")
+    _reject_unknown(eval_axes_data, {"model_policy"}, "eval_axes")
+    eval_axes = EvalAxesConfig(
+        model_policy=_choice(
+            eval_axes_data.get("model_policy", DEFAULT_EVAL_AXES_MODEL_POLICY),
+            "eval_axes.model_policy",
+            SUPPORTED_EVAL_AXES_MODEL_POLICIES,
+        ),
+    )
+
     environment = _parse_environment(_required(root, "environment", ""))
     _validate_bindings(environment)
     return ParsedRuntimeConfig(
@@ -691,6 +722,7 @@ def parse_runtime_document(data: Mapping[str, Any]) -> ParsedRuntimeConfig:
         execution=execution,
         context=context,
         judge=judge,
+        eval_axes=eval_axes,
         attribute=attribute,
         environment=environment,
     )
@@ -797,6 +829,8 @@ def _validate_bindings(environment: EnvironmentRegistry) -> None:
         "llm.api_key",
         "llm.temperature",
         "llm.reasoning_effort",
+        "llm.request_timeout_seconds",
+        "llm.stream",
         "llm.role_policies.live_stub.model",
         "llm.fallback_1.base_url",
         "llm.fallback_1.model",
@@ -813,6 +847,7 @@ def _validate_bindings(environment: EnvironmentRegistry) -> None:
         "embedding.trust_env_proxy",
         "context.data_root",
         "context.store_root",
+        "eval_axes.model_policy",
     }
     seen_bindings: set[str] = set()
     supported_types = {"string", "integer", "number", "boolean", "path", "url"}

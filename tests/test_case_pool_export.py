@@ -91,14 +91,16 @@ const CasePoolExporter = context.globalThis.CasePoolExporter;
     )
 
 
-def test_exporter_adds_verdict_as_last_column():
+def test_exporter_puts_verdict_then_eval_axes_last():
     result = _eval_exporter("process.stdout.write(JSON.stringify(CasePoolExporter.COLUMNS));")
     assert result.returncode == 0, result.stderr
     columns = json.loads(result.stdout)
-    assert columns[-1]["header"] == "裁决"
-    assert columns[-1]["key"] == "carrierPlacement"
+    assert columns[-1]["header"] == "扩展轴（试验）"
+    assert columns[-1]["key"] == "evalAxes"
+    assert columns[-2]["header"] == "裁决"
+    assert columns[-2]["key"] == "carrierPlacement"
     keys = [column["key"] for column in columns]
-    assert keys[-2] == "traceSummary"
+    assert keys[-3] == "traceSummary"
 
 
 def test_format_trace_show_returns_no_trace_when_projection_missing():
@@ -151,10 +153,11 @@ def test_exporter_writes_xlsx_with_trace_summary_column(tmp_path):
     workbook = load_workbook(out, read_only=True, data_only=True)
     sheet = workbook.active
     headers = [cell.value for cell in next(sheet.iter_rows(min_row=1, max_row=1))]
-    assert headers[-1] == "裁决"
-    assert headers[-2] == "Trace 摘要"
+    assert headers[-1] == "扩展轴（试验）"
+    assert headers[-2] == "裁决"
+    assert headers[-3] == "Trace 摘要"
     values = [cell.value for cell in next(sheet.iter_rows(min_row=2, max_row=2))]
-    summary = values[-2]
+    summary = values[-3]
     assert "T1  succeeded  2475ms" in summary
     assert "T2  succeeded  26ms" in summary
     assert "输入: 50万以上" in summary

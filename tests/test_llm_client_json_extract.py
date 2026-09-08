@@ -120,7 +120,7 @@ def test_complete_json_classifies_agno_error_before_json_parsing(monkeypatch):
         def __init__(self, **_kwargs):
             pass
 
-        def run(self, _user):
+        def run(self, _user, **_run_kwargs):
             return Result()
 
     _isolate_llm_router(monkeypatch)
@@ -157,7 +157,7 @@ def test_complete_json_records_stage_and_each_application_attempt(monkeypatch):
         def __init__(self, **_kwargs):
             pass
 
-        def run(self, _user):
+        def run(self, _user, **_run_kwargs):
             calls["count"] += 1
             if calls["count"] == 1:
                 raise TimeoutError("provider timeout")
@@ -255,7 +255,7 @@ def test_complete_json_falls_back_to_second_endpoint_within_one_call(monkeypatch
         def __init__(self, **kwargs):
             self.model = kwargs["model"]
 
-        def run(self, _user):
+        def run(self, _user, **_run_kwargs):
             calls["count"] += 1
             base = str(getattr(self.model, "base_url", ""))
             route.append(base)

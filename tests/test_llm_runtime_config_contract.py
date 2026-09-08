@@ -133,7 +133,8 @@ def test_endpoint_probe_uses_real_short_completion(monkeypatch):
     assert captured["max_tokens"] == 4
     assert captured["temperature"] == 0
     assert "Health probe" in captured["messages"][0]["content"]
-    assert captured["client"]["timeout"] == 10.0
+    # 探活 HTTP 超时必须与路由器等待探活结果的时长一致，否则 HTTP 层先超时仍会被记成端点不健康
+    assert captured["client"]["timeout"] == llm_module.DEFAULT_PROBE_WAIT_SECONDS
 
 
 def test_endpoint_probe_accepts_reasoning_token_as_generation_evidence(monkeypatch):

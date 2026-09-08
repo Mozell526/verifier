@@ -28,6 +28,8 @@ from .models import (
     CheckRequest,
     ClusterRequest,
     ContextAnalyzeRequest,
+    EvalAxesRunRequest,
+    EvalAxesTypesRequest,
     FrontendViewRequest,
     JudgeRequest,
     LiveRunRequest,
@@ -156,6 +158,16 @@ def capability_save(payload: CapabilitySaveRequest) -> JSONResponse:
 @router.post("/api/capability/delete")
 def capability_delete(payload: CapabilityDeleteRequest) -> JSONResponse:
     return route(service.delete_capability, payload)
+
+
+@router.post("/api/eval_axes/types")
+def eval_axes_types(payload: EvalAxesTypesRequest) -> JSONResponse:
+    return route(service.eval_axes_types, payload)
+
+
+@router.post("/api/eval_axes/run")
+def eval_axes_run(payload: EvalAxesRunRequest) -> JSONResponse:
+    return route(service.eval_axes_run, payload)
 
 
 @router.post("/api/judge")

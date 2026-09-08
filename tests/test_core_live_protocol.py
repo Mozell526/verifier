@@ -485,3 +485,74 @@ def test_fixed_intent_fidelity_failure_does_not_release_unreviewed_query():
     assert result.query == ""
     assert result.metadata["error"] == "fidelity_error:review unavailable"
     assert llm.calls == 2
+
+
+def test_multi_turn_safety_limit_status_combination() -> None:
+    class ContinuingMock(_MultiMock):
+        def decide_next_action(
+            self,
+            intent: MockIntentOutput,
+            accumulated: dict[str, Any],
+        ) -> MockContinueDecision:
+            return MockContinueDecision(action="continue")
+
+    mock = ContinuingMock()
+    live = _live(_MultiLive, mock)
+    ctx = TraceContext(
+        project_id="demo", case_id="safety-limit", multi_turn=True
+    )
+    live.execute_live(
+        {"query": "turn-1"},
+        ctx,
+        MockIntentOutput(user_intent="finish", query="turn-1"),
+    )
+    assert ctx.stop_reason == "safety_max_turns"
+    assert ctx.completion_status == "incomplete"
+    assert ctx.interaction_controller_status == "ok"
+    assert ctx.turn_count == mock.safety_max_turns()
+
+
+def test_multi_turn_midstream_live_error_status_combination(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from urllib.error import URLError
+
+    live = _live(_MultiLive, _MultiMock())
+    original_deliver = live.deliver_turn
+
+    def deliver_turn(request: dict[str, Any]) -> dict[str, Any]:
+        if request["query"] == "turn-2":
+            raise URLError("second turn unavailable")
+        return original_deliver(request)
+
+    monkeypatch.setattr(live, "deliver_turn", deliver_turn)
+    ctx = TraceContext(
+        project_id="demo", case_id="midstream-error", multi_turn=True
+    )
+    live.execute_live(
+        {"query": "turn-1"},
+        ctx,
+        MockIntentOutput(user_intent="finish", query="turn-1"),
+    )
+    assert ctx.stop_reason == "live_error"
+    assert ctx.completion_status == "incomplete"
+    assert ctx.interaction_controller_status == "ok"
+    assert ctx.turn_count == 2
+
+
+def test_multi_turn_intent_unavailable_status_combination() -> None:
+    class BrokenIntentMock(_MultiMock):
+        def infer_user_intent(
+            self,
+            initial_request: dict[str, Any],
+        ) -> MockIntentOutput:
+            raise ValueError("intent provider unavailable")
+
+    live = _live(_MultiLive, BrokenIntentMock())
+    ctx = TraceContext(
+        project_id="demo", case_id="intent-unavailable", multi_turn=True
+    )
+    live.execute_live({"query": "turn-1"}, ctx, intent=None)
+    assert ctx.stop_reason == "intent_unavailable"
+    assert ctx.completion_status == "incomplete"
+    assert ctx.interaction_controller_status == "error"

@@ -167,6 +167,42 @@ def _status(trace: RunTrace, judge: Optional[JudgeResult], judge_summary: Dict[s
     return str(trace.status or ("error" if trace.error or case_context.get("error") else ""))
 
 
+def eval_axes_summary(report: Any) -> List[Dict[str, Any]]:
+    """扩展评估轴（试验）报告 → 表格列：每轴一条 {axis_id, title, status, verdict, text, items}。
+
+    与 carrier_text 之于"裁决"列同一角色：只搬运运行器已经算好的 summary，不重新判断。
+    报告整体失败（配置无效、钩子异常）折成一条 status=failed 的伪轴，让表格能看见。
+    """
+    if not isinstance(report, dict):
+        return []
+    if report.get("error") and not report.get("results"):
+        return [{
+            "axis_id": "",
+            "title": "扩展评估轴",
+            "status": "failed",
+            "verdict": None,
+            "text": str(report.get("error")),
+            "items": [],
+        }]
+    rows: List[Dict[str, Any]] = []
+    for item in report.get("results") or []:
+        if not isinstance(item, dict):
+            continue
+        summary = item.get("summary") if isinstance(item.get("summary"), dict) else {}
+        usage = item.get("usage") if isinstance(item.get("usage"), dict) else {}
+        rows.append({
+            "axis_id": str(item.get("axis_id") or ""),
+            "title": str(item.get("title") or item.get("type_id") or ""),
+            "status": str(item.get("status") or ""),
+            "verdict": item.get("verdict"),
+            "text": str(summary.get("text") or item.get("error") or ""),
+            "items": [dict(entry) for entry in (summary.get("items") or []) if isinstance(entry, dict)],
+            # 实际命中的模型（axe-v4 D12）：对照时能看出这条是不是备用模型判的
+            "llm_model": str(usage.get("llm_model") or ""),
+        })
+    return rows
+
+
 def _root_cause(attribute: Optional[AttributeResult]) -> str:
     if not attribute:
         return ""
@@ -324,6 +360,7 @@ def build_trace_table_row(
         score=judge_summary.get("score"),
         fulfillment_status=fulfillment_status,
         carrier_placement=placement,
+        eval_axes_summary=eval_axes_summary(case_context.get("eval_axes")),
         judge_summary=judge_summary,
         attribution_summary=attribution_summary,
         check_summary=check_summary,
@@ -368,7 +405,7 @@ def build_trace_table_row_from_run(run: Dict[str, Any]) -> TraceTableRow:
     attribute = normalize_attribute_result(run.get("attribute"))
     view = normalize_frontend_view(run.get("frontend_view"))
     check = normalize_check_report(run.get("check"))
-    case_context = {key: run.get(key) for key in ("id", "scenario", "execution_mode", "output_source", "reference", "output", "capability_carrier") if run.get(key) is not None}
+    case_context = {key: run.get(key) for key in ("id", "scenario", "execution_mode", "output_source", "reference", "output", "capability_carrier", "eval_axes") if run.get(key) is not None}
     return build_trace_table_row(trace, judge, attribute, view, check, case_context=case_context)
 
 

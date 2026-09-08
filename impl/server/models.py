@@ -52,6 +52,15 @@ class CapabilityListRequest(ProjectRequest):
     pass
 
 
+class EvalAxesTypesRequest(ProjectRequest):
+    pass
+
+
+class EvalAxesRunRequest(ApiRequest):
+    trace: Any = None
+    run_id: Optional[str] = None
+
+
 class MaterialsListRequest(ProjectRequest):
     pass
 

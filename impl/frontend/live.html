@@ -24,8 +24,9 @@
       <button class="secondary" onclick="runJudge()">请求 Judge</button>
       <button class="secondary" onclick="runAttribute()">请求 Attribute</button>
       <button class="secondary" onclick="runChain()">统一全链路</button>
+      <button class="secondary" id="evalAxesBtn" onclick="runEvalAxes()" style="display:none">扩展轴试验</button>
     </div>
-    <div class="hint">按顺序执行单步按钮会复用当前页面保存的 lastTrace / lastJudge。</div>
+    <div class="hint">按顺序执行单步按钮会复用当前页面保存的 lastTrace / lastJudge。「扩展轴试验」对同一个 lastTrace 跑新链路（资料页预设里配置的扩展评估轴），结果独立展示，不进生产 Judge。</div>
     <div id="status" class="muted" style="margin-top:12px">等待请求。</div>
   </section>
 
@@ -59,6 +60,15 @@
         <pre id="attributeRaw">{}</pre>
       </div>
     </details>
+    <details id="evalAxesStep" class="card step" style="display:none">
+      <summary><h2>扩展评估轴（试验）</h2><span id="evalAxesBadgeInPanel" class="badge">未运行</span></summary>
+      <div class="step-body">
+        <div class="hint" style="margin-bottom:8px">新链路：按资料页该预设「扩展评估轴」里启用的框，对上面同一个 trace 各判一遍。与左侧 Judge 面板（生产轴1/轴2）并排对照，互不影响。</div>
+        <div id="evalAxesHuman" class="empty">尚未运行扩展轴试验。</div>
+        <div class="raw-title">Raw JSON</div>
+        <pre id="evalAxesRaw">{}</pre>
+      </div>
+    </details>
   </section>
 </main>
 <script>
@@ -75,6 +85,8 @@ let currentJudge = null;
 let currentAttribute = null;
 let currentCluster = null;
 let currentView = null;
+let currentEvalAxes = null;   // 扩展评估轴试验结果（新链路），与 judge/attribute 独立
+const EVAL_AXES_PROJECT = 'llm_probe';
 function readSession(key){
   const text=sessionStorage.getItem(key);
   return text ? JSON.parse(text) : null;
@@ -86,15 +98,20 @@ async function post(path, body){
   return data;
 }
 function project(){return document.getElementById('project').value}
-function loadScopedState(){currentTrace=readSession(scopedKey('lastTrace'));currentJudge=readSession(scopedKey('lastJudge'));currentAttribute=readSession(scopedKey('lastAttribute'));currentCluster=readSession(scopedKey('lastCluster'));currentView=readSession(scopedKey('lastView'));
+function clearEvalAxes(){currentEvalAxes=null;sessionStorage.removeItem(scopedKey('lastEvalAxes'));}
+function loadScopedState(){currentTrace=readSession(scopedKey('lastTrace'));currentJudge=readSession(scopedKey('lastJudge'));currentAttribute=readSession(scopedKey('lastAttribute'));currentCluster=readSession(scopedKey('lastCluster'));currentView=readSession(scopedKey('lastView'));currentEvalAxes=readSession(scopedKey('lastEvalAxes'));
   if(currentTrace && !traceMatchesCurrentInput(currentTrace)){
     currentTrace=null;currentJudge=null;currentAttribute=null;currentCluster=null;currentView=null;
-    sessionStorage.removeItem(scopedKey('lastTrace'));sessionStorage.removeItem(scopedKey('lastJudge'));sessionStorage.removeItem(scopedKey('lastAttribute'));sessionStorage.removeItem(scopedKey('lastCluster'));sessionStorage.removeItem(scopedKey('lastView'));sessionStorage.removeItem(scopedKey('lastView'));
+    sessionStorage.removeItem(scopedKey('lastTrace'));sessionStorage.removeItem(scopedKey('lastJudge'));sessionStorage.removeItem(scopedKey('lastAttribute'));sessionStorage.removeItem(scopedKey('lastCluster'));sessionStorage.removeItem(scopedKey('lastView'));
+    clearEvalAxes();
   }
 }
 function switchProject(){
   const savedInput=sessionStorage.getItem(scopedKey('input'));
   document.getElementById('input').value=savedInput || JSON.stringify(defaultInputs[project()] || {}, null, 2);
+  const evalAxesOn=project()===EVAL_AXES_PROJECT;
+  document.getElementById('evalAxesBtn').style.display=evalAxesOn?'inline-block':'none';
+  document.getElementById('evalAxesStep').style.display=evalAxesOn?'block':'none';
   loadScopedState();renderAll();
 }
 async function initProjects(){
@@ -239,11 +256,11 @@ function renderCitation(cite){
   const note=cite.note ? '：'+cite.note : '';
   return '<div class="kv" style="margin-left:14px">↳ '+escapeHtml(source+ref+note)+'</div>';
 }
-function renderCarrier(){
-  const report=carrierPanel();
+function renderCarrier(){return renderCarrierReport(carrierPanel(), '轴2承载性判定');}
+function renderCarrierReport(report, title){
   if(!report || !Object.keys(report).length){return '';}
   if(report.applicable===false){
-    return '<details class="inline-details"><summary>轴2承载性判定（不适用：轴1为 '+escapeHtml(report.axis1_status || '-')+'）</summary></details>';
+    return '<details class="inline-details"><summary>'+escapeHtml(title)+'（不适用：轴1为 '+escapeHtml(report.axis1_status || '-')+'）</summary></details>';
   }
   const placements=report.placements || [];
   const errors=report.errors || [];
@@ -257,8 +274,82 @@ function renderCarrier(){
       '<div class="kv">'+escapeHtml(item.reason || '')+'</div>'+missing+cites+trail+'</div>';
   }).join('');
   const errorRows=errors.map(item=>'<div class="kv"><b>'+escapeHtml(item.expectation_id || '')+'</b> 归位失败：'+escapeHtml(item.reason || '')+(item.last_error ? ' · '+escapeHtml(item.last_error) : '')+'</div>').join('');
-  return '<details class="inline-details" open><summary>轴2承载性判定（'+placements.length+'项归位'+(errors.length ? '，'+errors.length+'项失败' : '')+'）</summary>'+
+  return '<details class="inline-details" open><summary>'+escapeHtml(title)+'（'+placements.length+'项归位'+(errors.length ? '，'+errors.length+'项失败' : '')+'）</summary>'+
     '<div style="padding:0 12px 10px">'+(items || '<div class="kv muted">无未达成期望需要归位。</div>')+errorRows+'</div></details>';
+}
+// ---- 扩展评估轴（试验，新链路）----
+function axisStatusState(status){return status==='succeeded'?'ok':(status==='failed'?'bad':(status==='not_applicable'||status==='blocked'?'warn':''));}
+function axisTriggerText(result){
+  const decision=result.trigger_decision || {};
+  if(result.status==='disabled'){return '未启用。';}
+  if(decision.depend_on_satisfied===false){
+    return '上游未成功：'+Object.entries(decision.upstream || {}).map(([k,v])=>k+'='+v).join('，')+'。';
+  }
+  const matched=decision.trigger_when_matched;
+  if(matched && typeof matched==='object'){
+    return '筛选：'+matched.axis+' 的结论为 '+escapeHtml(matched.verdict ?? 'null')+'，'+(matched.matched?'命中':'未命中')+' ['+(matched.verdict_in || []).join('/')+']。';
+  }
+  return '';
+}
+function renderAxisResult(result, axisType){
+  const title=(axisType && axisType.title ? axisType.title+' ' : '')+result.type_id;
+  const head='<div class="kv"><b>'+escapeHtml(title)+'</b> <span class="badge '+axisStatusState(result.status)+'">'+escapeHtml(result.status)+'</span>'+
+    (result.verdict ? ' → <span class="badge '+fulfillmentBadgeState(result.verdict)+'">'+escapeHtml(result.verdict)+'</span>'+(result.verdict_description?' <span class="muted">'+escapeHtml(result.verdict_description)+'</span>':'') : '')+'</div>';
+  const trigger=axisTriggerText(result);
+  const summaryText=(result.summary && result.summary.text && result.status==='succeeded') ? '<div class="kv"><b>解释：</b>'+escapeHtml(result.summary.text)+'</div>' : '';
+  const usage=result.usage || {};
+  const usageText=Object.keys(usage).length ? '<div class="kv muted">调用：'+escapeHtml(usage.llm_calls ?? '-')+' 次模型'+(usage.llm_model?'（'+escapeHtml(usage.llm_model)+(usage.llm_endpoint?' @ '+escapeHtml(usage.llm_endpoint):'')+'）':'')+' · '+escapeHtml(usage.tool_calls ?? '-')+' 次工具 · '+escapeHtml(usage.elapsed_ms ?? '-')+' ms'+(usage.model_policy?' · 模型策略 '+escapeHtml(usage.model_policy):'')+' · 记录 '+escapeHtml(result.execution_trace_ref || '')+'</div>' : '';
+  const error=result.error ? '<div class="kv"><b>失败原因：</b>'+escapeHtml(result.error)+'</div>' : '';
+  let body='';
+  const output=result.output;
+  if(output){
+    if(result.type_id==='fulfillment'){
+      body=(output.reasoning_summary?'<div class="kv"><b>原因：</b>'+escapeHtml(output.reasoning_summary)+'</div>':'')+renderFulfillment(output);
+    }else if(result.type_id==='carryability'){
+      body=renderCarrierReport(output, '承载性归位');
+    }else{
+      body=collapsedJson('output', output);
+    }
+  }
+  const inputs=Object.keys(result.inputs_used || {}).length ? '<div class="kv muted">读了什么：'+escapeHtml(Object.values(result.inputs_used).join('；'))+'</div>' : '';
+  return '<div style="border-top:1px solid #e5e7eb;padding-top:10px;margin-top:10px">'+head+(trigger?'<div class="kv muted">'+trigger+'</div>':'')+error+summaryText+body+inputs+usageText+'</div>';
+}
+function renderEvalAxes(data){
+  showRaw('evalAxesRaw', data);
+  const human=document.getElementById('evalAxesHuman');
+  if(!data){setBadge('evalAxesBadgeInPanel','未运行','');human.innerHTML='<div class="empty">尚未运行扩展轴试验。</div>';return;}
+  const results=data.results || [];
+  const types={};(data.types || []).forEach(t=>{types[t.type_id]=t;});
+  const failed=results.filter(r=>r.status==='failed').length;
+  const ran=results.filter(r=>r.status==='succeeded').length;
+  setBadge('evalAxesBadgeInPanel', ran+' 轴完成'+(failed?'，'+failed+' 失败':''), failed?'bad':(ran?'ok':'warn'));
+  const warnings=(data.warnings || []).map(w=>'<div class="kv" style="color:#92400e">⚠ '+escapeHtml(w)+'</div>').join('');
+  const header='<div class="kv"><b>场景：</b>'+escapeHtml(data.scenario_id || '-')+' · <b>run：</b>'+escapeHtml(data.run_id || '')+'</div>';
+  if(!results.length){human.innerHTML=header+warnings+'<div class="kv muted">该预设没有配置扩展评估轴。到资料页 → capability 预设 → 「扩展评估轴（试验）」添加。</div>';return;}
+  human.innerHTML=header+warnings+results.map(r=>renderAxisResult(r, types[r.type_id])).join('');
+}
+let evalAxesTypesCache=null;
+async function evalAxesTypes(){
+  if(evalAxesTypesCache){return evalAxesTypesCache;}
+  try{evalAxesTypesCache=(await post('/api/eval_axes/types',{project:project()})).types || [];}catch(e){evalAxesTypesCache=[];}
+  return evalAxesTypesCache;
+}
+async function runEvalAxes(){
+  document.getElementById('status').textContent='扩展轴试验运行中...';
+  try{
+    if(!traceMatchesCurrentInput(currentTrace)){
+      clearCurrentRun();
+      currentTrace = await post('/api/live_run', payload());
+      sessionStorage.setItem(scopedKey('lastTrace'), JSON.stringify(currentTrace));
+      renderAll();
+    }
+    const data=await post('/api/eval_axes/run', {project:project(),trace:requireValue(currentTrace,'lastTrace')});
+    data.types=await evalAxesTypes();
+    currentEvalAxes=data;sessionStorage.setItem(scopedKey('lastEvalAxes'), JSON.stringify(data));
+    document.getElementById('evalAxesStep').open=true;
+    renderEvalAxes(currentEvalAxes);
+    document.getElementById('status').textContent='扩展轴试验完成，可与上方 Judge 面板（生产轴1/轴2）对照。';
+  }catch(err){document.getElementById('status').textContent='扩展轴试验失败：'+err.message}
 }
 function renderJudge(judge){
   const panel=judgePanel();
@@ -289,10 +380,11 @@ function renderAttribute(attribute){
   document.getElementById('attributeHuman').innerHTML =
     '<div class="kv"><b>归因总结：</b>'+escapeHtml(summaryText || '暂无归因总结')+'</div>'+renderAttributionFindings({...panel, findings})+renderStateMachine(currentTrace, judgePanel(), panel);
 }
-function renderAll(){renderTrace(currentTrace);renderJudge(currentJudge);renderAttribute(currentAttribute)}
+function renderAll(){renderTrace(currentTrace);renderJudge(currentJudge);renderAttribute(currentAttribute);renderEvalAxes(currentEvalAxes)}
 function clearCurrentRun(){
   currentTrace=null;currentJudge=null;currentAttribute=null;currentCluster=null;currentView=null;
   sessionStorage.removeItem(scopedKey('lastTrace'));sessionStorage.removeItem(scopedKey('lastJudge'));sessionStorage.removeItem(scopedKey('lastAttribute'));sessionStorage.removeItem(scopedKey('lastCluster'));sessionStorage.removeItem(scopedKey('lastView'));sessionStorage.removeItem(scopedKey('lastChain'));
+  clearEvalAxes();
   renderAll();
 }
 async function liveRun(){
@@ -315,6 +407,7 @@ async function runJudge(){
     if(!traceMatchesCurrentInput(currentTrace)){
       currentTrace = await post('/api/live_run', payload());
       sessionStorage.setItem(scopedKey('lastTrace'), JSON.stringify(currentTrace));
+      clearEvalAxes();   // trace 换了，旧的扩展轴结果不再对应
     }
     const body={project:project(),trace:requireValue(currentTrace,'lastTrace')};
     const expected=expectedIntent();

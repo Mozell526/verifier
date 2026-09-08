@@ -7,12 +7,14 @@ import re
 import threading
 import time
 import uuid
+from collections.abc import Iterator
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import json_repair
 from agno.agent import Agent
 from agno.models.openai.like import OpenAILike
-from .llm_router import LlmEndpoint, LlmRouter
+from agno.run.agent import RunOutput
+from .llm_router import DEFAULT_PROBE_WAIT_SECONDS, LlmEndpoint, LlmRouter
 from openai import Omit, OpenAI
 
 from .config import get_llm_config
@@ -180,6 +182,41 @@ def _response_content(result: Any) -> str:
     if isinstance(content, (dict, list)):
         return json.dumps(content, ensure_ascii=False)
     return str(content or "")
+
+
+def _run_agent(agent: Any, user: str, *, stream: bool, wall_deadline: Optional[float] = None) -> Any:
+    """跑一次 agent，返回完整的 RunOutput。
+
+    stream=True 时走 SSE：中转站前面的网关（ALB 60s / Cloudflare 100s）超时看的是两次收包间隔，
+    非流式要等整段生成完才回第一个字节，大 prompt 必撞超时。这里把事件流完整消费掉，
+    只取最后那个完整的 RunOutput（yield_run_output=True），对下游来说和非流式返回的是同一种对象。
+
+    wall_deadline：整次调用的总时长上限（monotonic 时刻）。SDK 的 timeout 是读超时——流式连接只要
+    不停滴字节（代理 keep-alive、上游排队时的心跳）就不算超时，总时长可以无限拖；实测出现过挂
+    2497 秒才失败的连接。这里卡总时长兜底，到点抛 TimeoutError 走既有的端点切换重试。
+    """
+    if not stream:
+        return agent.run(user)
+    outcome = agent.run(user, stream=True, yield_run_output=True)
+    if not isinstance(outcome, Iterator):
+        # 不支持流式参数的 agent（测试替身/旧版本）直接给结果
+        return outcome
+    final = None
+    last_event = None
+    for event in outcome:
+        last_event = event
+        if wall_deadline is not None and time.monotonic() > wall_deadline:
+            raise TimeoutError(
+                f"streamed llm call exceeded wall-clock deadline after "
+                f"{time.monotonic() - (wall_deadline - 1e9):.0f}s"
+            )
+        if isinstance(event, RunOutput):
+            final = event
+    if final is not None:
+        return final
+    if last_event is None:
+        raise RuntimeError("streamed agent run produced no events")
+    return last_event
 
 
 def _run_status(result: Any) -> str:
@@ -497,6 +534,7 @@ class LlmClient:
         self.temperature = policy.temperature
         self.reasoning_effort = policy.reasoning_effort
         self.request_timeout_seconds = llm_config.request_timeout_seconds
+        self.stream = bool(getattr(llm_config, "stream", True))
         self.capabilities = llm_config.capabilities
         self.llm_router = self._build_router(llm_config)
         self.memory_manager = memory_manager
@@ -548,7 +586,8 @@ class LlmClient:
         client = OpenAI(
             api_key=endpoint.api_key,
             base_url=endpoint.base_url,
-            timeout=10.0,
+            # 与路由器等待探活结果的时长一致，否则 HTTP 层先超时仍会被记成端点不健康。
+            timeout=DEFAULT_PROBE_WAIT_SECONDS,
             max_retries=0,
             default_headers={"User-Agent": "verifier/1.0"},
         )
@@ -765,7 +804,12 @@ class LlmClient:
                             ),
                         },
                     ))
-                    result = agent.run(user)
+                    result = _run_agent(
+                        agent,
+                        user,
+                        stream=self.stream,
+                        wall_deadline=time.monotonic() + self.request_timeout_seconds,
+                    )
                     if _run_failed(result) or not _response_content(result).strip():
                         detail = _response_content(result).strip()
                         if not detail:
