@@ -3,12 +3,13 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from .adapters import carryability, fulfillment
+from .adapters import carryability, fulfillment, truthfulness
 from .types import VERDICT_SCOPE_AXIS, AxisType
 
 _REGISTERED: tuple[AxisType, ...] = (
     fulfillment.AXIS_TYPE,
     carryability.AXIS_TYPE,
+    truthfulness.AXIS_TYPE,
 )
 
 
@@ -20,7 +21,8 @@ def _check_registry(types: tuple[AxisType, ...]) -> Mapping[str, AxisType]:
             raise ValueError(f"轴类型重复注册: {item.type_id}")
         by_id[item.type_id] = item
     for item in types:
-        for upstream_id in item.depend_on:
+        for dependency in item.depend_on:
+            upstream_id = dependency.type_id
             if upstream_id not in by_id:
                 raise ValueError(f"{item.type_id}: depend_on 引用了未注册的类型 {upstream_id}")
         if item.trigger_when is not None:
@@ -53,8 +55,8 @@ def _check_registry(types: tuple[AxisType, ...]) -> Mapping[str, AxisType]:
         if mark == 2:
             return
         state[type_id] = 1
-        for upstream_id in by_id[type_id].depend_on:
-            visit(upstream_id, path + [type_id])
+        for dependency in by_id[type_id].depend_on:
+            visit(dependency.type_id, path + [type_id])
         state[type_id] = 2
 
     for type_id in by_id:

@@ -342,6 +342,7 @@ def test_mock_cases_fixture_restores_regression_cases_and_passes_schema():
             "policy_search",
             "marketting-planning-intent",
             "dashscope-qa",
+            "policy-clause-qa",
         }
 
 

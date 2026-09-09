@@ -306,9 +306,21 @@ class AttributeConfig:
 
 
 @dataclass(frozen=True)
+class EvalAxesEsConfig:
+    enabled: bool = False
+    base_url: str = ""
+    timeout_seconds: float = 15
+    max_hits: int = 8
+    max_field_chars: int = 6000
+    api_key: str = ""
+    basic_auth: str = ""
+
+
+@dataclass(frozen=True)
 class EvalAxesConfig:
     # 只影响扩展评估轴（impl/projects/<id>/eval_axes），不影响生产 judge / 裁决的模型路由。
     model_policy: str
+    es: EvalAxesEsConfig = EvalAxesEsConfig()
 
 
 @dataclass(frozen=True)
@@ -426,7 +438,7 @@ class RuntimeConfig:
                     "judge_reasoning_chars": self.attribute.compaction.judge_reasoning_chars,
                 },
             },
-            "eval_axes": {"model_policy": self.eval_axes.model_policy},
+            "eval_axes": {"model_policy": self.eval_axes.model_policy, "es": {name: getattr(self.eval_axes.es, name) for name in ("enabled", "base_url", "timeout_seconds", "max_hits", "max_field_chars")}},
             "sources": {
                 path: {"kind": source.kind, "name": source.name, "secret": source.secret}
                 for path, source in sorted(self.sources.items())
@@ -700,8 +712,18 @@ def parse_runtime_document(data: Mapping[str, Any]) -> ParsedRuntimeConfig:
 
     # 节可缺省（默认 any）：它只管扩展评估轴，已有部署的 config.yaml 不必为此改动。
     eval_axes_data = _mapping(root.get("eval_axes") or {}, "eval_axes")
-    _reject_unknown(eval_axes_data, {"model_policy"}, "eval_axes")
+    _reject_unknown(eval_axes_data, {"model_policy", "es"}, "eval_axes")
+    es_data = _mapping(eval_axes_data.get("es") or {}, "eval_axes.es")
+    _reject_unknown(es_data, {"enabled", "base_url", "timeout_seconds", "max_hits", "max_field_chars"}, "eval_axes.es")
+    es = EvalAxesEsConfig(
+        enabled=_boolean(es_data.get("enabled", False), "eval_axes.es.enabled"),
+        base_url=_string(es_data["base_url"], "eval_axes.es.base_url") if es_data.get("base_url") else "",
+        timeout_seconds=_number(es_data.get("timeout_seconds", 15), "eval_axes.es.timeout_seconds", minimum=0.001),
+        max_hits=_integer(es_data.get("max_hits", 8), "eval_axes.es.max_hits", minimum=1),
+        max_field_chars=_integer(es_data.get("max_field_chars", 6000), "eval_axes.es.max_field_chars", minimum=1),
+    )
     eval_axes = EvalAxesConfig(
+        es=es,
         model_policy=_choice(
             eval_axes_data.get("model_policy", DEFAULT_EVAL_AXES_MODEL_POLICY),
             "eval_axes.model_policy",
@@ -848,6 +870,7 @@ def _validate_bindings(environment: EnvironmentRegistry) -> None:
         "context.data_root",
         "context.store_root",
         "eval_axes.model_policy",
+        "eval_axes.es.enabled", "eval_axes.es.base_url", "eval_axes.es.api_key", "eval_axes.es.basic_auth",
     }
     seen_bindings: set[str] = set()
     supported_types = {"string", "integer", "number", "boolean", "path", "url"}
@@ -863,7 +886,7 @@ def _validate_bindings(environment: EnvironmentRegistry) -> None:
         seen_bindings.add(variable.bind)
         if variable.type not in supported_types:
             raise ConfigError(f"unsupported environment type for {variable.name}: {variable.type}")
-        if variable.secret and variable.bind not in {"llm.api_key", "embedding.api_key", "llm.fallback_1.api_key", "llm.fallback_2.api_key"}:
+        if variable.secret and variable.bind not in {"eval_axes.es.api_key", "eval_axes.es.basic_auth", "llm.api_key", "embedding.api_key", "llm.fallback_1.api_key", "llm.fallback_2.api_key"}:
             raise ConfigError(f"secret variable {variable.name} cannot bind visible field {variable.bind}")
 
 

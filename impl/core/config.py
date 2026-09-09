@@ -18,6 +18,7 @@ from .config_schema import (
     EmbeddingConfig,
     EnvironmentVariableSpec,
     EvalAxesConfig,
+    EvalAxesEsConfig,
     ExecutionConfig,
     JudgeConfig,
     LlmCapabilities,
@@ -79,8 +80,18 @@ def resolve_runtime_config(
                 field_path = f"llm.role_policies.{role}.{field_name}"
                 sources[field_path] = ConfigValueSource(kind="yaml", name=f"{yaml_source}#{field_path}")
     by_binding: dict[str, EnvironmentVariableSpec] = {}
+    es_enable = next((v for v in parsed.environment.variables.values() if v.bind == "eval_axes.es.enabled"), None)
+    if es_enable is not None:
+        selected_enable = _select_environment_value(es_enable, process_environment, dotenv)
+        if selected_enable is not None:
+            values[es_enable.bind] = convert_environment_value(es_enable, selected_enable[0])
+    if cli_overrides and "eval_axes.es.enabled" in cli_overrides and es_enable is not None:
+        values[es_enable.bind] = convert_environment_value(es_enable, str(cli_overrides[es_enable.bind]))
+    es_enabled = values["eval_axes.es.enabled"]
     for variable in parsed.environment.variables.values():
         by_binding[variable.bind] = variable
+        if variable.bind.startswith("eval_axes.es.") and variable.bind != "eval_axes.es.enabled" and not es_enabled:
+            continue
         selected = _select_environment_value(variable, process_environment, dotenv)
         if selected is None:
             continue
@@ -98,6 +109,8 @@ def resolve_runtime_config(
             raise ConfigError(f"CLI override is not registered for field {field_path}")
         if variable.secret:
             raise ConfigError(f"secret field {field_path} cannot be passed through CLI")
+        if field_path.startswith("eval_axes.es.") and field_path != "eval_axes.es.enabled" and not es_enabled:
+            continue
         values[field_path] = convert_environment_value(variable, str(raw_value))
         sources[field_path] = ConfigValueSource(kind="cli", name=field_path, secret=False)
 
@@ -214,7 +227,10 @@ def resolve_runtime_config(
                 judge_reasoning_chars=int(values["attribute.compaction.judge_reasoning_chars"]),
             ),
         ),
-        eval_axes=EvalAxesConfig(model_policy=str(values["eval_axes.model_policy"])),
+        eval_axes=EvalAxesConfig(
+            model_policy=str(values["eval_axes.model_policy"]),
+            es=EvalAxesEsConfig(**{name: values[f"eval_axes.es.{name}"] for name in ("enabled", "base_url", "timeout_seconds", "max_hits", "max_field_chars", "api_key", "basic_auth")}),
+        ),
         environment=parsed.environment,
         sources=MappingProxyType(dict(sources)),
         warnings=(),
@@ -307,6 +323,7 @@ def _base_values(parsed: ParsedRuntimeConfig) -> dict[str, Any]:
         "context.top_k_per_query": parsed.context.top_k_per_query,
         "judge.raw_response_max_chars": parsed.judge.raw_response_max_chars,
         "eval_axes.model_policy": parsed.eval_axes.model_policy,
+        **{f"eval_axes.es.{name}": getattr(parsed.eval_axes.es, name) for name in ("enabled", "base_url", "timeout_seconds", "max_hits", "max_field_chars", "api_key", "basic_auth")},
         "attribute.finalization_prompt_char_budget": parsed.attribute.finalization_prompt_char_budget,
         "attribute.review_prompt_char_budget": parsed.attribute.review_prompt_char_budget,
         "attribute.tool_call_limit": parsed.attribute.tool_call_limit,

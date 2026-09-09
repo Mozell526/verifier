@@ -493,5 +493,140 @@
     },
     "output": null,
     "reference": null
+  },
+  {
+    "id": "llm-probe-clause-verified-kn-hesitation",
+    "project_id": "llm_probe",
+    "scenario": "policy-clause-qa",
+    "intent": null,
+    "live_request": {
+      "capability_ref": "policy-clause-qa",
+      "method": "POST",
+      "body": {
+        "model": "qwen-turbo",
+        "input": {
+          "messages": [
+            {
+              "role": "user",
+              "content": "仅依据下面的条款用一句话回答。条款：『康宁终身险：本产品犹豫期为二十日，自投保人签收保险单之日起计算。』问题：康宁终身险的犹豫期是多少天？"
+            }
+          ]
+        },
+        "parameters": {
+          "result_format": "message",
+          "incremental_output": false
+        }
+      }
+    },
+    "output": null,
+    "reference": null
+  },
+  {
+    "id": "llm-probe-clause-refuted-xx-hesitation-stale",
+    "project_id": "llm_probe",
+    "scenario": "policy-clause-qa",
+    "intent": null,
+    "live_request": {
+      "capability_ref": "policy-clause-qa",
+      "method": "POST",
+      "body": {
+        "model": "qwen-turbo",
+        "input": {
+          "messages": [
+            {
+              "role": "user",
+              "content": "仅依据下面的条款用一句话回答。条款：『鑫享至尊年金险：本产品犹豫期为二十日。』问题：鑫享至尊年金险的犹豫期是多少天？"
+            }
+          ]
+        },
+        "parameters": {
+          "result_format": "message",
+          "incremental_output": false
+        }
+      }
+    },
+    "output": null,
+    "reference": null
+  },
+  {
+    "id": "llm-probe-clause-unverifiable-kn-cashvalue",
+    "project_id": "llm_probe",
+    "scenario": "policy-clause-qa",
+    "intent": null,
+    "live_request": {
+      "capability_ref": "policy-clause-qa",
+      "method": "POST",
+      "body": {
+        "model": "qwen-turbo",
+        "input": {
+          "messages": [
+            {
+              "role": "user",
+              "content": "用一句话回答：康宁终身险的现金价值是怎么计算的？请给出具体比例。"
+            }
+          ]
+        },
+        "parameters": {
+          "result_format": "message",
+          "incremental_output": false
+        }
+      }
+    },
+    "output": null,
+    "reference": null
+  },
+  {
+    "id": "llm-probe-clause-multi-ax",
+    "project_id": "llm_probe",
+    "scenario": "policy-clause-qa",
+    "intent": null,
+    "live_request": {
+      "capability_ref": "policy-clause-qa",
+      "method": "POST",
+      "body": {
+        "model": "qwen-turbo",
+        "input": {
+          "messages": [
+            {
+              "role": "user",
+              "content": "仅依据下面的条款用一句话回答。条款：『安心医疗险：等待期三十日；年度免赔额一万元；经社保结算按百分之一百给付，未经社保结算按百分之六十给付。』问题：安心医疗险的等待期、免赔额、报销比例分别是多少？"
+            }
+          ]
+        },
+        "parameters": {
+          "result_format": "message",
+          "incremental_output": false
+        }
+      }
+    },
+    "output": null,
+    "reference": null
+  },
+  {
+    "id": "llm-probe-clause-noclaim-opinion",
+    "project_id": "llm_probe",
+    "scenario": "policy-clause-qa",
+    "intent": null,
+    "live_request": {
+      "capability_ref": "policy-clause-qa",
+      "method": "POST",
+      "body": {
+        "model": "qwen-turbo",
+        "input": {
+          "messages": [
+            {
+              "role": "user",
+              "content": "用一句话回答：安心医疗险适合刚工作的年轻人吗？不要引用任何具体数字。"
+            }
+          ]
+        },
+        "parameters": {
+          "result_format": "message",
+          "incremental_output": false
+        }
+      }
+    },
+    "output": null,
+    "reference": null
   }
 ]

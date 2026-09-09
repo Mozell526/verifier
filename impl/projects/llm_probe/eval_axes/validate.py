@@ -11,6 +11,7 @@ from typing import Any, Mapping, Sequence
 from impl.core.capability_store import load_capability_map
 from impl.core.materials_store import expand_material_uris, expand_material_uris_with_catalog
 
+from .sources import validate_source_capability, validate_source_refs
 from .registry import AXIS_TYPES, get_axis_type
 from .types import EXPAND_CATALOG, TYPE_ID_PATTERN, AxisType, ScenarioAxis
 
@@ -63,6 +64,7 @@ def parse_axes(raw: Any, *, owner: str = "axes") -> list[ScenarioAxis]:
 
 
 def _expand_description(axis_type: AxisType, description: str) -> None:
+    validate_source_refs(description)
     mode = next((f.expand for f in axis_type.scenario_fields if f.name == "description"), None)
     if mode == EXPAND_CATALOG:
         expand_material_uris_with_catalog(description)
@@ -89,7 +91,15 @@ def validate_scenario_axes(axes: Sequence[ScenarioAxis]) -> ValidationReport:
             report.errors.append(f"{axis.type_id}.description 资料引用无效: {exc}")
         if not axis.enabled:
             continue
-        for upstream_id in axis_type.depend_on:
+        # 环境能力（ES 是否开启）只对会跑的框要求；未启用的框写了 {es://} 不拦别人。
+        try:
+            validate_source_capability(axis.description)
+        except ValueError as exc:
+            report.errors.append(f"{axis.type_id}: {exc}")
+        for dependency in axis_type.depend_on:
+            upstream_id = dependency.type_id
+            if dependency.optional:
+                continue
             upstream = by_type.get(upstream_id)
             if upstream is None:
                 report.errors.append(f"{axis.type_id} 依赖 {upstream_id}，但本预设没有这个框")
@@ -98,7 +108,8 @@ def validate_scenario_axes(axes: Sequence[ScenarioAxis]) -> ValidationReport:
         referenced = {slot.axis_ref for slot in axis_type.inputs if slot.axis_ref}
         if axis_type.trigger_when is not None:
             referenced.add(axis_type.trigger_when.axis)
-        for upstream_id in axis_type.depend_on:
+        for dependency in axis_type.depend_on:
+            upstream_id = dependency.type_id
             if upstream_id not in referenced:
                 report.warnings.append(
                     f"{axis.type_id} 声明依赖 {upstream_id}，但 trigger_when 和 inputs 都没引用它（纯排序依赖，通常多余）"

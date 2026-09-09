@@ -138,9 +138,22 @@ def _validate_axes(raw: Any) -> list[Dict[str, Any]]:
         if len(description) > MAX_CAPABILITY_CHARS:
             raise ValueError(f"{label}.description 超过 {MAX_CAPABILITY_CHARS} 字符上限")
         # 保存时按检索式口径校引用有效性（不因大小拒写）；prompt-load 类型的预算在加载时由该类型自己查。
+        validate_es_refs(description)
         _require_material_refs(description, field=f"{label}.description", catalog=True)
         axes.append({"type": type_id, "enabled": enabled, "description": description})
     return axes
+
+
+def validate_es_refs(text: str) -> list[str]:
+    """ES 引用保存时只校格式，绝不连接数据源。"""
+    indices = []
+    for match in re.finditer(r"\{es://([^}]*)\}|(\{es://[^}]*$)", text):
+        index = match.group(1)
+        if index is None or not re.fullmatch(r"[a-z0-9][a-z0-9_.-]*", index):
+            raise ValueError("ES 引用必须形如 {es://<index>}，索引名须为小写字母、数字、_、.、-")
+        if index not in indices:
+            indices.append(index)
+    return indices
 
 
 def _require_material_refs(text: str, *, field: str, catalog: bool | None = None) -> None:

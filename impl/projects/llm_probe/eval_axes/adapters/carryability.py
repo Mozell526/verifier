@@ -12,6 +12,9 @@
 from __future__ import annotations
 
 from typing import Any, Mapping
+from dataclasses import replace
+import json
+import hashlib
 
 from impl.core.capability_carrier import (
     PLACEMENT_CANNOT,
@@ -20,14 +23,17 @@ from impl.core.capability_carrier import (
     carrier_text,
     format_carrier_errors,
 )
-from impl.core.materials_store import expand_material_uris_with_catalog
+from ..sources import expand_sources, build_tools
 from impl.projects.llm_probe.text_carrier import (
     _CARRIER_SYSTEM,
     _CARRIER_TOOLS_GUIDE,
-    _TOOL_CALL_LIMIT,
     TextCarrier,
+    _TOOL_CALL_LIMIT,
     _catalog_prompt,
     _verdict_output_spec,
+    _parse_verdict,
+    _verify_citations,
+    CarrierError,
 )
 
 from ..llm import axis_llm, merge_usage
@@ -54,7 +60,7 @@ class BoxBoundaryCarrier(TextCarrier):
 
     def __init__(self, spec: Any, description: str, trace_id: str) -> None:
         super().__init__(spec=spec)
-        text, catalog = expand_material_uris_with_catalog(description)
+        text, catalog = expand_sources(description)
         self._box_text = str(text or "").strip()
         self._box_catalog = [dict(item) for item in catalog]
         self._trace_id = trace_id
@@ -65,6 +71,43 @@ class BoxBoundaryCarrier(TextCarrier):
     def _current_boundary(self) -> dict[str, Any]:
         return {"text": self._box_text, "catalog": [dict(item) for item in self._box_catalog]}
 
+    def snapshot_revision(self) -> str:
+        es_snapshots = [item['snapshot_id'] for item in self._box_catalog if item.get('source') == 'es']
+        revision = super().snapshot_revision()
+        return hashlib.sha256((revision + '|'.join(es_snapshots)).encode()).hexdigest()[:16] if es_snapshots else revision
+
+    def _judge_with_retry(self, expectation_text, boundary):
+        from ..sources.es_tools import EsTools
+        es_catalog = [item for item in boundary['catalog'] if item.get('source') == 'es']
+        feedback = ""
+        last_error = "承载性判定无效"
+        for attempt in range(self._retries):
+            receipts = []
+            try:
+                result = self._call_llm(expectation_text, boundary, receipts, feedback)
+                verdict = _parse_verdict(result)
+                if verdict is None:
+                    raise ValueError("LLM 输出缺少必填字段或取值非法")
+                es_citations = [c for c in verdict.citations if c['source'].startswith('es://')]
+                ordinary = replace(verdict, citations=tuple(c for c in verdict.citations if not c['source'].startswith('es://')))
+                # 保留生产文件资料核验；ES 引用独立回读，不能当 boundary 文本放行。
+                failures = _verify_citations(ordinary, boundary['text']) if ordinary.citations or not es_citations else []
+                if es_citations:
+                    verifier = EsTools(es_catalog, receipts)
+                    for citation in es_citations:
+                        if not verifier.verify_quote(citation['source'][5:], citation['ref'], citation['note']):
+                            failures.append("ES 引用回读核验失败")
+                if failures:
+                    raise ValueError("；".join(failures))
+                return replace(verdict, tool_trail=tuple(receipts))
+            except Exception as exc:
+                last_error = str(exc)
+                feedback = "上次输出未通过机械核验：" + last_error + "。请回读原文，引用必须逐字。"
+                self._wait(attempt)
+            finally:
+                self.tool_calls += len(receipts)
+        return CarrierError("text_carrier", "承载性判定重试耗尽", last_error)
+
     def _call_llm(
         self,
         expectation_text: str,
@@ -73,10 +116,8 @@ class BoxBoundaryCarrier(TextCarrier):
         feedback: str = "",
     ) -> Mapping[str, Any]:
         # 与 TextCarrier._call_llm 逐行同构；差别只有 trace_id、记账与模型策略外壳（axe-v4 D9 / D12）。
-        from impl.projects.llm_probe.material_tools import build_material_tools
-
         catalog = list(boundary.get("catalog") or [])
-        tools = build_material_tools(catalog, receipts)
+        tools = build_tools(catalog, receipts)
         client = axis_llm(
             self._spec,
             role="capability_carrier_mapper",
@@ -84,10 +125,14 @@ class BoxBoundaryCarrier(TextCarrier):
             tool_call_limit=_TOOL_CALL_LIMIT if tools else None,
         )
         system = _CARRIER_SYSTEM + (_CARRIER_TOOLS_GUIDE if tools else "")
+        es_catalog = [item for item in catalog if item.get('source') == 'es']
+        if es_catalog:
+            system += "\nES 资料同样可作原文证据：source=es://索引，ref=文档ID#字段。使用 es_outline/es_search/es_read，note 逐字引用回读字段。"
         user = (
             f"未达成的期望：\n{expectation_text}\n\n"
             f"能力边界描述：\n{boundary['text']}"
-            f"{_catalog_prompt(catalog)}"
+            f"{_catalog_prompt([item for item in catalog if item.get('source') != 'es'])}"
+            + ("\nES 目录：\n" + json.dumps(es_catalog, ensure_ascii=False) if es_catalog else "")
         )
         if feedback:
             user += f"\n\n{feedback}"
@@ -101,7 +146,6 @@ class BoxBoundaryCarrier(TextCarrier):
                 stage="llm_probe_text_carrier",
             )
         finally:
-            self.tool_calls += len(receipts)
             merge_usage(self.llm_usage, client.usage())
 
 
@@ -167,13 +211,16 @@ AXIS_TYPE = AxisType(
     inputs=(Input("fulfillment", source="axis.fulfillment.output", fields=_INPUT_FIELDS),),
     output_fields=_OUTPUT_FIELDS,
     scenario_fields=(Field("description", required=True, expand="catalog"),),
-    # 每条期望 ≤3 次重试（TextCarrier 默认）；每次调用 ≤16 次工具（_TOOL_CALL_LIMIT，硬限）。
+    # 每条期望 ≤3 次重试（TextCarrier 默认）；每次调用工具上限与生产 TextCarrier 相同。
     limits=ExecutionLimits(llm_calls=None, tool_calls=_TOOL_CALL_LIMIT, seconds=None),
     run=run_carryability,
     implementation_files=(
         "impl/projects/llm_probe/eval_axes/adapters/carryability.py",
         "impl/projects/llm_probe/text_carrier.py",
         "impl/projects/llm_probe/material_tools.py",
+        "impl/projects/llm_probe/eval_axes/sources/__init__.py",
+        "impl/projects/llm_probe/eval_axes/sources/es_client.py",
+        "impl/projects/llm_probe/eval_axes/sources/es_tools.py",
         "impl/core/capability_carrier.py",
     ),
 )

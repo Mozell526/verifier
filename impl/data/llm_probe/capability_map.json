@@ -83,6 +83,46 @@
       "url": "http://127.0.0.1:9006/api/v1/marketing-planning/intent-recognition"
     }
   },
+  "policy-clause-qa": {
+    "axes": [
+      {
+        "description": "条款事实以知识库为准：{es://clause_kb}。核验回答里关于产品条款（期限、金额、比例、年龄、责任）的每一条事实断言；知识库中没有对应条款的断言判无法核验，不要凭常识补全。",
+        "enabled": true,
+        "type": "truthfulness"
+      },
+      {
+        "description": "如果真实性轴给出了被驳斥的断言，对应期望直接判未满足；答案含未经核验的条款数字时不得判完全满足。",
+        "enabled": true,
+        "type": "fulfillment"
+      }
+    ],
+    "capability": "用户拿它办的事：问一个保险产品条款问题（犹豫期、等待期、免赔额、投保年龄、给付比例等），得到一句依据条款、事实正确的中文答案。\n交付物是答案文本（output.choices[0].message.content），被提问者直接阅读使用；答案与条款事实一致、直接回应所问即算办成。答非所问、数字或期限说错、编造条款都算没办成。",
+    "mock_body": {
+      "input": {
+        "messages": [
+          {
+            "content": "{query}",
+            "role": "user"
+          }
+        ]
+      },
+      "model": "qwen-turbo",
+      "parameters": {
+        "incremental_output": false,
+        "result_format": "message"
+      }
+    },
+    "service": {
+      "headers": {
+        "Authorization": "Bearer ${BAILIAN_API_KEY}",
+        "X-DashScope-SSE": "enable"
+      },
+      "method": "POST",
+      "response_mode": "sse_last_frame",
+      "timeout_seconds": 180.0,
+      "url": "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"
+    }
+  },
   "policy_search": {
     "boundary": "支持：把自然语言保单筛选意图解析为查询语法树的过滤条件。\n不支持：下游保单列表检索与结果集处理。",
     "capability": "用户拿它办的事：用自然语言筛出正好符合条件的那批保单。\n交付物是可执行的查询语法树（过滤条件组合），由下游保单检索执行；判断达成必须按语法树执行后命中的保单集合是否恰好等于用户意图来推演，不看树的形状。\n语义等价的表达算办成；条件互斥、放大、缩小、编造未表达条件、丢失已表达条件都算没办成。",

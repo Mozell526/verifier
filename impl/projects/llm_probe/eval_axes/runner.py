@@ -50,7 +50,7 @@ def topo_order(axes: Sequence[ScenarioAxis]) -> list[ScenarioAxis]:
     while pending:
         progressed = False
         for axis in list(pending):
-            deps = [d for d in get_axis_type(axis.type_id).depend_on if d in present]
+            deps = [d.type_id for d in get_axis_type(axis.type_id).depend_on if d.type_id in present]
             if all(d in done for d in deps):
                 ordered.append(axis)
                 done.add(axis.type_id)
@@ -148,15 +148,17 @@ def _run_one(
 
     # 2. depend_on
     upstream_status = {}
-    for upstream_id in axis_type.depend_on:
+    required_ids = {d.type_id for d in axis_type.depend_on if not d.optional}
+    for dependency in axis_type.depend_on:
+        upstream_id = dependency.type_id
         upstream = results.get(upstream_id)
         upstream_status[upstream_id] = upstream.status if upstream is not None else "missing"
-    if any(status != STATUS_SUCCEEDED for status in upstream_status.values()):
-        blocked_by = "，".join(f"{k}={v}" for k, v in upstream_status.items() if v != STATUS_SUCCEEDED)
+    if any(upstream_status[key] != STATUS_SUCCEEDED for key in required_ids):
+        blocked_by = "，".join(f"{k}={v}" for k, v in upstream_status.items() if k in required_ids and v != STATUS_SUCCEEDED)
         result = _base_result(axis, axis_type, runtime, STATUS_BLOCKED, summary_text=f"上游未成功：{blocked_by}")
         result.trigger_decision = {"depend_on_satisfied": False, "upstream": upstream_status}
         return result
-    trigger_decision: dict[str, Any] = {"depend_on_satisfied": True, "trigger_when_matched": None}
+    trigger_decision: dict[str, Any] = {"depend_on_satisfied": True, "trigger_when_matched": None, "upstream": upstream_status}
 
     # 3. trigger_when
     when = axis_type.trigger_when
@@ -187,7 +189,7 @@ def _run_one(
             ref = f"{slot.source}@{trace.trace_id}"
         else:
             upstream = results.get(slot.axis_ref)
-            output = upstream.output if upstream is not None else None
+            output = upstream.output if upstream is not None and upstream.status == STATUS_SUCCEEDED else None
             value = None
             if isinstance(output, Mapping):
                 value = {name: output.get(name) for name in slot.fields}
@@ -277,5 +279,10 @@ def run_axes(
     results: dict[str, AxisResult] = {}
     ordered = topo_order(axes)
     for axis in ordered:
-        results[axis.type_id] = _run_one(axis, trace, runtime, results)
+        result = _run_one(axis, trace, runtime, results)
+        for dependency in get_axis_type(axis.type_id).depend_on:
+            upstream = results.get(dependency.type_id)
+            if axis.enabled and dependency.optional and upstream is not None and upstream.status not in (STATUS_DISABLED, STATUS_SUCCEEDED):
+                result.summary["text"] += f"（{dependency.type_id}未完成，未纳入）"
+        results[axis.type_id] = result
     return [results[axis.type_id] for axis in ordered]

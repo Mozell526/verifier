@@ -518,7 +518,7 @@ function axisTypeById(id){return axisTypes.find(t=>t.type_id===id)||null}
 function axisTypeInfo(t){
   if(!t){return '';}
   const enums=(t.verdict_enum||[]).map(v=>v.value).join(' / ');
-  const dep=(t.depend_on||[]).length?'依赖 '+t.depend_on.join('、'):'不依赖其他轴';
+  const dep=(t.depend_on||[]).length?'依赖 '+t.depend_on.map(d=>(d.optional?'可选 ':'')+d.type_id).join('、'):'不依赖其他轴';
   const trig=t.trigger_when?('仅 '+t.trigger_when.axis+' 结论为 '+t.trigger_when.verdict_in.join('/')+' 的样本判'):'所有样本都判';
   const reads=(t.inputs||[]).map(i=>i.source+(i.fields&&i.fields.length?'['+i.fields.join(',')+']':'')).join('；')||'—';
   return '结论（'+(t.verdict_scope==='item'?'逐条':'整轴')+'）：'+enums+' · '+dep+' · '+trig+' · 读：'+reads;

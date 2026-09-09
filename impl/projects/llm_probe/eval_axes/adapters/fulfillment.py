@@ -28,6 +28,7 @@ from ..types import (
     AxisSummary,
     AxisType,
     ExecutionLimits,
+    Dependency,
     Field,
     Input,
     RunOutcome,
@@ -66,7 +67,7 @@ def _parse_output_text(output_text: str) -> Any:
         return None
 
 
-def build_context(spec: Any, trace: RunTrace, capability: str) -> Dict[str, Any]:
+def build_context(spec: Any, trace: RunTrace, capability: str, truth: Mapping[str, Any] | None = None) -> Dict[str, Any]:
     """复制自 ``LlmProbeJudge.build_context``：唯一差别是 capability 由调用方给出（框里的描述）。"""
     request = _request_payload(trace)
     show_schema = request.get("show_schema")
@@ -130,6 +131,16 @@ def build_context(spec: Any, trace: RunTrace, capability: str) -> Dict[str, Any]
         {"source": "normalized_request.body", "value": (request.get("body") or {})},
     ])
     context["intent_frame"] = frame
+    if truth:
+        context["user_prompt_extras"]["truthfulness"] = {
+            "claims": [{key: claim.get(key) for key in ("claim_id", "text", "verdict", "reason", "citations")}
+                       for claim in truth.get("claims", [])]
+        }
+        context["system_prompt_extras"].append(
+            "## 真实性核验结果\n"
+            "上游已对回答中的事实断言逐条核验。`refuted` 的断言视为事实错误，据此判相关期望 not_fulfilled；"
+            "`unverifiable` 不构成失败依据；不要重复核验，也不要发明核验结果里没有的断言。"
+        )
     return context
 
 
@@ -201,7 +212,7 @@ def run_fulfillment(inputs: Mapping[str, Any], axis: ScenarioAxis, runtime: Axis
     capability = expand_material_uris(axis.description)
     # LLM 调用记录挂到本次试验的 trace_id 下（axe-v4 D9），不污染生产 trace 的记录。
     judged = replace(trace, trace_id=runtime.trace_id)
-    context = build_context(runtime.spec, judged, capability)
+    context = build_context(runtime.spec, judged, capability, inputs.get("truth"))
     tools = list(context.get("tools") or [])
     # 与 core judge_trace 自建客户端的参数一致；外壳只做记账和模型策略（axe-v4 D12）。
     client = axis_llm(runtime.spec, role="judge", knowledge=None, tools=tools)
@@ -211,6 +222,7 @@ def run_fulfillment(inputs: Mapping[str, Any], axis: ScenarioAxis, runtime: Axis
         # 复制自 ProjectJudge.judge_trace：LLM 产出不合规阻断。旧链路落 not_evaluable + 标记，这里落 failed。
         return RunOutcome(
             output={key: None for key in _OUTPUT_FIELDS} | {"reasoning_summary": str(exc)[:500], "evidence": ["llm_output_validation_failed"]},
+            summary=AxisSummary("能力兑现判定失败"),
             failed=True,
             failure_reason=f"llm_output_validation_failed: {str(exc)[:200]}",
             usage={**client.usage(), "tool_calls": 0},
@@ -221,6 +233,7 @@ def run_fulfillment(inputs: Mapping[str, Any], axis: ScenarioAxis, runtime: Axis
         markers = sorted(execution_failure_markers(finalized))
         return RunOutcome(
             output=_output(finalized),
+            summary=AxisSummary("能力兑现判定失败"),
             failed=True,
             failure_reason="; ".join(markers) or "judge execution failed",
             usage=usage,
@@ -230,6 +243,7 @@ def run_fulfillment(inputs: Mapping[str, Any], axis: ScenarioAxis, runtime: Axis
         finalized = finalize_judge_result(normalized)
         return RunOutcome(
             output=_output(finalized),
+            summary=AxisSummary("能力兑现判定失败"),
             failed=True,
             failure_reason="; ".join(sorted(execution_failure_markers(finalized))),
             usage=usage,
@@ -249,9 +263,9 @@ AXIS_TYPE = AxisType(
         Verdict("not_fulfilled", "至少一条 blocking 期望未兑现"),
         Verdict("not_evaluable", "证据缺失（output_text 为空/不可读/HTTP 失败）或没有 blocking 期望，无法判"),
     ),
-    depend_on=(),
+    depend_on=(Dependency("truthfulness", optional=True),),
     trigger_when=None,
-    inputs=(Input("trace", source="sample.trace"),),
+    inputs=(Input("trace", source="sample.trace"), Input("truth", source="axis.truthfulness.output", fields=("claims", "coverage"), required=False)),
     output_fields=_OUTPUT_FIELDS,
     verdict_path="overall_fulfillment.status",
     scenario_fields=(Field("description", required=True, expand="prompt_load"),),

@@ -157,14 +157,14 @@ def _by_id(results) -> dict[str, Any]:
 # ---------------------------------------------------------------- 类型可见
 
 
-def test_registry_exposes_two_types_with_frozen_enums() -> None:
+def test_registry_exposes_types_with_frozen_enums() -> None:
     described = {item["type_id"]: item for item in describe_axis_types()}
-    assert set(described) == {"fulfillment", "carryability"}
+    assert set(described) == {"fulfillment", "carryability", "truthfulness"}
     assert [v["value"] for v in described["fulfillment"]["verdict_enum"]] == ["fulfilled", "not_fulfilled", "not_evaluable"]
     assert [v["value"] for v in described["carryability"]["verdict_enum"]] == ["做不了", "做错了", "说不清"]
     assert described["fulfillment"]["verdict_scope"] == "axis"
     assert described["carryability"]["verdict_scope"] == "item"
-    assert described["carryability"]["depend_on"] == ["fulfillment"]
+    assert described["carryability"]["depend_on"] == [{"type_id": "fulfillment", "optional": False}]
     assert described["carryability"]["trigger_when"] == {"axis": "fulfillment", "verdict_in": ["not_fulfilled"]}
     # 轴2没有任何 sample 来源：不看这次交付了什么
     assert all(item["source"].startswith("axis.") for item in described["carryability"]["inputs"])
@@ -210,6 +210,7 @@ def test_fulfillment_context_is_byte_identical_to_production_build_context() -> 
 
 
 def test_one_trace_yields_two_results_with_isolation(monkeypatch) -> None:
+    monkeypatch.setattr("impl.projects.llm_probe.eval_axes.llm.model_policy", lambda: "any")
     clients = _install_fake_llm(monkeypatch, judge_status="not_fulfilled", carry="no")
     spec = load_project("llm_probe")
     results = _by_id(run_axes(spec, _trace(), _axes(), scenario_id="client_search", run_id="axes-test"))
@@ -521,6 +522,7 @@ def test_model_policy_is_registered_config_with_env_override(tmp_path) -> None:
 
     config_path = ROOT_DIR / "impl/config.yaml"
     base_env = (ROOT_DIR / ".env").read_text() if (ROOT_DIR / ".env").exists() else ""
+    base_env = "\n".join(line for line in base_env.splitlines() if not line.startswith("EVAL_AXES_MODEL_POLICY="))
     plain = tmp_path / "plain.env"; plain.write_text(base_env)
     assert resolve_runtime_config(config_path=config_path, dotenv_path=plain, environ={}).eval_axes.model_policy == "any"
     strict = tmp_path / "strict.env"; strict.write_text(base_env + "\nEVAL_AXES_MODEL_POLICY=same_model\n")
@@ -742,7 +744,7 @@ def test_types_endpoint_lists_registered_types() -> None:
     response = _post("/api/eval_axes/types", {"project": "llm_probe"})
     assert response.status_code == 200
     body = response.json()
-    assert [item["type_id"] for item in body["types"]] == ["fulfillment", "carryability"]
+    assert [item["type_id"] for item in body["types"]] == ["fulfillment", "carryability", "truthfulness"]
     other = _post("/api/eval_axes/types", {"project": "client_search"})
     assert other.status_code == 500
     assert "llm_probe" in other.json()["error"]
@@ -801,3 +803,356 @@ def test_capability_entry_keeps_axes_and_rejects_bad_shape() -> None:
         validate_entry("policy_search", {"capability": CAPABILITY, "axes": {"type": "fulfillment"}})
     with pytest.raises(ValueError, match="description"):
         validate_entry("policy_search", {"capability": CAPABILITY, "axes": [{"type": "fulfillment"}]})
+
+
+@pytest.mark.parametrize('upstream_state', ['missing', 'disabled', 'succeeded', 'failed'])
+def test_optional_dependency_orders_projects_and_omits_failed_output(monkeypatch, upstream_state):
+    from dataclasses import replace
+    from impl.projects.llm_probe.eval_axes.types import Dependency, AxisSummary
+    seen = []
+    def upstream_run(inputs, axis, runtime):
+        seen.append('upstream')
+        return RunOutcome({'value': 'fulfilled'}, AxisSummary('上游'), failed=upstream_state == 'failed')
+    def downstream_run(inputs, axis, runtime):
+        seen.append(inputs)
+        return RunOutcome({'value': 'fulfilled'}, AxisSummary('下游'))
+    template = get_axis_type('fulfillment')
+    upstream = replace(template, type_id='upstream', depend_on=(), inputs=(), output_fields=('value',), verdict_path='value', run=upstream_run)
+    downstream = replace(upstream, type_id='downstream', depend_on=(Dependency('upstream', optional=True),), inputs=(Input('evidence', 'axis.upstream.output', fields=('value',), required=False),), run=downstream_run)
+    registry = {'upstream': upstream, 'downstream': downstream}
+    monkeypatch.setattr(runner_module, 'get_axis_type', registry.__getitem__)
+    monkeypatch.setattr('impl.projects.llm_probe.eval_axes.validate.AXIS_TYPES', registry)
+    axes = [ScenarioAxis('downstream', True, '下游')]
+    if upstream_state != 'missing':
+        axes.append(ScenarioAxis('upstream', upstream_state != 'disabled', '上游'))
+    assert validate_scenario_axes(axes).ok
+    results = _by_id(run_axes(None, _trace(), axes, scenario_id='test'))
+    result = results['downstream']
+    assert result.status == 'succeeded'
+    assert seen[-1] == ({'evidence': {'value': 'fulfilled'}} if upstream_state == 'succeeded' else {})
+    if upstream_state in ('failed', 'succeeded'):
+        assert seen[0] == 'upstream'
+    assert result.trigger_decision['upstream']['upstream'] == upstream_state
+    assert ('（upstream未完成，未纳入）' in result.summary['text']) == (upstream_state == 'failed')
+
+
+def test_optional_dependency_rejects_required_input_and_trigger():
+    from dataclasses import replace
+    from impl.projects.llm_probe.eval_axes.types import Dependency
+    template = get_axis_type('carryability')
+    with pytest.raises(ValueError, match='required=False'):
+        replace(template, depend_on=(Dependency('fulfillment', True),), trigger_when=None)
+    with pytest.raises(ValueError, match='trigger_when.*可选'):
+        replace(template, depend_on=(Dependency('fulfillment', True),), inputs=())
+
+
+@pytest.fixture
+def fake_es(monkeypatch):
+    from dataclasses import replace
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    from threading import Thread
+    from impl.core.config import get_runtime_config
+    from impl.core.config_schema import EvalAxesEsConfig
+    requests = []
+    documents = {'doc1': {'clause': '犹豫期二十日', 'nested': {'title': '保障条款'}, 'tags': ['保障', '保险']}}
+    class Handler(BaseHTTPRequestHandler):
+        def log_message(self, *args):
+            pass
+        def do_GET(self):
+            self.respond()
+        def do_POST(self):
+            self.respond()
+        def respond(self):
+            from urllib.parse import unquote
+            body = json.loads(self.rfile.read(int(self.headers['Content-Length']))) if self.headers.get('Content-Length') else None
+            requests.append((self.command, self.path, body, self.headers.get('Authorization')))
+            status = 200
+            if self.path == '/kb_policy/_mapping':
+                result = {'kb_policy': {'mappings': {'properties': {'clause': {'type': 'text', 'fields': {'raw': {'type': 'keyword'}}}, 'nested': {'properties': {'title': {'type': 'text'}}}, 'tags': {'type': 'keyword'}}}}}
+            elif self.path == '/kb_policy/_count':
+                result = {'count': len(documents)}
+            elif self.path == '/kb_policy/_settings/index.uuid':
+                result = {'kb_policy': {'settings': {'index': {'uuid': 'uuid-test'}}}}
+            elif self.path == '/kb_policy/_search':
+                result = {'hits': {'hits': [{'_id': 'doc1', '_score': 2.0, 'highlight': {'clause': ['犹豫期二十日']}}]}}
+            elif self.path.startswith('/kb_policy/_doc/') and unquote(self.path.split('/_doc/')[1]) in documents:
+                result = {'found': True, '_source': documents[unquote(self.path.split('/_doc/')[1])]}
+            else:
+                status, result = 404, {'error': 'missing'}
+            self.send_response(status)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(result, ensure_ascii=False).encode())
+    server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    config = get_runtime_config()
+    es = EvalAxesEsConfig(enabled=True, base_url=f'http://127.0.0.1:{server.server_port}', api_key='test-key')
+    monkeypatch.setattr('impl.core.config._RUNTIME_CONFIG', replace(config, eval_axes=replace(config.eval_axes, es=es)))
+    # Consumers use the resolver accessor, with the same typed config as production.
+    monkeypatch.setattr('impl.projects.llm_probe.eval_axes.sources.es_client.get_runtime_config', lambda: replace(config, eval_axes=replace(config.eval_axes, es=es)))
+    monkeypatch.setattr('impl.projects.llm_probe.eval_axes.sources.get_runtime_config', lambda: replace(config, eval_axes=replace(config.eval_axes, es=es)))
+    try:
+        yield requests, documents
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join()
+
+
+def test_es_tools_catalog_receipts_scope_and_quote_readback(fake_es):
+    from impl.projects.llm_probe.eval_axes.sources import expand_sources, build_tools
+    from impl.projects.llm_probe.eval_axes.sources.es_tools import EsTools
+    requests, documents = fake_es
+    text, catalog = expand_sources('核对 {es://kb_policy} 条款。')
+    assert '{es://' not in text
+    assert catalog[0]['snapshot_id'].startswith('uuid-test@')
+    assert catalog[0]['doc_count'] == 1
+    receipts = []
+    tools = {t.name: t.entrypoint for t in build_tools(catalog, receipts)}
+    outline = tools['es_outline'](index='kb_policy')
+    assert [f['name'] for f in outline['fields'] if f['full_text']] == ['clause', 'nested.title']
+    search = tools['es_search'](index='kb_policy', query='犹豫期')
+    assert search['hits'][0]['locator'] == 'doc1#clause'
+    sent = next(r for r in requests if r[0] == 'POST')
+    assert sent[2]['query']['multi_match']['fields'] == ['clause', 'nested.title']
+    assert sent[3] == 'ApiKey test-key'
+    assert tools['es_read'](index='kb_policy', locator='doc1#nested.title')['text'] == '保障条款'
+    assert 'clause' in tools['es_read'](index='kb_policy', locator='doc1')['text']
+    before = len(requests)
+    assert 'error' in tools['es_read'](index='../secret', locator='x')
+    assert len(requests) == before
+    assert receipts[-1]['returned_locators'] == [] and receipts[-1]['error']
+    verifier = EsTools(catalog, receipts)
+    assert verifier.verify_quote('kb_policy', 'doc1#clause', '犹豫期二十日')
+    assert not verifier.verify_quote('kb_policy', 'doc1#clause', '十五日')
+    assert not verifier.verify_quote('kb_policy', 'doc1#absent', '二十日')
+    documents.clear()
+    assert not verifier.verify_quote('kb_policy', 'doc1#clause', '二十日')
+    assert all('tool' in r and 'returned_locators' in r for r in receipts)
+
+
+def test_es_save_only_validates_format_and_load_rejects_disabled(monkeypatch):
+    from dataclasses import replace
+    from impl.core.config import get_runtime_config
+    config = get_runtime_config()
+    monkeypatch.setattr('impl.projects.llm_probe.eval_axes.sources.get_runtime_config', lambda: replace(config, eval_axes=replace(config.eval_axes, es=replace(config.eval_axes.es, enabled=False))))
+    for marker in ('{es://}', '{es://UPPER}', '{es://x/y}', '{es://x*}', '{es://x'):
+        with pytest.raises(ValueError, match='ES 引用'):
+            validate_entry('test', {'capability': 'test', 'axes': [{'type': 'carryability', 'enabled': True, 'description': marker}]})
+    entry = validate_entry('test', {'capability': 'test', 'axes': [{'type': 'fulfillment', 'enabled': True, 'description': '{es://kb_policy}'}]})
+    report = validate_scenario_axes(parse_axes(entry['axes']))
+    assert any('ES 数据源未启用' in e for e in report.errors)
+    # 未启用的框写了 {es://}：ES 关着也不报错，不拦同预设里已启用的其他轴。
+    entry = validate_entry('test', {'capability': 'test', 'axes': [
+        {'type': 'truthfulness', 'enabled': False, 'description': '{es://kb_policy}'},
+        {'type': 'fulfillment', 'enabled': True, 'description': '按要求回答'},
+    ]})
+    assert validate_scenario_axes(parse_axes(entry['axes'])).ok
+
+
+def test_es_configuration_registration_conditional_requirement_and_secrets(tmp_path):
+    from impl.core.config import resolve_runtime_config
+    dotenv = tmp_path / '.env'
+    dotenv.write_text('EVAL_AXES_ES_URL=invalid-url\nEVAL_AXES_ES_API_KEY=secret-test\n')
+    config = resolve_runtime_config(dotenv_path=dotenv, environ={})
+    assert config.eval_axes.es.enabled is False
+    assert config.eval_axes.es.api_key == '' and config.eval_axes.es.base_url == ''
+    dotenv.write_text('EVAL_AXES_ES_ENABLED=true\n')
+    config = resolve_runtime_config(dotenv_path=dotenv, environ={})
+    assert 'eval_axes.es.base_url' in config.missing_required
+    dotenv.write_text('EVAL_AXES_ES_ENABLED=true\nEVAL_AXES_ES_URL=http://localhost:9200\nEVAL_AXES_ES_API_KEY=secret-test\n')
+    config = resolve_runtime_config(dotenv_path=dotenv, environ={})
+    assert config.eval_axes.es.api_key == 'secret-test'
+    assert config.source_for('eval_axes.es.api_key').secret
+    assert 'secret-test' not in str(config.redacted_dict())
+
+
+def test_es_read_truncation_and_explicit_fields(fake_es):
+    from impl.projects.llm_probe.eval_axes.sources.es_tools import EsTools
+    requests, documents = fake_es
+    documents['doc1']['long'] = '甲' * 6001
+    tools = EsTools([{'source': 'es', 'uri': 'es://kb_policy'}], [])
+    result = tools.es_read('kb_policy', 'doc1#long')
+    assert result['truncated'] and len(result['text']) == 6000
+    assert 'error' in tools.es_search('kb_policy', 'x', ['not_in_mapping'])
+    tools.es_search('kb_policy', 'x', ['clause.raw'])
+    assert requests[-1][2]['query']['multi_match']['fields'] == ['clause.raw']
+
+
+def test_source_dispatch_preserves_material_entries(monkeypatch):
+    from impl.projects.llm_probe.eval_axes.sources import build_tools
+    material = {'uri': 'material://p/m', 'project_id': 'p', 'id': 'm'}
+    received = []
+    monkeypatch.setattr('impl.projects.llm_probe.eval_axes.sources.build_material_tools', lambda catalog, recorder: received.extend(catalog) or ['material'])
+    assert build_tools([material], []) == ['material']
+    assert received[0] is material
+
+
+def test_carryability_es_quotes_are_read_back(fake_es, monkeypatch):
+    from impl.projects.llm_probe.eval_axes.adapters.carryability import BoxBoundaryCarrier
+    carrier = BoxBoundaryCarrier(load_project('llm_probe'), '范围 {es://kb_policy}', 'axes-test')
+    monkeypatch.setattr(carrier, '_call_llm', lambda *args: {'carry': 'yes', 'reason': '条款覆盖', 'citations': [{'source': 'es://kb_policy', 'ref': 'doc1#clause', 'note': '犹豫期二十日'}]})
+    verdict = carrier.verdict_for({'expectation_id': '查犹豫期'})
+    assert verdict.carry == 'yes'
+    assert verdict.tool_trail[-1]['tool'] == 'es_read'
+
+
+def _truth_llm(monkeypatch, extracted, verdicts):
+    clients, options = [], []
+    remaining = iter(verdicts)
+    def script(role, system, user):
+        if 'output_text' in json.loads(user):
+            return extracted
+        value = next(remaining)
+        if isinstance(value, Exception):
+            raise value
+        return value
+    def factory(spec, role, **kwargs):
+        client = FakeLlm(role, script)
+        clients.append(client)
+        options.append(kwargs)
+        return client
+    monkeypatch.setattr('impl.core.llm_client.project_llm_client', factory)
+    return clients, options
+
+
+def _truth_verdict(verdict='refuted', note='犹豫期二十日'):
+    return {'verdict': verdict, 'reason': '资料中是二十日', 'citations': [{'source': 'es://kb_policy', 'ref': 'doc1#clause', 'note': note}]}
+
+
+def test_truthfulness_three_stages_isolated_and_deterministic(fake_es, monkeypatch):
+    extracted = {'claims': [{'claim_id': '天数', 'text': '犹豫期十五日'}, {'claim_id': '条款', 'text': '保障条款'}]}
+    clients, options = _truth_llm(monkeypatch, extracted, [_truth_verdict(), {'verdict': 'unverifiable', 'reason': '没有相关原文', 'citations': []}])
+    result = run_axes(load_project('llm_probe'), _trace('犹豫期十五日；保障条款'), [ScenarioAxis('truthfulness', True, '核对事实 {es://kb_policy}')], scenario_id='s')[0]
+    assert result.status == 'succeeded' and result.verdict is None
+    assert result.output['coverage'] == {'extracted': 2, 'verified': 0, 'refuted': 1, 'unverifiable': 1}
+    assert result.summary['text'].startswith('$refuted\n天数')
+    assert len(result.summary['items']) == 2 and result.usage['llm_calls'] == 3
+    assert result.output['sources'][0]['snapshot_id'].startswith('uuid-test@')
+    assert options[0]['tools'] == []
+    extraction = json.loads(clients[0].calls[0]['user'])
+    assert set(extraction) == {'output_text', 'question'}
+    for i in (1, 2):
+        payload = json.loads(clients[i].calls[0]['user'])
+        assert set(payload) == {'claim', 'description', 'catalog', 'feedback'}
+        assert payload['claim'] == extracted['claims'][i - 1]
+        assert 'question' not in payload and 'output_text' not in payload
+        assert options[i]['tool_call_limit'] == 16
+        assert {tool.name for tool in options[i]['tools']} == {'es_outline', 'es_search', 'es_read'}
+
+
+@pytest.mark.parametrize('claims,success', [([], True), ([{'claim_id': 'fake', 'text': '原文中不存在'}], False), ([{'claim_id': 'x', 'text': '答 复'}], False)])
+def test_truthfulness_empty_and_fabricated_claims(monkeypatch, claims, success):
+    clients, options = _truth_llm(monkeypatch, {'claims': claims}, [])
+    result = run_axes(None, _trace('答复'), [ScenarioAxis('truthfulness', True, '核对事实')], scenario_id='s')[0]
+    assert result.status == ('succeeded' if success else 'failed')
+    assert len(clients) == 1
+    assert result.output['claims'] == []
+    if success:
+        assert result.summary['text'] == '回答不含可核验的事实断言'
+    else:
+        assert result.output['errors']
+
+
+@pytest.mark.parametrize('invalid', [_truth_verdict(note='十五日'), {'verdict': 'verified', 'reason': '支持', 'citations': []}, {'error': 'llm down'}])
+def test_truthfulness_retries_invalid_citations_then_succeeds(fake_es, monkeypatch, invalid):
+    clients, _ = _truth_llm(monkeypatch, {'claims': [{'claim_id': 'days', 'text': '十五日'}]}, [invalid, _truth_verdict('verified')])
+    result = run_axes(None, _trace('十五日'), [ScenarioAxis('truthfulness', True, '{es://kb_policy}')], scenario_id='s')[0]
+    assert result.status == 'succeeded'
+    assert result.output['coverage']['verified'] == 1
+    assert result.usage['llm_calls'] == 3
+    assert json.loads(clients[2].calls[0]['user'])['feedback']
+
+
+def test_truthfulness_exhaustion_retains_partial_results(fake_es, monkeypatch):
+    clients, _ = _truth_llm(monkeypatch, {'claims': [{'claim_id': 'one', 'text': '十五日'}, {'claim_id': 'two', 'text': '二十日'}]}, [_truth_verdict(), _truth_verdict(note='伪造'), _truth_verdict(note='伪造'), _truth_verdict(note='伪造')])
+    result = run_axes(None, _trace('十五日二十日'), [ScenarioAxis('truthfulness', True, '{es://kb_policy}')], scenario_id='s')[0]
+    assert result.status == 'failed' and result.verdict is None
+    assert len(result.output['claims']) == len(result.summary['items']) == 1
+    assert result.output['errors'][0]['claim_id'] == 'two'
+    assert result.output['errors'][0]['attempts'] == 3
+    assert len(clients) == 5
+
+
+def test_truthfulness_tool_errors_cannot_be_unverifiable(fake_es, monkeypatch):
+    from impl.projects.llm_probe.eval_axes.adapters.truthfulness import _verify_result
+    with pytest.raises(ValueError, match='工具调用失败'):
+        _verify_result({'verdict': 'unverifiable', 'reason': '没有找到', 'citations': []}, [], '', [{'error': 'HTTP 500'}])
+
+
+@pytest.mark.parametrize('output_text', ['plain answer', '{"conditions": []}', ''])
+def test_fulfillment_truth_adds_exactly_two_prompt_extras(output_text):
+    from copy import deepcopy
+    from impl.projects.llm_probe.eval_axes.adapters.fulfillment import build_context
+    spec, trace = load_project('llm_probe'), _trace(output_text)
+    base = build_context(spec, trace, CAPABILITY)
+    truth = {'claims': [{'claim_id': 'days', 'text': '十五日', **_truth_verdict(), 'private': 'must not leak'}], 'coverage': {'refuted': 1}}
+    original = deepcopy(truth)
+    enriched = build_context(spec, trace, CAPABILITY, truth)
+    assert enriched['user_prompt_extras'].pop('truthfulness') == {'claims': [{k: v for k, v in truth['claims'][0].items() if k != 'private'}]}
+    assert enriched['system_prompt_extras'].pop() == (
+        '## 真实性核验结果\n'
+        '上游已对回答中的事实断言逐条核验。`refuted` 的断言视为事实错误，据此判相关期望 not_fulfilled；'
+        '`unverifiable` 不构成失败依据；不要重复核验，也不要发明核验结果里没有的断言。'
+    )
+    assert enriched == base
+    assert truth == original
+
+
+def test_truthfulness_flows_to_fulfillment_but_not_carryability(fake_es, monkeypatch):
+    clients = []
+    def script(role, system, user):
+        if role == 'truthfulness':
+            if 'output_text' in json.loads(user):
+                return {'claims': [{'claim_id': 'days', 'text': '十五日'}]}
+            return _truth_verdict()
+        if role == 'judge':
+            assert '## 真实性核验结果' in system
+            assert 'truthfulness' in user and '十五日' in user
+            return _judge_payload('not_fulfilled')
+        assert 'truthfulness' not in user and '十五日' not in user
+        return _carrier_payload('no')
+    def factory(spec, role, **kwargs):
+        client = FakeLlm(role, script)
+        clients.append(client)
+        return client
+    monkeypatch.setattr('impl.core.llm_client.project_llm_client', factory)
+    results = run_axes(load_project('llm_probe'), _trace('十五日'), _axes() + [ScenarioAxis('truthfulness', True, '{es://kb_policy}')], scenario_id='s')
+    assert [r.axis_id for r in results] == ['truthfulness', 'fulfillment', 'carryability']
+    assert all(r.status == 'succeeded' for r in results)
+    assert set(results[1].inputs_used) == {'trace', 'truth'}
+    assert set(results[2].inputs_used) == {'fulfillment'}
+
+
+def test_truthfulness_small_material_has_tools_and_source_snapshot(monkeypatch):
+    import impl.core.materials_store as ms
+    from impl.projects.llm_probe.eval_axes.sources import expand_sources
+    token = '{material://llm_probe/client-search-match-rule}'
+    content = ms.read_content('llm_probe', 'client-search-match-rule')
+    quote = next(line for line in content.splitlines() if line.strip())
+    clients, options = _truth_llm(monkeypatch, {'claims': [{'claim_id': '规则', 'text': quote}]}, [{'verdict': 'verified', 'reason': '原文支持', 'citations': [{'source': token[1:-1], 'ref': 'L1-L10', 'note': quote}]}])
+    result = run_axes(None, _trace(quote), [ScenarioAxis('truthfulness', True, token)], scenario_id='s')[0]
+    assert result.status == 'succeeded'
+    assert result.output['sources'][0]['snapshot_id']
+    assert {tool.name for tool in options[1]['tools']} == {'material_outline', 'material_search', 'material_read'}
+    assert expand_sources(token)[1] == []  # 承载性原有小资料内联行为不变
+
+
+def test_es_disabled_cli_ignores_invalid_url_even_when_env_enables(tmp_path):
+    from impl.core.config import resolve_runtime_config
+    dotenv = tmp_path / '.env'
+    dotenv.write_text('EVAL_AXES_ES_ENABLED=true\nEVAL_AXES_ES_URL=invalid\n')
+    config = resolve_runtime_config(dotenv_path=dotenv, environ={}, cli_overrides={'eval_axes.es.enabled': False, 'eval_axes.es.base_url': 'invalid'})
+    assert not config.eval_axes.es.enabled and config.eval_axes.es.base_url == ''
+
+
+def test_es_loading_rejects_enabled_but_unconfigured_source(monkeypatch):
+    from dataclasses import replace
+    from impl.core.config import get_runtime_config
+    config = get_runtime_config()
+    invalid = replace(config, eval_axes=replace(config.eval_axes, es=replace(config.eval_axes.es, enabled=True, base_url='')))
+    monkeypatch.setattr('impl.projects.llm_probe.eval_axes.sources.get_runtime_config', lambda: invalid)
+    monkeypatch.setattr('impl.projects.llm_probe.eval_axes.sources.es_client.get_runtime_config', lambda: invalid)
+    report = validate_scenario_axes([ScenarioAxis('truthfulness', True, '{es://kb_policy}')])
+    assert any('base_url' in error for error in report.errors)

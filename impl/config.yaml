@@ -67,6 +67,12 @@ judge:
 # 可用 .env 的 EVAL_AXES_MODEL_POLICY 覆盖。
 eval_axes:
   model_policy: any
+  es:
+    enabled: false
+    base_url: ""
+    timeout_seconds: 15
+    max_hits: 8
+    max_field_chars: 6000
 
 attribute:
   tool_call_limit: 8
@@ -274,3 +280,31 @@ environment:
       required: false
       secret: false
       description: 扩展评估轴的模型策略：any=按路由回退能用哪个端点用哪个；same_model=只允许与角色策略同名模型的端点（中转站可不同），同模型都不可用则该轴 failed。只影响扩展评估轴，不影响生产 judge/裁决
+
+    EVAL_AXES_ES_ENABLED:
+      bind: eval_axes.es.enabled
+      type: boolean
+      required: false
+      secret: false
+      description: 启用扩展轴 ES 数据源
+    EVAL_AXES_ES_URL:
+      bind: eval_axes.es.base_url
+      type: url
+      required: false
+      required_when:
+        field: eval_axes.es.enabled
+        equals: true
+      secret: false
+      description: ES REST 地址
+    EVAL_AXES_ES_API_KEY:
+      bind: eval_axes.es.api_key
+      type: string
+      required: false
+      secret: true
+      description: ES ApiKey
+    EVAL_AXES_ES_BASIC_AUTH:
+      bind: eval_axes.es.basic_auth
+      type: string
+      required: false
+      secret: true
+      description: ES user:pass

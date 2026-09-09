@@ -42,6 +42,16 @@ class Verdict:
 
 
 @dataclass(frozen=True)
+class Dependency:
+    type_id: str
+    optional: bool = False
+
+    def __post_init__(self) -> None:
+        if not TYPE_ID_PATTERN.fullmatch(self.type_id):
+            raise ValueError(f"非法依赖类型: {self.type_id!r}")
+
+
+@dataclass(frozen=True)
 class Input:
     """一个输入槽位：adapter 收到的 inputs[name] 从哪来。
 
@@ -182,7 +192,7 @@ class AxisType:
     summary: str
     verdict_scope: str
     verdict_enum: tuple[Verdict, ...]
-    depend_on: tuple[str, ...]
+    depend_on: tuple[Dependency | str, ...]
     trigger_when: Optional[When]
     inputs: tuple[Input, ...]
     output_fields: tuple[str, ...]
@@ -212,9 +222,18 @@ class AxisType:
             raise ValueError(f"{self.type_id}: item 级类型必须声明 item_path")
         if self.verdict_scope == VERDICT_SCOPE_ITEM and self.verdict_path:
             raise ValueError(f"{self.type_id}: item 级类型没有轴级 verdict，不得声明 verdict_path")
-        if self.type_id in self.depend_on:
+        dependencies = tuple(d if isinstance(d, Dependency) else Dependency(d) for d in self.depend_on)
+        object.__setattr__(self, "depend_on", dependencies)
+        dependency_ids = [d.type_id for d in dependencies]
+        optional_ids = {d.type_id for d in dependencies if d.optional}
+        for slot in self.inputs:
+            if slot.axis_ref in optional_ids and slot.required:
+                raise ValueError(f"{self.type_id}: 可选上游的 Input {slot.name} 必须 required=False")
+        if self.trigger_when is not None and self.trigger_when.axis in optional_ids:
+            raise ValueError(f"{self.type_id}: trigger_when 不得引用可选上游")
+        if self.type_id in dependency_ids:
             raise ValueError(f"{self.type_id}: 不能依赖自己")
-        if len(self.depend_on) != len(set(self.depend_on)):
+        if len(dependency_ids) != len(set(dependency_ids)):
             raise ValueError(f"{self.type_id}: depend_on 有重复")
         if not self.output_fields:
             raise ValueError(f"{self.type_id}: output_fields 不能为空")
@@ -226,7 +245,7 @@ class AxisType:
         referenced = {item.axis_ref for item in self.inputs if item.kind == SOURCE_AXIS}
         if self.trigger_when is not None:
             referenced.add(self.trigger_when.axis)
-        missing = sorted(referenced - set(self.depend_on))
+        missing = sorted(referenced - set(dependency_ids))
         if missing:
             raise ValueError(
                 f"{self.type_id}: trigger_when / inputs 引用了 {missing}，但未出现在 depend_on 里"
@@ -264,7 +283,7 @@ class AxisType:
             "summary": self.summary,
             "verdict_scope": self.verdict_scope,
             "verdict_enum": [{"value": v.value, "description": v.description} for v in self.verdict_enum],
-            "depend_on": list(self.depend_on),
+            "depend_on": [{"type_id": d.type_id, "optional": d.optional} for d in self.depend_on],
             "trigger_when": (
                 {"axis": self.trigger_when.axis, "verdict_in": list(self.trigger_when.verdict_in)}
                 if self.trigger_when is not None else None
