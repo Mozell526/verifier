@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>归因总结</title>
   <style>
-    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;background:#f6f8fb;color:#172033}header{background:linear-gradient(135deg,#0f172a,#1d4ed8);color:white;padding:24px 32px}main{max-width:1600px;margin:0 auto;padding:20px}.panel,.card,.stat{background:white;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 1px 2px rgba(16,24,40,.04)}.panel,.card{padding:16px;margin-bottom:16px}.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:14px 0}.stat{padding:14px}.stat b{display:block;font-size:24px;margin-bottom:4px}.stat span,.muted,.hint{color:#64748b}.layout{display:grid;grid-template-columns:360px minmax(0,1fr);gap:16px;align-items:start}.pool-library{max-height:260px;overflow:auto}.pool-item{border:1px solid #e5e7eb;border-radius:10px;background:#f8fafc;padding:10px;margin-top:8px}.pool-item b{display:block;margin-bottom:4px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.full{grid-column:1/-1}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}label{display:block;font-weight:700;margin:12px 0 6px}input,textarea,select{width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:8px;padding:9px 10px}input[type="checkbox"]{width:auto}textarea{min-height:96px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}button,a.button{background:#2563eb;color:white;border:0;border-radius:9px;padding:10px 13px;font-weight:700;text-decoration:none;cursor:pointer}button.secondary{background:#e2e8f0;color:#172033}button.warn{background:#b45309}button:disabled{opacity:.55;cursor:not-allowed}.inline-label{display:flex;gap:6px;align-items:center;margin:0;font-weight:700}.inline-label select,.inline-label input{width:auto;min-width:86px}.pill{display:inline-block;border-radius:999px;background:#e2e8f0;color:#334155;font-size:12px;font-weight:700;padding:2px 8px}.pill.ok{background:#dcfce7;color:#166534}.pill.bad{background:#fee2e2;color:#991b1b}.pill.warn{background:#fef3c7;color:#92400e}.case-table-wrap{max-height:560px;overflow:auto;border:1px solid #e5e7eb;border-radius:12px}.case-table{min-width:2960px;width:100%;border-collapse:collapse;background:white}.case-carrier{min-width:220px;max-width:360px;white-space:pre-wrap;word-break:break-word}.case-axes{min-width:640px;max-width:840px}.axes-box{max-height:480px;min-height:48px;overflow:auto;resize:both;border:1px solid #e5e7eb;border-radius:8px;background:#f8fafc;padding:8px 10px}.axes-axis{padding:4px 0}.axes-axis+.axes-axis{border-top:1px dashed #cbd5e1;margin-top:4px}.axes-head{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:4px}.axes-cell{display:grid;grid-template-columns:104px 200px minmax(0,1fr);gap:8px;align-items:start;margin:3px 0;font-size:12px;line-height:1.45}.axes-cell.axes-cell-text{grid-template-columns:minmax(0,1fr)}.axes-cell .pill{justify-self:start;font-size:11px;padding:1px 7px;white-space:nowrap}.axes-key{font-weight:700;color:#334155;word-break:break-word}.axes-reason{color:#475569;word-break:break-word}.case-table th,.case-table td{border-bottom:1px solid #e5e7eb;padding:9px;text-align:left;vertical-align:top;font-size:13px}.case-table th{position:sticky;top:0;background:#f8fafc;z-index:1}.case-input{min-width:360px;max-width:520px;word-break:break-word}.case-output,.case-reference{min-width:420px;max-width:520px;word-break:break-word}.case-summary{min-width:260px;max-width:420px;word-break:break-word}.case-trace{min-width:760px;max-width:980px;word-break:break-word}.trace-scroll{max-height:430px;overflow:auto;padding-right:4px}.case-trace details>summary{cursor:pointer;font-weight:700}.case-trace pre{max-height:360px}.trace-overview,.trace-mock{padding:7px 9px;border-radius:8px;margin-top:6px}.trace-overview{background:#eff6ff}.trace-mock{background:#f8fafc;border:1px solid #e2e8f0}.trace-turn{border:1px solid #cbd5e1;border-left:4px solid #2563eb;border-radius:8px;padding:8px;margin-top:7px}.trace-side{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}.trace-message{padding:7px;border-radius:7px;background:#f1f5f9}.trace-message.ai{background:#dbeafe}.trace-field{margin-top:4px}.trace-field b{display:block;font-size:11px;color:#64748b}.accordion{border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;background:white;margin-top:10px}.accordion>summary{cursor:pointer;list-style:none;background:#f8fafc;padding:12px 14px;font-weight:800}.accordion>summary::-webkit-details-marker{display:none}.accordion-body{padding:12px 14px;border-top:1px solid #e5e7eb}.progress-box{position:sticky;top:8px;z-index:10;border:1px solid #bfdbfe;background:#eff6ff;border-radius:12px;padding:12px;margin:10px 0;color:#1e3a8a}.progress-bar{height:9px;background:#dbeafe;border-radius:999px;overflow:hidden;margin:8px 0}.progress-bar>span{display:block;height:100%;width:0;background:#2563eb;transition:width .2s ease}.progress-log{max-height:150px;overflow:auto;background:white;border:1px solid #dbeafe;border-radius:8px;padding:8px;font-size:12px;line-height:1.5}pre{white-space:pre-wrap;word-break:break-word;background:#0f172a;color:#e2e8f0;border-radius:10px;padding:12px;max-height:360px;overflow:auto}.cluster-card{border:1px solid #bfdbfe;background:#eff6ff;border-radius:12px;padding:12px;margin-top:10px}@media(max-width:1000px){.layout,.grid,.stats,.trace-side{grid-template-columns:1fr}}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;background:#f6f8fb;color:#172033}header{background:linear-gradient(135deg,#0f172a,#1d4ed8);color:white;padding:24px 32px}main{max-width:1600px;margin:0 auto;padding:20px}.panel,.card,.stat{background:white;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 1px 2px rgba(16,24,40,.04)}.panel,.card{padding:16px;margin-bottom:16px}.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:14px 0}.stat{padding:14px}.stat b{display:block;font-size:24px;margin-bottom:4px}.stat span,.muted,.hint{color:#64748b}.layout{display:grid;grid-template-columns:360px minmax(0,1fr);gap:16px;align-items:start}.pool-library{max-height:260px;overflow:auto}.pool-item{border:1px solid #e5e7eb;border-radius:10px;background:#f8fafc;padding:10px;margin-top:8px}.pool-item b{display:block;margin-bottom:4px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.full{grid-column:1/-1}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}label{display:block;font-weight:700;margin:12px 0 6px}input,textarea,select{width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:8px;padding:9px 10px}input[type="checkbox"]{width:auto}textarea{min-height:96px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}button,a.button{background:#2563eb;color:white;border:0;border-radius:9px;padding:10px 13px;font-weight:700;text-decoration:none;cursor:pointer}button.secondary{background:#e2e8f0;color:#172033}button.warn{background:#b45309}button:disabled{opacity:.55;cursor:not-allowed}.inline-label{display:flex;gap:6px;align-items:center;margin:0;font-weight:700}.inline-label select,.inline-label input{width:auto;min-width:86px}.pill{display:inline-block;border-radius:999px;background:#e2e8f0;color:#334155;font-size:12px;font-weight:700;padding:2px 8px}.pill.ok{background:#dcfce7;color:#166534}.pill.bad{background:#fee2e2;color:#991b1b}.pill.warn{background:#fef3c7;color:#92400e}.case-table-wrap{max-height:560px;overflow:auto;border:1px solid #e5e7eb;border-radius:12px}.case-table{min-width:2700px;width:100%;border-collapse:collapse;background:white}.case-carrier{min-width:220px;max-width:360px;white-space:pre-wrap;word-break:break-word}.case-axes{min-width:340px;max-width:560px}.axes-box{font-size:12px;line-height:1.5}.axes-line{display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin:2px 0}.axes-token{font-size:11px;padding:1px 7px;white-space:nowrap;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:600}.axes-secs{font-size:11px;white-space:nowrap}.axes-detail{margin-top:4px}.axes-detail>summary{cursor:pointer;color:#2563eb;font-weight:700;font-size:12px}.axes-axis{padding:6px 0}.axes-axis+.axes-axis{border-top:1px dashed #cbd5e1}.axes-head{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:4px}.axes-items{width:100%;border-collapse:collapse}.axes-items th,.axes-items td{border-bottom:1px solid #e5e7eb;padding:4px 6px;text-align:left;vertical-align:top;font-size:12px}.axes-items th{background:#f8fafc;font-weight:700;color:#475569}.axes-items td:first-child{white-space:nowrap}.axes-key{font-weight:700;color:#334155;word-break:break-word;min-width:120px}.axes-reason{color:#475569;word-break:break-word}.case-table th,.case-table td{border-bottom:1px solid #e5e7eb;padding:9px;text-align:left;vertical-align:top;font-size:13px}.case-table th{position:sticky;top:0;background:#f8fafc;z-index:1}.case-input{min-width:360px;max-width:520px;word-break:break-word}.case-output,.case-reference{min-width:420px;max-width:520px;word-break:break-word}.case-summary{min-width:260px;max-width:420px;word-break:break-word}.case-trace{min-width:760px;max-width:980px;word-break:break-word}.trace-scroll{max-height:430px;overflow:auto;padding-right:4px}.case-trace details>summary{cursor:pointer;font-weight:700}.case-trace pre{max-height:360px}.trace-overview,.trace-mock,.trace-session{padding:7px 9px;border-radius:8px;margin-top:6px}.trace-overview{background:#eff6ff}.trace-mock,.trace-session{background:#f8fafc;border:1px solid #e2e8f0}.trace-turn{border:1px solid #cbd5e1;border-left:4px solid #2563eb;border-radius:8px;padding:8px;margin-top:7px}.trace-side{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}.trace-message{padding:7px;border-radius:7px;background:#f1f5f9}.trace-message.ai{background:#dbeafe}.trace-field{margin-top:4px}.trace-field b{display:block;font-size:11px;color:#64748b}.accordion{border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;background:white;margin-top:10px}.accordion>summary{cursor:pointer;list-style:none;background:#f8fafc;padding:12px 14px;font-weight:800}.accordion>summary::-webkit-details-marker{display:none}.accordion-body{padding:12px 14px;border-top:1px solid #e5e7eb}.progress-box{position:sticky;top:8px;z-index:10;border:1px solid #bfdbfe;background:#eff6ff;border-radius:12px;padding:12px;margin:10px 0;color:#1e3a8a}.progress-bar{height:9px;background:#dbeafe;border-radius:999px;overflow:hidden;margin:8px 0}.progress-bar>span{display:block;height:100%;width:0;background:#2563eb;transition:width .2s ease}.progress-log{max-height:150px;overflow:auto;background:white;border:1px solid #dbeafe;border-radius:8px;padding:8px;font-size:12px;line-height:1.5}pre{white-space:pre-wrap;word-break:break-word;background:#0f172a;color:#e2e8f0;border-radius:10px;padding:12px;max-height:360px;overflow:auto}.cluster-card{border:1px solid #bfdbfe;background:#eff6ff;border-radius:12px;padding:12px;margin-top:10px}@media(max-width:1000px){.layout,.grid,.stats,.trace-side{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
@@ -14,6 +14,7 @@
   <section class="panel">
     <div class="toolbar">
       <a class="button" href="live.html">返回 Live 请求</a>
+      <a class="button secondary" href="explore.html">探索页</a>
       <button onclick="runChain()">统一单链路</button>
       <button class="secondary" onclick="loadLastChain()">加载最近结果</button>
       <button class="secondary" onclick="buildMockCases()">构建 Mock 用例池</button>
@@ -113,7 +114,7 @@
           <div id="progressText" class="hint">0 / 0</div>
           <div id="progressLog" class="progress-log"></div>
         </div>
-        <div class="case-table-wrap"><table class="case-table"><thead><tr><th>选择</th><th>ID</th><th>来源</th><th>执行模式</th><th>Scenario</th><th>Input / Live Request</th><th>Output / 被评估输出</th><th>Reference</th><th>状态</th><th>Score / Judge</th><th>归因摘要</th><th>Trace</th><th>裁决</th><th>扩展轴（试验）</th></tr></thead><tbody id="casePoolRows"></tbody></table></div>
+        <div class="case-table-wrap"><table class="case-table"><thead><tr><th>选择</th><th>ID</th><th>来源</th><th>执行模式</th><th>Scenario</th><th>Input / Live Request</th><th>Output / 被评估输出</th><th>Reference</th><th>状态</th><th>Score / Judge</th><th>归因摘要</th><th>Trace</th><th>裁决</th><th title="每轴一行令牌 轴id:值×n，展开「理由」看逐条解释；导出后按令牌筛选">扩展轴结论</th></tr></thead><tbody id="casePoolRows"></tbody></table></div>
         <div class="row" style="margin-top:10px;justify-content:space-between;align-items:center">
           <div id="casePoolPagerInfo" class="muted"></div>
           <div class="row">
@@ -263,9 +264,19 @@ function renderTraceCell(item){
   let html='<div class="trace-scroll"><div><b>Trace ID：</b>'+escapeHtml(traceId)+'</div>';
   html+='<div class="trace-overview"><b>执行概览</b><div>业务执行：'+escapeHtml(overview.status||status)+'　完成度：'+escapeHtml(overview.completion_status||trace.completion_status||'-')+'　模式：'+escapeHtml(overview.interaction_mode||'-')+'　轮数：'+escapeHtml(overview.turn_count??0)+'</div><div class="muted">停止原因：'+escapeHtml(overview.stop_reason||'-')+'　最终输出轮次：'+escapeHtml(overview.final_output_turn??'-')+'</div>'+(overview.execution_error?'<div class="error-text">业务执行错误：'+escapeHtml(overview.execution_error)+'</div>':'')+'<div class="muted">Mock 控制器：'+escapeHtml(overview.interaction_controller_status||trace.interaction_controller_status||'not_run')+(overview.interaction_controller_error?' · '+escapeHtml(overview.interaction_controller_error):'')+'</div></div>';
   html+='<div class="trace-mock"><b>Mock 用户</b><div>'+escapeHtml(mock.user_intent||mock.query||'无 Mock Intent')+'</div><div class="muted">表达：'+escapeHtml(mock.query||'-')+'　场景：'+escapeHtml(mock.scenario||trace.scenario||'-')+'</div>'+(mock.user_context&&Object.keys(mock.user_context).length?'<div class="trace-field"><b>用户画像</b>'+escapeHtml(shortText(mock.user_context,500))+'</div>':'')+'</div>';
+  html+=renderSessionReplay(trace);
   (show.turns||[]).forEach((turn,index)=>{const primaryOut=(turn.output||[])[0]||{};const secondary=(turn.output||[]).slice(1).filter(field=>field.found&&field.value!==null&&field.value!==''&&!(Array.isArray(field.value)&&!field.value.length));const exchanges=turn.live_exchange_summary||[];const exchangeLine=exchanges.length?'<div class="muted">真实调用：'+exchanges.map(exchange=>escapeHtml((exchange.method||'?')+' '+(exchange.url||'?')+' → '+(exchange.status_code??'error'))).join('　')+'</div>':'';html+='<div class="trace-turn"><b>第 '+escapeHtml(turn.turn_index||index+1)+' 轮</b> <span class="pill '+(turn.status==='succeeded'?'ok':'bad')+'">'+escapeHtml(turn.status||'-')+'</span> <span class="muted">'+escapeHtml(turn.runtime_ms??'-')+' ms</span><div class="trace-side"><div class="trace-message"><b>Mock 输入</b><div>'+escapeHtml(turn.mock_message||'主展示字段无值')+'</div></div><div class="trace-message ai"><b>AI 输出</b><div>'+escapeHtml(shortText(primaryOut.value,900)||'主展示字段无值')+'</div>'+secondary.map(field=>'<div class="trace-field"><b>'+escapeHtml(field.path)+'</b>'+escapeHtml(shortText(field.value,600))+'</div>').join('')+'</div></div>'+exchangeLine+(turn.error?'<div class="pill bad">'+escapeHtml(turn.error)+'</div>':'')+'</div>';});
   html+=collapsedJson('完整原始 Trace JSON（含请求、响应与技术事实）',trace)+'</div>';
   return html;
+}
+function renderSessionReplay(trace){
+  // Session 协议（spec/mock/protocol.md 4.x）：harness 声明的 intent 序列与回归重放的分叉轮次，来自 RunTrace 顶层字段。
+  const history=Array.isArray(trace.intent_history)?trace.intent_history:[];
+  const diverged=trace.diverged_at_turn;
+  if(!history.length && (diverged===null || diverged===undefined)){return '';}
+  const declared=history.map(entry=>'<div class="muted">第 '+escapeHtml((entry.turn_index??0)+1)+' 轮 · '+escapeHtml(entry.source||'seeded')+'：'+escapeHtml(entry.user_intent||'-')+'</div>').join('');
+  const divergence=diverged===null||diverged===undefined?'<div class="muted">重放：与录制轨迹一致，未分叉</div>':'<div class="pill warn">重放分叉于第 '+escapeHtml(diverged+1)+' 轮</div>';
+  return '<div class="trace-session"><b>Session 声明</b>'+(declared||'<div class="muted">无 declare_intent 记录</div>')+divergence+'</div>';
 }
 function formatJsonCell(value, limit=null){
   if(value===null || value===undefined || value===''){return '-';}
@@ -299,7 +310,7 @@ function sanitizeCaseResult(item){
 }
 function sanitizeCasePool(items){return (items || []).map(sanitizeCaseResult);}
 function inferCaseScenario(item){const row=tableRow(item);return row.scenario || item.scenario || '';}
-function transportCase(item){return {id:item.id,project_id:item.project_id,scenario:item.scenario,intent:item.intent,live_request:item.live_request,output:item.output??null,reference:item.reference??null};}
+function transportCase(item){return {id:item.id,project_id:item.project_id,scenario:item.scenario,intent:item.intent,live_request:item.live_request,output:item.output??null,reference:item.reference??null,seed:item.seed??null};}
 function runForCase(item){return item?.request_key?caseResults[item.request_key]||null:null;}
 function caseView(item){const run=runForCase(item);if(!run){return item;}const generatedRef=run.frontend_view?.reference_panel?.source==='judge_generated'?run.frontend_view?.reference_panel?.reference:null;return {...item,...run,output:run.trace?.extracted_output??null,reference:item.reference??generatedRef??null,status:runStatus(run,item.status),error:run.error||null,trace:run.trace||null,judge:run.judge||null,attribute:run.attribute||null,frontend_view:run.frontend_view||null,check:run.check||null,cluster:run.cluster||null,table_row:run.table_row||null};}
 function inputReference(item){return item.reference || null;}
@@ -525,42 +536,81 @@ function axisStatusPill(status){
   const cls=status==='succeeded'?'ok':(status==='failed'?'bad':(status==='not_applicable'||status==='blocked'?'warn':''));
   return '<span class="pill '+cls+'">'+escapeHtml(status||'-')+'</span>';
 }
-function axisValuePill(value){
+function axisValueClass(value){
   const v=String(value||'');
-  const cls=(v==='fulfilled')?'ok':((v==='not_fulfilled'||v==='做错了'||v==='归位失败')?'bad':((v==='not_evaluable'||v==='说不清'||v==='做不了')?'warn':''));
-  return '<span class="pill '+cls+'">'+escapeHtml(v||'-')+'</span>';
+  if(v==='fulfilled'||v==='verified'){return 'ok';}
+  if(v==='not_fulfilled'||v==='refuted'||v==='做错了'||v==='归位失败'||v==='failed'){return 'bad';}
+  if(v==='not_evaluable'||v==='unverifiable'||v==='说不清'||v==='做不了'||v==='blocked'||v==='not_applicable'){return 'warn';}
+  return '';
 }
+function axisValuePill(value){
+  return '<span class="pill '+axisValueClass(value)+'">'+escapeHtml(String(value||'')||'-')+'</span>';
+}
+// 令牌 `轴id:值×n`：后端 table_view.eval_axis_tokens 生成，前端只上色。值取冒号后、× 前那段。
+function axisTokenPill(token){
+  const value=String(token).split(':').slice(1).join(':').split('×')[0];
+  return '<span class="pill axes-token '+axisValueClass(value)+'">'+escapeHtml(token)+'</span>';
+}
+function axisSeconds(axis){
+  const ms=Number(axis.elapsed_ms||0);
+  if(!ms){return '';}
+  return (ms>=1000?Math.round(ms/1000)+'s':ms+'ms')+(axis.timed_out?'·超时':'');
+}
+function axisItemsTable(axis){
+  const items=axis.items||[];
+  if(!items.length){return '<div class="axes-reason">'+escapeHtml(axis.text||'')+'</div>';}
+  const rows=items.map(cell=>'<tr><td>'+axisValuePill(cell.value)+'</td><td class="axes-key">'+escapeHtml(cell.key||'')+'</td><td class="axes-reason">'+escapeHtml(cell.reason||'')+'</td></tr>').join('');
+  return '<table class="axes-items"><thead><tr><th>判定</th><th>对象</th><th>理由</th></tr></thead><tbody>'+rows+'</tbody></table>';
+}
+// 主表这一格只放结论：每轴一行令牌 + 秒数；理由折在「理由」里按需展开，不和结论混在一起。
 function renderEvalAxesCell(item){
-  const rows=evalAxesRows(item);
+  const rows=evalAxesRows(item).filter(axis=>axis.status!=='disabled');
   if(!rows.length){return '<span class="muted">-</span>';}
-  const blocks=rows.map(axis=>{
-    const model=axis.llm_model?'<span class="muted" title="实际命中的模型" style="font-size:11px">'+escapeHtml(axis.llm_model)+'</span>':'';
-    const head='<div class="axes-head"><b>'+escapeHtml(axis.title||axis.axis_id||'')+'</b> '+axisStatusPill(axis.status)+(axis.verdict?' '+axisValuePill(axis.verdict):'')+model+'</div>';
-    const items=(axis.items||[]);
-    let body;
-    if(items.length){
-      body=items.map(cell=>{
-        // 三列固定网格：判定 / 期望名 / 理由。缺的模块也要占位，否则后面的列会往前挤，各行对不齐。
-        const key='<span class="axes-key" title="'+escapeHtml(cell.key||'')+'">'+escapeHtml(shortText(cell.key||'',80))+'</span>';
-        const reason='<span class="axes-reason" title="'+escapeHtml(cell.reason||'')+'">'+escapeHtml(shortText(cell.reason||'',600))+'</span>';
-        return '<div class="axes-cell">'+axisValuePill(cell.value)+key+reason+'</div>';
-      }).join('');
-    }else{
-      body='<div class="axes-cell axes-cell-text"><span class="axes-reason" title="'+escapeHtml(axis.text||'')+'">'+escapeHtml(shortText(axis.text||'',600))+'</span></div>';
-    }
-    return '<div class="axes-axis">'+head+body+'</div>';
+  const lines=rows.map(axis=>{
+    const tokens=(axis.tokens&&axis.tokens.length?axis.tokens:[(axis.type_id||axis.axis_id||'')+':'+(axis.status||'')]).map(axisTokenPill).join('');
+    const secs=axisSeconds(axis);
+    return '<div class="axes-line" title="'+escapeHtml(axis.title||'')+(axis.llm_model?' · '+axis.llm_model:'')+'">'+tokens+(secs?'<span class="muted axes-secs">'+escapeHtml(secs)+'</span>':'')+'</div>';
   }).join('');
-  return '<div class="axes-box">'+blocks+'</div>';
+  const detail=rows.map(axis=>'<div class="axes-axis"><div class="axes-head"><b>'+escapeHtml(axis.title||axis.type_id||'')+'</b> '+axisStatusPill(axis.status)+(axis.llm_model?'<span class="muted" style="font-size:11px">'+escapeHtml(axis.llm_model)+'</span>':'')+'</div>'+axisItemsTable(axis)+'</div>').join('');
+  return '<div class="axes-box">'+lines+'<details class="axes-detail"><summary>理由</summary>'+detail+'</details></div>';
 }
+// 导出主表同一格：一轴一行令牌，Excel 里「包含 truthfulness:refuted」即可筛；理由在「扩展轴明细」sheet。
 function exportEvalAxes(item){
-  const rows=evalAxesRows(item);
+  const rows=evalAxesRows(item).filter(axis=>axis.status!=='disabled');
   if(!rows.length){return '';}
   return rows.map(axis=>{
-    const lines=[(axis.title||axis.axis_id||'')+': '+(axis.status||'')+(axis.verdict?' → '+axis.verdict:'')+(axis.llm_model?' ['+axis.llm_model+']':'')];
-    if(axis.text){lines.push(axis.text);}
-    (axis.items||[]).forEach(cell=>{lines.push('  - '+(cell.key?cell.key+' ':'')+(cell.value||'')+(cell.reason?'：'+cell.reason:''));});
-    return lines.join('\n');
-  }).join('\n\n');
+    const tokens=(axis.tokens&&axis.tokens.length?axis.tokens:[(axis.type_id||axis.axis_id||'')+':'+(axis.status||'')]);
+    return tokens.map(t=>'['+t+']').join(' ');
+  }).join('\n');
+}
+// 「扩展轴明细」sheet：一行一件事。生产 live / judge / 轴2 作为伪行进来，一个 case 的耗时和结论就是一条完整时间线。
+function exportEvalAxesDetailRows(view){
+  const row=tableRow(view);
+  const caseId=row.id||view.id||'';
+  const scenario=inferCaseScenario(view)||'';
+  const out=[];
+  const timings=row.stage_timings||view.stage_timings||{};
+  const secs=k=>timings[k]===undefined?'':Math.round(Number(timings[k])/100)/10;
+  out.push({caseId,scenario,stage:'live',status:view.trace?.status||'',verdict:'',subject:'',reason:view.trace?.error||'',citations:'',model:'',llmCalls:'',toolCalls:'',seconds:secs('live_ms')});
+  const judgeStatus=view.judge?.overall_fulfillment?.status||row.fulfillment_status||'';
+  out.push({caseId,scenario,stage:'生产·judge',status:view.judge?'succeeded':'',verdict:judgeStatus,subject:'',reason:row.judge_summary?.reasoning_summary||view.judge?.reasoning_summary||'',citations:'',model:'',llmCalls:'',toolCalls:'',seconds:secs('judge_ms')});
+  if(timings.carrier_ms!==undefined||carrierPlacementText(view)){
+    out.push({caseId,scenario,stage:'生产·轴2',status:'',verdict:'',subject:'',reason:carrierPlacementText(view)||'',citations:'',model:'',llmCalls:'',toolCalls:'',seconds:secs('carrier_ms')});
+  }
+  evalAxesRows(view).filter(axis=>axis.status!=='disabled').forEach(axis=>{
+    const stage='扩展·'+(axis.type_id||axis.axis_id||'');
+    const base={caseId,scenario,stage,status:axis.status||'',model:axis.llm_model||'',llmCalls:axis.llm_calls??'',toolCalls:axis.tool_calls??'',seconds:axis.elapsed_ms?Math.round(Number(axis.elapsed_ms)/100)/10:''};
+    const items=axis.items||[];
+    if(!items.length){
+      out.push({...base,verdict:axis.verdict||'',subject:'',reason:axis.text||'',citations:''});
+      return;
+    }
+    items.forEach((cell,index)=>{
+      const cites=Array.isArray(cell.citations)?cell.citations.map(c=>(c.source||'')+' '+(c.ref||'')+(c.note?'：'+c.note:'')).join('\n'):'';
+      out.push({...base,verdict:cell.value||'',subject:cell.key||'',reason:cell.reason||'',citations:cites,seconds:index===0?base.seconds:'',llmCalls:index===0?base.llmCalls:'',toolCalls:index===0?base.toolCalls:''});
+    });
+  });
+  return out;
 }
 function carrierFilterMatches(text, filter){
   if(filter==='all'){return true;}
@@ -628,7 +678,8 @@ async function exportCurrentCasePoolXlsx(){
   button.disabled=true;button.textContent='正在导出…';
   try{
     if(!globalThis.CasePoolExporter){throw new Error('本地 Excel 导出组件未加载');}
-    const result=await globalThis.CasePoolExporter.download({projectId:project(),rows:buildCasePoolExportRows(entries)});
+    const detailRows=entries.flatMap(({view})=>exportEvalAxesDetailRows(view));
+    const result=await globalThis.CasePoolExporter.download({projectId:project(),rows:buildCasePoolExportRows(entries),detailRows});
     setStatus('已导出 '+result.rowCount+' 条当前筛选结果：'+result.fileName);
   }catch(err){setStatus('导出失败：'+(err?.message || String(err)));}
   finally{button.disabled=false;button.textContent=originalText;}

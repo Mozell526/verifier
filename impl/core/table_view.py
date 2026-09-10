@@ -5,6 +5,7 @@ import importlib
 from collections import Counter
 from typing import Any, Dict, Iterable, List, Mapping, Optional
 
+from . import stop_reasons
 from .capability_carrier import carrier_text
 from .judge_protocol import execution_failure_markers
 from .schema import AttributeResult, CheckReport, FallbackDecision, FrontendViewModel, JudgeResult, RunTrace, normalize_attribute_result, normalize_check_report, normalize_frontend_view, normalize_judge_result, normalize_run_trace, to_dict, trace_conversation_summary, trace_conversation_transcript, trace_extracted_output, trace_output_source, trace_turn_records
@@ -190,17 +191,48 @@ def eval_axes_summary(report: Any) -> List[Dict[str, Any]]:
             continue
         summary = item.get("summary") if isinstance(item.get("summary"), dict) else {}
         usage = item.get("usage") if isinstance(item.get("usage"), dict) else {}
+        type_id = str(item.get("type_id") or item.get("axis_id") or "")
+        status = str(item.get("status") or "")
+        items = [dict(entry) for entry in (summary.get("items") or []) if isinstance(entry, dict)]
         rows.append({
             "axis_id": str(item.get("axis_id") or ""),
-            "title": str(item.get("title") or item.get("type_id") or ""),
-            "status": str(item.get("status") or ""),
+            "type_id": type_id,
+            "title": str(item.get("title") or type_id),
+            "status": status,
             "verdict": item.get("verdict"),
             "text": str(summary.get("text") or item.get("error") or ""),
-            "items": [dict(entry) for entry in (summary.get("items") or []) if isinstance(entry, dict)],
+            "items": items,
+            "tokens": eval_axis_tokens(type_id, status, item.get("verdict"), items),
             # 实际命中的模型（axe-v4 D12）：对照时能看出这条是不是备用模型判的
             "llm_model": str(usage.get("llm_model") or ""),
+            "llm_calls": int(usage.get("llm_calls") or 0),
+            "tool_calls": int(usage.get("tool_calls") or 0),
+            "elapsed_ms": int(usage.get("elapsed_ms") or 0),
+            "timed_out": bool(usage.get("timed_out")),
         })
     return rows
+
+
+def eval_axis_tokens(type_id: str, status: str, verdict: Any, items: List[Dict[str, Any]]) -> List[str]:
+    """一条轴的结论压成可筛选令牌 `轴id:值`，导出到 Excel 后用"包含 truthfulness:refuted"就能筛。
+
+    轴级 verdict 一个令牌；item 级按出现过的值各一个令牌并带个数（refuted×1）；没跑成用状态当值（failed/blocked）；
+    未启用不出令牌——它不是结论。轴 id 用 type_id 而不是中文标题：与预设配置一致，不随翻译漂移。
+    """
+    if not type_id or status == "disabled":
+        return []
+    if status != "succeeded":
+        return [f"{type_id}:{status}"]
+    if verdict not in (None, ""):
+        return [f"{type_id}:{verdict}"]
+    counts: Dict[str, int] = {}
+    for entry in items:
+        value = str(entry.get("value") or "").strip()
+        if value:
+            counts[value] = counts.get(value, 0) + 1
+    if not counts:
+        return [f"{type_id}:empty"]
+    return [f"{type_id}:{value}×{count}" for value, count in counts.items()]
 
 
 def _root_cause(attribute: Optional[AttributeResult]) -> str:
@@ -361,6 +393,7 @@ def build_trace_table_row(
         fulfillment_status=fulfillment_status,
         carrier_placement=placement,
         eval_axes_summary=eval_axes_summary(case_context.get("eval_axes")),
+        stage_timings={k: int(v) for k, v in (case_context.get("stage_timings") or {}).items() if isinstance(v, (int, float))},
         judge_summary=judge_summary,
         attribution_summary=attribution_summary,
         check_summary=check_summary,
@@ -374,6 +407,12 @@ def build_trace_table_row(
         root_cause_summary=_short_value(_root_cause(attribute), 900),
         created_at=str(trace.created_at or ""),
         stop_reason=str(trace.stop_reason or ""),
+        stop_attribution=stop_reasons.attribution(trace.stop_reason),
+        driver_health=stop_reasons.driver_health(
+            trace.stop_reason,
+            trace.interaction_controller_status,
+            trace.interaction_controller_error,
+        ).to_dict(),
         interaction_mode=str(trace.interaction_mode or ("interactive_intent" if conversation_detail else "single_turn")),
         conversation_summary=_conversation_summary(trace),
         conversation_detail=conversation_detail,
@@ -405,7 +444,7 @@ def build_trace_table_row_from_run(run: Dict[str, Any]) -> TraceTableRow:
     attribute = normalize_attribute_result(run.get("attribute"))
     view = normalize_frontend_view(run.get("frontend_view"))
     check = normalize_check_report(run.get("check"))
-    case_context = {key: run.get(key) for key in ("id", "scenario", "execution_mode", "output_source", "reference", "output", "capability_carrier", "eval_axes") if run.get(key) is not None}
+    case_context = {key: run.get(key) for key in ("id", "scenario", "execution_mode", "output_source", "reference", "output", "capability_carrier", "eval_axes", "stage_timings") if run.get(key) is not None}
     return build_trace_table_row(trace, judge, attribute, view, check, case_context=case_context)
 
 

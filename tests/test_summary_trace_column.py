@@ -30,8 +30,9 @@ def test_case_pool_keeps_output_reference_adjacent_and_puts_trace_last():
 
     assert (
         "<th>Output / 被评估输出</th><th>Reference</th><th>状态</th>"
-        "<th>Score / Judge</th><th>归因摘要</th><th>Trace</th><th>裁决</th><th>扩展轴（试验）</th>"
+        "<th>Score / Judge</th><th>归因摘要</th><th>Trace</th><th>裁决</th><th title="
     ) in source
+    assert "扩展轴结论</th></tr></thead>" in source
     assert "<td class=\"case-output\">'+renderOutputCell(v)+'</td><td class=\"case-reference\">'+renderReferenceCell(v)+'</td>" in source
     # 旧轴2的"裁决"紧跟 Trace；扩展评估轴（试验）作为最后一列挂在它右边，新旧同行可对读。
     assert (
@@ -64,7 +65,7 @@ def test_output_cell_renders_only_schema_shaped_item_output():
     end = source.index("\nfunction ", start + 1)
     renderer = source[start:end]
 
-    assert "formatJsonCell(item.output)" in renderer
+    assert "formatJsonCell(prettyParsedClone(item.output))" in renderer
     assert "item.trace" not in renderer
     assert "interactionSummary" not in renderer
     assert "judge" not in renderer
@@ -111,7 +112,7 @@ def test_live_new_request_clears_stale_chain_results_before_running():
 def test_output_and_reference_share_json_formatting():
     source = _summary_source()
 
-    assert "formatJsonCell(item.output)" in source
+    assert "formatJsonCell(prettyParsedClone(item.output))" in source
     assert "formatJsonCell(ref)" in source
     assert "function renderSchemaFields" not in source
     assert "function inputReference(item){return item.reference || null;}" in source
@@ -239,7 +240,7 @@ def test_light_case_persists_execution_failure_bit():
 
 def test_batch_submission_sends_only_mock_case_fields():
     source = _summary_source()
-    assert "function transportCase(item){return {id:item.id,project_id:item.project_id,scenario:item.scenario,intent:item.intent,live_request:item.live_request,output:item.output??null,reference:item.reference??null};}" in source
+    assert "function transportCase(item){return {id:item.id,project_id:item.project_id,scenario:item.scenario,intent:item.intent,live_request:item.live_request,output:item.output??null,reference:item.reference??null,seed:item.seed??null};}" in source
     assert "cases:selected.map(transportCase)" in source
 
 
