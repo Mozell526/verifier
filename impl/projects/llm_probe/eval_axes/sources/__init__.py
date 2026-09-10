@@ -36,7 +36,8 @@ def expand_sources(description, *, material_catalog=False):
     for index in indices:
         uri = 'es://' + index
         snapshot = client.index_uuid(index) + '@' + datetime.now(timezone.utc).isoformat()
-        match = re.search(re.escape('{' + uri + '}') + r'([^\n。{}]*[。]?)', description)
+        # 引用后面到句号为止的那段话当作该知识源的说明；紧跟着就是句号/逗号时说明为空，别把标点当说明。
+        match = re.search(re.escape('{' + uri + '}') + r'[。，；：、,;:\s]*([^\n。{}]*)', description)
         catalog.append({'source': 'es', 'uri': uri, 'title': index,
                         'description': match.group(1).strip() if match else '',
                         'doc_count': client.count(index), 'snapshot_id': snapshot})

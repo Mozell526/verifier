@@ -133,7 +133,7 @@ def build_context(spec: Any, trace: RunTrace, capability: str, truth: Mapping[st
     context["intent_frame"] = frame
     if truth:
         context["user_prompt_extras"]["truthfulness"] = {
-            "claims": [{key: claim.get(key) for key in ("claim_id", "text", "verdict", "reason", "citations")}
+            "claims": [{key: claim.get(key) for key in ("claim_id", "text", "context", "verdict", "reason", "citations")}
                        for claim in truth.get("claims", [])]
         }
         context["system_prompt_extras"].append(
@@ -270,7 +270,8 @@ AXIS_TYPE = AxisType(
     verdict_path="overall_fulfillment.status",
     scenario_fields=(Field("description", required=True, expand="prompt_load"),),
     # 1 次判定 + 至多 1 次 reprompt；llm_probe 轴1不给工具。
-    limits=ExecutionLimits(llm_calls=2, tool_calls=0, seconds=None),
+    # 单次 judge 调用（含一次 reprompt），墙钟实际由 llm.request_timeout_seconds 兜底；seconds 只作声明与对照口径。
+    limits=ExecutionLimits(llm_calls=2, tool_calls=0, seconds=600),
     run=run_fulfillment,
     implementation_files=(
         "impl/projects/llm_probe/eval_axes/adapters/fulfillment.py",

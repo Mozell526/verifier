@@ -426,6 +426,29 @@ def test_adapter_exception_is_isolated_to_that_axis(monkeypatch) -> None:
     assert results["fulfillment"].status == STATUS_SUCCEEDED
 
 
+def test_runner_hands_adapter_a_deadline_from_limits_seconds(monkeypatch) -> None:
+    """seconds 是协作式上限：运行器算好截止时刻交给 run()，adapter 在开下一次调用前查；到点报 failed 且写明超时。"""
+    seen: dict[str, Any] = {}
+
+    def slow(_inputs, _axis, runtime) -> RunOutcome:
+        seen["deadline"] = runtime.deadline
+        monkeypatch.setattr(runner_module.time, "monotonic", lambda: runtime.deadline + 1)
+        runtime.ensure_time_left("第二次调用")
+        raise AssertionError("到点后不该继续")
+
+    custom = AxisType(
+        type_id="custom", title="c", summary="c", verdict_scope="axis", verdict_enum=(Verdict("ok", "ok"),),
+        depend_on=(), trigger_when=None, inputs=(Input("trace", source="sample.trace"),), output_fields=("verdict",),
+        verdict_path="verdict", scenario_fields=(Field("description"),), limits=ExecutionLimits(seconds=5), run=slow,
+    )
+    monkeypatch.setattr(runner_module, "get_axis_type", lambda type_id: custom if type_id == "custom" else get_axis_type(type_id))
+    result = run_axes(load_project("llm_probe"), _trace(), [ScenarioAxis("custom", True, "x")], scenario_id="s")[0]
+    assert seen["deadline"] is not None
+    assert result.status == STATUS_FAILED
+    assert "超时（上限 5s）" in result.error and "第二次调用" in result.error
+    assert result.usage["timed_out"] is True
+
+
 def test_runner_requires_summary_for_succeeded_axis(monkeypatch) -> None:
     custom = AxisType(
         type_id="custom",
@@ -635,26 +658,43 @@ def test_table_row_carries_eval_axes_summary_through_compact_run() -> None:
     judge = JudgeResult(trace_id="probe-trace-1", project_id="llm_probe", overall_fulfillment={"status": "not_fulfilled"})
     run = {
         "trace": _trace(), "judge": judge, "attribute": None, "case_id": "case-1",
+        "stage_timings": {"live_ms": 6200, "judge_ms": 40100, "eval_axes_ms": 105000},
         "eval_axes": {"run_id": "axes-x", "scenario_id": "client_search", "results": [
             {"axis_id": "fulfillment", "type_id": "fulfillment", "title": "能力兑现", "status": "succeeded", "verdict": "not_fulfilled",
+             "usage": {"llm_calls": 1, "tool_calls": 0, "elapsed_ms": 45000, "llm_model": "m"},
              "summary": {"text": "not_fulfilled · blocking=[x]", "items": [{"key": "x", "value": "not_fulfilled", "reason": "r", "blocking": True}]}},
             {"axis_id": "carryability", "type_id": "carryability", "title": "承载性", "status": "not_applicable", "verdict": None,
              "summary": {"text": "fulfillment=fulfilled，不在筛选范围 [not_fulfilled]，不判", "items": []}},
+            {"axis_id": "truthfulness", "type_id": "truthfulness", "title": "真实性", "status": "succeeded", "verdict": None,
+             "usage": {"llm_calls": 3, "tool_calls": 11, "elapsed_ms": 60400},
+             "summary": {"text": "$refuted…", "items": [{"key": "c1", "value": "refuted", "reason": "r1"}, {"key": "c2", "value": "verified", "reason": "r2"}, {"key": "c3", "value": "refuted", "reason": "r3"}]}},
         ]},
     }
     compact = compact_run(run)
     assert compact["eval_axes"] is run["eval_axes"]
     rows = compact["table_row"]["eval_axes_summary"]
-    assert [(r["axis_id"], r["status"], r["verdict"]) for r in rows] == [("fulfillment", "succeeded", "not_fulfilled"), ("carryability", "not_applicable", None)]
+    assert [(r["axis_id"], r["status"], r["verdict"]) for r in rows] == [("fulfillment", "succeeded", "not_fulfilled"), ("carryability", "not_applicable", None), ("truthfulness", "succeeded", None)]
     assert rows[0]["title"] == "能力兑现"
     assert rows[0]["text"] == "not_fulfilled · blocking=[x]"
     assert rows[0]["items"][0]["value"] == "not_fulfilled"
+    # 结论令牌 `轴id:值`：轴级一个；item 级按值计数；没跑成用状态；Excel 里「包含 truthfulness:refuted」就能筛。
+    assert rows[0]["tokens"] == ["fulfillment:not_fulfilled"]
+    assert rows[1]["tokens"] == ["carryability:not_applicable"]
+    assert rows[2]["tokens"] == ["truthfulness:refuted×2", "truthfulness:verified×1"]
+    # 耗时与调用数一起搬到表格层，主表/导出不用再翻 usage。
+    assert (rows[0]["elapsed_ms"], rows[0]["llm_calls"], rows[0]["tool_calls"], rows[0]["llm_model"]) == (45000, 1, 0, "m")
+    assert (rows[2]["elapsed_ms"], rows[2]["tool_calls"]) == (60400, 11)
+    assert compact["table_row"]["stage_timings"] == {"live_ms": 6200, "judge_ms": 40100, "eval_axes_ms": 105000}
     # 整体失败折成一条伪轴
     failed = build_trace_table_row_from_run({"trace": _trace(), "judge": judge, "eval_axes": {"error": "RuntimeError: boom"}})
     assert failed.eval_axes_summary == [{"axis_id": "", "title": "扩展评估轴", "status": "failed", "verdict": None, "text": "RuntimeError: boom", "items": []}]
     # 没有 eval_axes 的 run：字段为空列表，其他字段不受影响
     plain = build_trace_table_row_from_run({"trace": _trace(), "judge": judge})
-    assert plain.eval_axes_summary == []
+    assert plain.eval_axes_summary == [] and plain.stage_timings == {}
+    from impl.core.table_view import eval_axis_tokens
+    assert eval_axis_tokens("truthfulness", "disabled", None, []) == []
+    assert eval_axis_tokens("truthfulness", "succeeded", None, []) == ["truthfulness:empty"]
+    assert eval_axis_tokens("truthfulness", "failed", None, [{"value": "verified"}]) == ["truthfulness:failed"]
     # 反序列化保留
     restored = normalize_trace_table_row(to_dict(compact["table_row"]))
     assert restored.eval_axes_summary == rows
@@ -874,7 +914,9 @@ def fake_es(monkeypatch):
             elif self.path == '/kb_policy/_settings/index.uuid':
                 result = {'kb_policy': {'settings': {'index': {'uuid': 'uuid-test'}}}}
             elif self.path == '/kb_policy/_search':
-                result = {'hits': {'hits': [{'_id': 'doc1', '_score': 2.0, 'highlight': {'clause': ['犹豫期二十日']}}]}}
+                asked = json.dumps(body, ensure_ascii=False)
+                hits = [] if '不存在' in asked else [{'_id': 'doc1', '_score': 2.0, '_source': documents.get('doc1', {}), 'highlight': {'clause': ['犹豫期二十日']}}]
+                result = {'hits': {'hits': hits}}
             elif self.path.startswith('/kb_policy/_doc/') and unquote(self.path.split('/_doc/')[1]) in documents:
                 result = {'found': True, '_source': documents[unquote(self.path.split('/_doc/')[1])]}
             else:
@@ -912,11 +954,24 @@ def test_es_tools_catalog_receipts_scope_and_quote_readback(fake_es):
     tools = {t.name: t.entrypoint for t in build_tools(catalog, receipts)}
     outline = tools['es_outline'](index='kb_policy')
     assert [f['name'] for f in outline['fields'] if f['full_text']] == ['clause', 'nested.title']
-    search = tools['es_search'](index='kb_policy', query='犹豫期')
+    search = tools['es_search'](index='kb_policy', query='犹豫期 康宁')
     assert search['hits'][0]['locator'] == 'doc1#clause'
+    assert search['hits'][0]['matched'] == ['犹豫期']
     sent = next(r for r in requests if r[0] == 'POST')
-    assert sent[2]['query']['multi_match']['fields'] == ['clause', 'nested.title']
+    # 与 material search 同语义：每词 phrase（子串）OR keyword 通配，词间 OR；不能把整串交给 ES 按单字 OR。
+    should = sent[2]['query']['bool']['should']
+    assert sent[2]['query']['bool']['minimum_should_match'] == 1
+    assert [c['multi_match'] for c in should if 'multi_match' in c] == [
+        {'query': '犹豫期', 'fields': ['clause', 'nested.title'], 'type': 'phrase'},
+        {'query': '康宁', 'fields': ['clause', 'nested.title'], 'type': 'phrase'},
+    ]
+    assert [c['wildcard'] for c in should if 'wildcard' in c] == [
+        {'tags': {'value': '*犹豫期*', 'case_insensitive': True}},
+        {'tags': {'value': '*康宁*', 'case_insensitive': True}},
+    ]
     assert sent[3] == 'ApiKey test-key'
+    empty = tools['es_search'](index='kb_policy', query='不存在的词')
+    assert empty['hits'] == [] and '零命中' in empty['note']
     assert tools['es_read'](index='kb_policy', locator='doc1#nested.title')['text'] == '保障条款'
     assert 'clause' in tools['es_read'](index='kb_policy', locator='doc1')['text']
     before = len(requests)
@@ -977,7 +1032,9 @@ def test_es_read_truncation_and_explicit_fields(fake_es):
     assert result['truncated'] and len(result['text']) == 6000
     assert 'error' in tools.es_search('kb_policy', 'x', ['not_in_mapping'])
     tools.es_search('kb_policy', 'x', ['clause.raw'])
-    assert requests[-1][2]['query']['multi_match']['fields'] == ['clause.raw']
+    # 显式指定 fields 时只查这些字段，不再附带 keyword 通配。
+    should = requests[-1][2]['query']['bool']['should']
+    assert should == [{'multi_match': {'query': 'x', 'fields': ['clause.raw'], 'type': 'phrase'}}]
 
 
 def test_source_dispatch_preserves_material_entries(monkeypatch):
@@ -991,7 +1048,9 @@ def test_source_dispatch_preserves_material_entries(monkeypatch):
 
 def test_carryability_es_quotes_are_read_back(fake_es, monkeypatch):
     from impl.projects.llm_probe.eval_axes.adapters.carryability import BoxBoundaryCarrier
-    carrier = BoxBoundaryCarrier(load_project('llm_probe'), '范围 {es://kb_policy}', 'axes-test')
+    from impl.projects.llm_probe.eval_axes.types import AxisRuntime
+    runtime = AxisRuntime(spec=load_project('llm_probe'), run_id='axes-test', trace_id='axes-test', scenario_id='s', case_id='c')
+    carrier = BoxBoundaryCarrier(load_project('llm_probe'), '范围 {es://kb_policy}', runtime)
     monkeypatch.setattr(carrier, '_call_llm', lambda *args: {'carry': 'yes', 'reason': '条款覆盖', 'citations': [{'source': 'es://kb_policy', 'ref': 'doc1#clause', 'note': '犹豫期二十日'}]})
     verdict = carrier.verdict_for({'expectation_id': '查犹豫期'})
     assert verdict.carry == 'yes'
@@ -1022,27 +1081,58 @@ def _truth_verdict(verdict='refuted', note='犹豫期二十日'):
 
 
 def test_truthfulness_three_stages_isolated_and_deterministic(fake_es, monkeypatch):
-    extracted = {'claims': [{'claim_id': '天数', 'text': '犹豫期十五日'}, {'claim_id': '条款', 'text': '保障条款'}]}
+    # 断言 = text + context：上下文片段单独带着，核验时才知道该找哪个产品、哪个条件下的条款；不需要的填 []。
+    extracted = {'claims': [{'claim_id': '天数', 'text': '犹豫期十五日', 'context': ['康宁险']}, {'claim_id': '条款', 'text': '保障条款'}]}
     clients, options = _truth_llm(monkeypatch, extracted, [_truth_verdict(), {'verdict': 'unverifiable', 'reason': '没有相关原文', 'citations': []}])
-    result = run_axes(load_project('llm_probe'), _trace('犹豫期十五日；保障条款'), [ScenarioAxis('truthfulness', True, '核对事实 {es://kb_policy}')], scenario_id='s')[0]
+    result = run_axes(load_project('llm_probe'), _trace('康宁险犹豫期十五日；保障条款'), [ScenarioAxis('truthfulness', True, '核对事实 {es://kb_policy}')], scenario_id='s')[0]
     assert result.status == 'succeeded' and result.verdict is None
     assert result.output['coverage'] == {'extracted': 2, 'verified': 0, 'refuted': 1, 'unverifiable': 1}
     assert result.summary['text'].startswith('$refuted\n天数')
+    assert [item['key'] for item in result.summary['items']] == ['康宁险：犹豫期十五日', '保障条款']
     assert len(result.summary['items']) == 2 and result.usage['llm_calls'] == 3
+    expected_claims = [{'claim_id': '天数', 'text': '犹豫期十五日', 'context': ['康宁险']}, {'claim_id': '条款', 'text': '保障条款', 'context': []}]
     assert result.output['sources'][0]['snapshot_id'].startswith('uuid-test@')
     assert options[0]['tools'] == []
     extraction = json.loads(clients[0].calls[0]['user'])
     assert set(extraction) == {'output_text', 'question'}
+    # 提取与核验都是摘抄/查资料，不吃深推理：与生产轴2一致用 low。
+    assert all(call.get('reasoning_effort') == 'low' for client in clients for call in client.calls)
     for i in (1, 2):
         payload = json.loads(clients[i].calls[0]['user'])
-        assert set(payload) == {'claim', 'description', 'catalog', 'feedback'}
-        assert payload['claim'] == extracted['claims'][i - 1]
+        # 首轮就带知识源骨架，模型不必再花一次工具调用 outline，也一开始就知道字段在哪。
+        assert set(payload) == {'claim', 'description', 'catalog', 'outline', 'feedback'}
+        assert payload['outline'][0]['index'] == 'kb_policy'
+        assert [f['name'] for f in payload['outline'][0]['fields'] if f['type'] == 'keyword'] == ['clause.raw', 'tags']
+        assert payload['claim'] == expected_claims[i - 1]
         assert 'question' not in payload and 'output_text' not in payload
         assert options[i]['tool_call_limit'] == 16
         assert {tool.name for tool in options[i]['tools']} == {'es_outline', 'es_search', 'es_read'}
 
 
-@pytest.mark.parametrize('claims,success', [([], True), ([{'claim_id': 'fake', 'text': '原文中不存在'}], False), ([{'claim_id': 'x', 'text': '答 复'}], False)])
+def test_truthfulness_extraction_repairs_schema_block_once(monkeypatch):
+    """提取被结构校验阻断（如模型把 schema 里的 required 当字段输出）时，与生产 judge 一样只做一次带具体错误的格式修复。"""
+    attempts = []
+
+    def script(role, system, user):
+        attempts.append(user)
+        if len(attempts) == 1:
+            raise ValueError('额外字段不允许：required')
+        assert '上次输出不符合要求' in user and 'required' in user
+        return {'claims': []}
+
+    clients = []
+    def factory(spec, role, **kwargs):
+        client = FakeLlm(role, script)
+        clients.append(client)
+        return client
+    monkeypatch.setattr('impl.core.llm_client.project_llm_client', factory)
+    result = run_axes(None, _trace('答复'), [ScenarioAxis('truthfulness', True, '核对事实')], scenario_id='s')[0]
+    assert result.status == 'succeeded' and len(attempts) == 2
+    assert result.usage['llm_calls'] == 2
+
+
+@pytest.mark.parametrize('claims,success', [([], True), ([{'claim_id': 'fake', 'text': '原文中不存在'}], False), ([{'claim_id': 'x', 'text': '答 复'}], False),
+                                            ([{'claim_id': 'x', 'text': '答复', 'context': ['原文中不存在']}], False)])
 def test_truthfulness_empty_and_fabricated_claims(monkeypatch, claims, success):
     clients, options = _truth_llm(monkeypatch, {'claims': claims}, [])
     result = run_axes(None, _trace('答复'), [ScenarioAxis('truthfulness', True, '核对事实')], scenario_id='s')[0]
@@ -1052,7 +1142,27 @@ def test_truthfulness_empty_and_fabricated_claims(monkeypatch, claims, success):
     if success:
         assert result.summary['text'] == '回答不含可核验的事实断言'
     else:
-        assert result.output['errors']
+        assert result.output['errors'] and result.usage['llm_calls'] == 2
+
+
+def test_truthfulness_context_must_not_leak_other_claims(monkeypatch):
+    """context 带了别条断言的值 = 把整句塞回来，隔离失效，程序打回；给一次带具体错误的修复机会，仍偷懒则 failed。"""
+    answer = '安心医疗险的等待期为三十日，免赔额为一万元。'
+    lazy = {'claims': [
+        {'claim_id': '1', 'text': '等待期为三十日', 'context': [answer]},
+        {'claim_id': '2', 'text': '免赔额为一万元', 'context': ['安心医疗险']},
+    ]}
+    attempts = []
+
+    def script(role, system, user):
+        attempts.append(user)
+        return lazy
+
+    monkeypatch.setattr('impl.core.llm_client.project_llm_client', lambda spec, role, **kwargs: FakeLlm(role, script))
+    result = run_axes(None, _trace(answer), [ScenarioAxis('truthfulness', True, '核对事实')], scenario_id='s')[0]
+    assert result.status == 'failed' and '含了断言 2 的值' in result.summary['text']
+    assert len(attempts) == 2 and '含了断言 2 的值' in attempts[1]
+    assert result.output['claims'] == [] and result.usage['llm_calls'] == 2
 
 
 @pytest.mark.parametrize('invalid', [_truth_verdict(note='十五日'), {'verdict': 'verified', 'reason': '支持', 'citations': []}, {'error': 'llm down'}])
@@ -1066,13 +1176,14 @@ def test_truthfulness_retries_invalid_citations_then_succeeds(fake_es, monkeypat
 
 
 def test_truthfulness_exhaustion_retains_partial_results(fake_es, monkeypatch):
-    clients, _ = _truth_llm(monkeypatch, {'claims': [{'claim_id': 'one', 'text': '十五日'}, {'claim_id': 'two', 'text': '二十日'}]}, [_truth_verdict(), _truth_verdict(note='伪造'), _truth_verdict(note='伪造'), _truth_verdict(note='伪造')])
+    clients, _ = _truth_llm(monkeypatch, {'claims': [{'claim_id': 'one', 'text': '十五日'}, {'claim_id': 'two', 'text': '二十日'}]}, [_truth_verdict(), _truth_verdict(note='伪造'), _truth_verdict(note='伪造')])
     result = run_axes(None, _trace('十五日二十日'), [ScenarioAxis('truthfulness', True, '{es://kb_policy}')], scenario_id='s')[0]
     assert result.status == 'failed' and result.verdict is None
     assert len(result.output['claims']) == len(result.summary['items']) == 1
     assert result.output['errors'][0]['claim_id'] == 'two'
-    assert result.output['errors'][0]['attempts'] == 3
-    assert len(clients) == 5
+    # 每条断言最多 2 次：首轮上下文已经把骨架和检索语义给全，重试是兜底不是常态。
+    assert result.output['errors'][0]['attempts'] == 2
+    assert len(clients) == 4
 
 
 def test_truthfulness_tool_errors_cannot_be_unverifiable(fake_es, monkeypatch):
@@ -1087,7 +1198,7 @@ def test_fulfillment_truth_adds_exactly_two_prompt_extras(output_text):
     from impl.projects.llm_probe.eval_axes.adapters.fulfillment import build_context
     spec, trace = load_project('llm_probe'), _trace(output_text)
     base = build_context(spec, trace, CAPABILITY)
-    truth = {'claims': [{'claim_id': 'days', 'text': '十五日', **_truth_verdict(), 'private': 'must not leak'}], 'coverage': {'refuted': 1}}
+    truth = {'claims': [{'claim_id': 'days', 'text': '十五日', 'context': ['康宁险'], **_truth_verdict(), 'private': 'must not leak'}], 'coverage': {'refuted': 1}}
     original = deepcopy(truth)
     enriched = build_context(spec, trace, CAPABILITY, truth)
     assert enriched['user_prompt_extras'].pop('truthfulness') == {'claims': [{k: v for k, v in truth['claims'][0].items() if k != 'private'}]}

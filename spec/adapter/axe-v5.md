@@ -162,7 +162,8 @@ AXIS_TYPE = AxisType(
 ```yaml
 claims:
   - claim_id: 犹豫期天数
-    text: "犹豫期为15天"                    # 逐字摘自回答
+    text: "犹豫期为15天"                    # 一个具体值及其事项，逐字摘自回答；一句多值拆多条，套话/建议不抽
+    context: ["康宁终身险"]                  # 核验所需的最少上下文片段（对象、成立条件），逐字摘自回答；不得含别条断言的值
     verdict: refuted
     reason: "知识库条款写明犹豫期为20天"
     citations: [{source: es://kb_policy, ref: "doc_8821#clause_text", note: "犹豫期二十日"}]
@@ -177,7 +178,9 @@ errors: []                                  # 某条断言核验失败（工具�
 
 ```
 ① 提取断言   输入：output_text（+ 用户问题作背景）
-            输出：claims[].text（逐字引自回答，机械核验必须在 output_text 里）
+            输出：claims[].text + claims[].context（都逐字引自回答，机械核验必须在 output_text 里；
+                  一条断言一个值，context 保住对象和条件——只留“犹豫期二十天”会被别的产品的条款核验成 verified；
+                  context 不得含别条断言的 text，否则等于把整句塞回来，隔离失效，程序打回）
             一次结构化调用；不给工具
 ② 逐条核验   输入：一条断言 + 框描述 + 目录条目 + es_*/material_* 工具
             输出：verdict / reason / citations；refuted 与 verified 必须有引用，引用回读核验，不过打回重试（≤3）
@@ -198,7 +201,7 @@ inputs=(
 ),
 ```
 
-`build_context` 里：`inputs.get("truth")` 有值时，`user_prompt_extras["truthfulness"] = {claims: [...仅 claim_id/text/verdict/reason/citations...]}`，`system_prompt_extras` 追加：
+`build_context` 里：`inputs.get("truth")` 有值时，`user_prompt_extras["truthfulness"] = {claims: [...仅 claim_id/text/context/verdict/reason/citations...]}`，`system_prompt_extras` 追加：
 
 > ## 真实性核验结果
 > 上游已对回答中的事实断言逐条核验。`refuted` 的断言视为事实错误，据此判相关期望 not_fulfilled；`unverifiable` 不构成失败依据；不要重复核验，也不要发明核验结果里没有的断言。

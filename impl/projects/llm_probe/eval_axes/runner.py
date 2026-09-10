@@ -13,6 +13,7 @@ import hashlib
 import json
 import time
 import uuid
+from dataclasses import replace
 from typing import Any, Mapping, Sequence
 
 from impl.core.config import ROOT
@@ -30,6 +31,7 @@ from .types import (
     VERDICT_SCOPE_AXIS,
     AxisResult,
     AxisRuntime,
+    AxisTimeout,
     AxisType,
     ScenarioAxis,
 )
@@ -209,8 +211,18 @@ def _run_one(
     # 5. run
     started_at = now_iso()
     started = time.monotonic()
+    seconds = axis_type.limits.seconds
+    runtime = replace(runtime, deadline=(started + float(seconds)) if seconds else None)
     try:
         outcome = axis_type.run(inputs, axis, runtime)
+    except AxisTimeout as exc:
+        result = _base_result(axis, axis_type, runtime, STATUS_FAILED)
+        result.trigger_decision = trigger_decision
+        result.inputs_used = inputs_used
+        result.started_at = started_at
+        result.finished_at = now_iso()
+        result.usage = {"elapsed_ms": int((time.monotonic() - started) * 1000), "timed_out": True}
+        return _fail(result, f"超时（上限 {seconds:g}s）：{exc}")
     except Exception as exc:  # 单轴失败隔离：不让一个 adapter 的异常拖垮同批其他轴
         result = _base_result(axis, axis_type, runtime, STATUS_FAILED)
         result.trigger_decision = trigger_decision

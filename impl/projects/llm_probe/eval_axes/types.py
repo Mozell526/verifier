@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Mapping, Optional
 
@@ -123,7 +124,9 @@ class Field:
 
 @dataclass(frozen=True)
 class ExecutionLimits:
-    """首版是声明 + 事后记录；只有 tool_calls 由现有 tool_call_limit 硬限（v4 D8）。"""
+    """tool_calls 由现有 tool_call_limit 硬限（v4 D8）；seconds 是协作式墙钟上限：运行器把截止时刻
+    交给 run()，adapter 在每次 LLM 调用之间查 runtime.ensure_time_left()，到点就停止开新的调用并报失败。
+    不强杀线程——一次 LLM 调用最长受 llm.request_timeout_seconds 约束。llm_calls 只记录。"""
 
     llm_calls: Optional[int] = None
     tool_calls: Optional[int] = None
@@ -147,13 +150,23 @@ class ScenarioAxis:
 
 @dataclass
 class AxisRuntime:
-    """运行器交给 run() 的环境：spec、本次试验标识。LLM 调用统一挂在 trace_id 下。"""
+    """运行器交给 run() 的环境：spec、本次试验标识、本轴截止时刻。LLM 调用统一挂在 trace_id 下。"""
 
     spec: Any
     run_id: str
     trace_id: str
     scenario_id: str
     case_id: str
+    deadline: Optional[float] = None  # time.monotonic() 时刻；None = 不限
+
+    def ensure_time_left(self, about: str = "") -> None:
+        """adapter 在开下一次 LLM 调用前调用；超过本轴 seconds 上限即抛 AxisTimeout。"""
+        if self.deadline is not None and time.monotonic() >= self.deadline:
+            raise AxisTimeout(f"超出本轴时间上限，未再开始新的调用" + (f"（{about}）" if about else ""))
+
+
+class AxisTimeout(RuntimeError):
+    """协作式超时：由 AxisRuntime.ensure_time_left 抛出，运行器记为 failed。"""
 
 
 @dataclass

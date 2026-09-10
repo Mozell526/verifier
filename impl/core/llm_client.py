@@ -366,13 +366,30 @@ def _extract_tool_call_log(result: Any) -> list:
     return logs
 
 
+_TOOL_LIMIT_REFUSAL = "Tool call limit reached."
+
+
+def _executed_tool_calls(tool_call_log: list) -> int:
+    """只数 SDK 真正执行了的调用。
+
+    agno 到达 tool_call_limit 后不再执行，而是以固定文案回给模型；模型一轮并发发 2 个调用时，
+    最后一轮常常多要 1–2 个被拒的。它们没花预算，也不该让随后给出的合法答案作废。
+    """
+    return sum(
+        1 for entry in tool_call_log
+        if not (isinstance(entry, dict) and isinstance(entry.get("result"), str)
+                and entry["result"].startswith(_TOOL_LIMIT_REFUSAL))
+    )
+
+
 def _tool_budget_error(tool_call_log: list, limit: Optional[int]) -> Optional[str]:
     """Return a deterministic protocol error when an SDK run exceeds its budget."""
-    if limit is None or len(tool_call_log) <= int(limit):
+    if limit is None:
         return None
-    return (
-        f"actual tool calls {len(tool_call_log)} exceed configured limit {int(limit)}"
-    )
+    executed = _executed_tool_calls(tool_call_log)
+    if executed <= int(limit):
+        return None
+    return f"actual tool calls {executed} exceed configured limit {int(limit)}"
 
 
 def _extract_messages(result: Any) -> List[Dict[str, Any]]:
@@ -910,7 +927,8 @@ class LlmClient:
         if tool_budget_error:
             runtime["tool_budget"] = {
                 "configured_limit": int(effective_tool_call_limit),
-                "actual_calls": len(tool_call_log),
+                "actual_calls": _executed_tool_calls(tool_call_log),
+                "requested_calls": len(tool_call_log),
                 "status": "exceeded",
             }
             elapsed_ms = int((time.time() - start_ts) * 1000)

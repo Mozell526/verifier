@@ -413,10 +413,20 @@ def _request_from_trace(trace) -> dict | None:
     return None
 
 
-def _run_payload(trace, judge_result, attribute_result, case_id="", execution_mode="", output_source="", error=""):
+def _timed(timings: Dict[str, int], key: str, fn, *args, **kwargs):
+    """记一段墙钟到 timings[key]（毫秒）。只是记账，不改变被包函数的行为。"""
+    started = time.monotonic()
+    try:
+        return fn(*args, **kwargs)
+    finally:
+        timings[key] = max(0, int((time.monotonic() - started) * 1000))
+
+
+def _run_payload(trace, judge_result, attribute_result, case_id="", execution_mode="", output_source="", error="", stage_timings=None):
     spec = load_project(trace.project_id)
     if not trace.config_fingerprint:
         attach_config_provenance(trace, spec)
+    timings: Dict[str, int] = dict(stage_timings or {})
     run = {
         "trace": trace,
         "judge": judge_result,
@@ -424,18 +434,24 @@ def _run_payload(trace, judge_result, attribute_result, case_id="", execution_mo
         "case_id": case_id or trace.case_id,
         "execution_mode": execution_mode or trace.execution_mode,
         "output_source": output_source or trace.output_source,
+        "stage_timings": timings,
     }
     # 扩展评估轴（试验）：判后 pass，预设有启用的框才跑；自身失败只落在 eval_axes 键里，不影响下面的裁决和 run_status。
-    axes_report = eval_axes_report(spec, trace, judge_result)
+    axes_report = _timed(timings, "eval_axes_ms", eval_axes_report, spec, trace, judge_result)
     if axes_report is not None:
         run["eval_axes"] = axes_report
-    report = live_carrier_report(
+    else:
+        timings.pop("eval_axes_ms", None)
+    report = _timed(
+        timings, "carrier_ms", live_carrier_report,
         spec,
         judge_result,
         request=_request_from_trace(trace),
     )
     if report is not None:
         run["capability_carrier"] = report
+    else:
+        timings.pop("carrier_ms", None)
         carrier_errors = collect_report_errors(report)
         if carrier_errors:
             run["run_status"] = "error"
@@ -532,11 +548,12 @@ def _run_interactive_case(project_id: str, normalized: Any) -> Dict[str, Any]:
     if not isinstance(live, MultiTurnInteractiveLive):
         return _unsupported_interactive_run(project_id, normalized.case_id, normalized.source_case)
 
+    timings: Dict[str, int] = {}
     # 调 trace 层入口（内部完成意图计算、execute_live、RunTrace 组装）
-    trace = trace_from_live(live, normalized)
+    trace = _timed(timings, "live_ms", trace_from_live, live, normalized)
 
     # 继续单轮下游链路（judge/attribute/cluster/check/frontend_view）
-    judge_result = judge(project_id, trace, user_intent=None)
+    judge_result = _timed(timings, "judge_ms", judge, project_id, trace, user_intent=None)
     attribute_result = attribute(project_id, trace, judge_result, manual_override=False)
     cluster_summary = cluster(project_id, [attribute_result])
     check_report = check(project_id, trace, judge_result, attribute_result, cluster_summary)
@@ -549,6 +566,7 @@ def _run_interactive_case(project_id: str, normalized: Any) -> Dict[str, Any]:
         case_id=trace.case_id,
         execution_mode=trace.execution_mode,
         output_source=trace.output_source,
+        stage_timings=timings,
     )
     run["cluster"] = cluster_summary
     run["check"] = check_report
@@ -758,14 +776,15 @@ def _run_chain_replay(project_id: str, trace: RunTrace, context: TraceExecutionC
 def run_chain(project_id: str, case: SingleTurnCase, user_intent: Optional[str] = None) -> Dict[str, Any]:
     if not isinstance(case, SingleTurnCase):
         raise TypeError("run_chain requires a runtime SingleTurnCase; convert transport input at the boundary")
-    trace = live_run(project_id, case)
+    timings: Dict[str, int] = {}
+    trace = _timed(timings, "live_ms", live_run, project_id, case)
     effective_intent = user_intent if user_intent is not None else (case.user_intent or None)
-    judge_result = judge(project_id, trace, user_intent=effective_intent)
+    judge_result = _timed(timings, "judge_ms", judge, project_id, trace, user_intent=effective_intent)
     attribute_result = attribute(project_id, trace, judge_result, manual_override=False)
     cluster_summary = cluster(project_id, [attribute_result])
     check_report = check(project_id, trace, judge_result, attribute_result, cluster_summary)
     frontend = frontend_view(project_id, trace, judge_result, attribute_result, cluster_summary, check_report)
-    run = _run_payload(trace, judge_result, attribute_result, case_id=trace.case_id, execution_mode=trace.execution_mode, output_source=trace.output_source)
+    run = _run_payload(trace, judge_result, attribute_result, case_id=trace.case_id, execution_mode=trace.execution_mode, output_source=trace.output_source, stage_timings=timings)
     run["cluster"] = cluster_summary
     run["check"] = check_report
     run["frontend_view"] = frontend

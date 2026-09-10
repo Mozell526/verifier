@@ -83,6 +83,46 @@
       "url": "http://127.0.0.1:9006/api/v1/marketing-planning/intent-recognition"
     }
   },
+  "hr-handbook-qa": {
+    "axes": [
+      {
+        "description": "制度事实以员工手册知识库为准：{es://hr_handbook}。核验回答里关于公司制度（天数、期限、比例、金额、条件、是否允许）的每一条事实断言；知识库中没有对应条款的断言判无法核验，不要凭常识补全。",
+        "enabled": true,
+        "type": "truthfulness"
+      },
+      {
+        "description": "如果真实性轴给出了被驳斥的断言，对应期望直接判未满足；答案含未经核验的制度数字时不得判完全满足。",
+        "enabled": true,
+        "type": "fulfillment"
+      }
+    ],
+    "capability": "用户拿它办的事：问一个公司员工手册里的制度问题（年休假、试用期、加班、报销、考勤、离职等），得到一句依据制度条款、事实正确的中文答案。\n交付物是答案文本（output.choices[0].message.content），被提问者直接阅读使用；答案与制度事实一致、直接回应所问即算办成。答非所问、数字或期限说错、编造条款都算没办成。",
+    "mock_body": {
+      "input": {
+        "messages": [
+          {
+            "content": "{query}",
+            "role": "user"
+          }
+        ]
+      },
+      "model": "qwen-turbo",
+      "parameters": {
+        "incremental_output": false,
+        "result_format": "message"
+      }
+    },
+    "service": {
+      "headers": {
+        "Authorization": "Bearer ${BAILIAN_API_KEY}",
+        "X-DashScope-SSE": "enable"
+      },
+      "method": "POST",
+      "response_mode": "sse_last_frame",
+      "timeout_seconds": 180.0,
+      "url": "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"
+    }
+  },
   "policy-clause-qa": {
     "axes": [
       {

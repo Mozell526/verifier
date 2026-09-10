@@ -41,6 +41,7 @@ from ..types import (
     VERDICT_SCOPE_ITEM,
     AxisRuntime,
     AxisSummary,
+    AxisTimeout,
     AxisType,
     ExecutionLimits,
     Field,
@@ -58,13 +59,15 @@ _INPUT_FIELDS = ("overall_fulfillment", "business_expectations", "fulfillment_as
 class BoxBoundaryCarrier(TextCarrier):
     """边界来自场景轴的描述；其余行为与生产 TextCarrier 一致。"""
 
-    def __init__(self, spec: Any, description: str, trace_id: str) -> None:
+    def __init__(self, spec: Any, description: str, runtime: AxisRuntime) -> None:
         super().__init__(spec=spec)
         text, catalog = expand_sources(description)
         self._box_text = str(text or "").strip()
         self._box_catalog = [dict(item) for item in catalog]
-        self._trace_id = trace_id
+        self._runtime = runtime
+        self._trace_id = runtime.trace_id
         self.tool_calls = 0
+        self.timed_out = False
         # 逐条期望、逐次重试的模型调用记账合并在这里（llm_calls / llm_model / llm_endpoint …）。
         self.llm_usage: dict[str, Any] = {}
 
@@ -82,6 +85,12 @@ class BoxBoundaryCarrier(TextCarrier):
         feedback = ""
         last_error = "承载性判定无效"
         for attempt in range(self._retries):
+            # 到点后余下的期望全部记"超时未判"，不再开新的模型调用；已归位的保留。
+            try:
+                self._runtime.ensure_time_left(f"期望 {expectation_text[:40]}")
+            except AxisTimeout as exc:
+                self.timed_out = True
+                return CarrierError("text_carrier", "超出本轴时间上限", str(exc))
             receipts = []
             try:
                 result = self._call_llm(expectation_text, boundary, receipts, feedback)
@@ -184,9 +193,11 @@ def _summary(report: Mapping[str, Any]) -> AxisSummary:
 
 def run_carryability(inputs: Mapping[str, Any], axis: ScenarioAxis, runtime: AxisRuntime) -> RunOutcome:
     payload = dict(inputs["fulfillment"])
-    carrier = BoxBoundaryCarrier(runtime.spec, axis.description, runtime.trace_id)
+    carrier = BoxBoundaryCarrier(runtime.spec, axis.description, runtime)
     report = carrier.place(payload)
     usage = {"llm_calls": 0, **carrier.llm_usage, "tool_calls": carrier.tool_calls}
+    if carrier.timed_out:
+        usage["timed_out"] = True
     errors = list(report.get("errors") or [])
     summary = _summary(report)
     if errors:
@@ -211,8 +222,8 @@ AXIS_TYPE = AxisType(
     inputs=(Input("fulfillment", source="axis.fulfillment.output", fields=_INPUT_FIELDS),),
     output_fields=_OUTPUT_FIELDS,
     scenario_fields=(Field("description", required=True, expand="catalog"),),
-    # 每条期望 ≤3 次重试（TextCarrier 默认）；每次调用工具上限与生产 TextCarrier 相同。
-    limits=ExecutionLimits(llm_calls=None, tool_calls=_TOOL_CALL_LIMIT, seconds=None),
+    # 每条期望 ≤3 次重试（TextCarrier 默认）；每次调用工具上限与生产 TextCarrier 相同；seconds 先放宽只兜失控。
+    limits=ExecutionLimits(llm_calls=None, tool_calls=_TOOL_CALL_LIMIT, seconds=600),
     run=run_carryability,
     implementation_files=(
         "impl/projects/llm_probe/eval_axes/adapters/carryability.py",
