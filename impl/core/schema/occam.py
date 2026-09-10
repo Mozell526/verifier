@@ -54,8 +54,7 @@ SCHEMA_FIELD_ROLES = {
                       "judge_summary", "attribution_summary", "check_summary", "fallback_summary",
                       "needs_human_review", "quality_flags", "check_passed", "issue_count",
                       "fallback_count", "divergence_stage", "root_cause_summary",
-                      "created_at", "stop_reason", "stop_attribution", "driver_health",
-                      "interaction_mode", "conversation_summary",
+                      "created_at", "stop_reason", "interaction_mode", "conversation_summary",
                       "conversation_detail", "trace_id"],
     },
     "CasePoolTable": {

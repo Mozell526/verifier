@@ -100,6 +100,8 @@ def compact_run(run: Dict[str, Any]) -> Dict[str, Any]:
         compact["capability_carrier"] = run.get("capability_carrier")
     if run.get("eval_axes") is not None:
         compact["eval_axes"] = run.get("eval_axes")
+    if run.get("stage_timings"):
+        compact["stage_timings"] = run.get("stage_timings")
     table_row = build_trace_table_row_from_run(compact)
     compact["table_row"] = to_dict(table_row)
     compact["status"] = table_row.status

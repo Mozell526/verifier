@@ -5,7 +5,6 @@ import importlib
 from collections import Counter
 from typing import Any, Dict, Iterable, List, Mapping, Optional
 
-from . import stop_reasons
 from .capability_carrier import carrier_text
 from .judge_protocol import execution_failure_markers
 from .schema import AttributeResult, CheckReport, FallbackDecision, FrontendViewModel, JudgeResult, RunTrace, normalize_attribute_result, normalize_check_report, normalize_frontend_view, normalize_judge_result, normalize_run_trace, to_dict, trace_conversation_summary, trace_conversation_transcript, trace_extracted_output, trace_output_source, trace_turn_records
@@ -407,12 +406,6 @@ def build_trace_table_row(
         root_cause_summary=_short_value(_root_cause(attribute), 900),
         created_at=str(trace.created_at or ""),
         stop_reason=str(trace.stop_reason or ""),
-        stop_attribution=stop_reasons.attribution(trace.stop_reason),
-        driver_health=stop_reasons.driver_health(
-            trace.stop_reason,
-            trace.interaction_controller_status,
-            trace.interaction_controller_error,
-        ).to_dict(),
         interaction_mode=str(trace.interaction_mode or ("interactive_intent" if conversation_detail else "single_turn")),
         conversation_summary=_conversation_summary(trace),
         conversation_detail=conversation_detail,

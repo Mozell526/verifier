@@ -52,10 +52,6 @@ class TraceTableRow:
     root_cause_summary: str = ""
     created_at: str = ""
     stop_reason: str = ""
-    # spec/mock/protocol.md 4.7/4.9：stop_reason 归责组与派生的用户方健康度。
-    # 只有 attribution 为 user / live 的行计入 live 质量指标。
-    stop_attribution: str = ""
-    driver_health: Dict[str, Any] = field(default_factory=dict)
     interaction_mode: str = "single_turn"
     conversation_summary: Dict[str, Any] = field(default_factory=dict)
     conversation_detail: Optional[List[ConversationTurn]] = None
