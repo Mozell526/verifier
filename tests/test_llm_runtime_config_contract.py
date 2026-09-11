@@ -105,6 +105,16 @@ def test_llm_client_builds_openai_compatible_model_with_explicit_credential(tmp_
     assert captured["supports_json_schema_outputs"] is False
 
 
+def test_bypass_proxy_for_loopback_keeps_remote_proxy(monkeypatch):
+    monkeypatch.setenv("NO_PROXY", "example.com")
+    monkeypatch.setenv("no_proxy", "")
+    llm_module._bypass_proxy_for_loopback()
+    assert "127.0.0.1" in llm_module.os.environ["NO_PROXY"].split(",")
+    assert "localhost" in llm_module.os.environ["NO_PROXY"].split(",")
+    assert "example.com" in llm_module.os.environ["NO_PROXY"].split(",")
+    assert "127.0.0.1" in llm_module.os.environ["no_proxy"].split(",")
+
+
 def test_endpoint_probe_uses_real_short_completion(monkeypatch):
     captured = {}
 

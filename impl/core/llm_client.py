@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import os
 from types import MethodType
 import json
 import re
@@ -28,6 +29,21 @@ SESSION_START_TIME = int(time.time())
 _USE_CONFIG = object()
 _ROUTER_REGISTRY_LOCK = threading.Lock()
 _ROUTER_REGISTRY: dict[tuple[tuple[str, str, str, str], ...], LlmRouter] = {}
+_LOOPBACK_NO_PROXY = ("127.0.0.1", "localhost", "::1")
+
+
+def _bypass_proxy_for_loopback() -> None:
+    """httpx 认系统 HTTP_PROXY，但不认 macOS 的 127.* 例外。
+
+    本机 LLM 中转（127.0.0.1:8060）会被 Clash 之类拦成空 502，探活失败后整池冷却。
+    只把回环地址写入 NO_PROXY，远程 fallback 仍走代理。
+    """
+    for key in ("NO_PROXY", "no_proxy"):
+        existing = [part.strip() for part in os.environ.get(key, "").split(",") if part.strip()]
+        os.environ[key] = ",".join(dict.fromkeys([*existing, *_LOOPBACK_NO_PROXY]))
+
+
+_bypass_proxy_for_loopback()
 
 
 def _parse_tool_calls_with_aliases(self, tool_calls_data):
