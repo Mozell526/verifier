@@ -222,6 +222,10 @@ class _LiveProtocol(ABC):
         mock = self._mock_for_multi_turn()
         max_turns = max(1, int(mock.safety_max_turns()))
 
+        # transcript 级 seed 只能由 ReplayDriver 重放（legacy 循环没有回放能力），不看开关。
+        if getattr(self.spec, "interaction_driver", "legacy") == "session" or getattr(ctx, "seed", None):
+            return self._execute_multi_turn_via_session(initial_request, ctx, intent, mock, max_turns)
+
         interaction_turns: List[Dict[str, Any]] = []
         transcript: List[Dict[str, Any]] = []
         last_output: Optional[Dict[str, Any]] = None
@@ -379,6 +383,48 @@ class _LiveProtocol(ABC):
             raise RuntimeError(f"{self.spec.project_id} multi-turn execution produced no valid output")
         # 多轮返回最后一轮有效的项目 EXTRACT_OUTPUT_SCHEMA；完整 turns 由 TraceContext 持有。
         return last_output
+
+    def _execute_multi_turn_via_session(
+        self,
+        initial_request: Dict[str, Any],
+        ctx: "TraceContext",
+        intent: Optional["MockIntentOutput"],
+        mock: Any,
+        max_turns: int,
+    ) -> Dict[str, Any]:
+        """多轮 session 路径（spec/mock/protocol.md 阶段 1）：Session 执行、Driver 驱动。
+
+        阶段 1 只有 LegacyMixinDriver，产出的 TraceContext 事实与旧循环逐字一致，
+        由 tests/test_golden_multiturn.py 锁定。
+        """
+        from impl.core.session import (
+            LegacyMixinDriver,
+            ReplayDriver,
+            Session,
+            SessionBudget,
+            SessionTranslator,
+        )
+
+        seed = ctx.seed if isinstance(getattr(ctx, "seed", None), dict) else None
+        session_id = f"interactive-{getattr(intent, 'scenario', '') or ctx.scenario or 'session'}"
+        if seed is not None:
+            # 回放的会话身份带 case_id，避免多条 seed 回放共用同一 live 会话。
+            session_id = f"replay-{ctx.case_id or 'session'}"
+        session = Session(
+            self,
+            ctx,
+            session_id=session_id,
+            budget=SessionBudget(max_turns=max(max_turns, len(seed.get("turns") or []) if seed else 0)),
+            user_message_extractor=getattr(mock, "extract_mock_message", None),
+            translator=mock if isinstance(mock, SessionTranslator) else None,
+        )
+        driver = ReplayDriver(seed) if seed is not None else LegacyMixinDriver(mock)
+        driver.run(session, dict(initial_request or {}), intent)
+        if not session.closed:
+            session.close("driver_error")
+        if session.last_output is None:
+            raise RuntimeError(f"{self.spec.project_id} multi-turn execution produced no valid output")
+        return session.last_output
 
     @staticmethod
     def _has_visible_goal_evidence(output: Any) -> bool:

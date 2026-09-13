@@ -16,6 +16,7 @@ GOLDEN_ROOT = Path(__file__).parent / "golden"
 GOLDEN_DIRS = sorted(path for path in GOLDEN_ROOT.glob("*/*") if path.is_dir())
 
 
+@pytest.mark.parametrize("driver", ["legacy", "session"])
 @pytest.mark.parametrize(
     "directory",
     GOLDEN_DIRS
@@ -28,8 +29,14 @@ GOLDEN_DIRS = sorted(path for path in GOLDEN_ROOT.glob("*/*") if path.is_dir())
     or ["no-goldens"],
 )
 def test_golden_replay(
-    directory: Path, monkeypatch: pytest.MonkeyPatch
+    directory: Path, driver: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """阶段 1 门禁：legacy 与 session 两条多轮路径必须产出逐字节相同的规范 trace。"""
+    from impl.core.schema.project import ProjectSpec
+
+    monkeypatch.setattr(
+        ProjectSpec, "interaction_driver", property(lambda self: driver)
+    )
     project_id = directory.parent.name
     case = json.loads((directory / "case.json").read_text(encoding="utf-8"))
     execution = json.loads(

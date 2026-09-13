@@ -1,14 +1,15 @@
-# Mock 交互协议 spec（草案 v0.1）
+# Mock 交互协议 spec（草案 v0.2）
 
-> 状态：草案，供实现前评审。未改任何代码。
-> 来源：本目录四份讨论记录（`discussion-20260907-*.md`），本文是其决定的收敛版；讨论记录中与本文冲突处以本文为准。
+> 状态：草案，供实现前评审。阶段 0 已完成（见 `stage0-task.md` 3.5 节）。
+> 来源：本目录讨论记录（`discussion-2026090{7,8}-*.md`），本文是其决定的收敛版；讨论记录中与本文冲突处以本文为准。
+> v0.2 变更：协议 B 由"评测系统下发任务"改为"探索侧 harness 主动拉、回归侧评测系统推"；阶段 3/4 改为工具化与 harness skill；新增导出硬约束与回放分叉处理。v0.1 备份见 `protocol-v0.1-backup.md`。
 > 阅读顺序：不需要先读讨论记录，本文自足；想知道"为什么这么定"再回看讨论记录。
 
 ---
 
 ## 0. 一句话
 
-评测系统不再扮演用户。评测系统提供一个**会话（Session）**——被动地把用户方消息转给 live、把 live 响应推回用户方、把全过程记成 trace；由一个可替换的**驱动器（Driver）**扮演用户去消费这个会话。评测系统只拥有"测什么"（seed、预算）、"记录"（trace）和"评判"（judge）。
+评测系统不再扮演用户，也不再下发"扮演用户"的任务。评测系统提供一个**会话（Session）**——被动地把用户方消息转给 live、把 live 响应推回用户方、把全过程记成 trace——并把它以标准工具的形式暴露出去。**探索**由独立的 **harness**（外部 agent 进程）主动拉取 Session 自由进行，产出自动落成可复现的 mock 数据集与发现台账；**回归**由评测系统用确定性的 `ReplayDriver` 推着录好的 case 重跑。评测系统只拥有"工具与预算"、"记录"（trace）和"评判"（judge）。
 
 ---
 
@@ -16,8 +17,9 @@
 
 ### 1.1 目标
 
-- 把多轮交互中"谁拥有循环"从评测进程翻转到用户方，使用户方可以是进程内 LLM、脚本、生产日志回放、外部进程、真人。
+- 把多轮交互中"谁拥有循环"从评测进程翻转到用户方，使用户方可以是外部 agent（harness）、脚本、生产日志回放、真人。评测系统内不保留任何 LLM 扮演用户的代码。
 - 允许用户方持有私有状态、允许意图在会话中漂移。
+- 探索（找 live 做不好的场景）由 harness 以最高自由度进行；每条会话自然落成多轮 `RunTrace` 与可回放的 seed case，无需 harness 额外操作。
 - 生产数据（request 形状、含或不含响应的多轮 transcript）作为一等输入直接进入，不要求先翻译成"用户原话"。
 - 用户原话到 API 请求体的翻译必须确定性、不经 LLM、可自动校验，杜绝改偏原意。
 - 用户方故障与被测系统故障在 trace 与统计口径上严格分离。
@@ -37,8 +39,9 @@
 
 | 角色 | 拥有什么 | 不拥有什么 |
 |---|---|---|
-| **评测系统**（Session + 调度） | 测什么（seed 分布、画像采样策略）、预算、trace 记录、judge | 用户何时说话、说什么、何时停 |
-| **Driver**（用户方） | 用户私有状态、意图（含推断与漂移）、每轮表达、停止决定 | 请求体形状、live API 知识 |
+| **评测系统**（Session 工具 + 回归调度） | Session 工具、预算强制、trace 记录、导出到 case pool、judge 工具、回归回放（`ReplayDriver`） | 用户何时说话、说什么、何时停；探索什么 |
+| **harness**（探索侧用户方，外部 agent） | 探索方向与策略、用户私有状态、意图（含推断与漂移）、每轮表达、停止决定、发现台账 | 请求体形状、live API 知识、`session_id` 的生成 |
+| **用户**（通过探索页） | 给 harness 的方向性输入：覆盖目标、关注场景、策略偏好（参考，非任务） | — |
 | **项目 adapter** | 原话 ↔ 请求体的确定性互转、live 历史字段格式、live 调用 | 任何语义推断、任何 LLM 调用（在本协议涉及的方法内） |
 
 ---
@@ -171,54 +174,113 @@ budget:
 | `declare_intent` 列表 | 新增 `intent_history: [{turn_index, user_intent, user_context, source}]`，性质为模拟用户的真值标签（对应今天 `case.user_intent` 的角色）；`mock_intent` 暂取最后一条并携带 `source`，保持 judge 现状。judge 的推理意图是另一个东西，今天散在 `BusinessExpectation[*].user_intent`，显式化见第 10 节 |
 | Driver 停止决定 | `turns[].continue_decision`（沿用） |
 | 归责 | `stop_reason` + 新增 `driver_health: {status, error, budget_usage}`；现 `interaction_controller_status/_error` 作为其别名保留至阶段 5 |
+| 回放分叉 | 回归重放时新增 `diverged_at_turn: int | null`（见 5.3） |
+
+### 4.10 导出硬约束
+
+每条会话 `close` 后由 Session **自动**导出（不依赖用户方额外操作），且必须同时产出两样：
+
+1. **完整多轮 `RunTrace`**（`execution_mode = interactive_intent`，含 `turn_records` / `conversation_transcript` / `conversation_summary` / `stop_reason`）——供现有多轮 trace 视图与 judge 使用。前端多轮展示因此无需改动。
+2. **`level: transcript` 的 seed case**（单轮会话为 `level: request`）——进 case pool，供回归回放。
+
+**不允许**把多轮会话扁平化为单轮 case 导出。
 
 ---
 
-## 5. 协议 B：驱动协议（评测系统 → Driver）
+## 5. 协议 B：探索（拉）与回归（推）
 
-### 5.1 任务（DriverTask）
+协议 B 不再是"评测系统下发任务"。它分为两条：探索侧由 harness 主动拉取 Session；回归侧由评测系统推着录好的 case 重放。两侧共用协议 A。
 
-```yaml
-task_id: str
-project_id: str
-session_endpoint: <进程内对象 | HTTP+SSE URL>
-seed:
-  level: intent | utterance | request | transcript
-  # 按 level 恰有一项：
-  intent:     { user_intent, user_context, scenario }
-  utterance:  { text, scenario? }
-  request:    <REQUEST_SCHEMA>
-  transcript: { turns: [...], mode: replay | context }
-persona: dict | null            # 评测系统采样出的用户隐变量（专业度、耐心、目标清晰度、披露策略、是否漂移…）
-budget: <同 4.6>
+### 5.1 探索侧：harness 拉取
+
+**Session 工具**（阶段 3 已实现：HTTP 路由 `/api/session/*`、`/api/ledger/*` + 无依赖 CLI `python -m impl.harness_cli`，见 `impl/core/session_store.py`、`impl/server/routes.py`；MCP / HTTP+SSE 不是必需）：
+
+```
+python -m impl.harness_cli [--server http://127.0.0.1:8022] ...
+session open  <project> [--mode text|protocol-fuzz] [--max-turns N] [--pool NAME] [--run-id ID] [--scenario S]
+                                                 → session_id（形如 harness-<project>-<hex12>）
+session send  <session_id> --text "..." | --action name [--params json]  → live 可见输出（extracted_output）
+session send  <session_id> --request <json>      # 仅 --mode protocol-fuzz 下允许，导出时打标签
+session intent <session_id> --user-intent "..." [--source seeded|adopted_from_inference|drifted]
+session close <session_id> --reason goal_satisfied|user_abandons|perceived_no_progress
+                                                 # close 后 Session 自动按 4.10 导出：impl/data/<project>/sessions/<session_id>.json
+                                                 # + case pool（默认名 harness-<run_id>，无 run_id 则 harness）
+session list|get ...
+judge <project> <session_id>                     # 可选；对导出的 RunTrace 跑 judge，结果写回导出文件
+ledger add|query ...                             # 发现台账，见 5.4；impl/data/<project>/ledger.json
+exploration get|list|report ...                  # 领取探索方向 / 批次列表 / 交探索报告，见下
 ```
 
-`seed.level` 决定 Driver 的起手：
-- `intent`：向下生成首句原话。
-- `utterance`：直接发 `text`；需要意图时自行向上推断。
-- `request`：直接发 `request`；拿到首轮响应后向上推断意图并 `declare_intent`，之后用 `text`/`action` 继续。
-- `transcript`：Session 按 `mode` 处理前缀；Driver 从前缀推断意图并 `declare_intent`，之后继续。
+会话预算缺省：`turn_wait_timeout_ms=300000`、`session_timeout_ms=1800000`、`max_turns` 取项目 `safety_max_turns`；到限由 reaper 以 4.7 的 budget 组原因关闭并照常导出。
 
-### 5.2 报告（DriverReport）
+- `session_id` **只能**由 `open` 产生；无 `open` 直接 `send` 报错。case 之间的分割由工具结构保证，不依赖 harness 自觉。
+- 默认 `--mode text`：只允许 `text` / `action` 消息，经 adapter 确定性翻译，保证请求体合法。`protocol-fuzz` 需显式开启，其会话在导出与台账中打 `protocol_fuzz` 标签，与"业务场景缺陷"分开统计。
+- 评测系统在 Session 层强制 4.6 预算；探索层总预算（会话数、token、墙钟）由启动探索的入口设定，到限即停并交台账。
+
+**探索方向输入**（用户在探索页 `explore.html` 给出，harness 作为参考而非任务；按 `run_id` 存于 `impl/data/<project>/explorations.json`，harness 用 `exploration get <project> <run_id>` 领取，探索结束用 `exploration report` 把报告写回同一条记录）：
 
 ```yaml
-task_id: str
-final_intent: { user_intent, user_context, source } | null   # Driver 最终持有的真实目标标签；无则 null，不得推断补造
-stop_reason: <用户决定组之一> | null                  # null 表示不是 Driver 主动停的
-turns_sent: int
-tokens_used: int | null
-notes: str                                            # 用户视角自述，可选
+direction:
+  coverage_targets: [scenario...]     # 希望至少覆盖的场景
+  focus: str                          # 关注点的自然语言描述
+  strategy_hints: [persona | scripted | adaptive-replay | boundary | drift]
+  budget: { sessions, tokens, wall_clock_ms }
 ```
 
-### 5.3 参考 Driver
+harness 侧策略与工作流以 skill 形式存在：`.claude/skills/harness/SKILL.md`（策略卡见 `references/strategies.md`）。
 
-| Driver | 说明 | 阶段 |
-|---|---|---|
-| `LegacyMixinDriver` | 包住现有 `MultiTurnInteractiveMock` 四回调，含 `_has_visible_goal_evidence` 原样搬入，保证零行为变化 | 1 |
-| `PersonaDriver` | 持有私有状态；每轮一次 LLM 同时决定"继续否"与"说什么"；输出原话 | 3 |
-| `ScriptedDriver` | 按预写脚本发原话（现 `policy_search` 的 `next_query` 路径收敛于此） | 3 |
-| `ReplayDriver` | 读生产日志用户轮次按协议 A 重放，live 分叉时少量 LLM 适配 | 4 |
-| 外部 Driver 示例 | 独立进程经 HTTP+SSE 消费 Session | 4 |
+**harness 探索报告**（探索结束时产出）：
+
+```yaml
+run_id: str
+sessions: int
+findings: <台账快照，见 5.4>
+coverage: { scenario: session_count }
+budget_usage: { sessions, tokens, wall_clock_ms }
+notes: str
+```
+
+### 5.2 回归侧：评测系统推
+
+评测系统从 case pool 取 seed，用**确定性** `ReplayDriver` 经协议 A 重放：
+
+- `level: request` / `utterance`：单轮重放。
+- `level: transcript`：按录制的用户轮次**逐字**重放；`mode` 见 4.5。
+- 评测系统内**不**做 LLM 适配式重放；需要"live 变了就改台词"的属于再探索，归 harness。
+
+### 5.3 回放分叉
+
+多轮 transcript 中每一轮用户消息都是针对录制时 live 的回答说的；live 改版后某轮回答变了，之后录好的用户消息可能不再切题。处理：
+
+- 重放时逐轮比较新响应与录制响应（比较口径由 adapter 的 `extracted_output` 关键字段决定，默认比较用户可见文本与 `stage`），第一处不一致的轮次记入 `RunTrace.diverged_at_turn`。
+- judge 只对 `diverged_at_turn` 之前的轮次下结论；之后的轮次作为参考展示。
+- 无分叉时 `diverged_at_turn = null`。
+
+### 5.4 发现台账（findings ledger）
+
+harness 的探索记忆与最终交付物之一。每条记录：
+
+```yaml
+signature: str            # 失败签名：judge 的 blocking expectation_id + 失败维度（或 harness 自定义）
+session_id: str
+trigger_summary: str      # 触发方式摘要（用户视角）
+realism: high | medium | low   # harness 自评"真实用户会这么干吗"
+harness_verdict: fulfilled | not_fulfilled     # harness 作为真实用户的自评
+judge_verdict: fulfilled | not_fulfilled | not_evaluable | null
+category: live_defect | judge_calibration | protocol_fuzz
+```
+
+- 同 `signature` 去重：harness 每次 judge 后先查台账，已有签名不计新发现，促使换方向。
+- `harness_verdict` 与 `judge_verdict` 一致 → `live_defect`；不一致 → `judge_calibration`（judge 校准样本，不计入 live 缺陷）。这直接承接"两个意图"的决定：harness 知道真值，judge 只能推断。
+- 收敛判据：连续 N 个会话无新 `signature`（N 由探索入口设定）。
+
+### 5.5 Driver 清单
+
+| Driver | 归属 | 说明 | 阶段 |
+|---|---|---|---|
+| `LegacyMixinDriver` | 评测系统（过渡） | 包住现有 `MultiTurnInteractiveMock` 四回调，含 `_has_visible_goal_evidence` 原样搬入，保证零行为变化 | 1，阶段 5 删除 |
+| `ReplayDriver` | 评测系统 | 确定性逐字重放，标 `diverged_at_turn` | 3 |
+| harness 策略（persona / scripted / adaptive-replay / boundary / drift…） | harness | 以 skill 形式存在，不是评测系统代码 | 4 |
 
 ---
 
@@ -255,21 +317,25 @@ supports_history_injection: bool   # 能否把 state.transcript 注入请求体�
 | 项目 | 原话槽位 | 会话身份 | 历史字段 | `supports_history_injection` |
 |---|---|---|---|---|
 | `policy_search` | `extra_input_params.policySearchParseArgs.query` | `session_id` / `trace_id` | `extra_input_params.args.contexts` | True |
-| `marketting-planning` | `user_text` + `extra_input_params.agent_args.message.content` | `session_id` | `history` | True |
+| `marketting-planning` | `user_text` + `extra_input_params.agent_args.message.content` | `session_id` | `history`（业务方从未定义元素格式，现有轮次一律发 `[]`） | False |
 | `deerflow` | `input.messages[-1].content` | `config.configurable.thread_id`（服务端持状态） | 无 | False |
 
-三者的后续轮翻译现已是纯 Python，满足 6.2。首轮中 `marketting-planning`、`deerflow` 走 `MockAgent.build_live_request` 的 step2 LLM 路径，协议化后在线会话不再经过它（表达部分归 Driver，传输部分走 6.1），首轮与后续轮同路。
+三者均已实现 `SessionTranslator`（阶段 3），`scripts/check_adapter_compliance.py` 对每个多轮项目跑 6.2 三道约束。`marketting-planning` 由 v0.1 表中的 True 改为 False：`history` 元素格式没有业务定义，adapter 不能"发明 transcript 中不存在的历史"（6.3），因此 `mode: context` 对它不可用；仅 `policy_search` 支持 context 注入（`contexts` 由 transcript 中的 user 文本逐条拼成）。首轮中 `marketting-planning`、`deerflow` 走 `MockAgent.build_live_request` 的 step2 LLM 路径，协议化后在线会话不再经过它（表达部分归 Driver，传输部分走 6.1），首轮与后续轮同路。
 
 ---
 
-## 7. Driver 契约
+## 7. 用户方（harness / Driver）契约
+
+适用于任何消费协议 A 的一方：探索侧的 harness、回归侧的 `ReplayDriver`、过渡期的 `LegacyMixinDriver`。
 
 - 必须遵守协议 A 的消息类型；发出非法消息即 `driver_error`。
+- `session_id` 只从 `open` 获得；一个 case 一个会话，不得跨会话复用。
 - 在 `budget.turn_wait_timeout_ms` 内发出下一条消息或 `stop`，否则 `driver_timeout`。
 - 可任意使用 LLM、脚本、外部资源；可持有任意私有状态。
 - Driver 持有它所扮演用户的真实目标时（来自 seed、自行推断后据此行动、或会话中漂移），**应**发 `declare_intent` 并标明 `source`；没有真实目标（如纯回放）则不发。**不得为了让 trace 有意图而推断一个**——从可见行为推断意图是 judge 的职责，不是 Driver 的。
 - Driver 为自身行动所做的意图推断（如从 request 级 seed 起手时的 `intent_from_transcript`）是 Driver 内部事务，其结果只有在 Driver 据此行动后才以 `source: adopted_from_inference` 记为标签。
-- 会话结束后返回 `DriverReport`。
+- harness 在探索结束时产出探索报告（5.1）；`close` 时给出的 `stop_reason` 与 `session intent` 记录即为单会话层面的报告，不再有单独的 `DriverReport`。
+- harness 默认只用 `text` / `action`；`request` 级需显式 `protocol-fuzz` 模式。
 
 ---
 
@@ -280,7 +346,8 @@ supports_history_injection: bool   # 能否把 state.transcript 注入请求体�
 | `_execute_multi_turn` 的 for 循环 | 拆为 `Session`（open/send/events/close，内持 `TraceContext`）+ Driver 驱动 |
 | `MultiTurnInteractiveMock` 四回调 | 阶段 1 由 `LegacyMixinDriver` 包裹；阶段 5 删除 |
 | `_has_visible_goal_evidence` | 阶段 1 原样搬入 `LegacyMixinDriver`；阶段 5 删除 |
-| `MockAgent.infer_user_intent` / `next_turn` / `decide_next_action` | 迁入 `PersonaDriver`（表达层） |
+| `MockAgent.infer_user_intent` / `next_turn` / `decide_next_action` | 阶段 1 由 `LegacyMixinDriver` 间接调用；其"扮演用户"的职责由 harness skill 承担，阶段 5 删除 |
+| `_execute_multi_turn` 的多轮执行与记录骨架 | 保留为 `Session` 核心；harness 每次 `send` 与 `ReplayDriver` 每轮重放均经由它 |
 | `MockAgent.build_live_request`（step2 LLM） | 在线会话不再调用；离线 case 池暂保留 |
 | `_preserve_chat_user_query` / `_contains_internal_user_language` | 阶段 5 删除 |
 | `extract_mock_message` | 升级为 `user_message_from_request` |
@@ -296,14 +363,16 @@ supports_history_injection: bool   # 能否把 state.transcript 注入请求体�
 
 | 阶段 | 内容 | 通过条件 |
 |---|---|---|
-| 0 | 3 个多轮项目各录 golden trace（LLM 录制回放）；trace 比对脚本；补齐 `test_core_live_protocol.py` 对 `stop_reason` × `completion_status` × `interaction_controller_status` 组合的断言 | 同 case 两跑 trace 逐字节一致；多轮相关测试全绿 |
-| 1 | 抽 `Session`、定义 `Driver`、写 `LegacyMixinDriver`；`ProjectSpec` 加开关，默认旧路径；trunk 开发 | 开关切新路径，golden trace 逐字节一致 |
-| 2 | 预算强制、`stop_reason` 按 4.7 分组、`driver_health`、执行与 judge 解耦为队列 | 人为 hang 住 Driver，会话在预算内关闭、trace 可判、live 指标不受污染 |
-| 3 | `PersonaDriver`（先 `policy_search`，再推另两项目）；adapter 实现 6.1，`check_adapter_compliance.py` 加 6.2；`ScriptedDriver` | 同场景 N 跑用户行为有可观测方差；judge 发现旧 Driver 未暴露的问题 |
-| 4 | Session 暴露 HTTP+SSE；外部 Driver 示例；`ReplayDriver` | 纯外部进程完成一场多轮会话并产出可判 trace；一份生产日志回放成 trace |
-| 5 | 删 `LegacyMixinDriver`、四回调、`_has_visible_goal_evidence`、两个补丁、别名字段 | 全部项目在新路径稳定运行后执行 |
+| 0 ✅ | 3 个多轮项目各录 golden trace（LLM 录制回放）；trace 比对脚本；补齐 `test_core_live_protocol.py` 对 `stop_reason` × `completion_status` × `interaction_controller_status` 组合的断言 | 同 case 两跑 trace 逐字节一致；多轮相关测试全绿。**已完成**，见 `stage0-task.md` 3.5 |
+| 1 ✅ | 抽 `Session`、定义 `Driver`、写 `LegacyMixinDriver`；`ProjectSpec` 加开关，默认旧路径；trunk 开发 | 开关切新路径，六条 golden 逐字节一致（`tests/test_golden_multiturn.py`）。**已完成**：`impl/core/session.py`，`runtime.interaction.driver: legacy\|session` |
+| 2 ✅ | 预算强制、`stop_reason` 按 4.7 分组、`driver_health`、执行与 judge 解耦为队列 | 人为 hang 住 Driver，会话在预算内关闭、trace 可判、live 指标不受污染。**已完成**：`impl/core/stop_reasons.py`、`tests/test_session_budget.py` |
+| 3 ✅ | Session 工具化（CLI/MCP，5.1）；`close` 自动导出（4.10）进 case pool；judge 工具化；台账（5.4）；adapter 实现 6.1，`check_adapter_compliance.py` 加 6.2；`ReplayDriver` 与 `diverged_at_turn`（5.2、5.3） | 一个外部进程用 CLI 完成一场多轮会话，自动得到多轮 `RunTrace` + transcript seed，前端多轮视图正常显示；该 seed 经 `ReplayDriver` 重放可判。**已完成**（2026-09-10，policy_search 真实 live）：`impl/harness_cli.py` 两轮会话 → `impl/data/policy_search/sessions/harness-policy_search-82669356b2f7.json` + pool `harness-gate3` → summary.html 批量重放 2 轮、`intent_history` 与 `diverged_at_turn=null` 可见、judge `not_fulfilled`；台账 1 条 `live_defect` |
+| 4 ✅ | harness skill（探索指令与工作流，含 persona / scripted / adaptive-replay / boundary / drift 策略）；探索页（方向输入 5.1、批次视图与台账展示）；首轮对抗探索 | 一轮探索产出台账与一批可重跑 case；台账中 `live_defect` 类经人工抽检真实性合格；`judge_calibration` 类单独成集。**已完成**（2026-09-10，policy_search 真实 live）：`.claude/skills/harness/`、`explore.html` + `/api/exploration/*` + `exploration get|list|report`；批次 `explore-20260910-01` 6 场会话（persona / boundary / drift）→ 用例池 `harness-explore-20260910-01` 6 条 transcript seed；台账 5 条：`live_defect` 3（后续轮只含数字时丢字段、短句纠正判 UNSUPPORTED）、`judge_calibration` 2（泛化拒绝是否算可补槽；同一 trace 两次 judge 结论相反）。**人工抽检待用户做**：台账 `trigger_summary` 均为用户口语可直接复现 |
+| 5 | 删 `LegacyMixinDriver`、四回调、`_has_visible_goal_evidence`、两个补丁、别名字段；`MockAgent` 中扮演用户的 LLM 路径 | 全部项目在新路径稳定运行后执行 |
 
 阶段 1 的 Session 消息模型须一次定下 4.2 的全部消息类型（含 `action`、`declare_intent`、`request`），即使阶段 1 只有 `LegacyMixinDriver` 在用其中一部分。
+
+从评测系统 UI 一键 spawn harness 进程（无人值守探索）属阶段 4 之后的集成，不在本表。
 
 ---
 
@@ -315,7 +384,12 @@ supports_history_injection: bool   # 能否把 state.transcript 注入请求体�
   - `intent_history` 多条时取哪条 / 是否分段评判。
   - `MockAgent.infer_user_intent` 留在 driver 侧供其自身行动使用，**不**迁入 judge；judge 走自己的推断。
 - **多轮 provided**：Session 两侧（用户方、live 方）均可"提供或执行"的对称性成立；多轮 live 侧 provided 不在前五阶段范围。
-- **A2A**：如有外部 agent 需按 A2A 接入，在协议 B 的 HTTP 接口外包薄层即可，不预先实现。
+- **A2A / HTTP+SSE**：harness 走 CLI/MCP 即可；如有外部 agent 需按 A2A 或 HTTP 接入，在 Session 工具外包薄层，不预先实现。
+- **judge 结论对齐到轮**：多轮 trace 中"第几轮开始不对"目前不可见；先用 `diverged_at_turn` 与 harness 标注的失败轮次过渡，judge 分段评判与上条"两个意图"合并讨论。
+- **前端新增项（均为加法，现有多轮视图不动）**：harness 旁注面板（逐轮 `declare_intent` 与 `source`、发现签名、真实性、`harness_verdict`）；探索批次视图与台账统计；探索页的方向输入。
+- **一键 spawn harness**：从评测系统 UI 启动外部 agent 进程的集成方式。
+- **探索收敛参数**：harness skill 暂定连续 3 场无新签名即停、缺省 6 场；是否需要评测系统侧强制另议。
+- **judge 多轮口径**（首轮探索暴露）：同一 drift trace 两次 judge 结论相反——'中间轮返回错误的可执行结果（SUCCESS）'与'最终轮正确'谁优先；'泛化 UNSUPPORTED 提示'是否算可补槽的澄清。与 §10 第一条'两个意图'合并讨论。
 - **离线 case 池**：补 `seed.level` 标签并允许 intent / utterance / transcript 三种新形态；step2 LLM 路径的去留另议。
 - **live 流式**：`live.stream` 事件仅在 live 本身支持流式时接入；否则一轮一个 `live.response` 即可。
 
@@ -330,3 +404,5 @@ supports_history_injection: bool   # 能否把 state.transcript 注入请求体�
 | 阶段 0 按严格版；adapter 翻译确定性纯代码 + 三道约束；意图/表达/传输三层归属；用户消息为联合类型 | `discussion-20260907-adapter-translation.md` |
 | 三层皆为入口、双向映射；`request` 级消息与 `transcript` seed；`mode: replay/context`；`declare_intent` 可多次；扩展点仅一个 + 布尔能力；case 池存法修正 | `discussion-20260907-seed-levels.md` |
 | 意图分两个：driver 端真值标签（可选、带 `source`、不为填空而推）与 judge 端推理意图（judge 自行推断，今天已隐含在 `BusinessExpectation.user_intent`）；`infer_user_intent` 留在 driver 侧；judge 显式化另议 | `discussion-20260907-two-intents.md` |
+| 阶段 0 完成；`cassette.py` 落于 `tests/support/`（测试设施域） | `stage0-task.md` 3.5 |
+| mock 探索独立为 harness；协议 B 拆为探索拉 / 回归推；导出硬约束（多轮 `RunTrace` + transcript seed）；台账与 `live_defect` / `judge_calibration` 分类；默认仅 `text`/`action`；回放分叉 `diverged_at_turn`；探索方向由用户在探索页给出；阶段 3/4 改写 | `discussion-20260908-harness-exploration.md` |

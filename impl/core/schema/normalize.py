@@ -237,6 +237,8 @@ def normalize_trace_table_row(value: Any) -> Optional[TraceTableRow]:
         root_cause_summary=str(data.get("root_cause_summary") or ""),
         created_at=str(data.get("created_at") or ""),
         stop_reason=str(data.get("stop_reason") or ""),
+        stop_attribution=str(data.get("stop_attribution") or ""),
+        driver_health=data.get("driver_health") if isinstance(data.get("driver_health"), dict) else {},
         interaction_mode=_normalize_interaction_mode(data.get("interaction_mode")),
         conversation_summary=data.get("conversation_summary") if isinstance(data.get("conversation_summary"), dict) else {},
         conversation_detail=normalize_conversation_turns(data.get("conversation_detail")) if isinstance(data.get("conversation_detail"), list) else None,
@@ -602,6 +604,8 @@ def normalize_run_trace(value: Any) -> Optional[RunTrace]:
         multi_turn_input=multi_turn_input,
         fallbacks=normalize_fallback_decisions(data.get("fallbacks")),
         ready=list(data.get("ready") or []),
+        intent_history=[dict(item) for item in (data.get("intent_history") or []) if isinstance(item, dict)],
+        diverged_at_turn=int(data.get("diverged_at_turn")) if data.get("diverged_at_turn") is not None else None,
     )
 
 

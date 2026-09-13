@@ -16,7 +16,8 @@ from impl.server import batch_jobs
 
 
 ROOT = Path(__file__).resolve().parents[1]
-FIELDS = {"id", "project_id", "scenario", "intent", "live_request", "output", "reference"}
+# seed：spec/mock/protocol.md 4.10 的 transcript 级种子；level=request 的 case 为 None，但公共边界始终带该键。
+FIELDS = {"id", "project_id", "scenario", "intent", "live_request", "output", "reference", "seed"}
 
 
 def _case():
@@ -408,7 +409,8 @@ def test_root_client_search_cases_are_vnext_mock_cases():
         elif isinstance(value, dict):
             if "live_request" in value and "id" in value:
                 found += 1
-                assert set(value) == FIELDS
+                # 落盘 case 的 seed 键可省略（parse_mock_case 视为 None）；公共边界才强制带键。
+                assert set(value) in (FIELDS, FIELDS - {"seed"})
             else:
                 for item in value.values():
                     walk(item)

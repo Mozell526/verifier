@@ -808,12 +808,14 @@ def _reprompt_judge(
             ),
             reprompt=True,
         )
+    # reprompt 是窄修复任务（只按错误路径改字段），不需要 high 的推理预算。
     return client.complete_json(
         system,
         reprompt_user,
         trace_id=trace_id,
         output_spec=output_spec,
         stage="judge-reprompt",
+        reasoning_effort="low",
     )
 
 

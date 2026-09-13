@@ -8,7 +8,16 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 
-from ..core import capability_store, case_pool, context_store, materials_store, pipeline
+from ..core import (
+    capability_store,
+    case_pool,
+    context_store,
+    exploration_store,
+    findings_ledger,
+    materials_store,
+    pipeline,
+    session_store,
+)
 from ..core.config import get_runtime_config
 from ..core.project_loader import list_projects
 from ..core.schema import (
@@ -357,6 +366,150 @@ def eval_axes_run(data: Dict[str, Any]) -> Any:
 
 def judge(data: Dict[str, Any]) -> Any:
     return pipeline.judge(project_from(data), normalize_run_trace(data.get("trace")), data.get("user_intent"))
+
+
+# --- Session 工具（spec/mock/protocol.md 5.1）---
+
+def session_open(data: Dict[str, Any]) -> Any:
+    return session_store.STORE.open(
+        project_from(data),
+        mode=str(data.get("mode") or "text"),
+        budget=data.get("budget") or {},
+        seed_prefix=data.get("seed_prefix") or [],
+        seed_mode=data.get("seed_mode"),
+        pool=str(data.get("pool") or ""),
+        run_id=str(data.get("run_id") or ""),
+        scenario=str(data.get("scenario") or ""),
+    )
+
+
+def session_send(data: Dict[str, Any]) -> Any:
+    return session_store.STORE.send(str(data.get("session_id") or ""), dict(data.get("message") or {}), tokens=int(data.get("tokens") or 0))
+
+
+def session_intent(data: Dict[str, Any]) -> Any:
+    return session_store.STORE.intent(
+        str(data.get("session_id") or ""),
+        user_intent=str(data.get("user_intent") or ""),
+        user_context=data.get("user_context") or {},
+        source=str(data.get("source") or "seeded"),
+    )
+
+
+def session_close(data: Dict[str, Any]) -> Any:
+    return session_store.STORE.close(str(data.get("session_id") or ""), str(data.get("stop_reason") or ""))
+
+
+def session_list(data: Dict[str, Any]) -> Any:
+    project = project_from(data)
+    payload = session_store.STORE.list(project or None)
+    if data.get("include_exports", True) and project:
+        payload["exports"] = session_store.STORE.list_exports(project, run_id=str(data.get("run_id") or ""))
+    return payload
+
+
+def session_get(data: Dict[str, Any]) -> Any:
+    return session_store.STORE.export_of(project_from(data), str(data.get("session_id") or ""))
+
+
+def _judge_signatures(judge_result: Any) -> List[str]:
+    """失败签名建议：blocking expectation_id + 失败状态（5.4）。"""
+    blocking = {
+        item.expectation_id for item in (judge_result.business_expectations or []) if getattr(item, "blocking", False)
+    }
+    signatures = []
+    for item in judge_result.fulfillment_assessments or []:
+        status = str(item.status or "").lower()
+        if status and status != "fulfilled" and (not blocking or item.expectation_id in blocking):
+            signatures.append(f"{item.expectation_id}:{status}")
+    return signatures
+
+
+def session_judge(data: Dict[str, Any]) -> Any:
+    """对已导出的会话 trace 跑 judge，并把结论写回导出文件。不阻断 harness。"""
+    project = project_from(data)
+    session_id = str(data.get("session_id") or "")
+    export = session_store.STORE.export_of(project, session_id)
+    trace = normalize_run_trace(export.get("trace"))
+    history = export.get("intent_history") or []
+    user_intent = str(history[-1].get("user_intent") or "") if history else None
+    result = pipeline.judge(project, trace, user_intent=user_intent or None)
+    verdict = str((result.overall_fulfillment or {}).get("status") or "") or None
+    summary = str(result.reasoning_summary or "")
+    session_store.STORE.update_export(
+        project, session_id, judge=to_dict(result), judge_verdict=verdict, judge_summary=summary,
+    )
+    return {
+        "session_id": session_id,
+        "judge_verdict": verdict,
+        "diverged_at_turn": trace.diverged_at_turn if trace else None,
+        "signatures": _judge_signatures(result),
+        "reasoning_summary": summary,
+        "assessments": [
+            {"expectation_id": item.expectation_id, "status": item.status, "downstream_impact": item.downstream_impact}
+            for item in (result.fulfillment_assessments or [])
+        ],
+    }
+
+
+def ledger_add(data: Dict[str, Any]) -> Any:
+    return findings_ledger.add(
+        project_from(data),
+        signature=str(data.get("signature") or ""),
+        session_id=str(data.get("session_id") or ""),
+        trigger_summary=str(data.get("trigger_summary") or ""),
+        realism=str(data.get("realism") or "medium"),
+        harness_verdict=str(data.get("harness_verdict") or ""),
+        judge_verdict=data.get("judge_verdict"),
+        protocol_fuzz=bool(data.get("protocol_fuzz")),
+        run_id=str(data.get("run_id") or ""),
+        notes=str(data.get("notes") or ""),
+    )
+
+
+def ledger_query(data: Dict[str, Any]) -> Any:
+    return findings_ledger.query(
+        project_from(data),
+        category=data.get("category"),
+        signature=data.get("signature"),
+        session_id=data.get("session_id"),
+        run_id=data.get("run_id"),
+    )
+
+
+def exploration_save(data: Dict[str, Any]) -> Any:
+    return exploration_store.save_direction(project_from(data), str(data.get("run_id") or ""), data.get("direction"))
+
+
+def exploration_report(data: Dict[str, Any]) -> Any:
+    return exploration_store.save_report(project_from(data), str(data.get("run_id") or ""), data.get("report"))
+
+
+def exploration_get(data: Dict[str, Any]) -> Any:
+    """一个批次的全貌：方向 + 报告 + 该 run_id 下的会话导出摘要 + 台账。探索页与 harness 共用。"""
+    project = project_from(data)
+    run_id = str(data.get("run_id") or "")
+    record = exploration_store.get(project, run_id)
+    return {
+        **record,
+        "sessions": session_store.STORE.list_exports(project, run_id=run_id),
+        "ledger": findings_ledger.query(project, run_id=run_id),
+    }
+
+
+def exploration_list(data: Dict[str, Any]) -> Any:
+    project = project_from(data)
+    runs = exploration_store.list_runs(project)
+    exports = session_store.STORE.list_exports(project)
+    ledger = findings_ledger.query(project)["records"]
+    for run in runs:
+        run_id = run.get("run_id")
+        run["session_count"] = sum(1 for item in exports if item.get("run_id") == run_id)
+        run["ledger_by_category"] = {}
+        for item in ledger:
+            if item.get("run_id") == run_id:
+                run["ledger_by_category"][item["category"]] = run["ledger_by_category"].get(item["category"], 0) + 1
+    return {"project_id": project, "runs": runs}
 
 
 def attribute(data: Dict[str, Any]) -> Any:

@@ -1,0 +1,2771 @@
+{
+  "closed_at": "2026-09-10T02:28:41Z",
+  "completion_status": "completed",
+  "driver_health": {
+    "attribution": "user",
+    "budget_usage": {
+      "elapsed_ms": 61072,
+      "max_turns": 5,
+      "session_timeout_ms": 1800000,
+      "token_limit": null,
+      "tokens_used": 0,
+      "turns": 4
+    },
+    "counts_toward_live_quality": true,
+    "error": "",
+    "status": "ok"
+  },
+  "intent_history": [
+    {
+      "source": "seeded",
+      "turn_index": 0,
+      "user_context": {
+        "persona": "代理人筛客户名单，会中途降低门槛"
+      },
+      "user_intent": "先找保额50万以上的保单"
+    },
+    {
+      "source": "drifted",
+      "turn_index": 1,
+      "user_context": {},
+      "user_intent": "改主意：保额30万以上就行（替换50万门槛，不是叠加）"
+    }
+  ],
+  "judge": {
+    "actual": {
+      "code": 0,
+      "filter": {
+        "field": "sum_ins",
+        "node_id": "n0",
+        "operator": "GTE",
+        "type": "PREDICATE",
+        "value": 300000
+      },
+      "message": "解析成功",
+      "msg": "success",
+      "query": "保额30万以上的保单",
+      "status": "SUCCESS"
+    },
+    "business_expectations": [
+      {
+        "acceptance_criteria": [
+          "final_output.status为SUCCESS",
+          "final_output.filter等价于单谓词sum_ins GTE 300000",
+          "不使用frist_period_prem或total_modal_prem表达保额"
+        ],
+        "blocking": true,
+        "boundary": {
+          "ignore_node_id": true,
+          "turn_scope": "final_output_turn4"
+        },
+        "downstream_consumer": "保单搜索执行器",
+        "evidence_refs": [],
+        "expectation_id": "最终筛选字段选择为保额",
+        "expected_outcome": "最终可执行筛选使用保额字段 sum_ins 表达条件",
+        "priority": "P0",
+        "required_capabilities": [
+          "字段选择",
+          "保额语义映射",
+          "完整filter输出"
+        ],
+        "user_intent": "用户改主意后希望按保额而不是保费进行筛选"
+      },
+      {
+        "acceptance_criteria": [
+          "operator为GTE",
+          "value为300000",
+          "表达含等于30万的边界",
+          "不是GT、LT或其他边界"
+        ],
+        "blocking": true,
+        "boundary": {
+          "turn_scope": "final_output_turn4"
+        },
+        "downstream_consumer": "保单搜索执行器",
+        "evidence_refs": [],
+        "expectation_id": "最终筛选数值与边界表达30万以上",
+        "expected_outcome": "最终筛选条件包含大于等于30万的数值边界",
+        "priority": "P0",
+        "required_capabilities": [
+          "操作符与数值解析",
+          "金额单位归一化"
+        ],
+        "user_intent": "用户要求30万以上就行"
+      },
+      {
+        "acceptance_criteria": [
+          "filter中不出现500000",
+          "filter中不出现保额50万以上条件",
+          "最终filter等价于单一sum_ins GTE 300000",
+          "不出现额外AND或OR条件"
+        ],
+        "blocking": true,
+        "boundary": {
+          "turn_scope": "final_output_turn4"
+        },
+        "downstream_consumer": "保单搜索执行器",
+        "evidence_refs": [],
+        "expectation_id": "最终筛选替换五十万门槛且不叠加",
+        "expected_outcome": "最终filter不保留50万条件，也不与其他条件叠加",
+        "priority": "P0",
+        "required_capabilities": [
+          "上下文替换",
+          "条件完整性",
+          "逻辑作用域控制"
+        ],
+        "user_intent": "用户明确改主意，用30万替换50万门槛，不是叠加条件"
+      },
+      {
+        "acceptance_criteria": [
+          "turn4.query为保额30万以上的保单",
+          "turn4.filter不包含frist_period_prem或total_modal_prem",
+          "turn4.filter不包含turn2的OR结构",
+          "turn4输出SUCCESS且filter完整"
+        ],
+        "blocking": true,
+        "boundary": {
+          "inheritance": "禁止继承前轮错误可执行filter",
+          "turn_scope": "turn4"
+        },
+        "downstream_consumer": "保单搜索执行器",
+        "evidence_refs": [],
+        "expectation_id": "最终完整新查询不继承前轮错误条件",
+        "expected_outcome": "turn4仅根据当前完整query生成filter，不继承turn2错误保费条件或turn3未闭合状态",
+        "priority": "P0",
+        "required_capabilities": [
+          "新查询隔离",
+          "上下文去污染",
+          "完整query解析"
+        ],
+        "user_intent": "clarification_then_new_query场景下，第二轮完整新问题应独立解析"
+      },
+      {
+        "acceptance_criteria": [
+          "若返回SUCCESS，filter应为sum_ins GTE 300000",
+          "若无法确定字段，应返回UNSUPPORTED且不得输出错误可执行filter",
+          "不应将保额30万误解析为保费字段OR条件"
+        ],
+        "blocking": false,
+        "boundary": {
+          "turn_scope": "turn2"
+        },
+        "downstream_consumer": "最终用户与保单搜索执行器",
+        "evidence_refs": [],
+        "expectation_id": "用户改主意轮次应正确表达修改或安全澄清",
+        "expected_outcome": "turn2应直接解析为保额30万以上，或在保额与保费指代不明确时返回UNSUPPORTED并请求澄清",
+        "priority": "P1",
+        "required_capabilities": [
+          "指代消解",
+          "字段选择",
+          "安全失败"
+        ],
+        "user_intent": "用户在turn2表达50万太高，改为30万以上"
+      },
+      {
+        "acceptance_criteria": [
+          "turn3应识别保额字段",
+          "turn3应继承30万以上数值",
+          "turn3应返回完整可执行filter或明确可补槽的澄清",
+          "不应泛化要求补充全部保单查询信息"
+        ],
+        "blocking": false,
+        "boundary": {
+          "turn_scope": "turn3"
+        },
+        "downstream_consumer": "最终用户与保单搜索执行器",
+        "evidence_refs": [],
+        "expectation_id": "澄清短答应恢复保额槽位",
+        "expected_outcome": "turn3应把短答接到未闭合的保额槽位，输出sum_ins GTE 300000",
+        "priority": "P1",
+        "required_capabilities": [
+          "澄清槽位恢复",
+          "上下文补全",
+          "字段选择"
+        ],
+        "user_intent": "用户在turn3用是保额30万以上补充字段指代"
+      }
+    ],
+    "evidence": [
+      {
+        "filter": {
+          "field": "sum_ins",
+          "operator": "GTE",
+          "value": 500000
+        },
+        "query": "保额50万以上的保单",
+        "status": "SUCCESS",
+        "turn_index": 1
+      },
+      {
+        "fields": [
+          "frist_period_prem",
+          "total_modal_prem"
+        ],
+        "filter_root_type": "OR",
+        "query": "算了，50万太高了，30万以上就行",
+        "status": "SUCCESS",
+        "turn_index": 2
+      },
+      {
+        "filter": null,
+        "query": "是保额30万以上",
+        "status": "UNSUPPORTED",
+        "turn_index": 3
+      },
+      {
+        "filter": {
+          "field": "sum_ins",
+          "operator": "GTE",
+          "value": 300000
+        },
+        "query": "保额30万以上的保单",
+        "status": "SUCCESS",
+        "turn_index": 4
+      },
+      {
+        "dependency_status": "available",
+        "final_output_turn": 4,
+        "stop_reason": "goal_satisfied"
+      }
+    ],
+    "expected": {
+      "code": 0,
+      "filter": {
+        "field": "sum_ins",
+        "node_id": "n0",
+        "operator": "GTE",
+        "type": "PREDICATE",
+        "value": 300000
+      },
+      "message": "解析成功",
+      "msg": "success",
+      "query": "保额30万以上的保单",
+      "status": "SUCCESS"
+    },
+    "extra": [],
+    "fulfillment_assessments": [
+      {
+        "actual_evidence": [
+          "final_output.filter.field为sum_ins",
+          "turn4.filter.field为sum_ins",
+          "final_output.status为SUCCESS"
+        ],
+        "authority_tool_call_ids": [],
+        "confidence": null,
+        "downstream_impact": "下游可按保额字段执行最终筛选",
+        "evidence_refs": [],
+        "expectation_id": "最终筛选字段选择为保额",
+        "expected_evidence": [
+          "最终用户意图是保额30万以上",
+          "保额业务字段应映射为sum_ins"
+        ],
+        "score": null,
+        "status": "fulfilled"
+      },
+      {
+        "actual_evidence": [
+          "final_output.filter.operator为GTE",
+          "final_output.filter.value为300000"
+        ],
+        "authority_tool_call_ids": [],
+        "confidence": null,
+        "downstream_impact": "下游可正确执行大于等于30万的边界筛选",
+        "evidence_refs": [],
+        "expectation_id": "最终筛选数值与边界表达30万以上",
+        "expected_evidence": [
+          "30万以上应对应GTE操作符",
+          "金额应归一化为300000"
+        ],
+        "score": null,
+        "status": "fulfilled"
+      },
+      {
+        "actual_evidence": [
+          "final_output.filter为单谓词",
+          "final_output.filter中无500000",
+          "final_output.filter中无frist_period_prem或total_modal_prem"
+        ],
+        "authority_tool_call_ids": [],
+        "confidence": null,
+        "downstream_impact": "下游不会误用50万旧门槛或额外保费条件",
+        "evidence_refs": [],
+        "expectation_id": "最终筛选替换五十万门槛且不叠加",
+        "expected_evidence": [
+          "最终filter应只保留30万门槛",
+          "最终filter不应保留50万门槛",
+          "最终filter不应叠加保费条件"
+        ],
+        "score": null,
+        "status": "fulfilled"
+      },
+      {
+        "actual_evidence": [
+          "turn4.query为保额30万以上的保单",
+          "turn4.filter仅包含sum_ins GTE 300000",
+          "turn4未继承turn2的OR结构"
+        ],
+        "authority_tool_call_ids": [],
+        "confidence": null,
+        "downstream_impact": "最终执行链路未被前轮错误上下文污染",
+        "evidence_refs": [],
+        "expectation_id": "最终完整新查询不继承前轮错误条件",
+        "expected_evidence": [
+          "turn4是完整新查询",
+          "turn4应独立于turn2错误保费OR和turn3未闭合状态"
+        ],
+        "score": null,
+        "status": "fulfilled"
+      },
+      {
+        "actual_evidence": [
+          "turn2.status为SUCCESS",
+          "turn2.filter为OR结构",
+          "turn2.children包含frist_period_prem GTE 300000和total_modal_prem GTE 300000"
+        ],
+        "authority_tool_call_ids": [],
+        "confidence": null,
+        "downstream_impact": "若用户依赖turn2结果会产生错误保费筛选，但turn4已纠正最终目标",
+        "evidence_refs": [],
+        "expectation_id": "用户改主意轮次应正确表达修改或安全澄清",
+        "expected_evidence": [
+          "turn2应解析为sum_ins GTE 300000",
+          "或在字段指代不明时返回UNSUPPORTED并请求澄清"
+        ],
+        "score": null,
+        "status": "not_fulfilled"
+      },
+      {
+        "actual_evidence": [
+          "turn3.status为UNSUPPORTED",
+          "turn3.filter为null",
+          "turn3.message泛化要求补充保单查询信息或条件"
+        ],
+        "authority_tool_call_ids": [],
+        "confidence": null,
+        "downstream_impact": "澄清恢复过程未闭环，但用户随后用完整新查询达成目标",
+        "evidence_refs": [],
+        "expectation_id": "澄清短答应恢复保额槽位",
+        "expected_evidence": [
+          "turn3应把是保额30万以上接到保额槽位",
+          "turn3应输出sum_ins GTE 300000或明确补槽"
+        ],
+        "score": null,
+        "status": "not_fulfilled"
+      }
+    ],
+    "missing": [],
+    "overall_fulfillment": {
+      "blocking_expectations": [
+        "最终筛选字段选择为保额",
+        "最终筛选数值与边界表达30万以上",
+        "最终筛选替换五十万门槛且不叠加",
+        "最终完整新查询不继承前轮错误条件"
+      ],
+      "status": "fulfilled"
+    },
+    "project_id": "policy_search",
+    "reasoning_summary": "服务依赖可用，最终turn4的完整新查询被独立解析为sum_ins GTE 300000，既选择了保额字段，也表达了大于等于30万的边界，并替换了前轮50万门槛，没有保留50万条件或叠加保费条件，因此最终核心业务意图满足。中间turn2将“30万以上”误解析为frist_period_prem与total_modal_prem的OR条件，且返回SUCCESS而非安全澄清，存在字段选择和改主意轮次处理错误；turn3的短答“是保额30万以上”也未恢复保额槽位，而是返回泛化UNSUPPORTED。这些问题被记录为非阻断过程错误，因为最终完整新查询已纠正并达成用户目标。",
+    "summary": {
+      "assessment_count": 6,
+      "blocking_count": 4,
+      "fulfillment_status": "fulfilled",
+      "is_formal_attribution": true,
+      "primary_failure_dimensions": [
+        {
+          "blocking": false,
+          "downstream_impact": "澄清恢复过程未闭环，但用户随后用完整新查询达成目标",
+          "evidence": "turn3.status为UNSUPPORTED | turn3.filter为null | turn3.message泛化要求补充保单查询信息或条件 | turn3应把是保额30万以上接到保额槽位 | turn3应输出sum_ins GTE 300000或明确补槽",
+          "expectation_id": "澄清短答应恢复保额槽位",
+          "status": "not_fulfilled"
+        },
+        {
+          "blocking": false,
+          "downstream_impact": "若用户依赖turn2结果会产生错误保费筛选，但turn4已纠正最终目标",
+          "evidence": "turn2.status为SUCCESS | turn2.filter为OR结构 | turn2.children包含frist_period_prem GTE 300000和total_modal_prem GTE 300000 | turn2应解析为sum_ins GTE 300000 | 或在字段指代不明时返回UNSUPPORTED并请求澄清",
+          "expectation_id": "用户改主意轮次应正确表达修改或安全澄清",
+          "status": "not_fulfilled"
+        }
+      ],
+      "reason": "fulfilled · 4 blocking expectations all met · 2 non-blocking gaps · 服务依赖可用，最终turn4的完整新查询被独立解析为sum_ins GTE 300000，既选择了保额字段，也表达了大于等于30万的边界，并替换了前轮50万门槛，没有保留50万条件或叠加保费条件，因此最终核心业务意图满足。中间turn2将“30万以上”误解析为frist_period_prem与total_modal_prem的OR条件，且返回SUCCESS而非安全澄清，存在字段选择和改主意轮次处理错误；turn3的短答“是保额30万以上”也未恢复保额槽位，而是返回泛化UNSUPPORTED。这些问题被记录为非阻断过程错误，因为最终完整新查询已纠正并达成用户目标。",
+      "reason_source": "aggregated_fulfillment"
+    },
+    "trace_id": "policy_search:harness-policy_search-ddbfef5b278e:1789007321052",
+    "wrong": [
+      {
+        "actual": {
+          "fields": [
+            "frist_period_prem",
+            "total_modal_prem"
+          ],
+          "filter_root_type": "OR",
+          "status": "SUCCESS"
+        },
+        "error_type": "field_selection_error",
+        "evidence_ref": "turn2.extracted_output",
+        "expected": {
+          "filter": {
+            "field": "sum_ins",
+            "operator": "GTE",
+            "value": 300000
+          },
+          "status": "SUCCESS"
+        },
+        "incomplete": false,
+        "kind": "turn_output",
+        "raw": {
+          "query": "算了，50万太高了，30万以上就行",
+          "turn_index": 2
+        }
+      },
+      {
+        "actual": {
+          "filter": null,
+          "message": "当前未能识别对应的保单查询信息，请补充想查询的保单信息或条件",
+          "status": "UNSUPPORTED"
+        },
+        "error_type": "clarification_slot_recovery_error",
+        "evidence_ref": "turn3.extracted_output",
+        "expected": {
+          "filter": {
+            "field": "sum_ins",
+            "operator": "GTE",
+            "value": 300000
+          },
+          "status": "SUCCESS"
+        },
+        "incomplete": false,
+        "kind": "turn_output",
+        "raw": {
+          "query": "是保额30万以上",
+          "turn_index": 3
+        }
+      }
+    ]
+  },
+  "judge_summary": "服务依赖可用，最终turn4的完整新查询被独立解析为sum_ins GTE 300000，既选择了保额字段，也表达了大于等于30万的边界，并替换了前轮50万门槛，没有保留50万条件或叠加保费条件，因此最终核心业务意图满足。中间turn2将“30万以上”误解析为frist_period_prem与total_modal_prem的OR条件，且返回SUCCESS而非安全澄清，存在字段选择和改主意轮次处理错误；turn3的短答“是保额30万以上”也未恢复保额槽位，而是返回泛化UNSUPPORTED。这些问题被记录为非阻断过程错误，因为最终完整新查询已纠正并达成用户目标。",
+  "judge_verdict": "fulfilled",
+  "mode": "text",
+  "opened_at": "2026-09-10T02:27:39Z",
+  "pool": "harness-explore-20260910-01",
+  "pool_id": "pool-1789007147776",
+  "project_id": "policy_search",
+  "protocol_fuzz": false,
+  "run_id": "explore-20260910-01",
+  "scenario": "clarification_then_new_query",
+  "seed_case": {
+    "id": "harness-policy_search-ddbfef5b278e",
+    "intent": {
+      "query": "保额50万以上的保单",
+      "scenario": "clarification_then_new_query",
+      "system_understanding": "",
+      "user_context": {},
+      "user_intent": "改主意：保额30万以上就行（替换50万门槛，不是叠加）"
+    },
+    "live_request": {
+      "action_scenario": "policySearch",
+      "app_scenario": "policy_search_parse",
+      "application_setting": null,
+      "extra_input_params": {
+        "agent_args": null,
+        "args": {
+          "contexts": []
+        },
+        "policySearchParseArgs": {
+          "agentCode": "A12345678",
+          "currentTime": "2026-08-06 10:30:00",
+          "query": "保额50万以上的保单"
+        }
+      },
+      "history": [],
+      "org_id": "verifier-org",
+      "org_name": "verifier",
+      "scenario": null,
+      "session_id": "harness-policy_search-ddbfef5b278e",
+      "source": "verifier",
+      "token": "",
+      "trace_id": "harness-policy_search-ddbfef5b278e-turn1",
+      "ts": 1785983400000,
+      "user_action": "write",
+      "user_id": "verifier-user",
+      "user_text": ""
+    },
+    "output": null,
+    "project_id": "policy_search",
+    "reference": null,
+    "scenario": "clarification_then_new_query",
+    "seed": {
+      "intent_history": [
+        {
+          "source": "seeded",
+          "turn_index": 0,
+          "user_context": {
+            "persona": "代理人筛客户名单，会中途降低门槛"
+          },
+          "user_intent": "先找保额50万以上的保单"
+        },
+        {
+          "source": "drifted",
+          "turn_index": 1,
+          "user_context": {},
+          "user_intent": "改主意：保额30万以上就行（替换50万门槛，不是叠加）"
+        }
+      ],
+      "level": "transcript",
+      "mode": "replay",
+      "prefix": [],
+      "prefix_mode": null,
+      "protocol_fuzz": false,
+      "session_mode": "text",
+      "stop_reason": "goal_satisfied",
+      "turns": [
+        {
+          "assistant": "解析成功",
+          "extracted_output": {
+            "code": 0,
+            "filter": {
+              "field": "sum_ins",
+              "node_id": "n0",
+              "operator": "GTE",
+              "type": "PREDICATE",
+              "value": 500000
+            },
+            "message": "解析成功",
+            "msg": "success",
+            "query": "保额50万以上的保单",
+            "status": "SUCCESS"
+          },
+          "message": {
+            "name": "",
+            "params": {},
+            "payload": {},
+            "text": "保额50万以上的保单",
+            "type": "text"
+          },
+          "request": {
+            "action_scenario": "policySearch",
+            "app_scenario": "policy_search_parse",
+            "application_setting": null,
+            "extra_input_params": {
+              "agent_args": null,
+              "args": {
+                "contexts": []
+              },
+              "policySearchParseArgs": {
+                "agentCode": "A12345678",
+                "currentTime": "2026-08-06 10:30:00",
+                "query": "保额50万以上的保单"
+              }
+            },
+            "history": [],
+            "org_id": "verifier-org",
+            "org_name": "verifier",
+            "scenario": null,
+            "session_id": "harness-policy_search-ddbfef5b278e",
+            "source": "verifier",
+            "token": "",
+            "trace_id": "harness-policy_search-ddbfef5b278e-turn1",
+            "ts": 1785983400000,
+            "user_action": "write",
+            "user_id": "verifier-user",
+            "user_text": ""
+          },
+          "turn_index": 1
+        },
+        {
+          "assistant": "解析成功",
+          "extracted_output": {
+            "code": 0,
+            "filter": {
+              "children": [
+                {
+                  "field": "frist_period_prem",
+                  "node_id": "n1",
+                  "operator": "GTE",
+                  "type": "PREDICATE",
+                  "value": 300000
+                },
+                {
+                  "field": "total_modal_prem",
+                  "node_id": "n2",
+                  "operator": "GTE",
+                  "type": "PREDICATE",
+                  "value": 300000
+                }
+              ],
+              "node_id": "n0",
+              "type": "OR"
+            },
+            "message": "解析成功",
+            "msg": "success",
+            "query": "算了，50万太高了，30万以上就行",
+            "status": "SUCCESS"
+          },
+          "message": {
+            "name": "",
+            "params": {},
+            "payload": {},
+            "text": "算了，50万太高了，30万以上就行",
+            "type": "text"
+          },
+          "request": {
+            "action_scenario": "policySearch",
+            "app_scenario": "policy_search_parse",
+            "application_setting": null,
+            "extra_input_params": {
+              "agent_args": null,
+              "args": {
+                "contexts": [
+                  {
+                    "content": "保额50万以上的保单",
+                    "role": "user",
+                    "sub_agent": ""
+                  },
+                  {
+                    "content": "解析成功",
+                    "role": "assistant",
+                    "sub_agent": "POLICY_SEARCH"
+                  }
+                ]
+              },
+              "policySearchParseArgs": {
+                "agentCode": "A12345678",
+                "currentTime": "2026-08-06 10:30:00",
+                "query": "算了，50万太高了，30万以上就行"
+              }
+            },
+            "history": [],
+            "org_id": "verifier-org",
+            "org_name": "verifier",
+            "scenario": null,
+            "session_id": "harness-policy_search-ddbfef5b278e",
+            "source": "verifier",
+            "token": "",
+            "trace_id": "harness-policy_search-ddbfef5b278e-turn2",
+            "ts": 1785983400000,
+            "user_action": "write",
+            "user_id": "verifier-user",
+            "user_text": ""
+          },
+          "turn_index": 2
+        },
+        {
+          "assistant": "当前未能识别对应的保单查询信息，请补充想查询的保单信息或条件",
+          "extracted_output": {
+            "code": 0,
+            "filter": null,
+            "message": "当前未能识别对应的保单查询信息，请补充想查询的保单信息或条件",
+            "msg": "success",
+            "query": "是保额30万以上",
+            "status": "UNSUPPORTED"
+          },
+          "message": {
+            "name": "",
+            "params": {},
+            "payload": {},
+            "text": "是保额30万以上",
+            "type": "text"
+          },
+          "request": {
+            "action_scenario": "policySearch",
+            "app_scenario": "policy_search_parse",
+            "application_setting": null,
+            "extra_input_params": {
+              "agent_args": null,
+              "args": {
+                "contexts": [
+                  {
+                    "content": "保额50万以上的保单",
+                    "role": "user",
+                    "sub_agent": ""
+                  },
+                  {
+                    "content": "解析成功",
+                    "role": "assistant",
+                    "sub_agent": "POLICY_SEARCH"
+                  },
+                  {
+                    "content": "算了，50万太高了，30万以上就行",
+                    "role": "user",
+                    "sub_agent": ""
+                  },
+                  {
+                    "content": "解析成功",
+                    "role": "assistant",
+                    "sub_agent": "POLICY_SEARCH"
+                  }
+                ]
+              },
+              "policySearchParseArgs": {
+                "agentCode": "A12345678",
+                "currentTime": "2026-08-06 10:30:00",
+                "query": "是保额30万以上"
+              }
+            },
+            "history": [],
+            "org_id": "verifier-org",
+            "org_name": "verifier",
+            "scenario": null,
+            "session_id": "harness-policy_search-ddbfef5b278e",
+            "source": "verifier",
+            "token": "",
+            "trace_id": "harness-policy_search-ddbfef5b278e-turn3",
+            "ts": 1785983400000,
+            "user_action": "write",
+            "user_id": "verifier-user",
+            "user_text": ""
+          },
+          "turn_index": 3
+        },
+        {
+          "assistant": "解析成功",
+          "extracted_output": {
+            "code": 0,
+            "filter": {
+              "field": "sum_ins",
+              "node_id": "n0",
+              "operator": "GTE",
+              "type": "PREDICATE",
+              "value": 300000
+            },
+            "message": "解析成功",
+            "msg": "success",
+            "query": "保额30万以上的保单",
+            "status": "SUCCESS"
+          },
+          "message": {
+            "name": "",
+            "params": {},
+            "payload": {},
+            "text": "保额30万以上的保单",
+            "type": "text"
+          },
+          "request": {
+            "action_scenario": "policySearch",
+            "app_scenario": "policy_search_parse",
+            "application_setting": null,
+            "extra_input_params": {
+              "agent_args": null,
+              "args": {
+                "contexts": [
+                  {
+                    "content": "保额50万以上的保单",
+                    "role": "user",
+                    "sub_agent": ""
+                  },
+                  {
+                    "content": "解析成功",
+                    "role": "assistant",
+                    "sub_agent": "POLICY_SEARCH"
+                  },
+                  {
+                    "content": "算了，50万太高了，30万以上就行",
+                    "role": "user",
+                    "sub_agent": ""
+                  },
+                  {
+                    "content": "解析成功",
+                    "role": "assistant",
+                    "sub_agent": "POLICY_SEARCH"
+                  },
+                  {
+                    "content": "是保额30万以上",
+                    "role": "user",
+                    "sub_agent": ""
+                  },
+                  {
+                    "content": "当前未能识别对应的保单查询信息，请补充想查询的保单信息或条件",
+                    "role": "assistant",
+                    "sub_agent": "POLICY_SEARCH"
+                  }
+                ]
+              },
+              "policySearchParseArgs": {
+                "agentCode": "A12345678",
+                "currentTime": "2026-08-06 10:30:00",
+                "query": "保额30万以上的保单"
+              }
+            },
+            "history": [],
+            "org_id": "verifier-org",
+            "org_name": "verifier",
+            "scenario": null,
+            "session_id": "harness-policy_search-ddbfef5b278e",
+            "source": "verifier",
+            "token": "",
+            "trace_id": "harness-policy_search-ddbfef5b278e-turn4",
+            "ts": 1785983400000,
+            "user_action": "write",
+            "user_id": "verifier-user",
+            "user_text": ""
+          },
+          "turn_index": 4
+        }
+      ]
+    }
+  },
+  "session_id": "harness-policy_search-ddbfef5b278e",
+  "stop_reason": "goal_satisfied",
+  "trace": {
+    "application_boundary": {
+      "allow_fallback": false,
+      "dependency_status": "available",
+      "excluded_evidence": [],
+      "notes": "parser returned an executable filter"
+    },
+    "attribution_runs": [],
+    "case_id": "harness-policy_search-ddbfef5b278e",
+    "completion_status": "completed",
+    "config_fingerprint": "3b2fb1f90c16",
+    "config_sources": {
+      "project": {
+        "fields": {
+          "environment.variables.POLICY_SEARCH_BASE_URL.bind": {
+            "kind": "project_yaml",
+            "name": "environment.variables.POLICY_SEARCH_BASE_URL.bind",
+            "secret": false
+          },
+          "environment.variables.POLICY_SEARCH_BASE_URL.description": {
+            "kind": "project_yaml",
+            "name": "environment.variables.POLICY_SEARCH_BASE_URL.description",
+            "secret": false
+          },
+          "environment.variables.POLICY_SEARCH_BASE_URL.required": {
+            "kind": "project_yaml",
+            "name": "environment.variables.POLICY_SEARCH_BASE_URL.required",
+            "secret": false
+          },
+          "environment.variables.POLICY_SEARCH_BASE_URL.secret": {
+            "kind": "project_yaml",
+            "name": "environment.variables.POLICY_SEARCH_BASE_URL.secret",
+            "secret": false
+          },
+          "environment.variables.POLICY_SEARCH_BASE_URL.type": {
+            "kind": "project_yaml",
+            "name": "environment.variables.POLICY_SEARCH_BASE_URL.type",
+            "secret": false
+          },
+          "environment.variables.POLICY_SEARCH_REPO.bind": {
+            "kind": "project_yaml",
+            "name": "environment.variables.POLICY_SEARCH_REPO.bind",
+            "secret": false
+          },
+          "environment.variables.POLICY_SEARCH_REPO.description": {
+            "kind": "project_yaml",
+            "name": "environment.variables.POLICY_SEARCH_REPO.description",
+            "secret": false
+          },
+          "environment.variables.POLICY_SEARCH_REPO.required": {
+            "kind": "project_yaml",
+            "name": "environment.variables.POLICY_SEARCH_REPO.required",
+            "secret": false
+          },
+          "environment.variables.POLICY_SEARCH_REPO.secret": {
+            "kind": "project_yaml",
+            "name": "environment.variables.POLICY_SEARCH_REPO.secret",
+            "secret": false
+          },
+          "environment.variables.POLICY_SEARCH_REPO.type": {
+            "kind": "project_yaml",
+            "name": "environment.variables.POLICY_SEARCH_REPO.type",
+            "secret": false
+          },
+          "metadata.accepted_proposal_sha256": {
+            "kind": "project_yaml",
+            "name": "metadata.accepted_proposal_sha256",
+            "secret": false
+          },
+          "metadata.initialized_from": {
+            "kind": "project_yaml",
+            "name": "metadata.initialized_from",
+            "secret": false
+          },
+          "metadata.source_revision": {
+            "kind": "project_yaml",
+            "name": "metadata.source_revision",
+            "secret": false
+          },
+          "project.capabilities": {
+            "kind": "project_yaml",
+            "name": "project.capabilities",
+            "secret": false
+          },
+          "project.description": {
+            "kind": "project_yaml",
+            "name": "project.description",
+            "secret": false
+          },
+          "project.id": {
+            "kind": "project_yaml",
+            "name": "project.id",
+            "secret": false
+          },
+          "project.name": {
+            "kind": "project_yaml",
+            "name": "project.name",
+            "secret": false
+          },
+          "project.resources.source.paths.api_contract": {
+            "kind": "project_yaml",
+            "name": "project.resources.source.paths.api_contract",
+            "secret": false
+          },
+          "project.resources.source.paths.business_config": {
+            "kind": "project_yaml",
+            "name": "project.resources.source.paths.business_config",
+            "secret": false
+          },
+          "project.resources.source.paths.filter_contract": {
+            "kind": "project_yaml",
+            "name": "project.resources.source.paths.filter_contract",
+            "secret": false
+          },
+          "project.resources.source.paths.golden_manifest": {
+            "kind": "project_yaml",
+            "name": "project.resources.source.paths.golden_manifest",
+            "secret": false
+          },
+          "project.resources.source.paths.runtime_config": {
+            "kind": "project_yaml",
+            "name": "project.resources.source.paths.runtime_config",
+            "secret": false
+          },
+          "project.resources.source.paths.technical_design": {
+            "kind": "project_yaml",
+            "name": "project.resources.source.paths.technical_design",
+            "secret": false
+          },
+          "project.resources.source.repository": {
+            "kind": "dotenv",
+            "name": "POLICY_SEARCH_REPO",
+            "secret": false
+          },
+          "runtime.adapter.output_extraction.extractor": {
+            "kind": "project_yaml",
+            "name": "runtime.adapter.output_extraction.extractor",
+            "secret": false
+          },
+          "runtime.adapter.output_extraction.normalized_output": {
+            "kind": "project_yaml",
+            "name": "runtime.adapter.output_extraction.normalized_output",
+            "secret": false
+          },
+          "runtime.adapter.reference_handling.alignment": {
+            "kind": "project_yaml",
+            "name": "runtime.adapter.reference_handling.alignment",
+            "secret": false
+          },
+          "runtime.adapter.reference_handling.source_priority": {
+            "kind": "project_yaml",
+            "name": "runtime.adapter.reference_handling.source_priority",
+            "secret": false
+          },
+          "runtime.adapter.request_construction.builder": {
+            "kind": "project_yaml",
+            "name": "runtime.adapter.request_construction.builder",
+            "secret": false
+          },
+          "runtime.adapter.request_construction.required_inputs": {
+            "kind": "project_yaml",
+            "name": "runtime.adapter.request_construction.required_inputs",
+            "secret": false
+          },
+          "runtime.application.boundary": {
+            "kind": "project_yaml",
+            "name": "runtime.application.boundary",
+            "secret": false
+          },
+          "runtime.application.interface.shape": {
+            "kind": "project_yaml",
+            "name": "runtime.application.interface.shape",
+            "secret": false
+          },
+          "runtime.application.interface.source": {
+            "kind": "project_yaml",
+            "name": "runtime.application.interface.source",
+            "secret": false
+          },
+          "runtime.application.start_run": {
+            "kind": "project_yaml",
+            "name": "runtime.application.start_run",
+            "secret": false
+          },
+          "runtime.batch_persistence.case_shape": {
+            "kind": "project_yaml",
+            "name": "runtime.batch_persistence.case_shape",
+            "secret": false
+          },
+          "runtime.batch_persistence.transient_results": {
+            "kind": "project_yaml",
+            "name": "runtime.batch_persistence.transient_results",
+            "secret": false
+          },
+          "runtime.interaction.mode": {
+            "kind": "project_yaml",
+            "name": "runtime.interaction.mode",
+            "secret": false
+          },
+          "runtime.local_deployment.enabled": {
+            "kind": "project_yaml",
+            "name": "runtime.local_deployment.enabled",
+            "secret": false
+          },
+          "runtime.mock_cases.default_scenarios": {
+            "kind": "project_yaml",
+            "name": "runtime.mock_cases.default_scenarios",
+            "secret": false
+          },
+          "runtime.mock_cases.source": {
+            "kind": "project_yaml",
+            "name": "runtime.mock_cases.source",
+            "secret": false
+          },
+          "runtime.mode": {
+            "kind": "project_yaml",
+            "name": "runtime.mode",
+            "secret": false
+          },
+          "runtime.ready": {
+            "kind": "project_yaml",
+            "name": "runtime.ready",
+            "secret": false
+          },
+          "runtime.services.primary.base_url": {
+            "kind": "project_yaml",
+            "name": "runtime.services.primary.base_url",
+            "secret": false
+          },
+          "runtime.services.primary.endpoint": {
+            "kind": "project_yaml",
+            "name": "runtime.services.primary.endpoint",
+            "secret": false
+          },
+          "runtime.services.primary.healthcheck.endpoint": {
+            "kind": "project_yaml",
+            "name": "runtime.services.primary.healthcheck.endpoint",
+            "secret": false
+          },
+          "runtime.services.primary.healthcheck.interval_seconds": {
+            "kind": "project_yaml",
+            "name": "runtime.services.primary.healthcheck.interval_seconds",
+            "secret": false
+          },
+          "runtime.services.primary.healthcheck.request_timeout_seconds": {
+            "kind": "project_yaml",
+            "name": "runtime.services.primary.healthcheck.request_timeout_seconds",
+            "secret": false
+          },
+          "runtime.services.primary.healthcheck.startup_timeout_seconds": {
+            "kind": "project_yaml",
+            "name": "runtime.services.primary.healthcheck.startup_timeout_seconds",
+            "secret": false
+          },
+          "runtime.services.primary.method": {
+            "kind": "project_yaml",
+            "name": "runtime.services.primary.method",
+            "secret": false
+          },
+          "runtime.services.primary.timeout_seconds": {
+            "kind": "project_yaml",
+            "name": "runtime.services.primary.timeout_seconds",
+            "secret": false
+          },
+          "schema_version": {
+            "kind": "project_yaml",
+            "name": "schema_version",
+            "secret": false
+          },
+          "verifier.attribution.enabled": {
+            "kind": "project_yaml",
+            "name": "verifier.attribution.enabled",
+            "secret": false
+          },
+          "verifier.attribution.trace.document": {
+            "kind": "project_yaml",
+            "name": "verifier.attribution.trace.document",
+            "secret": false
+          },
+          "verifier.attribution.trace.trace_nodes": {
+            "kind": "project_yaml",
+            "name": "verifier.attribution.trace.trace_nodes",
+            "secret": false
+          },
+          "verifier.check_rules.core_forbidden_markers": {
+            "kind": "project_yaml",
+            "name": "verifier.check_rules.core_forbidden_markers",
+            "secret": false
+          },
+          "verifier.check_rules.evidence.documents": {
+            "kind": "project_yaml",
+            "name": "verifier.check_rules.evidence.documents",
+            "secret": false
+          },
+          "verifier.check_rules.evidence.tests": {
+            "kind": "project_yaml",
+            "name": "verifier.check_rules.evidence.tests",
+            "secret": false
+          },
+          "verifier.check_rules.require_scenario": {
+            "kind": "project_yaml",
+            "name": "verifier.check_rules.require_scenario",
+            "secret": false
+          },
+          "verifier.judge.boundary.document": {
+            "kind": "project_yaml",
+            "name": "verifier.judge.boundary.document",
+            "secret": false
+          },
+          "verifier.judge.boundary.gate": {
+            "kind": "project_yaml",
+            "name": "verifier.judge.boundary.gate",
+            "secret": false
+          },
+          "verifier.presentation.frontend_view.live": {
+            "kind": "project_yaml",
+            "name": "verifier.presentation.frontend_view.live",
+            "secret": false
+          },
+          "verifier.presentation.frontend_view.summary": {
+            "kind": "project_yaml",
+            "name": "verifier.presentation.frontend_view.summary",
+            "secret": false
+          },
+          "verifier.scenarios.allowed": {
+            "kind": "project_yaml",
+            "name": "verifier.scenarios.allowed",
+            "secret": false
+          },
+          "verifier.scenarios.interactive": {
+            "kind": "project_yaml",
+            "name": "verifier.scenarios.interactive",
+            "secret": false
+          }
+        },
+        "fingerprint": "1db628932cd7"
+      },
+      "public": {
+        "fields": {
+          "attribute.compaction.attribute_result_chars": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.compaction.attribute_result_chars",
+            "secret": false
+          },
+          "attribute.compaction.judge_business_expectations_chars": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.compaction.judge_business_expectations_chars",
+            "secret": false
+          },
+          "attribute.compaction.judge_fulfillment_assessments_chars": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.compaction.judge_fulfillment_assessments_chars",
+            "secret": false
+          },
+          "attribute.compaction.judge_gap_chars": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.compaction.judge_gap_chars",
+            "secret": false
+          },
+          "attribute.compaction.judge_reasoning_chars": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.compaction.judge_reasoning_chars",
+            "secret": false
+          },
+          "attribute.compaction.list_item_limit": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.compaction.list_item_limit",
+            "secret": false
+          },
+          "attribute.compaction.project_context_chars": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.compaction.project_context_chars",
+            "secret": false
+          },
+          "attribute.compaction.trace_error_chars": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.compaction.trace_error_chars",
+            "secret": false
+          },
+          "attribute.compaction.trace_execution_chars": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.compaction.trace_execution_chars",
+            "secret": false
+          },
+          "attribute.compaction.trace_input_chars": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.compaction.trace_input_chars",
+            "secret": false
+          },
+          "attribute.compaction.trace_normalized_request_chars": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.compaction.trace_normalized_request_chars",
+            "secret": false
+          },
+          "attribute.compaction.trace_output_chars": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.compaction.trace_output_chars",
+            "secret": false
+          },
+          "attribute.finalization_prompt_char_budget": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.finalization_prompt_char_budget",
+            "secret": false
+          },
+          "attribute.investigation_error_chars": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.investigation_error_chars",
+            "secret": false
+          },
+          "attribute.review_prompt_char_budget": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.review_prompt_char_budget",
+            "secret": false
+          },
+          "attribute.tool_call_limit": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.tool_call_limit",
+            "secret": false
+          },
+          "browser.driver_path": {
+            "kind": "yaml",
+            "name": "config.yaml#browser.driver_path",
+            "secret": false
+          },
+          "context.candidate_limit": {
+            "kind": "yaml",
+            "name": "config.yaml#context.candidate_limit",
+            "secret": false
+          },
+          "context.content_char_budget": {
+            "kind": "yaml",
+            "name": "config.yaml#context.content_char_budget",
+            "secret": false
+          },
+          "context.data_root": {
+            "kind": "yaml",
+            "name": "config.yaml#context.data_root",
+            "secret": false
+          },
+          "context.load_limit": {
+            "kind": "yaml",
+            "name": "config.yaml#context.load_limit",
+            "secret": false
+          },
+          "context.max_records_per_project": {
+            "kind": "yaml",
+            "name": "config.yaml#context.max_records_per_project",
+            "secret": false
+          },
+          "context.query_limit": {
+            "kind": "yaml",
+            "name": "config.yaml#context.query_limit",
+            "secret": false
+          },
+          "context.store_root": {
+            "kind": "yaml",
+            "name": "config.yaml#context.store_root",
+            "secret": false
+          },
+          "context.top_k_per_query": {
+            "kind": "yaml",
+            "name": "config.yaml#context.top_k_per_query",
+            "secret": false
+          },
+          "embedding.api_key": {
+            "kind": "dotenv",
+            "name": "BAILIAN_API_KEY",
+            "secret": true
+          },
+          "embedding.dimensions": {
+            "kind": "yaml",
+            "name": "config.yaml#embedding.dimensions",
+            "secret": false
+          },
+          "embedding.enabled": {
+            "kind": "yaml",
+            "name": "config.yaml#embedding.enabled",
+            "secret": false
+          },
+          "embedding.model": {
+            "kind": "yaml",
+            "name": "config.yaml#embedding.model",
+            "secret": false
+          },
+          "embedding.provider": {
+            "kind": "yaml",
+            "name": "config.yaml#embedding.provider",
+            "secret": false
+          },
+          "embedding.retrieval_top_k": {
+            "kind": "yaml",
+            "name": "config.yaml#embedding.retrieval_top_k",
+            "secret": false
+          },
+          "embedding.trust_env_proxy": {
+            "kind": "yaml",
+            "name": "config.yaml#embedding.trust_env_proxy",
+            "secret": false
+          },
+          "eval_axes.es.api_key": {
+            "kind": "yaml",
+            "name": "config.yaml#eval_axes.es.api_key",
+            "secret": false
+          },
+          "eval_axes.es.base_url": {
+            "kind": "dotenv",
+            "name": "EVAL_AXES_ES_URL",
+            "secret": false
+          },
+          "eval_axes.es.basic_auth": {
+            "kind": "yaml",
+            "name": "config.yaml#eval_axes.es.basic_auth",
+            "secret": false
+          },
+          "eval_axes.es.enabled": {
+            "kind": "dotenv",
+            "name": "EVAL_AXES_ES_ENABLED",
+            "secret": false
+          },
+          "eval_axes.es.max_field_chars": {
+            "kind": "yaml",
+            "name": "config.yaml#eval_axes.es.max_field_chars",
+            "secret": false
+          },
+          "eval_axes.es.max_hits": {
+            "kind": "yaml",
+            "name": "config.yaml#eval_axes.es.max_hits",
+            "secret": false
+          },
+          "eval_axes.es.timeout_seconds": {
+            "kind": "yaml",
+            "name": "config.yaml#eval_axes.es.timeout_seconds",
+            "secret": false
+          },
+          "eval_axes.model_policy": {
+            "kind": "yaml",
+            "name": "config.yaml#eval_axes.model_policy",
+            "secret": false
+          },
+          "execution.batch_concurrency_default": {
+            "kind": "yaml",
+            "name": "config.yaml#execution.batch_concurrency_default",
+            "secret": false
+          },
+          "execution.batch_concurrency_max": {
+            "kind": "yaml",
+            "name": "config.yaml#execution.batch_concurrency_max",
+            "secret": false
+          },
+          "execution.batch_event_history_limit": {
+            "kind": "yaml",
+            "name": "config.yaml#execution.batch_event_history_limit",
+            "secret": false
+          },
+          "execution.case_retry_attempts": {
+            "kind": "yaml",
+            "name": "config.yaml#execution.case_retry_attempts",
+            "secret": false
+          },
+          "judge.raw_response_max_chars": {
+            "kind": "yaml",
+            "name": "config.yaml#judge.raw_response_max_chars",
+            "secret": false
+          },
+          "llm.api_key": {
+            "kind": "dotenv",
+            "name": "DEEPSEEK_API_KEY",
+            "secret": true
+          },
+          "llm.base_url": {
+            "kind": "dotenv",
+            "name": "LLM_BASE_URL",
+            "secret": false
+          },
+          "llm.capabilities.context_window_tokens": {
+            "kind": "yaml",
+            "name": "config.yaml#llm.capabilities.context_window_tokens",
+            "secret": false
+          },
+          "llm.capabilities.json_mode": {
+            "kind": "yaml",
+            "name": "config.yaml#llm.capabilities.json_mode",
+            "secret": false
+          },
+          "llm.capabilities.tool_calls": {
+            "kind": "yaml",
+            "name": "config.yaml#llm.capabilities.tool_calls",
+            "secret": false
+          },
+          "llm.fallback_1.api_key": {
+            "kind": "dotenv",
+            "name": "LLM_FALLBACK_1_API_KEY",
+            "secret": true
+          },
+          "llm.fallback_1.base_url": {
+            "kind": "dotenv",
+            "name": "LLM_FALLBACK_1_BASE_URL",
+            "secret": false
+          },
+          "llm.fallback_1.model": {
+            "kind": "dotenv",
+            "name": "LLM_FALLBACK_1_MODEL",
+            "secret": false
+          },
+          "llm.fallback_2.api_key": {
+            "kind": "dotenv",
+            "name": "LLM_FALLBACK_2_API_KEY",
+            "secret": true
+          },
+          "llm.fallback_2.base_url": {
+            "kind": "dotenv",
+            "name": "LLM_FALLBACK_2_BASE_URL",
+            "secret": false
+          },
+          "llm.fallback_2.model": {
+            "kind": "dotenv",
+            "name": "LLM_FALLBACK_2_MODEL",
+            "secret": false
+          },
+          "llm.model": {
+            "kind": "dotenv",
+            "name": "LLM_MODEL",
+            "secret": false
+          },
+          "llm.protocol": {
+            "kind": "yaml",
+            "name": "config.yaml#llm.protocol",
+            "secret": false
+          },
+          "llm.provider": {
+            "kind": "yaml",
+            "name": "config.yaml#llm.provider",
+            "secret": false
+          },
+          "llm.reasoning_effort": {
+            "kind": "yaml",
+            "name": "config.yaml#llm.reasoning_effort",
+            "secret": false
+          },
+          "llm.request_timeout_seconds": {
+            "kind": "yaml",
+            "name": "config.yaml#llm.request_timeout_seconds",
+            "secret": false
+          },
+          "llm.role_policies.live_stub.model": {
+            "kind": "yaml",
+            "name": "config.yaml#llm.role_policies.live_stub.model",
+            "secret": false
+          },
+          "llm.role_policies.live_stub.reasoning_effort": {
+            "kind": "yaml",
+            "name": "config.yaml#llm.role_policies.live_stub.reasoning_effort",
+            "secret": false
+          },
+          "llm.stream": {
+            "kind": "yaml",
+            "name": "config.yaml#llm.stream",
+            "secret": false
+          },
+          "llm.temperature": {
+            "kind": "yaml",
+            "name": "config.yaml#llm.temperature",
+            "secret": false
+          },
+          "python.executable": {
+            "kind": "dotenv",
+            "name": "PYTHON_EXECUTABLE",
+            "secret": false
+          },
+          "server.host": {
+            "kind": "yaml",
+            "name": "config.yaml#server.host",
+            "secret": false
+          },
+          "server.port": {
+            "kind": "cli",
+            "name": "server.port",
+            "secret": false
+          },
+          "uat.host": {
+            "kind": "yaml",
+            "name": "config.yaml#uat.host",
+            "secret": false
+          },
+          "uat.port": {
+            "kind": "yaml",
+            "name": "config.yaml#uat.port",
+            "secret": false
+          }
+        },
+        "fingerprint": "e90b7485bacc"
+      }
+    },
+    "conversation_summary": {
+      "completion_status": "completed",
+      "final_output_turn": 4,
+      "interaction_controller_error": "",
+      "interaction_controller_status": "not_run",
+      "stop_reason": "goal_satisfied",
+      "turn_count": 4
+    },
+    "conversation_transcript": [
+      {
+        "content": "保额50万以上的保单",
+        "query": "保额50万以上的保单",
+        "role": "user"
+      },
+      {
+        "content": "解析成功",
+        "role": "assistant",
+        "stage": null
+      },
+      {
+        "content": "算了，50万太高了，30万以上就行",
+        "query": "算了，50万太高了，30万以上就行",
+        "role": "user"
+      },
+      {
+        "content": "解析成功",
+        "role": "assistant",
+        "stage": null
+      },
+      {
+        "content": "是保额30万以上",
+        "query": "是保额30万以上",
+        "role": "user"
+      },
+      {
+        "content": "当前未能识别对应的保单查询信息，请补充想查询的保单信息或条件",
+        "role": "assistant",
+        "stage": null
+      },
+      {
+        "content": "保额30万以上的保单",
+        "query": "保额30万以上的保单",
+        "role": "user"
+      },
+      {
+        "content": "解析成功",
+        "role": "assistant",
+        "stage": null
+      }
+    ],
+    "created_at": "2026-09-10T02:28:41.052388+00:00",
+    "diverged_at_turn": null,
+    "error": "",
+    "evidence_refs": [],
+    "execution_mode": "interactive_intent",
+    "execution_trace": [
+      {
+        "error": "",
+        "evidence": {
+          "project_id": "policy_search"
+        },
+        "inputs": {},
+        "metadata": {},
+        "outputs": {},
+        "stage": "live_schema.validate_request",
+        "status": "succeeded",
+        "timestamp": ""
+      },
+      {
+        "error": "",
+        "evidence": {
+          "project_id": "policy_search"
+        },
+        "inputs": {},
+        "metadata": {},
+        "outputs": {},
+        "stage": "live_schema.validate_output",
+        "status": "succeeded",
+        "timestamp": ""
+      },
+      {
+        "error": "",
+        "evidence": {
+          "project_id": "policy_search"
+        },
+        "inputs": {},
+        "metadata": {},
+        "outputs": {},
+        "stage": "live_schema.validate_request",
+        "status": "succeeded",
+        "timestamp": ""
+      },
+      {
+        "error": "",
+        "evidence": {
+          "project_id": "policy_search"
+        },
+        "inputs": {},
+        "metadata": {},
+        "outputs": {},
+        "stage": "live_schema.validate_output",
+        "status": "succeeded",
+        "timestamp": ""
+      },
+      {
+        "error": "",
+        "evidence": {
+          "project_id": "policy_search"
+        },
+        "inputs": {},
+        "metadata": {},
+        "outputs": {},
+        "stage": "live_schema.validate_request",
+        "status": "succeeded",
+        "timestamp": ""
+      },
+      {
+        "error": "",
+        "evidence": {
+          "project_id": "policy_search"
+        },
+        "inputs": {},
+        "metadata": {},
+        "outputs": {},
+        "stage": "live_schema.validate_output",
+        "status": "succeeded",
+        "timestamp": ""
+      },
+      {
+        "error": "",
+        "evidence": {
+          "project_id": "policy_search"
+        },
+        "inputs": {},
+        "metadata": {},
+        "outputs": {},
+        "stage": "live_schema.validate_request",
+        "status": "succeeded",
+        "timestamp": ""
+      },
+      {
+        "error": "",
+        "evidence": {
+          "project_id": "policy_search"
+        },
+        "inputs": {},
+        "metadata": {},
+        "outputs": {},
+        "stage": "live_schema.validate_output",
+        "status": "succeeded",
+        "timestamp": ""
+      }
+    ],
+    "extracted_output": {
+      "code": 0,
+      "filter": {
+        "field": "sum_ins",
+        "node_id": "n0",
+        "operator": "GTE",
+        "type": "PREDICATE",
+        "value": 300000
+      },
+      "message": "解析成功",
+      "msg": "success",
+      "query": "保额30万以上的保单",
+      "status": "SUCCESS"
+    },
+    "fallbacks": [],
+    "final_output_turn": 4,
+    "gate_decisions": [],
+    "input": {
+      "action_scenario": "policySearch",
+      "app_scenario": "policy_search_parse",
+      "application_setting": null,
+      "extra_input_params": {
+        "agent_args": null,
+        "args": {
+          "contexts": []
+        },
+        "policySearchParseArgs": {
+          "agentCode": "A12345678",
+          "currentTime": "2026-08-06 10:30:00",
+          "query": "保额50万以上的保单"
+        }
+      },
+      "history": [],
+      "org_id": "verifier-org",
+      "org_name": "verifier",
+      "scenario": null,
+      "session_id": "harness-policy_search-ddbfef5b278e",
+      "source": "verifier",
+      "token": "",
+      "trace_id": "harness-policy_search-ddbfef5b278e-turn1",
+      "ts": 1785983400000,
+      "user_action": "write",
+      "user_id": "verifier-user",
+      "user_text": ""
+    },
+    "intent_history": [
+      {
+        "source": "seeded",
+        "turn_index": 0,
+        "user_context": {
+          "persona": "代理人筛客户名单，会中途降低门槛"
+        },
+        "user_intent": "先找保额50万以上的保单"
+      },
+      {
+        "source": "drifted",
+        "turn_index": 1,
+        "user_context": {},
+        "user_intent": "改主意：保额30万以上就行（替换50万门槛，不是叠加）"
+      }
+    ],
+    "interaction_controller_error": "",
+    "interaction_controller_status": "not_run",
+    "interaction_mode": "interactive_intent",
+    "mock_intent": {
+      "query": "",
+      "scenario": "",
+      "system_understanding": "",
+      "user_context": {},
+      "user_intent": "改主意：保额30万以上就行（替换50万门槛，不是叠加）"
+    },
+    "multi_turn_input": null,
+    "normalized_request": {
+      "action_scenario": "policySearch",
+      "app_scenario": "policy_search_parse",
+      "application_setting": null,
+      "extra_input_params": {
+        "agent_args": null,
+        "args": {
+          "contexts": []
+        },
+        "policySearchParseArgs": {
+          "agentCode": "A12345678",
+          "currentTime": "2026-08-06 10:30:00",
+          "query": "保额50万以上的保单"
+        }
+      },
+      "history": [],
+      "org_id": "verifier-org",
+      "org_name": "verifier",
+      "scenario": null,
+      "session_id": "harness-policy_search-ddbfef5b278e",
+      "source": "verifier",
+      "token": "",
+      "trace_id": "harness-policy_search-ddbfef5b278e-turn1",
+      "ts": 1785983400000,
+      "user_action": "write",
+      "user_id": "verifier-user",
+      "user_text": ""
+    },
+    "output_source": "interactive_adapter",
+    "project_fields": {
+      "filter_root_type": "PREDICATE",
+      "parse_status": "SUCCESS"
+    },
+    "project_id": "policy_search",
+    "raw_response": [
+      [
+        {
+          "code": 0,
+          "data": {
+            "end_flag": 1,
+            "extra_output_params": {
+              "policySearchParseResult": {
+                "filter": {
+                  "field": "sum_ins",
+                  "node_id": "n0",
+                  "operator": "GTE",
+                  "type": "PREDICATE",
+                  "value": 500000
+                },
+                "message": "解析成功",
+                "query": "保额50万以上的保单",
+                "status": "SUCCESS"
+              }
+            },
+            "robot_text": null
+          },
+          "msg": "success"
+        }
+      ],
+      [
+        {
+          "code": 0,
+          "data": {
+            "end_flag": 1,
+            "extra_output_params": {
+              "policySearchParseResult": {
+                "filter": {
+                  "children": [
+                    {
+                      "field": "frist_period_prem",
+                      "node_id": "n1",
+                      "operator": "GTE",
+                      "type": "PREDICATE",
+                      "value": 300000
+                    },
+                    {
+                      "field": "total_modal_prem",
+                      "node_id": "n2",
+                      "operator": "GTE",
+                      "type": "PREDICATE",
+                      "value": 300000
+                    }
+                  ],
+                  "node_id": "n0",
+                  "type": "OR"
+                },
+                "message": "解析成功",
+                "query": "算了，50万太高了，30万以上就行",
+                "status": "SUCCESS"
+              }
+            },
+            "robot_text": null
+          },
+          "msg": "success"
+        }
+      ],
+      [
+        {
+          "code": 0,
+          "data": {
+            "end_flag": 1,
+            "extra_output_params": {
+              "policySearchParseResult": {
+                "filter": null,
+                "message": "当前未能识别对应的保单查询信息，请补充想查询的保单信息或条件",
+                "query": "是保额30万以上",
+                "status": "UNSUPPORTED"
+              }
+            },
+            "robot_text": null
+          },
+          "msg": "success"
+        }
+      ],
+      [
+        {
+          "code": 0,
+          "data": {
+            "end_flag": 1,
+            "extra_output_params": {
+              "policySearchParseResult": {
+                "filter": {
+                  "field": "sum_ins",
+                  "node_id": "n0",
+                  "operator": "GTE",
+                  "type": "PREDICATE",
+                  "value": 300000
+                },
+                "message": "解析成功",
+                "query": "保额30万以上的保单",
+                "status": "SUCCESS"
+              }
+            },
+            "robot_text": null
+          },
+          "msg": "success"
+        }
+      ]
+    ],
+    "ready": [],
+    "reference_contract": {},
+    "runtime_logs": [],
+    "scenario": "clarification_then_new_query",
+    "session_id": "harness-policy_search-ddbfef5b278e",
+    "state_history": [],
+    "status": "ok",
+    "stop_reason": "goal_satisfied",
+    "trace_id": "policy_search:harness-policy_search-ddbfef5b278e:1789007321052",
+    "transition_decisions": [],
+    "turn_index": 4,
+    "turn_records": [
+      {
+        "application_boundary": {
+          "allow_fallback": false,
+          "dependency_status": "available",
+          "excluded_evidence": [],
+          "notes": "parser returned an executable filter"
+        },
+        "call_status": "succeeded",
+        "error": null,
+        "execution_trace": [
+          {
+            "error": "",
+            "evidence": {
+              "project_id": "policy_search"
+            },
+            "inputs": {},
+            "metadata": {},
+            "outputs": {},
+            "stage": "live_schema.validate_request",
+            "status": "succeeded",
+            "timestamp": ""
+          },
+          {
+            "error": "",
+            "evidence": {
+              "project_id": "policy_search"
+            },
+            "inputs": {},
+            "metadata": {},
+            "outputs": {},
+            "stage": "live_schema.validate_output",
+            "status": "succeeded",
+            "timestamp": ""
+          }
+        ],
+        "extracted_output": {
+          "code": 0,
+          "filter": {
+            "field": "sum_ins",
+            "node_id": "n0",
+            "operator": "GTE",
+            "type": "PREDICATE",
+            "value": 500000
+          },
+          "message": "解析成功",
+          "msg": "success",
+          "query": "保额50万以上的保单",
+          "status": "SUCCESS"
+        },
+        "fallbacks": [],
+        "live_exchanges": [
+          {
+            "carries_live_request": true,
+            "contributes_raw_response": true,
+            "error": null,
+            "exchange_id": "live-exchange-1726a7dc-2d16-4d3f-b711-8954e6b8249a",
+            "finished_at": "2026-09-10T02:27:40.086126+00:00",
+            "method": "POST",
+            "request": {
+              "action_scenario": "policySearch",
+              "app_scenario": "policy_search_parse",
+              "application_setting": null,
+              "extra_input_params": {
+                "agent_args": null,
+                "args": {
+                  "contexts": []
+                },
+                "policySearchParseArgs": {
+                  "agentCode": "A12345678",
+                  "currentTime": "2026-08-06 10:30:00",
+                  "query": "保额50万以上的保单"
+                }
+              },
+              "history": [],
+              "org_id": "verifier-org",
+              "org_name": "verifier",
+              "scenario": null,
+              "session_id": "harness-policy_search-ddbfef5b278e",
+              "source": "verifier",
+              "token": "",
+              "trace_id": "harness-policy_search-ddbfef5b278e-turn1",
+              "ts": 1785983400000,
+              "user_action": "write",
+              "user_id": "verifier-user",
+              "user_text": ""
+            },
+            "request_headers": {
+              "Content-Type": "application/json"
+            },
+            "response": {
+              "code": 0,
+              "data": {
+                "end_flag": 1,
+                "extra_output_params": {
+                  "policySearchParseResult": {
+                    "filter": {
+                      "field": "sum_ins",
+                      "node_id": "n0",
+                      "operator": "GTE",
+                      "type": "PREDICATE",
+                      "value": 500000
+                    },
+                    "message": "解析成功",
+                    "query": "保额50万以上的保单",
+                    "status": "SUCCESS"
+                  }
+                },
+                "robot_text": null
+              },
+              "msg": "success"
+            },
+            "response_headers": {
+              "Connection": "close",
+              "content-length": "294",
+              "content-type": "application/json",
+              "date": "Thu, 10 Sep 2026 02:27:39 GMT",
+              "server": "uvicorn"
+            },
+            "sequence": 0,
+            "started_at": "2026-09-10T02:27:40.077386+00:00",
+            "status_code": 200,
+            "transport": "http",
+            "url": "http://127.0.0.1:8050/api/v1/policy-search/policy-search-parse"
+          }
+        ],
+        "mock_message": "保额50万以上的保单",
+        "project_fields": {
+          "filter_root_type": "PREDICATE",
+          "parse_status": "SUCCESS"
+        },
+        "raw_response": [
+          {
+            "code": 0,
+            "data": {
+              "end_flag": 1,
+              "extra_output_params": {
+                "policySearchParseResult": {
+                  "filter": {
+                    "field": "sum_ins",
+                    "node_id": "n0",
+                    "operator": "GTE",
+                    "type": "PREDICATE",
+                    "value": 500000
+                  },
+                  "message": "解析成功",
+                  "query": "保额50万以上的保单",
+                  "status": "SUCCESS"
+                }
+              },
+              "robot_text": null
+            },
+            "msg": "success"
+          }
+        ],
+        "request": {
+          "action_scenario": "policySearch",
+          "app_scenario": "policy_search_parse",
+          "application_setting": null,
+          "extra_input_params": {
+            "agent_args": null,
+            "args": {
+              "contexts": []
+            },
+            "policySearchParseArgs": {
+              "agentCode": "A12345678",
+              "currentTime": "2026-08-06 10:30:00",
+              "query": "保额50万以上的保单"
+            }
+          },
+          "history": [],
+          "org_id": "verifier-org",
+          "org_name": "verifier",
+          "scenario": null,
+          "session_id": "harness-policy_search-ddbfef5b278e",
+          "source": "verifier",
+          "token": "",
+          "trace_id": "harness-policy_search-ddbfef5b278e-turn1",
+          "ts": 1785983400000,
+          "user_action": "write",
+          "user_id": "verifier-user",
+          "user_text": ""
+        },
+        "runtime_ms": 9,
+        "turn_index": 1,
+        "validation": []
+      },
+      {
+        "application_boundary": {
+          "allow_fallback": false,
+          "dependency_status": "available",
+          "excluded_evidence": [],
+          "notes": "parser returned an executable filter"
+        },
+        "call_status": "succeeded",
+        "error": null,
+        "execution_trace": [
+          {
+            "error": "",
+            "evidence": {
+              "project_id": "policy_search"
+            },
+            "inputs": {},
+            "metadata": {},
+            "outputs": {},
+            "stage": "live_schema.validate_request",
+            "status": "succeeded",
+            "timestamp": ""
+          },
+          {
+            "error": "",
+            "evidence": {
+              "project_id": "policy_search"
+            },
+            "inputs": {},
+            "metadata": {},
+            "outputs": {},
+            "stage": "live_schema.validate_output",
+            "status": "succeeded",
+            "timestamp": ""
+          }
+        ],
+        "extracted_output": {
+          "code": 0,
+          "filter": {
+            "children": [
+              {
+                "field": "frist_period_prem",
+                "node_id": "n1",
+                "operator": "GTE",
+                "type": "PREDICATE",
+                "value": 300000
+              },
+              {
+                "field": "total_modal_prem",
+                "node_id": "n2",
+                "operator": "GTE",
+                "type": "PREDICATE",
+                "value": 300000
+              }
+            ],
+            "node_id": "n0",
+            "type": "OR"
+          },
+          "message": "解析成功",
+          "msg": "success",
+          "query": "算了，50万太高了，30万以上就行",
+          "status": "SUCCESS"
+        },
+        "fallbacks": [],
+        "live_exchanges": [
+          {
+            "carries_live_request": true,
+            "contributes_raw_response": true,
+            "error": null,
+            "exchange_id": "live-exchange-f847002d-c627-4bee-88d3-45cfb3f1e353",
+            "finished_at": "2026-09-10T02:27:57.849288+00:00",
+            "method": "POST",
+            "request": {
+              "action_scenario": "policySearch",
+              "app_scenario": "policy_search_parse",
+              "application_setting": null,
+              "extra_input_params": {
+                "agent_args": null,
+                "args": {
+                  "contexts": [
+                    {
+                      "content": "保额50万以上的保单",
+                      "role": "user",
+                      "sub_agent": ""
+                    },
+                    {
+                      "content": "解析成功",
+                      "role": "assistant",
+                      "sub_agent": "POLICY_SEARCH"
+                    }
+                  ]
+                },
+                "policySearchParseArgs": {
+                  "agentCode": "A12345678",
+                  "currentTime": "2026-08-06 10:30:00",
+                  "query": "算了，50万太高了，30万以上就行"
+                }
+              },
+              "history": [],
+              "org_id": "verifier-org",
+              "org_name": "verifier",
+              "scenario": null,
+              "session_id": "harness-policy_search-ddbfef5b278e",
+              "source": "verifier",
+              "token": "",
+              "trace_id": "harness-policy_search-ddbfef5b278e-turn2",
+              "ts": 1785983400000,
+              "user_action": "write",
+              "user_id": "verifier-user",
+              "user_text": ""
+            },
+            "request_headers": {
+              "Content-Type": "application/json"
+            },
+            "response": {
+              "code": 0,
+              "data": {
+                "end_flag": 1,
+                "extra_output_params": {
+                  "policySearchParseResult": {
+                    "filter": {
+                      "children": [
+                        {
+                          "field": "frist_period_prem",
+                          "node_id": "n1",
+                          "operator": "GTE",
+                          "type": "PREDICATE",
+                          "value": 300000
+                        },
+                        {
+                          "field": "total_modal_prem",
+                          "node_id": "n2",
+                          "operator": "GTE",
+                          "type": "PREDICATE",
+                          "value": 300000
+                        }
+                      ],
+                      "node_id": "n0",
+                      "type": "OR"
+                    },
+                    "message": "解析成功",
+                    "query": "算了，50万太高了，30万以上就行",
+                    "status": "SUCCESS"
+                  }
+                },
+                "robot_text": null
+              },
+              "msg": "success"
+            },
+            "response_headers": {
+              "Connection": "close",
+              "content-length": "458",
+              "content-type": "application/json",
+              "date": "Thu, 10 Sep 2026 02:27:51 GMT",
+              "server": "uvicorn"
+            },
+            "sequence": 0,
+            "started_at": "2026-09-10T02:27:51.382243+00:00",
+            "status_code": 200,
+            "transport": "http",
+            "url": "http://127.0.0.1:8050/api/v1/policy-search/policy-search-parse"
+          }
+        ],
+        "mock_message": "算了，50万太高了，30万以上就行",
+        "project_fields": {
+          "filter_root_type": "OR",
+          "parse_status": "SUCCESS"
+        },
+        "raw_response": [
+          {
+            "code": 0,
+            "data": {
+              "end_flag": 1,
+              "extra_output_params": {
+                "policySearchParseResult": {
+                  "filter": {
+                    "children": [
+                      {
+                        "field": "frist_period_prem",
+                        "node_id": "n1",
+                        "operator": "GTE",
+                        "type": "PREDICATE",
+                        "value": 300000
+                      },
+                      {
+                        "field": "total_modal_prem",
+                        "node_id": "n2",
+                        "operator": "GTE",
+                        "type": "PREDICATE",
+                        "value": 300000
+                      }
+                    ],
+                    "node_id": "n0",
+                    "type": "OR"
+                  },
+                  "message": "解析成功",
+                  "query": "算了，50万太高了，30万以上就行",
+                  "status": "SUCCESS"
+                }
+              },
+              "robot_text": null
+            },
+            "msg": "success"
+          }
+        ],
+        "request": {
+          "action_scenario": "policySearch",
+          "app_scenario": "policy_search_parse",
+          "application_setting": null,
+          "extra_input_params": {
+            "agent_args": null,
+            "args": {
+              "contexts": [
+                {
+                  "content": "保额50万以上的保单",
+                  "role": "user",
+                  "sub_agent": ""
+                },
+                {
+                  "content": "解析成功",
+                  "role": "assistant",
+                  "sub_agent": "POLICY_SEARCH"
+                }
+              ]
+            },
+            "policySearchParseArgs": {
+              "agentCode": "A12345678",
+              "currentTime": "2026-08-06 10:30:00",
+              "query": "算了，50万太高了，30万以上就行"
+            }
+          },
+          "history": [],
+          "org_id": "verifier-org",
+          "org_name": "verifier",
+          "scenario": null,
+          "session_id": "harness-policy_search-ddbfef5b278e",
+          "source": "verifier",
+          "token": "",
+          "trace_id": "harness-policy_search-ddbfef5b278e-turn2",
+          "ts": 1785983400000,
+          "user_action": "write",
+          "user_id": "verifier-user",
+          "user_text": ""
+        },
+        "runtime_ms": 6468,
+        "turn_index": 2,
+        "validation": []
+      },
+      {
+        "application_boundary": {
+          "allow_fallback": false,
+          "dependency_status": "available",
+          "excluded_evidence": [],
+          "notes": "UNSUPPORTED is an in-scope parser decision"
+        },
+        "call_status": "succeeded",
+        "error": null,
+        "execution_trace": [
+          {
+            "error": "",
+            "evidence": {
+              "project_id": "policy_search"
+            },
+            "inputs": {},
+            "metadata": {},
+            "outputs": {},
+            "stage": "live_schema.validate_request",
+            "status": "succeeded",
+            "timestamp": ""
+          },
+          {
+            "error": "",
+            "evidence": {
+              "project_id": "policy_search"
+            },
+            "inputs": {},
+            "metadata": {},
+            "outputs": {},
+            "stage": "live_schema.validate_output",
+            "status": "succeeded",
+            "timestamp": ""
+          }
+        ],
+        "extracted_output": {
+          "code": 0,
+          "filter": null,
+          "message": "当前未能识别对应的保单查询信息，请补充想查询的保单信息或条件",
+          "msg": "success",
+          "query": "是保额30万以上",
+          "status": "UNSUPPORTED"
+        },
+        "fallbacks": [],
+        "live_exchanges": [
+          {
+            "carries_live_request": true,
+            "contributes_raw_response": true,
+            "error": null,
+            "exchange_id": "live-exchange-58ce3b66-7f91-4958-ab14-10e89daba53e",
+            "finished_at": "2026-09-10T02:28:18.228968+00:00",
+            "method": "POST",
+            "request": {
+              "action_scenario": "policySearch",
+              "app_scenario": "policy_search_parse",
+              "application_setting": null,
+              "extra_input_params": {
+                "agent_args": null,
+                "args": {
+                  "contexts": [
+                    {
+                      "content": "保额50万以上的保单",
+                      "role": "user",
+                      "sub_agent": ""
+                    },
+                    {
+                      "content": "解析成功",
+                      "role": "assistant",
+                      "sub_agent": "POLICY_SEARCH"
+                    },
+                    {
+                      "content": "算了，50万太高了，30万以上就行",
+                      "role": "user",
+                      "sub_agent": ""
+                    },
+                    {
+                      "content": "解析成功",
+                      "role": "assistant",
+                      "sub_agent": "POLICY_SEARCH"
+                    }
+                  ]
+                },
+                "policySearchParseArgs": {
+                  "agentCode": "A12345678",
+                  "currentTime": "2026-08-06 10:30:00",
+                  "query": "是保额30万以上"
+                }
+              },
+              "history": [],
+              "org_id": "verifier-org",
+              "org_name": "verifier",
+              "scenario": null,
+              "session_id": "harness-policy_search-ddbfef5b278e",
+              "source": "verifier",
+              "token": "",
+              "trace_id": "harness-policy_search-ddbfef5b278e-turn3",
+              "ts": 1785983400000,
+              "user_action": "write",
+              "user_id": "verifier-user",
+              "user_text": ""
+            },
+            "request_headers": {
+              "Content-Type": "application/json"
+            },
+            "response": {
+              "code": 0,
+              "data": {
+                "end_flag": 1,
+                "extra_output_params": {
+                  "policySearchParseResult": {
+                    "filter": null,
+                    "message": "当前未能识别对应的保单查询信息，请补充想查询的保单信息或条件",
+                    "query": "是保额30万以上",
+                    "status": "UNSUPPORTED"
+                  }
+                },
+                "robot_text": null
+              },
+              "msg": "success"
+            },
+            "response_headers": {
+              "Connection": "close",
+              "content-length": "289",
+              "content-type": "application/json",
+              "date": "Thu, 10 Sep 2026 02:28:12 GMT",
+              "server": "uvicorn"
+            },
+            "sequence": 0,
+            "started_at": "2026-09-10T02:28:12.678006+00:00",
+            "status_code": 200,
+            "transport": "http",
+            "url": "http://127.0.0.1:8050/api/v1/policy-search/policy-search-parse"
+          }
+        ],
+        "mock_message": "是保额30万以上",
+        "project_fields": {
+          "filter_root_type": null,
+          "parse_status": "UNSUPPORTED"
+        },
+        "raw_response": [
+          {
+            "code": 0,
+            "data": {
+              "end_flag": 1,
+              "extra_output_params": {
+                "policySearchParseResult": {
+                  "filter": null,
+                  "message": "当前未能识别对应的保单查询信息，请补充想查询的保单信息或条件",
+                  "query": "是保额30万以上",
+                  "status": "UNSUPPORTED"
+                }
+              },
+              "robot_text": null
+            },
+            "msg": "success"
+          }
+        ],
+        "request": {
+          "action_scenario": "policySearch",
+          "app_scenario": "policy_search_parse",
+          "application_setting": null,
+          "extra_input_params": {
+            "agent_args": null,
+            "args": {
+              "contexts": [
+                {
+                  "content": "保额50万以上的保单",
+                  "role": "user",
+                  "sub_agent": ""
+                },
+                {
+                  "content": "解析成功",
+                  "role": "assistant",
+                  "sub_agent": "POLICY_SEARCH"
+                },
+                {
+                  "content": "算了，50万太高了，30万以上就行",
+                  "role": "user",
+                  "sub_agent": ""
+                },
+                {
+                  "content": "解析成功",
+                  "role": "assistant",
+                  "sub_agent": "POLICY_SEARCH"
+                }
+              ]
+            },
+            "policySearchParseArgs": {
+              "agentCode": "A12345678",
+              "currentTime": "2026-08-06 10:30:00",
+              "query": "是保额30万以上"
+            }
+          },
+          "history": [],
+          "org_id": "verifier-org",
+          "org_name": "verifier",
+          "scenario": null,
+          "session_id": "harness-policy_search-ddbfef5b278e",
+          "source": "verifier",
+          "token": "",
+          "trace_id": "harness-policy_search-ddbfef5b278e-turn3",
+          "ts": 1785983400000,
+          "user_action": "write",
+          "user_id": "verifier-user",
+          "user_text": ""
+        },
+        "runtime_ms": 5552,
+        "turn_index": 3,
+        "validation": []
+      },
+      {
+        "application_boundary": {
+          "allow_fallback": false,
+          "dependency_status": "available",
+          "excluded_evidence": [],
+          "notes": "parser returned an executable filter"
+        },
+        "call_status": "succeeded",
+        "error": null,
+        "execution_trace": [
+          {
+            "error": "",
+            "evidence": {
+              "project_id": "policy_search"
+            },
+            "inputs": {},
+            "metadata": {},
+            "outputs": {},
+            "stage": "live_schema.validate_request",
+            "status": "succeeded",
+            "timestamp": ""
+          },
+          {
+            "error": "",
+            "evidence": {
+              "project_id": "policy_search"
+            },
+            "inputs": {},
+            "metadata": {},
+            "outputs": {},
+            "stage": "live_schema.validate_output",
+            "status": "succeeded",
+            "timestamp": ""
+          }
+        ],
+        "extracted_output": {
+          "code": 0,
+          "filter": {
+            "field": "sum_ins",
+            "node_id": "n0",
+            "operator": "GTE",
+            "type": "PREDICATE",
+            "value": 300000
+          },
+          "message": "解析成功",
+          "msg": "success",
+          "query": "保额30万以上的保单",
+          "status": "SUCCESS"
+        },
+        "fallbacks": [],
+        "live_exchanges": [
+          {
+            "carries_live_request": true,
+            "contributes_raw_response": true,
+            "error": null,
+            "exchange_id": "live-exchange-293cad14-4670-4d28-997d-1ad339e871dd",
+            "finished_at": "2026-09-10T02:28:26.073022+00:00",
+            "method": "POST",
+            "request": {
+              "action_scenario": "policySearch",
+              "app_scenario": "policy_search_parse",
+              "application_setting": null,
+              "extra_input_params": {
+                "agent_args": null,
+                "args": {
+                  "contexts": [
+                    {
+                      "content": "保额50万以上的保单",
+                      "role": "user",
+                      "sub_agent": ""
+                    },
+                    {
+                      "content": "解析成功",
+                      "role": "assistant",
+                      "sub_agent": "POLICY_SEARCH"
+                    },
+                    {
+                      "content": "算了，50万太高了，30万以上就行",
+                      "role": "user",
+                      "sub_agent": ""
+                    },
+                    {
+                      "content": "解析成功",
+                      "role": "assistant",
+                      "sub_agent": "POLICY_SEARCH"
+                    },
+                    {
+                      "content": "是保额30万以上",
+                      "role": "user",
+                      "sub_agent": ""
+                    },
+                    {
+                      "content": "当前未能识别对应的保单查询信息，请补充想查询的保单信息或条件",
+                      "role": "assistant",
+                      "sub_agent": "POLICY_SEARCH"
+                    }
+                  ]
+                },
+                "policySearchParseArgs": {
+                  "agentCode": "A12345678",
+                  "currentTime": "2026-08-06 10:30:00",
+                  "query": "保额30万以上的保单"
+                }
+              },
+              "history": [],
+              "org_id": "verifier-org",
+              "org_name": "verifier",
+              "scenario": null,
+              "session_id": "harness-policy_search-ddbfef5b278e",
+              "source": "verifier",
+              "token": "",
+              "trace_id": "harness-policy_search-ddbfef5b278e-turn4",
+              "ts": 1785983400000,
+              "user_action": "write",
+              "user_id": "verifier-user",
+              "user_text": ""
+            },
+            "request_headers": {
+              "Content-Type": "application/json"
+            },
+            "response": {
+              "code": 0,
+              "data": {
+                "end_flag": 1,
+                "extra_output_params": {
+                  "policySearchParseResult": {
+                    "filter": {
+                      "field": "sum_ins",
+                      "node_id": "n0",
+                      "operator": "GTE",
+                      "type": "PREDICATE",
+                      "value": 300000
+                    },
+                    "message": "解析成功",
+                    "query": "保额30万以上的保单",
+                    "status": "SUCCESS"
+                  }
+                },
+                "robot_text": null
+              },
+              "msg": "success"
+            },
+            "response_headers": {
+              "Connection": "close",
+              "content-length": "294",
+              "content-type": "application/json",
+              "date": "Thu, 10 Sep 2026 02:28:25 GMT",
+              "server": "uvicorn"
+            },
+            "sequence": 0,
+            "started_at": "2026-09-10T02:28:26.059530+00:00",
+            "status_code": 200,
+            "transport": "http",
+            "url": "http://127.0.0.1:8050/api/v1/policy-search/policy-search-parse"
+          }
+        ],
+        "mock_message": "保额30万以上的保单",
+        "project_fields": {
+          "filter_root_type": "PREDICATE",
+          "parse_status": "SUCCESS"
+        },
+        "raw_response": [
+          {
+            "code": 0,
+            "data": {
+              "end_flag": 1,
+              "extra_output_params": {
+                "policySearchParseResult": {
+                  "filter": {
+                    "field": "sum_ins",
+                    "node_id": "n0",
+                    "operator": "GTE",
+                    "type": "PREDICATE",
+                    "value": 300000
+                  },
+                  "message": "解析成功",
+                  "query": "保额30万以上的保单",
+                  "status": "SUCCESS"
+                }
+              },
+              "robot_text": null
+            },
+            "msg": "success"
+          }
+        ],
+        "request": {
+          "action_scenario": "policySearch",
+          "app_scenario": "policy_search_parse",
+          "application_setting": null,
+          "extra_input_params": {
+            "agent_args": null,
+            "args": {
+              "contexts": [
+                {
+                  "content": "保额50万以上的保单",
+                  "role": "user",
+                  "sub_agent": ""
+                },
+                {
+                  "content": "解析成功",
+                  "role": "assistant",
+                  "sub_agent": "POLICY_SEARCH"
+                },
+                {
+                  "content": "算了，50万太高了，30万以上就行",
+                  "role": "user",
+                  "sub_agent": ""
+                },
+                {
+                  "content": "解析成功",
+                  "role": "assistant",
+                  "sub_agent": "POLICY_SEARCH"
+                },
+                {
+                  "content": "是保额30万以上",
+                  "role": "user",
+                  "sub_agent": ""
+                },
+                {
+                  "content": "当前未能识别对应的保单查询信息，请补充想查询的保单信息或条件",
+                  "role": "assistant",
+                  "sub_agent": "POLICY_SEARCH"
+                }
+              ]
+            },
+            "policySearchParseArgs": {
+              "agentCode": "A12345678",
+              "currentTime": "2026-08-06 10:30:00",
+              "query": "保额30万以上的保单"
+            }
+          },
+          "history": [],
+          "org_id": "verifier-org",
+          "org_name": "verifier",
+          "scenario": null,
+          "session_id": "harness-policy_search-ddbfef5b278e",
+          "source": "verifier",
+          "token": "",
+          "trace_id": "harness-policy_search-ddbfef5b278e-turn4",
+          "ts": 1785983400000,
+          "user_action": "write",
+          "user_id": "verifier-user",
+          "user_text": ""
+        },
+        "runtime_ms": 14,
+        "turn_index": 4,
+        "validation": []
+      }
+    ]
+  },
+  "turns": 4
+}

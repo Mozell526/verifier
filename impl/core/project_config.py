@@ -39,6 +39,7 @@ RUNTIME_MODES = {
     "uploaded_output_evaluation",
 }
 INTERACTION_MODES = {"single_turn", "multi_turn"}
+INTERACTION_DRIVERS = {"legacy", "session"}
 HTTP_METHODS = {"GET", "POST", "PUT", "PATCH", "DELETE"}
 READY_VALUES = {"output", "reference"}
 EXTRA_TYPES = {"string", "integer", "number", "boolean", "path", "url", "list", "mapping"}
@@ -258,7 +259,7 @@ def _parse_runtime(value: Any) -> dict[str, Any]:
     _unknown(data, {"mode", "application", "local_deployment", "interaction", "ready", "services", "mock_cases", "adapter", "batch_persistence", "extra"}, "runtime")
     mode = _choice(_required(data, "mode", "runtime"), "runtime.mode", RUNTIME_MODES)
     interaction_data = _mapping(_required(data, "interaction", "runtime"), "runtime.interaction")
-    _unknown(interaction_data, {"mode"}, "runtime.interaction")
+    _unknown(interaction_data, {"mode", "driver"}, "runtime.interaction")
     interaction = {
         "mode": _choice(
             _required(interaction_data, "mode", "runtime.interaction"),
@@ -266,6 +267,12 @@ def _parse_runtime(value: Any) -> dict[str, Any]:
             INTERACTION_MODES,
         )
     }
+    if "driver" in interaction_data:
+        interaction["driver"] = _choice(
+            interaction_data["driver"],
+            "runtime.interaction.driver",
+            INTERACTION_DRIVERS,
+        )
     ready = _string_list(_required(data, "ready", "runtime"), "runtime.ready")
     unknown_ready = sorted(set(ready) - READY_VALUES)
     if unknown_ready:

@@ -99,6 +99,31 @@ def save_case_pool(project_id: str, name: str, cases: List[Dict[str, Any]]) -> D
     return _pool_boundary_payload(project_id, pool, include_cases=True)
 
 
+def append_cases(project_id: str, name: str, cases: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """向同名用例池追加 case（同 id 覆盖），池不存在则新建。
+
+    spec/mock/protocol.md 4.10：harness 会话 close 后自动导出 seed 到 case pool，
+    一场探索的多条会话落到同一个池里，而不是每条会话各建一个池。
+    """
+    data = _read_store()
+    pools = data.get(project_id, [])
+    existing = next((pool for pool in pools if pool.get("name") == name), None)
+    merged: Dict[str, Dict[str, Any]] = {}
+    for case in list((existing or {}).get("cases") or []) + [_strip_transient(case) for case in cases]:
+        merged[str(case.get("id") or "")] = case
+    pool = {
+        "id": (existing or {}).get("id") or f"pool-{int(time.time() * 1000)}",
+        "name": name,
+        "case_count": len(merged),
+        "created_at": (existing or {}).get("created_at") or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "cases": list(merged.values()),
+        "dimension_type": "case_pool",
+    }
+    data[project_id] = [pool] + [item for item in pools if item.get("name") != name]
+    _write_store(data)
+    return _pool_boundary_payload(project_id, pool, include_cases=False)
+
+
 def load_case_pool(project_id: str, pool_id: str) -> Dict[str, Any]:
     for pool in _read_store().get(project_id, []):
         if pool.get("id") == pool_id:

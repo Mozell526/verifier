@@ -186,6 +186,86 @@ class TableRequest(ApiRequest):
     case_context: Optional[Dict[str, Any]] = None
 
 
+class SessionOpenRequest(ApiRequest):
+    """spec/mock/protocol.md 5.1 `session open`。"""
+
+    mode: str = "text"
+    budget: Dict[str, Any] = Field(default_factory=dict)
+    seed_prefix: List[Dict[str, Any]] = Field(default_factory=list)
+    seed_mode: Optional[str] = None
+    pool: str = ""
+    run_id: str = ""
+    scenario: str = ""
+
+
+class SessionSendRequest(ApiRequest):
+    session_id: str
+    message: Dict[str, Any]
+    tokens: int = 0
+
+
+class SessionIntentRequest(ApiRequest):
+    session_id: str
+    user_intent: str
+    user_context: Dict[str, Any] = Field(default_factory=dict)
+    source: str = "seeded"
+
+
+class SessionCloseRequest(ApiRequest):
+    session_id: str
+    stop_reason: str
+
+
+class SessionListRequest(ApiRequest):
+    run_id: str = ""
+    include_exports: bool = True
+
+
+class SessionGetRequest(ApiRequest):
+    session_id: str
+
+
+class SessionJudgeRequest(ApiRequest):
+    session_id: str
+
+
+class LedgerAddRequest(ApiRequest):
+    signature: str
+    session_id: str = ""
+    trigger_summary: str = ""
+    realism: str = "medium"
+    harness_verdict: str
+    judge_verdict: Optional[str] = None
+    protocol_fuzz: bool = False
+    run_id: str = ""
+    notes: str = ""
+
+
+class LedgerQueryRequest(ApiRequest):
+    category: Optional[str] = None
+    signature: Optional[str] = None
+    session_id: Optional[str] = None
+    run_id: Optional[str] = None
+
+
+class ExplorationSaveRequest(ApiRequest):
+    run_id: str
+    direction: Dict[str, Any]
+
+
+class ExplorationReportRequest(ApiRequest):
+    run_id: str
+    report: Dict[str, Any]
+
+
+class ExplorationGetRequest(ApiRequest):
+    run_id: str
+
+
+class ExplorationListRequest(ApiRequest):
+    pass
+
+
 class ContextAnalyzeRequest(ApiRequest):
     caller: str = ""
     analysis_type: str = "redundancy"

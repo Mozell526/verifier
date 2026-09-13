@@ -64,6 +64,15 @@ class ProjectSpec:
         return str(interaction.get("mode") or "single_turn")
 
     @property
+    def interaction_driver(self) -> str:
+        """多轮执行路径：legacy（评测进程内四回调循环）或 session（Session + Driver）。
+
+        spec/mock/protocol.md 第 8/9 节：阶段 1 引入的开关，默认 legacy；阶段 5 移除。
+        """
+        interaction = self.runtime.get("interaction") or {}
+        return str(interaction.get("driver") or "legacy")
+
+    @property
     def runtime_mode(self) -> str:
         return str(self.runtime.get("mode") or "")
 

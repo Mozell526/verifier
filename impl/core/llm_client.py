@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import os
 from types import MethodType
 import json
 import re
@@ -28,10 +29,26 @@ SESSION_START_TIME = int(time.time())
 _USE_CONFIG = object()
 _ROUTER_REGISTRY_LOCK = threading.Lock()
 _ROUTER_REGISTRY: dict[tuple[tuple[str, str, str, str], ...], LlmRouter] = {}
+_LOOPBACK_NO_PROXY = ("127.0.0.1", "localhost", "::1")
+
+
+def _bypass_proxy_for_loopback() -> None:
+    """httpx 认系统 HTTP_PROXY，但不认 macOS 的 127.* 例外。
+
+    本机 LLM 中转（127.0.0.1:8060）会被 Clash 之类拦成空 502，探活失败后整池冷却。
+    只把回环地址写入 NO_PROXY，远程 fallback 仍走代理。
+    """
+    for key in ("NO_PROXY", "no_proxy"):
+        existing = [part.strip() for part in os.environ.get(key, "").split(",") if part.strip()]
+        os.environ[key] = ",".join(dict.fromkeys([*existing, *_LOOPBACK_NO_PROXY]))
+
+
+_bypass_proxy_for_loopback()
 
 
 def _parse_tool_calls_with_aliases(self, tool_calls_data):
-    parsed = OpenAILike.parse_tool_calls(self, tool_calls_data)
+    # agno>=2.3 的 OpenAIChat.parse_tool_calls 是 @staticmethod，不能传 self。
+    parsed = OpenAILike.parse_tool_calls(tool_calls_data)
     aliases = getattr(self, "logical_tool_aliases", {})
     for call in parsed:
         function = call.get("function") if isinstance(call, dict) else None
@@ -979,7 +996,23 @@ class LlmClient:
         # spec/struct_output.md：强校验阻断，不放行假货
         from .structured_output import enforce_output
         caller = getattr(self, "_caller", "") or ""
-        enforce_output(parsed, enforce_spec, caller=caller)
+        try:
+            enforce_output(parsed, enforce_spec, caller=caller)
+        except ValueError as exc:
+            # 阻断的这次调用同样花了钱、产出了内容，必须留档：否则 context 页看不到
+            # 首轮失败（reprompt 的来源），也看不到被丢弃的那份产出。异常语义不变。
+            _track_context(
+                self,
+                system,
+                user,
+                result,
+                trace_id or "",
+                token_metrics,
+                elapsed_ms,
+                str(exc),
+                runtime=runtime,
+            )
+            raise
 
         # Add token metrics to raw_response if available
         if token_metrics:

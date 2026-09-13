@@ -9,6 +9,19 @@ from ..core.schema import to_public_dict
 from . import batch_jobs, service
 from .models import (
     AttributeRequest,
+    LedgerAddRequest,
+    LedgerQueryRequest,
+    ExplorationGetRequest,
+    ExplorationListRequest,
+    ExplorationReportRequest,
+    ExplorationSaveRequest,
+    SessionCloseRequest,
+    SessionGetRequest,
+    SessionIntentRequest,
+    SessionJudgeRequest,
+    SessionListRequest,
+    SessionOpenRequest,
+    SessionSendRequest,
     BatchRunRequest,
     BatchStartRequest,
     BatchStatusRequest,
@@ -178,6 +191,73 @@ def judge(payload: JudgeRequest) -> JSONResponse:
 @router.post("/api/attribute")
 def attribute(payload: AttributeRequest) -> JSONResponse:
     return route(service.attribute, payload)
+
+
+# --- Session 工具（spec/mock/protocol.md 5.1）---
+
+@router.post("/api/session/open")
+def session_open(payload: SessionOpenRequest) -> JSONResponse:
+    return route(service.session_open, payload)
+
+
+@router.post("/api/session/send")
+def session_send(payload: SessionSendRequest) -> JSONResponse:
+    return route(service.session_send, payload)
+
+
+@router.post("/api/session/intent")
+def session_intent(payload: SessionIntentRequest) -> JSONResponse:
+    return route(service.session_intent, payload)
+
+
+@router.post("/api/session/close")
+def session_close(payload: SessionCloseRequest) -> JSONResponse:
+    return route(service.session_close, payload)
+
+
+@router.post("/api/session/list")
+def session_list(payload: SessionListRequest) -> JSONResponse:
+    return route(service.session_list, payload)
+
+
+@router.post("/api/session/get")
+def session_get(payload: SessionGetRequest) -> JSONResponse:
+    return route(service.session_get, payload)
+
+
+@router.post("/api/session/judge")
+def session_judge(payload: SessionJudgeRequest) -> JSONResponse:
+    return route(service.session_judge, payload)
+
+
+@router.post("/api/ledger/add")
+def ledger_add(payload: LedgerAddRequest) -> JSONResponse:
+    return route(service.ledger_add, payload)
+
+
+@router.post("/api/ledger/query")
+def ledger_query(payload: LedgerQueryRequest) -> JSONResponse:
+    return route(service.ledger_query, payload)
+
+
+@router.post("/api/exploration/save")
+def exploration_save(payload: ExplorationSaveRequest) -> JSONResponse:
+    return route(service.exploration_save, payload)
+
+
+@router.post("/api/exploration/report")
+def exploration_report(payload: ExplorationReportRequest) -> JSONResponse:
+    return route(service.exploration_report, payload)
+
+
+@router.post("/api/exploration/get")
+def exploration_get(payload: ExplorationGetRequest) -> JSONResponse:
+    return route(service.exploration_get, payload)
+
+
+@router.post("/api/exploration/list")
+def exploration_list(payload: ExplorationListRequest) -> JSONResponse:
+    return route(service.exploration_list, payload)
 
 
 @router.post("/api/cluster")

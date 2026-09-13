@@ -210,6 +210,8 @@ def mock_case_to_single_turn(mc: "MockCase") -> SingleTurnCase:
             "system_understanding": mc.intent.system_understanding,
             "scenario": mc.intent.scenario,
         }
+    if isinstance(mc.seed, dict):
+        metadata["seed"] = dict(mc.seed)
 
     return SingleTurnCase(
         id=mc.id,
@@ -235,7 +237,7 @@ def parse_mock_case(value: Any, *, project_id: str = "") -> MockCase:
         missing = sorted(required.difference(value))
         if missing:
             raise ValueError(f"MockCase 缺少字段: {', '.join(missing)}")
-        unknown = sorted(set(value).difference(required | {"intent"}))
+        unknown = sorted(set(value).difference(required | {"intent", "seed"}))
         if unknown:
             raise ValueError(f"MockCase 包含未知字段: {', '.join(unknown)}")
         intent = value.get("intent")
@@ -244,6 +246,9 @@ def parse_mock_case(value: Any, *, project_id: str = "") -> MockCase:
         live_request = value.get("live_request")
         if not isinstance(live_request, dict):
             raise ValueError("MockCase.live_request 必须是对象")
+        seed = value.get("seed")
+        if seed is not None and not isinstance(seed, dict):
+            raise ValueError("MockCase.seed 必须是对象或 null")
         case = MockCase(
             id=str(value.get("id") or ""),
             project_id=str(value.get("project_id") or ""),
@@ -258,6 +263,7 @@ def parse_mock_case(value: Any, *, project_id: str = "") -> MockCase:
             live_request=dict(live_request),
             output=value.get("output"),
             reference=value.get("reference"),
+            seed=dict(seed) if isinstance(seed, dict) else None,
         )
     else:
         raise TypeError(f"MockCase 必须是对象，实际 {type(value).__name__}")
@@ -291,4 +297,5 @@ def single_turn_to_mock_case(stc: SingleTurnCase, project_id: str) -> "MockCase"
         live_request=inp,
         output=stc.output,
         reference=stc.reference,
+        seed=dict(meta["seed"]) if isinstance(meta.get("seed"), dict) else None,
     )

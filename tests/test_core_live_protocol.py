@@ -11,6 +11,15 @@ from impl.core.schema import MockBuildSpec, MockContinueDecision, MockIntentOutp
 from impl.core.trace import TraceContext, trace_from_live
 
 
+@pytest.fixture(autouse=True, params=["legacy", "session"])
+def _interaction_driver(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> str:
+    """spec/mock/protocol.md 阶段 1：多轮协议测试在 legacy 与 session 两条路径下都必须成立。"""
+    monkeypatch.setattr(
+        ProjectSpec, "interaction_driver", property(lambda self: request.param)
+    )
+    return request.param
+
+
 class _Checker:
     def __init__(self, request_ok: bool = True, output_ok: bool = True):
         self.request_ok = request_ok

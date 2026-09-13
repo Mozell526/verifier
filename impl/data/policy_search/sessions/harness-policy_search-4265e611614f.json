@@ -1,0 +1,1649 @@
+{
+  "closed_at": "2026-09-10T02:29:12Z",
+  "completion_status": "completed",
+  "driver_health": {
+    "attribution": "user",
+    "budget_usage": {
+      "elapsed_ms": 31252,
+      "max_turns": 5,
+      "session_timeout_ms": 1800000,
+      "token_limit": null,
+      "tokens_used": 0,
+      "turns": 2
+    },
+    "counts_toward_live_quality": true,
+    "error": "",
+    "status": "ok"
+  },
+  "intent_history": [
+    {
+      "source": "seeded",
+      "turn_index": 0,
+      "user_context": {
+        "persona": "代理人，被追问细节时嫌麻烦，换个更直接的找法"
+      },
+      "user_intent": "原本想按保额筛，被追问后改成直接找投保人陈晓华的保单"
+    },
+    {
+      "source": "drifted",
+      "turn_index": 1,
+      "user_context": {},
+      "user_intent": "不按保额了，直接找投保人陈晓华的保单"
+    }
+  ],
+  "judge": null,
+  "judge_summary": "",
+  "judge_verdict": null,
+  "mode": "text",
+  "opened_at": "2026-09-10T02:28:41Z",
+  "pool": "harness-explore-20260910-01",
+  "pool_id": "pool-1789007147776",
+  "project_id": "policy_search",
+  "protocol_fuzz": false,
+  "run_id": "explore-20260910-01",
+  "scenario": "clarification_then_new_query",
+  "seed_case": {
+    "id": "harness-policy_search-4265e611614f",
+    "intent": {
+      "query": "保额的保单",
+      "scenario": "clarification_then_new_query",
+      "system_understanding": "",
+      "user_context": {},
+      "user_intent": "不按保额了，直接找投保人陈晓华的保单"
+    },
+    "live_request": {
+      "action_scenario": "policySearch",
+      "app_scenario": "policy_search_parse",
+      "application_setting": null,
+      "extra_input_params": {
+        "agent_args": null,
+        "args": {
+          "contexts": []
+        },
+        "policySearchParseArgs": {
+          "agentCode": "A12345678",
+          "currentTime": "2026-08-06 10:30:00",
+          "query": "保额的保单"
+        }
+      },
+      "history": [],
+      "org_id": "verifier-org",
+      "org_name": "verifier",
+      "scenario": null,
+      "session_id": "harness-policy_search-4265e611614f",
+      "source": "verifier",
+      "token": "",
+      "trace_id": "harness-policy_search-4265e611614f-turn1",
+      "ts": 1785983400000,
+      "user_action": "write",
+      "user_id": "verifier-user",
+      "user_text": ""
+    },
+    "output": null,
+    "project_id": "policy_search",
+    "reference": null,
+    "scenario": "clarification_then_new_query",
+    "seed": {
+      "intent_history": [
+        {
+          "source": "seeded",
+          "turn_index": 0,
+          "user_context": {
+            "persona": "代理人，被追问细节时嫌麻烦，换个更直接的找法"
+          },
+          "user_intent": "原本想按保额筛，被追问后改成直接找投保人陈晓华的保单"
+        },
+        {
+          "source": "drifted",
+          "turn_index": 1,
+          "user_context": {},
+          "user_intent": "不按保额了，直接找投保人陈晓华的保单"
+        }
+      ],
+      "level": "transcript",
+      "mode": "replay",
+      "prefix": [],
+      "prefix_mode": null,
+      "protocol_fuzz": false,
+      "session_mode": "text",
+      "stop_reason": "goal_satisfied",
+      "turns": [
+        {
+          "assistant": "解析成功",
+          "extracted_output": {
+            "code": 0,
+            "filter": {
+              "field": "sum_ins",
+              "node_id": "n0",
+              "operator": "IS_NOT_NULL",
+              "type": "PREDICATE"
+            },
+            "message": "解析成功",
+            "msg": "success",
+            "query": "保额的保单",
+            "status": "SUCCESS"
+          },
+          "message": {
+            "name": "",
+            "params": {},
+            "payload": {},
+            "text": "保额的保单",
+            "type": "text"
+          },
+          "request": {
+            "action_scenario": "policySearch",
+            "app_scenario": "policy_search_parse",
+            "application_setting": null,
+            "extra_input_params": {
+              "agent_args": null,
+              "args": {
+                "contexts": []
+              },
+              "policySearchParseArgs": {
+                "agentCode": "A12345678",
+                "currentTime": "2026-08-06 10:30:00",
+                "query": "保额的保单"
+              }
+            },
+            "history": [],
+            "org_id": "verifier-org",
+            "org_name": "verifier",
+            "scenario": null,
+            "session_id": "harness-policy_search-4265e611614f",
+            "source": "verifier",
+            "token": "",
+            "trace_id": "harness-policy_search-4265e611614f-turn1",
+            "ts": 1785983400000,
+            "user_action": "write",
+            "user_id": "verifier-user",
+            "user_text": ""
+          },
+          "turn_index": 1
+        },
+        {
+          "assistant": "解析成功",
+          "extracted_output": {
+            "code": 0,
+            "filter": {
+              "children": [
+                {
+                  "field": "applicant_name",
+                  "node_id": "n1",
+                  "operator": "CONTAINS",
+                  "type": "PREDICATE",
+                  "value": "陈晓华"
+                },
+                {
+                  "field": "insurant_name",
+                  "node_id": "n2",
+                  "operator": "CONTAINS",
+                  "type": "PREDICATE",
+                  "value": "陈晓华"
+                }
+              ],
+              "node_id": "n0",
+              "type": "OR"
+            },
+            "message": "解析成功",
+            "msg": "success",
+            "query": "不看保额了，找陈晓华的保单",
+            "status": "SUCCESS"
+          },
+          "message": {
+            "name": "",
+            "params": {},
+            "payload": {},
+            "text": "不看保额了，找陈晓华的保单",
+            "type": "text"
+          },
+          "request": {
+            "action_scenario": "policySearch",
+            "app_scenario": "policy_search_parse",
+            "application_setting": null,
+            "extra_input_params": {
+              "agent_args": null,
+              "args": {
+                "contexts": [
+                  {
+                    "content": "保额的保单",
+                    "role": "user",
+                    "sub_agent": ""
+                  },
+                  {
+                    "content": "解析成功",
+                    "role": "assistant",
+                    "sub_agent": "POLICY_SEARCH"
+                  }
+                ]
+              },
+              "policySearchParseArgs": {
+                "agentCode": "A12345678",
+                "currentTime": "2026-08-06 10:30:00",
+                "query": "不看保额了，找陈晓华的保单"
+              }
+            },
+            "history": [],
+            "org_id": "verifier-org",
+            "org_name": "verifier",
+            "scenario": null,
+            "session_id": "harness-policy_search-4265e611614f",
+            "source": "verifier",
+            "token": "",
+            "trace_id": "harness-policy_search-4265e611614f-turn2",
+            "ts": 1785983400000,
+            "user_action": "write",
+            "user_id": "verifier-user",
+            "user_text": ""
+          },
+          "turn_index": 2
+        }
+      ]
+    }
+  },
+  "session_id": "harness-policy_search-4265e611614f",
+  "stop_reason": "goal_satisfied",
+  "trace": {
+    "application_boundary": {
+      "allow_fallback": false,
+      "dependency_status": "available",
+      "excluded_evidence": [],
+      "notes": "parser returned an executable filter"
+    },
+    "attribution_runs": [],
+    "case_id": "harness-policy_search-4265e611614f",
+    "completion_status": "completed",
+    "config_fingerprint": "3b2fb1f90c16",
+    "config_sources": {
+      "project": {
+        "fields": {
+          "environment.variables.POLICY_SEARCH_BASE_URL.bind": {
+            "kind": "project_yaml",
+            "name": "environment.variables.POLICY_SEARCH_BASE_URL.bind",
+            "secret": false
+          },
+          "environment.variables.POLICY_SEARCH_BASE_URL.description": {
+            "kind": "project_yaml",
+            "name": "environment.variables.POLICY_SEARCH_BASE_URL.description",
+            "secret": false
+          },
+          "environment.variables.POLICY_SEARCH_BASE_URL.required": {
+            "kind": "project_yaml",
+            "name": "environment.variables.POLICY_SEARCH_BASE_URL.required",
+            "secret": false
+          },
+          "environment.variables.POLICY_SEARCH_BASE_URL.secret": {
+            "kind": "project_yaml",
+            "name": "environment.variables.POLICY_SEARCH_BASE_URL.secret",
+            "secret": false
+          },
+          "environment.variables.POLICY_SEARCH_BASE_URL.type": {
+            "kind": "project_yaml",
+            "name": "environment.variables.POLICY_SEARCH_BASE_URL.type",
+            "secret": false
+          },
+          "environment.variables.POLICY_SEARCH_REPO.bind": {
+            "kind": "project_yaml",
+            "name": "environment.variables.POLICY_SEARCH_REPO.bind",
+            "secret": false
+          },
+          "environment.variables.POLICY_SEARCH_REPO.description": {
+            "kind": "project_yaml",
+            "name": "environment.variables.POLICY_SEARCH_REPO.description",
+            "secret": false
+          },
+          "environment.variables.POLICY_SEARCH_REPO.required": {
+            "kind": "project_yaml",
+            "name": "environment.variables.POLICY_SEARCH_REPO.required",
+            "secret": false
+          },
+          "environment.variables.POLICY_SEARCH_REPO.secret": {
+            "kind": "project_yaml",
+            "name": "environment.variables.POLICY_SEARCH_REPO.secret",
+            "secret": false
+          },
+          "environment.variables.POLICY_SEARCH_REPO.type": {
+            "kind": "project_yaml",
+            "name": "environment.variables.POLICY_SEARCH_REPO.type",
+            "secret": false
+          },
+          "metadata.accepted_proposal_sha256": {
+            "kind": "project_yaml",
+            "name": "metadata.accepted_proposal_sha256",
+            "secret": false
+          },
+          "metadata.initialized_from": {
+            "kind": "project_yaml",
+            "name": "metadata.initialized_from",
+            "secret": false
+          },
+          "metadata.source_revision": {
+            "kind": "project_yaml",
+            "name": "metadata.source_revision",
+            "secret": false
+          },
+          "project.capabilities": {
+            "kind": "project_yaml",
+            "name": "project.capabilities",
+            "secret": false
+          },
+          "project.description": {
+            "kind": "project_yaml",
+            "name": "project.description",
+            "secret": false
+          },
+          "project.id": {
+            "kind": "project_yaml",
+            "name": "project.id",
+            "secret": false
+          },
+          "project.name": {
+            "kind": "project_yaml",
+            "name": "project.name",
+            "secret": false
+          },
+          "project.resources.source.paths.api_contract": {
+            "kind": "project_yaml",
+            "name": "project.resources.source.paths.api_contract",
+            "secret": false
+          },
+          "project.resources.source.paths.business_config": {
+            "kind": "project_yaml",
+            "name": "project.resources.source.paths.business_config",
+            "secret": false
+          },
+          "project.resources.source.paths.filter_contract": {
+            "kind": "project_yaml",
+            "name": "project.resources.source.paths.filter_contract",
+            "secret": false
+          },
+          "project.resources.source.paths.golden_manifest": {
+            "kind": "project_yaml",
+            "name": "project.resources.source.paths.golden_manifest",
+            "secret": false
+          },
+          "project.resources.source.paths.runtime_config": {
+            "kind": "project_yaml",
+            "name": "project.resources.source.paths.runtime_config",
+            "secret": false
+          },
+          "project.resources.source.paths.technical_design": {
+            "kind": "project_yaml",
+            "name": "project.resources.source.paths.technical_design",
+            "secret": false
+          },
+          "project.resources.source.repository": {
+            "kind": "dotenv",
+            "name": "POLICY_SEARCH_REPO",
+            "secret": false
+          },
+          "runtime.adapter.output_extraction.extractor": {
+            "kind": "project_yaml",
+            "name": "runtime.adapter.output_extraction.extractor",
+            "secret": false
+          },
+          "runtime.adapter.output_extraction.normalized_output": {
+            "kind": "project_yaml",
+            "name": "runtime.adapter.output_extraction.normalized_output",
+            "secret": false
+          },
+          "runtime.adapter.reference_handling.alignment": {
+            "kind": "project_yaml",
+            "name": "runtime.adapter.reference_handling.alignment",
+            "secret": false
+          },
+          "runtime.adapter.reference_handling.source_priority": {
+            "kind": "project_yaml",
+            "name": "runtime.adapter.reference_handling.source_priority",
+            "secret": false
+          },
+          "runtime.adapter.request_construction.builder": {
+            "kind": "project_yaml",
+            "name": "runtime.adapter.request_construction.builder",
+            "secret": false
+          },
+          "runtime.adapter.request_construction.required_inputs": {
+            "kind": "project_yaml",
+            "name": "runtime.adapter.request_construction.required_inputs",
+            "secret": false
+          },
+          "runtime.application.boundary": {
+            "kind": "project_yaml",
+            "name": "runtime.application.boundary",
+            "secret": false
+          },
+          "runtime.application.interface.shape": {
+            "kind": "project_yaml",
+            "name": "runtime.application.interface.shape",
+            "secret": false
+          },
+          "runtime.application.interface.source": {
+            "kind": "project_yaml",
+            "name": "runtime.application.interface.source",
+            "secret": false
+          },
+          "runtime.application.start_run": {
+            "kind": "project_yaml",
+            "name": "runtime.application.start_run",
+            "secret": false
+          },
+          "runtime.batch_persistence.case_shape": {
+            "kind": "project_yaml",
+            "name": "runtime.batch_persistence.case_shape",
+            "secret": false
+          },
+          "runtime.batch_persistence.transient_results": {
+            "kind": "project_yaml",
+            "name": "runtime.batch_persistence.transient_results",
+            "secret": false
+          },
+          "runtime.interaction.mode": {
+            "kind": "project_yaml",
+            "name": "runtime.interaction.mode",
+            "secret": false
+          },
+          "runtime.local_deployment.enabled": {
+            "kind": "project_yaml",
+            "name": "runtime.local_deployment.enabled",
+            "secret": false
+          },
+          "runtime.mock_cases.default_scenarios": {
+            "kind": "project_yaml",
+            "name": "runtime.mock_cases.default_scenarios",
+            "secret": false
+          },
+          "runtime.mock_cases.source": {
+            "kind": "project_yaml",
+            "name": "runtime.mock_cases.source",
+            "secret": false
+          },
+          "runtime.mode": {
+            "kind": "project_yaml",
+            "name": "runtime.mode",
+            "secret": false
+          },
+          "runtime.ready": {
+            "kind": "project_yaml",
+            "name": "runtime.ready",
+            "secret": false
+          },
+          "runtime.services.primary.base_url": {
+            "kind": "project_yaml",
+            "name": "runtime.services.primary.base_url",
+            "secret": false
+          },
+          "runtime.services.primary.endpoint": {
+            "kind": "project_yaml",
+            "name": "runtime.services.primary.endpoint",
+            "secret": false
+          },
+          "runtime.services.primary.healthcheck.endpoint": {
+            "kind": "project_yaml",
+            "name": "runtime.services.primary.healthcheck.endpoint",
+            "secret": false
+          },
+          "runtime.services.primary.healthcheck.interval_seconds": {
+            "kind": "project_yaml",
+            "name": "runtime.services.primary.healthcheck.interval_seconds",
+            "secret": false
+          },
+          "runtime.services.primary.healthcheck.request_timeout_seconds": {
+            "kind": "project_yaml",
+            "name": "runtime.services.primary.healthcheck.request_timeout_seconds",
+            "secret": false
+          },
+          "runtime.services.primary.healthcheck.startup_timeout_seconds": {
+            "kind": "project_yaml",
+            "name": "runtime.services.primary.healthcheck.startup_timeout_seconds",
+            "secret": false
+          },
+          "runtime.services.primary.method": {
+            "kind": "project_yaml",
+            "name": "runtime.services.primary.method",
+            "secret": false
+          },
+          "runtime.services.primary.timeout_seconds": {
+            "kind": "project_yaml",
+            "name": "runtime.services.primary.timeout_seconds",
+            "secret": false
+          },
+          "schema_version": {
+            "kind": "project_yaml",
+            "name": "schema_version",
+            "secret": false
+          },
+          "verifier.attribution.enabled": {
+            "kind": "project_yaml",
+            "name": "verifier.attribution.enabled",
+            "secret": false
+          },
+          "verifier.attribution.trace.document": {
+            "kind": "project_yaml",
+            "name": "verifier.attribution.trace.document",
+            "secret": false
+          },
+          "verifier.attribution.trace.trace_nodes": {
+            "kind": "project_yaml",
+            "name": "verifier.attribution.trace.trace_nodes",
+            "secret": false
+          },
+          "verifier.check_rules.core_forbidden_markers": {
+            "kind": "project_yaml",
+            "name": "verifier.check_rules.core_forbidden_markers",
+            "secret": false
+          },
+          "verifier.check_rules.evidence.documents": {
+            "kind": "project_yaml",
+            "name": "verifier.check_rules.evidence.documents",
+            "secret": false
+          },
+          "verifier.check_rules.evidence.tests": {
+            "kind": "project_yaml",
+            "name": "verifier.check_rules.evidence.tests",
+            "secret": false
+          },
+          "verifier.check_rules.require_scenario": {
+            "kind": "project_yaml",
+            "name": "verifier.check_rules.require_scenario",
+            "secret": false
+          },
+          "verifier.judge.boundary.document": {
+            "kind": "project_yaml",
+            "name": "verifier.judge.boundary.document",
+            "secret": false
+          },
+          "verifier.judge.boundary.gate": {
+            "kind": "project_yaml",
+            "name": "verifier.judge.boundary.gate",
+            "secret": false
+          },
+          "verifier.presentation.frontend_view.live": {
+            "kind": "project_yaml",
+            "name": "verifier.presentation.frontend_view.live",
+            "secret": false
+          },
+          "verifier.presentation.frontend_view.summary": {
+            "kind": "project_yaml",
+            "name": "verifier.presentation.frontend_view.summary",
+            "secret": false
+          },
+          "verifier.scenarios.allowed": {
+            "kind": "project_yaml",
+            "name": "verifier.scenarios.allowed",
+            "secret": false
+          },
+          "verifier.scenarios.interactive": {
+            "kind": "project_yaml",
+            "name": "verifier.scenarios.interactive",
+            "secret": false
+          }
+        },
+        "fingerprint": "1db628932cd7"
+      },
+      "public": {
+        "fields": {
+          "attribute.compaction.attribute_result_chars": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.compaction.attribute_result_chars",
+            "secret": false
+          },
+          "attribute.compaction.judge_business_expectations_chars": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.compaction.judge_business_expectations_chars",
+            "secret": false
+          },
+          "attribute.compaction.judge_fulfillment_assessments_chars": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.compaction.judge_fulfillment_assessments_chars",
+            "secret": false
+          },
+          "attribute.compaction.judge_gap_chars": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.compaction.judge_gap_chars",
+            "secret": false
+          },
+          "attribute.compaction.judge_reasoning_chars": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.compaction.judge_reasoning_chars",
+            "secret": false
+          },
+          "attribute.compaction.list_item_limit": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.compaction.list_item_limit",
+            "secret": false
+          },
+          "attribute.compaction.project_context_chars": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.compaction.project_context_chars",
+            "secret": false
+          },
+          "attribute.compaction.trace_error_chars": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.compaction.trace_error_chars",
+            "secret": false
+          },
+          "attribute.compaction.trace_execution_chars": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.compaction.trace_execution_chars",
+            "secret": false
+          },
+          "attribute.compaction.trace_input_chars": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.compaction.trace_input_chars",
+            "secret": false
+          },
+          "attribute.compaction.trace_normalized_request_chars": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.compaction.trace_normalized_request_chars",
+            "secret": false
+          },
+          "attribute.compaction.trace_output_chars": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.compaction.trace_output_chars",
+            "secret": false
+          },
+          "attribute.finalization_prompt_char_budget": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.finalization_prompt_char_budget",
+            "secret": false
+          },
+          "attribute.investigation_error_chars": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.investigation_error_chars",
+            "secret": false
+          },
+          "attribute.review_prompt_char_budget": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.review_prompt_char_budget",
+            "secret": false
+          },
+          "attribute.tool_call_limit": {
+            "kind": "yaml",
+            "name": "config.yaml#attribute.tool_call_limit",
+            "secret": false
+          },
+          "browser.driver_path": {
+            "kind": "yaml",
+            "name": "config.yaml#browser.driver_path",
+            "secret": false
+          },
+          "context.candidate_limit": {
+            "kind": "yaml",
+            "name": "config.yaml#context.candidate_limit",
+            "secret": false
+          },
+          "context.content_char_budget": {
+            "kind": "yaml",
+            "name": "config.yaml#context.content_char_budget",
+            "secret": false
+          },
+          "context.data_root": {
+            "kind": "yaml",
+            "name": "config.yaml#context.data_root",
+            "secret": false
+          },
+          "context.load_limit": {
+            "kind": "yaml",
+            "name": "config.yaml#context.load_limit",
+            "secret": false
+          },
+          "context.max_records_per_project": {
+            "kind": "yaml",
+            "name": "config.yaml#context.max_records_per_project",
+            "secret": false
+          },
+          "context.query_limit": {
+            "kind": "yaml",
+            "name": "config.yaml#context.query_limit",
+            "secret": false
+          },
+          "context.store_root": {
+            "kind": "yaml",
+            "name": "config.yaml#context.store_root",
+            "secret": false
+          },
+          "context.top_k_per_query": {
+            "kind": "yaml",
+            "name": "config.yaml#context.top_k_per_query",
+            "secret": false
+          },
+          "embedding.api_key": {
+            "kind": "dotenv",
+            "name": "BAILIAN_API_KEY",
+            "secret": true
+          },
+          "embedding.dimensions": {
+            "kind": "yaml",
+            "name": "config.yaml#embedding.dimensions",
+            "secret": false
+          },
+          "embedding.enabled": {
+            "kind": "yaml",
+            "name": "config.yaml#embedding.enabled",
+            "secret": false
+          },
+          "embedding.model": {
+            "kind": "yaml",
+            "name": "config.yaml#embedding.model",
+            "secret": false
+          },
+          "embedding.provider": {
+            "kind": "yaml",
+            "name": "config.yaml#embedding.provider",
+            "secret": false
+          },
+          "embedding.retrieval_top_k": {
+            "kind": "yaml",
+            "name": "config.yaml#embedding.retrieval_top_k",
+            "secret": false
+          },
+          "embedding.trust_env_proxy": {
+            "kind": "yaml",
+            "name": "config.yaml#embedding.trust_env_proxy",
+            "secret": false
+          },
+          "eval_axes.es.api_key": {
+            "kind": "yaml",
+            "name": "config.yaml#eval_axes.es.api_key",
+            "secret": false
+          },
+          "eval_axes.es.base_url": {
+            "kind": "dotenv",
+            "name": "EVAL_AXES_ES_URL",
+            "secret": false
+          },
+          "eval_axes.es.basic_auth": {
+            "kind": "yaml",
+            "name": "config.yaml#eval_axes.es.basic_auth",
+            "secret": false
+          },
+          "eval_axes.es.enabled": {
+            "kind": "dotenv",
+            "name": "EVAL_AXES_ES_ENABLED",
+            "secret": false
+          },
+          "eval_axes.es.max_field_chars": {
+            "kind": "yaml",
+            "name": "config.yaml#eval_axes.es.max_field_chars",
+            "secret": false
+          },
+          "eval_axes.es.max_hits": {
+            "kind": "yaml",
+            "name": "config.yaml#eval_axes.es.max_hits",
+            "secret": false
+          },
+          "eval_axes.es.timeout_seconds": {
+            "kind": "yaml",
+            "name": "config.yaml#eval_axes.es.timeout_seconds",
+            "secret": false
+          },
+          "eval_axes.model_policy": {
+            "kind": "yaml",
+            "name": "config.yaml#eval_axes.model_policy",
+            "secret": false
+          },
+          "execution.batch_concurrency_default": {
+            "kind": "yaml",
+            "name": "config.yaml#execution.batch_concurrency_default",
+            "secret": false
+          },
+          "execution.batch_concurrency_max": {
+            "kind": "yaml",
+            "name": "config.yaml#execution.batch_concurrency_max",
+            "secret": false
+          },
+          "execution.batch_event_history_limit": {
+            "kind": "yaml",
+            "name": "config.yaml#execution.batch_event_history_limit",
+            "secret": false
+          },
+          "execution.case_retry_attempts": {
+            "kind": "yaml",
+            "name": "config.yaml#execution.case_retry_attempts",
+            "secret": false
+          },
+          "judge.raw_response_max_chars": {
+            "kind": "yaml",
+            "name": "config.yaml#judge.raw_response_max_chars",
+            "secret": false
+          },
+          "llm.api_key": {
+            "kind": "dotenv",
+            "name": "DEEPSEEK_API_KEY",
+            "secret": true
+          },
+          "llm.base_url": {
+            "kind": "dotenv",
+            "name": "LLM_BASE_URL",
+            "secret": false
+          },
+          "llm.capabilities.context_window_tokens": {
+            "kind": "yaml",
+            "name": "config.yaml#llm.capabilities.context_window_tokens",
+            "secret": false
+          },
+          "llm.capabilities.json_mode": {
+            "kind": "yaml",
+            "name": "config.yaml#llm.capabilities.json_mode",
+            "secret": false
+          },
+          "llm.capabilities.tool_calls": {
+            "kind": "yaml",
+            "name": "config.yaml#llm.capabilities.tool_calls",
+            "secret": false
+          },
+          "llm.fallback_1.api_key": {
+            "kind": "dotenv",
+            "name": "LLM_FALLBACK_1_API_KEY",
+            "secret": true
+          },
+          "llm.fallback_1.base_url": {
+            "kind": "dotenv",
+            "name": "LLM_FALLBACK_1_BASE_URL",
+            "secret": false
+          },
+          "llm.fallback_1.model": {
+            "kind": "dotenv",
+            "name": "LLM_FALLBACK_1_MODEL",
+            "secret": false
+          },
+          "llm.fallback_2.api_key": {
+            "kind": "dotenv",
+            "name": "LLM_FALLBACK_2_API_KEY",
+            "secret": true
+          },
+          "llm.fallback_2.base_url": {
+            "kind": "dotenv",
+            "name": "LLM_FALLBACK_2_BASE_URL",
+            "secret": false
+          },
+          "llm.fallback_2.model": {
+            "kind": "dotenv",
+            "name": "LLM_FALLBACK_2_MODEL",
+            "secret": false
+          },
+          "llm.model": {
+            "kind": "dotenv",
+            "name": "LLM_MODEL",
+            "secret": false
+          },
+          "llm.protocol": {
+            "kind": "yaml",
+            "name": "config.yaml#llm.protocol",
+            "secret": false
+          },
+          "llm.provider": {
+            "kind": "yaml",
+            "name": "config.yaml#llm.provider",
+            "secret": false
+          },
+          "llm.reasoning_effort": {
+            "kind": "yaml",
+            "name": "config.yaml#llm.reasoning_effort",
+            "secret": false
+          },
+          "llm.request_timeout_seconds": {
+            "kind": "yaml",
+            "name": "config.yaml#llm.request_timeout_seconds",
+            "secret": false
+          },
+          "llm.role_policies.live_stub.model": {
+            "kind": "yaml",
+            "name": "config.yaml#llm.role_policies.live_stub.model",
+            "secret": false
+          },
+          "llm.role_policies.live_stub.reasoning_effort": {
+            "kind": "yaml",
+            "name": "config.yaml#llm.role_policies.live_stub.reasoning_effort",
+            "secret": false
+          },
+          "llm.stream": {
+            "kind": "yaml",
+            "name": "config.yaml#llm.stream",
+            "secret": false
+          },
+          "llm.temperature": {
+            "kind": "yaml",
+            "name": "config.yaml#llm.temperature",
+            "secret": false
+          },
+          "python.executable": {
+            "kind": "dotenv",
+            "name": "PYTHON_EXECUTABLE",
+            "secret": false
+          },
+          "server.host": {
+            "kind": "yaml",
+            "name": "config.yaml#server.host",
+            "secret": false
+          },
+          "server.port": {
+            "kind": "cli",
+            "name": "server.port",
+            "secret": false
+          },
+          "uat.host": {
+            "kind": "yaml",
+            "name": "config.yaml#uat.host",
+            "secret": false
+          },
+          "uat.port": {
+            "kind": "yaml",
+            "name": "config.yaml#uat.port",
+            "secret": false
+          }
+        },
+        "fingerprint": "e90b7485bacc"
+      }
+    },
+    "conversation_summary": {
+      "completion_status": "completed",
+      "final_output_turn": 2,
+      "interaction_controller_error": "",
+      "interaction_controller_status": "not_run",
+      "stop_reason": "goal_satisfied",
+      "turn_count": 2
+    },
+    "conversation_transcript": [
+      {
+        "content": "保额的保单",
+        "query": "保额的保单",
+        "role": "user"
+      },
+      {
+        "content": "解析成功",
+        "role": "assistant",
+        "stage": null
+      },
+      {
+        "content": "不看保额了，找陈晓华的保单",
+        "query": "不看保额了，找陈晓华的保单",
+        "role": "user"
+      },
+      {
+        "content": "解析成功",
+        "role": "assistant",
+        "stage": null
+      }
+    ],
+    "created_at": "2026-09-10T02:29:12.377653+00:00",
+    "diverged_at_turn": null,
+    "error": "",
+    "evidence_refs": [],
+    "execution_mode": "interactive_intent",
+    "execution_trace": [
+      {
+        "error": "",
+        "evidence": {
+          "project_id": "policy_search"
+        },
+        "inputs": {},
+        "metadata": {},
+        "outputs": {},
+        "stage": "live_schema.validate_request",
+        "status": "succeeded",
+        "timestamp": ""
+      },
+      {
+        "error": "",
+        "evidence": {
+          "project_id": "policy_search"
+        },
+        "inputs": {},
+        "metadata": {},
+        "outputs": {},
+        "stage": "live_schema.validate_output",
+        "status": "succeeded",
+        "timestamp": ""
+      },
+      {
+        "error": "",
+        "evidence": {
+          "project_id": "policy_search"
+        },
+        "inputs": {},
+        "metadata": {},
+        "outputs": {},
+        "stage": "live_schema.validate_request",
+        "status": "succeeded",
+        "timestamp": ""
+      },
+      {
+        "error": "",
+        "evidence": {
+          "project_id": "policy_search"
+        },
+        "inputs": {},
+        "metadata": {},
+        "outputs": {},
+        "stage": "live_schema.validate_output",
+        "status": "succeeded",
+        "timestamp": ""
+      }
+    ],
+    "extracted_output": {
+      "code": 0,
+      "filter": {
+        "children": [
+          {
+            "field": "applicant_name",
+            "node_id": "n1",
+            "operator": "CONTAINS",
+            "type": "PREDICATE",
+            "value": "陈晓华"
+          },
+          {
+            "field": "insurant_name",
+            "node_id": "n2",
+            "operator": "CONTAINS",
+            "type": "PREDICATE",
+            "value": "陈晓华"
+          }
+        ],
+        "node_id": "n0",
+        "type": "OR"
+      },
+      "message": "解析成功",
+      "msg": "success",
+      "query": "不看保额了，找陈晓华的保单",
+      "status": "SUCCESS"
+    },
+    "fallbacks": [],
+    "final_output_turn": 2,
+    "gate_decisions": [],
+    "input": {
+      "action_scenario": "policySearch",
+      "app_scenario": "policy_search_parse",
+      "application_setting": null,
+      "extra_input_params": {
+        "agent_args": null,
+        "args": {
+          "contexts": []
+        },
+        "policySearchParseArgs": {
+          "agentCode": "A12345678",
+          "currentTime": "2026-08-06 10:30:00",
+          "query": "保额的保单"
+        }
+      },
+      "history": [],
+      "org_id": "verifier-org",
+      "org_name": "verifier",
+      "scenario": null,
+      "session_id": "harness-policy_search-4265e611614f",
+      "source": "verifier",
+      "token": "",
+      "trace_id": "harness-policy_search-4265e611614f-turn1",
+      "ts": 1785983400000,
+      "user_action": "write",
+      "user_id": "verifier-user",
+      "user_text": ""
+    },
+    "intent_history": [
+      {
+        "source": "seeded",
+        "turn_index": 0,
+        "user_context": {
+          "persona": "代理人，被追问细节时嫌麻烦，换个更直接的找法"
+        },
+        "user_intent": "原本想按保额筛，被追问后改成直接找投保人陈晓华的保单"
+      },
+      {
+        "source": "drifted",
+        "turn_index": 1,
+        "user_context": {},
+        "user_intent": "不按保额了，直接找投保人陈晓华的保单"
+      }
+    ],
+    "interaction_controller_error": "",
+    "interaction_controller_status": "not_run",
+    "interaction_mode": "interactive_intent",
+    "mock_intent": {
+      "query": "",
+      "scenario": "",
+      "system_understanding": "",
+      "user_context": {},
+      "user_intent": "不按保额了，直接找投保人陈晓华的保单"
+    },
+    "multi_turn_input": null,
+    "normalized_request": {
+      "action_scenario": "policySearch",
+      "app_scenario": "policy_search_parse",
+      "application_setting": null,
+      "extra_input_params": {
+        "agent_args": null,
+        "args": {
+          "contexts": []
+        },
+        "policySearchParseArgs": {
+          "agentCode": "A12345678",
+          "currentTime": "2026-08-06 10:30:00",
+          "query": "保额的保单"
+        }
+      },
+      "history": [],
+      "org_id": "verifier-org",
+      "org_name": "verifier",
+      "scenario": null,
+      "session_id": "harness-policy_search-4265e611614f",
+      "source": "verifier",
+      "token": "",
+      "trace_id": "harness-policy_search-4265e611614f-turn1",
+      "ts": 1785983400000,
+      "user_action": "write",
+      "user_id": "verifier-user",
+      "user_text": ""
+    },
+    "output_source": "interactive_adapter",
+    "project_fields": {
+      "filter_root_type": "OR",
+      "parse_status": "SUCCESS"
+    },
+    "project_id": "policy_search",
+    "raw_response": [
+      [
+        {
+          "code": 0,
+          "data": {
+            "end_flag": 1,
+            "extra_output_params": {
+              "policySearchParseResult": {
+                "filter": {
+                  "field": "sum_ins",
+                  "node_id": "n0",
+                  "operator": "IS_NOT_NULL",
+                  "type": "PREDICATE"
+                },
+                "message": "解析成功",
+                "query": "保额的保单",
+                "status": "SUCCESS"
+              }
+            },
+            "robot_text": null
+          },
+          "msg": "success"
+        }
+      ],
+      [
+        {
+          "code": 0,
+          "data": {
+            "end_flag": 1,
+            "extra_output_params": {
+              "policySearchParseResult": {
+                "filter": {
+                  "children": [
+                    {
+                      "field": "applicant_name",
+                      "node_id": "n1",
+                      "operator": "CONTAINS",
+                      "type": "PREDICATE",
+                      "value": "陈晓华"
+                    },
+                    {
+                      "field": "insurant_name",
+                      "node_id": "n2",
+                      "operator": "CONTAINS",
+                      "type": "PREDICATE",
+                      "value": "陈晓华"
+                    }
+                  ],
+                  "node_id": "n0",
+                  "type": "OR"
+                },
+                "message": "解析成功",
+                "query": "不看保额了，找陈晓华的保单",
+                "status": "SUCCESS"
+              }
+            },
+            "robot_text": null
+          },
+          "msg": "success"
+        }
+      ]
+    ],
+    "ready": [],
+    "reference_contract": {},
+    "runtime_logs": [],
+    "scenario": "clarification_then_new_query",
+    "session_id": "harness-policy_search-4265e611614f",
+    "state_history": [],
+    "status": "ok",
+    "stop_reason": "goal_satisfied",
+    "trace_id": "policy_search:harness-policy_search-4265e611614f:1789007352377",
+    "transition_decisions": [],
+    "turn_index": 2,
+    "turn_records": [
+      {
+        "application_boundary": {
+          "allow_fallback": false,
+          "dependency_status": "available",
+          "excluded_evidence": [],
+          "notes": "parser returned an executable filter"
+        },
+        "call_status": "succeeded",
+        "error": null,
+        "execution_trace": [
+          {
+            "error": "",
+            "evidence": {
+              "project_id": "policy_search"
+            },
+            "inputs": {},
+            "metadata": {},
+            "outputs": {},
+            "stage": "live_schema.validate_request",
+            "status": "succeeded",
+            "timestamp": ""
+          },
+          {
+            "error": "",
+            "evidence": {
+              "project_id": "policy_search"
+            },
+            "inputs": {},
+            "metadata": {},
+            "outputs": {},
+            "stage": "live_schema.validate_output",
+            "status": "succeeded",
+            "timestamp": ""
+          }
+        ],
+        "extracted_output": {
+          "code": 0,
+          "filter": {
+            "field": "sum_ins",
+            "node_id": "n0",
+            "operator": "IS_NOT_NULL",
+            "type": "PREDICATE"
+          },
+          "message": "解析成功",
+          "msg": "success",
+          "query": "保额的保单",
+          "status": "SUCCESS"
+        },
+        "fallbacks": [],
+        "live_exchanges": [
+          {
+            "carries_live_request": true,
+            "contributes_raw_response": true,
+            "error": null,
+            "exchange_id": "live-exchange-6a3c00f7-0e2a-481d-991b-f4c1cc383f83",
+            "finished_at": "2026-09-10T02:28:45.029115+00:00",
+            "method": "POST",
+            "request": {
+              "action_scenario": "policySearch",
+              "app_scenario": "policy_search_parse",
+              "application_setting": null,
+              "extra_input_params": {
+                "agent_args": null,
+                "args": {
+                  "contexts": []
+                },
+                "policySearchParseArgs": {
+                  "agentCode": "A12345678",
+                  "currentTime": "2026-08-06 10:30:00",
+                  "query": "保额的保单"
+                }
+              },
+              "history": [],
+              "org_id": "verifier-org",
+              "org_name": "verifier",
+              "scenario": null,
+              "session_id": "harness-policy_search-4265e611614f",
+              "source": "verifier",
+              "token": "",
+              "trace_id": "harness-policy_search-4265e611614f-turn1",
+              "ts": 1785983400000,
+              "user_action": "write",
+              "user_id": "verifier-user",
+              "user_text": ""
+            },
+            "request_headers": {
+              "Content-Type": "application/json"
+            },
+            "response": {
+              "code": 0,
+              "data": {
+                "end_flag": 1,
+                "extra_output_params": {
+                  "policySearchParseResult": {
+                    "filter": {
+                      "field": "sum_ins",
+                      "node_id": "n0",
+                      "operator": "IS_NOT_NULL",
+                      "type": "PREDICATE"
+                    },
+                    "message": "解析成功",
+                    "query": "保额的保单",
+                    "status": "SUCCESS"
+                  }
+                },
+                "robot_text": null
+              },
+              "msg": "success"
+            },
+            "response_headers": {
+              "Connection": "close",
+              "content-length": "276",
+              "content-type": "application/json",
+              "date": "Thu, 10 Sep 2026 02:28:40 GMT",
+              "server": "uvicorn"
+            },
+            "sequence": 0,
+            "started_at": "2026-09-10T02:28:41.220724+00:00",
+            "status_code": 200,
+            "transport": "http",
+            "url": "http://127.0.0.1:8050/api/v1/policy-search/policy-search-parse"
+          }
+        ],
+        "mock_message": "保额的保单",
+        "project_fields": {
+          "filter_root_type": "PREDICATE",
+          "parse_status": "SUCCESS"
+        },
+        "raw_response": [
+          {
+            "code": 0,
+            "data": {
+              "end_flag": 1,
+              "extra_output_params": {
+                "policySearchParseResult": {
+                  "filter": {
+                    "field": "sum_ins",
+                    "node_id": "n0",
+                    "operator": "IS_NOT_NULL",
+                    "type": "PREDICATE"
+                  },
+                  "message": "解析成功",
+                  "query": "保额的保单",
+                  "status": "SUCCESS"
+                }
+              },
+              "robot_text": null
+            },
+            "msg": "success"
+          }
+        ],
+        "request": {
+          "action_scenario": "policySearch",
+          "app_scenario": "policy_search_parse",
+          "application_setting": null,
+          "extra_input_params": {
+            "agent_args": null,
+            "args": {
+              "contexts": []
+            },
+            "policySearchParseArgs": {
+              "agentCode": "A12345678",
+              "currentTime": "2026-08-06 10:30:00",
+              "query": "保额的保单"
+            }
+          },
+          "history": [],
+          "org_id": "verifier-org",
+          "org_name": "verifier",
+          "scenario": null,
+          "session_id": "harness-policy_search-4265e611614f",
+          "source": "verifier",
+          "token": "",
+          "trace_id": "harness-policy_search-4265e611614f-turn1",
+          "ts": 1785983400000,
+          "user_action": "write",
+          "user_id": "verifier-user",
+          "user_text": ""
+        },
+        "runtime_ms": 3810,
+        "turn_index": 1,
+        "validation": []
+      },
+      {
+        "application_boundary": {
+          "allow_fallback": false,
+          "dependency_status": "available",
+          "excluded_evidence": [],
+          "notes": "parser returned an executable filter"
+        },
+        "call_status": "succeeded",
+        "error": null,
+        "execution_trace": [
+          {
+            "error": "",
+            "evidence": {
+              "project_id": "policy_search"
+            },
+            "inputs": {},
+            "metadata": {},
+            "outputs": {},
+            "stage": "live_schema.validate_request",
+            "status": "succeeded",
+            "timestamp": ""
+          },
+          {
+            "error": "",
+            "evidence": {
+              "project_id": "policy_search"
+            },
+            "inputs": {},
+            "metadata": {},
+            "outputs": {},
+            "stage": "live_schema.validate_output",
+            "status": "succeeded",
+            "timestamp": ""
+          }
+        ],
+        "extracted_output": {
+          "code": 0,
+          "filter": {
+            "children": [
+              {
+                "field": "applicant_name",
+                "node_id": "n1",
+                "operator": "CONTAINS",
+                "type": "PREDICATE",
+                "value": "陈晓华"
+              },
+              {
+                "field": "insurant_name",
+                "node_id": "n2",
+                "operator": "CONTAINS",
+                "type": "PREDICATE",
+                "value": "陈晓华"
+              }
+            ],
+            "node_id": "n0",
+            "type": "OR"
+          },
+          "message": "解析成功",
+          "msg": "success",
+          "query": "不看保额了，找陈晓华的保单",
+          "status": "SUCCESS"
+        },
+        "fallbacks": [],
+        "live_exchanges": [
+          {
+            "carries_live_request": true,
+            "contributes_raw_response": true,
+            "error": null,
+            "exchange_id": "live-exchange-29805b52-e7aa-45aa-ab0d-0a879cc1fe9a",
+            "finished_at": "2026-09-10T02:29:00.592214+00:00",
+            "method": "POST",
+            "request": {
+              "action_scenario": "policySearch",
+              "app_scenario": "policy_search_parse",
+              "application_setting": null,
+              "extra_input_params": {
+                "agent_args": null,
+                "args": {
+                  "contexts": [
+                    {
+                      "content": "保额的保单",
+                      "role": "user",
+                      "sub_agent": ""
+                    },
+                    {
+                      "content": "解析成功",
+                      "role": "assistant",
+                      "sub_agent": "POLICY_SEARCH"
+                    }
+                  ]
+                },
+                "policySearchParseArgs": {
+                  "agentCode": "A12345678",
+                  "currentTime": "2026-08-06 10:30:00",
+                  "query": "不看保额了，找陈晓华的保单"
+                }
+              },
+              "history": [],
+              "org_id": "verifier-org",
+              "org_name": "verifier",
+              "scenario": null,
+              "session_id": "harness-policy_search-4265e611614f",
+              "source": "verifier",
+              "token": "",
+              "trace_id": "harness-policy_search-4265e611614f-turn2",
+              "ts": 1785983400000,
+              "user_action": "write",
+              "user_id": "verifier-user",
+              "user_text": ""
+            },
+            "request_headers": {
+              "Content-Type": "application/json"
+            },
+            "response": {
+              "code": 0,
+              "data": {
+                "end_flag": 1,
+                "extra_output_params": {
+                  "policySearchParseResult": {
+                    "filter": {
+                      "children": [
+                        {
+                          "field": "applicant_name",
+                          "node_id": "n1",
+                          "operator": "CONTAINS",
+                          "type": "PREDICATE",
+                          "value": "陈晓华"
+                        },
+                        {
+                          "field": "insurant_name",
+                          "node_id": "n2",
+                          "operator": "CONTAINS",
+                          "type": "PREDICATE",
+                          "value": "陈晓华"
+                        }
+                      ],
+                      "node_id": "n0",
+                      "type": "OR"
+                    },
+                    "message": "解析成功",
+                    "query": "不看保额了，找陈晓华的保单",
+                    "status": "SUCCESS"
+                  }
+                },
+                "robot_text": null
+              },
+              "msg": "success"
+            },
+            "response_headers": {
+              "Connection": "close",
+              "content-length": "468",
+              "content-type": "application/json",
+              "date": "Thu, 10 Sep 2026 02:28:52 GMT",
+              "server": "uvicorn"
+            },
+            "sequence": 0,
+            "started_at": "2026-09-10T02:28:53.643143+00:00",
+            "status_code": 200,
+            "transport": "http",
+            "url": "http://127.0.0.1:8050/api/v1/policy-search/policy-search-parse"
+          }
+        ],
+        "mock_message": "不看保额了，找陈晓华的保单",
+        "project_fields": {
+          "filter_root_type": "OR",
+          "parse_status": "SUCCESS"
+        },
+        "raw_response": [
+          {
+            "code": 0,
+            "data": {
+              "end_flag": 1,
+              "extra_output_params": {
+                "policySearchParseResult": {
+                  "filter": {
+                    "children": [
+                      {
+                        "field": "applicant_name",
+                        "node_id": "n1",
+                        "operator": "CONTAINS",
+                        "type": "PREDICATE",
+                        "value": "陈晓华"
+                      },
+                      {
+                        "field": "insurant_name",
+                        "node_id": "n2",
+                        "operator": "CONTAINS",
+                        "type": "PREDICATE",
+                        "value": "陈晓华"
+                      }
+                    ],
+                    "node_id": "n0",
+                    "type": "OR"
+                  },
+                  "message": "解析成功",
+                  "query": "不看保额了，找陈晓华的保单",
+                  "status": "SUCCESS"
+                }
+              },
+              "robot_text": null
+            },
+            "msg": "success"
+          }
+        ],
+        "request": {
+          "action_scenario": "policySearch",
+          "app_scenario": "policy_search_parse",
+          "application_setting": null,
+          "extra_input_params": {
+            "agent_args": null,
+            "args": {
+              "contexts": [
+                {
+                  "content": "保额的保单",
+                  "role": "user",
+                  "sub_agent": ""
+                },
+                {
+                  "content": "解析成功",
+                  "role": "assistant",
+                  "sub_agent": "POLICY_SEARCH"
+                }
+              ]
+            },
+            "policySearchParseArgs": {
+              "agentCode": "A12345678",
+              "currentTime": "2026-08-06 10:30:00",
+              "query": "不看保额了，找陈晓华的保单"
+            }
+          },
+          "history": [],
+          "org_id": "verifier-org",
+          "org_name": "verifier",
+          "scenario": null,
+          "session_id": "harness-policy_search-4265e611614f",
+          "source": "verifier",
+          "token": "",
+          "trace_id": "harness-policy_search-4265e611614f-turn2",
+          "ts": 1785983400000,
+          "user_action": "write",
+          "user_id": "verifier-user",
+          "user_text": ""
+        },
+        "runtime_ms": 6950,
+        "turn_index": 2,
+        "validation": []
+      }
+    ]
+  },
+  "turns": 2
+}

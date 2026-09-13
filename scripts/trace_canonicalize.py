@@ -28,6 +28,9 @@ DROP_FIELDS = {
     "elapsed_ms",
     "exchange_id",
     "record_id",
+    # 公共/项目配置来源快照随 config.yaml / .env 变化，与多轮执行行为无关。
+    "config_fingerprint",
+    "config_sources",
 }
 UUID_PATTERN = re.compile(
     r"(?<![0-9a-f])(?:[0-9a-f]{32}|"

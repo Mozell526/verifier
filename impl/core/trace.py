@@ -148,6 +148,11 @@ class TraceContext:
     interaction_controller_status: str = "not_run"
     interaction_controller_error: str = ""
     intent: Optional[Any] = None
+    # spec/mock/protocol.md 4.9：declare_intent 真值标签列表；5.3：回放分叉轮次；
+    # seed：transcript 级 seed（有则多轮执行走 ReplayDriver）。
+    intent_history: List[Dict[str, Any]] = field(default_factory=list)
+    diverged_at_turn: Optional[int] = None
+    seed: Optional[Dict[str, Any]] = None
 
     def record_turn(
         self,
@@ -270,6 +275,20 @@ class TraceContext:
         return self.turn_request(-1) if self.turns else {}
 
 
+def _transcript_seed_of(case: Any) -> Optional[Dict[str, Any]]:
+    """case.metadata.seed 为 transcript 级时返回它（多轮执行改走 ReplayDriver），否则 None。"""
+    from .interaction_protocol import NormalizedCaseInteraction
+
+    if isinstance(case, NormalizedCaseInteraction):
+        metadata = case.source_case.get("metadata") if isinstance(case.source_case, dict) else None
+    else:
+        metadata = getattr(case, "metadata", None)
+    seed = metadata.get("seed") if isinstance(metadata, dict) else None
+    if isinstance(seed, dict) and str(seed.get("level") or "") == "transcript":
+        return dict(seed)
+    return None
+
+
 def trace_from_live(
     live: "ProjectLive",
     case: SingleTurnCase | "NormalizedCaseInteraction" | dict,
@@ -355,6 +374,7 @@ def trace_from_live(
         reference_contract=reference_contract,
         multi_turn=is_multi_turn,
         intent=intent,
+        seed=_transcript_seed_of(normalized_case),
     )
 
     # 调 execute_live 拿最后一轮有效的 EXTRACT_OUTPUT_SCHEMA。
@@ -366,6 +386,42 @@ def trace_from_live(
         # execute_live 负责先把失败事实写入 ctx；trace 层只组装 error trace。
         execution_error = str(exc)
         output = {}
+
+    return trace_from_context(
+        live,
+        ctx,
+        case_id=case_id,
+        scenario=scenario,
+        reference_contract=reference_contract,
+        initial_request=initial_request,
+        output=output,
+        execution_error=execution_error,
+        is_multi_turn=is_multi_turn,
+        intent=intent,
+    )
+
+
+def trace_from_context(
+    live: "ProjectLive",
+    ctx: TraceContext,
+    *,
+    case_id: str,
+    scenario: str,
+    reference_contract: Dict[str, Any],
+    initial_request: Dict[str, Any],
+    output: Any,
+    execution_error: str = "",
+    is_multi_turn: bool,
+    intent: Optional[Any] = None,
+) -> RunTrace:
+    """从已完成执行的 TraceContext 组装 RunTrace。
+
+    trace_from_live 与 harness Session（spec/mock/protocol.md 4.10）共用同一条组装路径，
+    保证两种来源的多轮 trace 形状完全一致。
+    """
+    from .interaction_protocol import ready_from_spec
+
+    spec = live.spec
 
     # 从 ctx 收集过程事实，组装 RunTrace
     # 计算 execution_mode / output_source
@@ -451,7 +507,7 @@ def trace_from_live(
         runtime_logs=[],
         evidence_refs=_reference_contract_evidence(
             reference_contract,
-            reference_ready="reference" in ready,
+            reference_ready="reference" in ready_from_spec(spec),
         ),
         execution_trace=execution_trace,
         status=call_status,
@@ -470,5 +526,7 @@ def trace_from_live(
         completion_status=ctx.completion_status,
         interaction_controller_status=ctx.interaction_controller_status,
         interaction_controller_error=ctx.interaction_controller_error,
+        intent_history=[dict(item) for item in ctx.intent_history],
+        diverged_at_turn=ctx.diverged_at_turn,
     )
     return normalize_run_trace(attach_config_provenance(trace, spec))

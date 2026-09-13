@@ -105,6 +105,16 @@ def test_llm_client_builds_openai_compatible_model_with_explicit_credential(tmp_
     assert captured["supports_json_schema_outputs"] is False
 
 
+def test_bypass_proxy_for_loopback_keeps_remote_proxy(monkeypatch):
+    monkeypatch.setenv("NO_PROXY", "example.com")
+    monkeypatch.setenv("no_proxy", "")
+    llm_module._bypass_proxy_for_loopback()
+    assert "127.0.0.1" in llm_module.os.environ["NO_PROXY"].split(",")
+    assert "localhost" in llm_module.os.environ["NO_PROXY"].split(",")
+    assert "example.com" in llm_module.os.environ["NO_PROXY"].split(",")
+    assert "127.0.0.1" in llm_module.os.environ["no_proxy"].split(",")
+
+
 def test_endpoint_probe_uses_real_short_completion(monkeypatch):
     captured = {}
 
@@ -194,7 +204,9 @@ def test_openai_like_adapter_canonicalizes_exact_registered_logical_tool_id(monk
     from impl.core.llm_client import _parse_tool_calls_with_aliases
 
     parsed = [{"type": "function", "function": {"name": "investigation.search_index", "arguments": "{}"}}]
-    monkeypatch.setattr(OpenAILike, "parse_tool_calls", lambda self, data: parsed)
+    # 真实 agno 2.3.21 的 OpenAIChat.parse_tool_calls 是 @staticmethod（只收 tool_calls_data），
+    # 替身必须同形，否则锁的是"必须传 self"的旧假设。
+    monkeypatch.setattr(OpenAILike, "parse_tool_calls", staticmethod(lambda data: parsed))
     model = OpenAILike(id="test", api_key="test", base_url="http://localhost/v1")
     model.logical_tool_aliases = {"investigation.search_index": "investigation_search_index"}
 
@@ -208,7 +220,9 @@ def test_openai_like_adapter_does_not_fuzz_unknown_tool_name(monkeypatch):
     from impl.core.llm_client import _parse_tool_calls_with_aliases
 
     parsed = [{"type": "function", "function": {"name": "investigation.search-index", "arguments": "{}"}}]
-    monkeypatch.setattr(OpenAILike, "parse_tool_calls", lambda self, data: parsed)
+    # 真实 agno 2.3.21 的 OpenAIChat.parse_tool_calls 是 @staticmethod（只收 tool_calls_data），
+    # 替身必须同形，否则锁的是"必须传 self"的旧假设。
+    monkeypatch.setattr(OpenAILike, "parse_tool_calls", staticmethod(lambda data: parsed))
     model = OpenAILike(id="test", api_key="test", base_url="http://localhost/v1")
     model.logical_tool_aliases = {"investigation.search_index": "investigation_search_index"}
 

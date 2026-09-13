@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 
+import pytest
+
 from impl.core.config import get_llm_config
 from impl.core.llm_client import (
     LlmClient,
@@ -54,6 +56,18 @@ def test_tool_budget_is_checked_against_actual_calls_not_sdk_rounds():
 
     assert _tool_budget_error(calls[:6], 6) is None
     assert _tool_budget_error(calls, 6) == (
+        "actual tool calls 7 exceed configured limit 6"
+    )
+
+
+def test_tool_budget_ignores_calls_the_sdk_refused_to_execute():
+    # 模型一轮并发发两个调用，agno 到上限后拒绝执行多出的那个并以固定文案回给模型；
+    # 它没花预算，也不该让模型随后给出的合法答案作废。
+    refused = "Tool call limit reached. Tool call es_read not executed. Don't try to execute it again."
+    calls = [{"tool_name": "es_search", "result": "{...}"}] * 6 + [{"tool_name": "es_read", "result": refused}] * 2
+
+    assert _tool_budget_error(calls, 6) is None
+    assert _tool_budget_error(calls + [{"tool_name": "es_read", "result": "ok"}], 6) == (
         "actual tool calls 7 exceed configured limit 6"
     )
 
@@ -289,3 +303,62 @@ def test_complete_json_falls_back_to_second_endpoint_within_one_call(monkeypatch
     assert calls["count"] == 2
     assert "127.0.0.1:9" in route[0]
     assert "fallback.example" in route[1]
+
+
+def test_enforce_blocked_call_is_recorded_before_raising(monkeypatch):
+    """enforce 阻断的那次调用同样花了钱、产出了内容：必须先落 context 记录再抛。
+
+    否则 context 页只看到 reprompt 那次成功调用，看不到触发它的首轮失败，也看不到
+    被丢弃的那份产出（boundary=null 这类 reprompt 的成本完全不可见）。
+    """
+    tracked = []
+
+    class Result:
+        content = '{"investigation_summary":""}'
+        status = type("Status", (), {"value": "COMPLETED"})()
+        metrics = None
+        messages = []
+
+        def to_dict(self):
+            return {"content": self.content, "status": "COMPLETED"}
+
+    class FakeAgent:
+        def __init__(self, **_kwargs):
+            pass
+
+        def run(self, _user, **_run_kwargs):
+            return Result()
+
+    def capture(_self, system, user, result, trace_id, token_metrics, elapsed_ms, error, **kwargs):
+        tracked.append({
+            "system": system,
+            "user": user,
+            "trace_id": trace_id,
+            "elapsed_ms": elapsed_ms,
+            "error": error,
+            "runtime": kwargs.get("runtime"),
+        })
+
+    _isolate_llm_router(monkeypatch)
+    monkeypatch.setattr("impl.core.llm_client.Agent", FakeAgent)
+    monkeypatch.setattr("impl.core.llm_client.OpenAILike", lambda **_kwargs: object())
+    monkeypatch.setattr("impl.core.llm_client._track_context", capture)
+
+    client = LlmClient(config=replace(get_llm_config(), api_key="test-key"))
+    spec = StructuredOutputSpec.from_dataclass(
+        _InvestigationOutput,
+        required_nonempty=["investigation_summary"],
+    )
+
+    with pytest.raises(ValueError, match="结构化输出约束"):
+        client.complete_json("system", "user", trace_id="trace-enforce", output_spec=spec)
+
+    assert len(tracked) == 1
+    assert "结构化输出约束" in tracked[0]["error"]
+    assert tracked[0]["trace_id"] == "trace-enforce"
+    # 记录的是注入输出约束文案之后、真正发给模型的 system（与成功路径一致）。
+    assert tracked[0]["system"].startswith("system")
+    assert "### 强约束" in tracked[0]["system"]
+    assert tracked[0]["user"] == "user"
+    assert tracked[0]["runtime"]["attempts"]
+    assert tracked[0]["elapsed_ms"] >= 0

@@ -295,6 +295,38 @@ def test_judge_schema_defs_are_not_self_embedded():
     assert "authority_tool_call_ids" in defs["JudgeFulfillmentAssessmentOutput"]["properties"]
 
 
+def test_judge_boundary_accepts_null_but_still_rejects_non_object():
+    """boundary 是 write-only 备注，模型对空表述会写 null；按非 Optional Dict 判定会整段阻断并重跑。
+
+    允许 null（运行时归一为 {}），但数组这类真错仍要拦。
+    """
+    spec = _build_judge_output_spec(True, project_id="llm_probe", has_reference=True)
+    assert spec.json_schema()["$defs"]["JudgeBusinessExpectationOutput"]["properties"]["boundary"] == {
+        "type": ["object", "null"],
+    }
+
+    def output(boundary):
+        return {
+            "business_expectations": [
+                {"expectation_id": "e1", "blocking": True, "boundary": boundary}
+            ],
+            "reasoning_summary": "判断依据",
+        }
+
+    enforce_output(output(None), spec, caller="judge")
+    enforce_output(output({"note": "备注"}), spec, caller="judge")
+    enforce_output(
+        {
+            "business_expectations": [{"expectation_id": "e1", "blocking": True}],
+            "reasoning_summary": "判断依据",
+        },
+        spec,
+        caller="judge",
+    )
+    with pytest.raises(ValueError, match="boundary"):
+        enforce_output(output([]), spec, caller="judge")
+
+
 def test_live_schema_observation_allows_projection_but_keeps_type_and_extra_checks():
     from impl.projects.client_search.live_schema import check
 
