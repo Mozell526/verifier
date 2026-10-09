@@ -3,9 +3,12 @@
 harness（外部进程）经 CLI/HTTP 调 open / send / intent / close；本模块负责：
 - session_id 只由 open 产生，无 open 直接 send 报错；
 - 4.6 预算由 Session 强制，另有 reaper 线程把挂住的用户方在预算内关闭；
-- close 后按 4.10 自动导出：完整多轮 RunTrace + transcript seed 进 case pool。
+- close 后按 4.10 自动导出：完整多轮 RunTrace 落 sessions/；transcript seed 以 MockCase 形态
+  追加进候选文件 impl/data/<project>/mock_cases-<run_id>.json，用户审后手动拷入 mock_cases.json。
 """
 from __future__ import annotations
+
+from .instances import data_root
 
 import json
 import threading
@@ -14,7 +17,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from . import case_pool, stop_reasons
+from . import stop_reasons
 from .portable_artifact import write_active_artifact
 from .schema import MockIntentOutput, to_dict
 from .session import (
@@ -37,11 +40,42 @@ CLOSED_HISTORY_LIMIT = 200
 
 
 def sessions_dir(project_id: str) -> Path:
-    return ROOT / "data" / project_id / "sessions"
+    return data_root(ROOT.parent) / project_id / "sessions"
 
 
 def _read_json(path: Path) -> Dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _candidate_file_path(project_id: str, run_id: str) -> Path:
+    """候选 case 文件位置：`impl/data/<project>/mock_cases-<run_id>.json`，无 run_id 则 adhoc。"""
+    return sessions_dir(project_id).parent / f"mock_cases-{run_id or 'adhoc'}.json"
+
+
+def _repository_relative(path: Path) -> str:
+    """仓库相对路径；沙箱（测试把 sessions_dir 换到仓库外）时退化为绝对路径。"""
+    try:
+        return str(path.relative_to(ROOT.parent))
+    except ValueError:
+        return str(path)
+
+
+def _append_candidate_case(project_id: str, run_id: str, seed_case: Dict[str, Any]) -> str:
+    """close 导出的 seed case 追加进项目数据目录的候选文件（同 id 覆盖，不存在则新建）。
+
+    返回仓库相对路径，可直接作 `batch-run --inputs`；run_id 缺失时落 mock_cases-adhoc.json。
+    """
+    path = _candidate_file_path(project_id, run_id)
+    cases: List[Dict[str, Any]] = []
+    if path.exists():
+        loaded = _read_json(path)
+        if isinstance(loaded, list):
+            cases = [case for case in loaded if isinstance(case, dict)]
+    cases = [case for case in cases if case.get("id") != seed_case.get("id")]
+    cases.append(seed_case)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(cases, ensure_ascii=False, indent=2), encoding="utf-8")
+    return _repository_relative(path)
 
 
 def _write_json(path: Path, payload: Dict[str, Any]) -> None:
@@ -68,6 +102,7 @@ class _Record:
         self.pool = pool
         self.run_id = run_id
         self.scenario = scenario
+        self.candidate_file = ""
         self.lock = threading.Lock()
         self.opened_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         self.export_path: Optional[Path] = None
@@ -94,7 +129,7 @@ class SessionStore:
         run_id: str = "",
         scenario: str = "",
     ) -> Dict[str, Any]:
-        from .live_protocol import MultiTurnInteractiveLive, ProjectLive
+        from .live_protocol import ProjectLive
         from .materials_store import require_materials
         from .project_loader import load_adapter, load_project
 
@@ -110,10 +145,9 @@ class SessionStore:
             raise TypeError(f"{project_id} adapter.live() must return ProjectLive")
         mock = adapter.mock()
         translator = mock if isinstance(mock, SessionTranslator) else None
-        is_multi_turn = isinstance(live, MultiTurnInteractiveLive)
 
         budget = dict(budget or {})
-        default_turns = int(mock.safety_max_turns()) if is_multi_turn and hasattr(mock, "safety_max_turns") else 1
+        default_turns = int(spec.session_max_turns)
         session_budget = SessionBudget(
             max_turns=max(1, int(budget.get("max_turns") or default_turns)),
             turn_wait_timeout_ms=int(budget.get("turn_wait_timeout_ms") or DEFAULT_TURN_WAIT_TIMEOUT_MS),
@@ -121,7 +155,7 @@ class SessionStore:
             token_limit=int(budget["token_limit"]) if budget.get("token_limit") is not None else None,
         )
         session_id = f"harness-{project_id}-{uuid.uuid4().hex[:12]}"
-        ctx = TraceContext(project_id=project_id, case_id=session_id, scenario=scenario, multi_turn=is_multi_turn)
+        ctx = TraceContext(project_id=project_id, case_id=session_id, scenario=scenario)
         record = _Record(project_id, None, live, pool=pool or (f"harness-{run_id}" if run_id else "harness"), run_id=run_id, scenario=scenario)  # type: ignore[arg-type]
         session = Session(
             live,
@@ -131,7 +165,7 @@ class SessionStore:
             user_message_extractor=getattr(mock, "extract_mock_message", None),
             translator=translator,
             mode=mode,
-            on_close=lambda closed: self._export(record, closed, is_multi_turn),
+            on_close=lambda closed: self._export(record, closed),
         )
         record.session = session
         prefix_results: List[Dict[str, Any]] = []
@@ -244,7 +278,12 @@ class SessionStore:
         path = sessions_dir(project_id) / f"{session_id}.json"
         if not path.exists():
             raise KeyError(f"session export not found: {session_id}")
-        return _read_json(path)
+        payload = _read_json(path)
+        # 候选 case 文件位置只在响应里给：落盘 payload 走 portable artifact 契约，不放裸路径。
+        candidate = _candidate_file_path(project_id, str(payload.get("run_id") or ""))
+        if candidate.exists():
+            payload["candidate_file"] = _repository_relative(candidate)
+        return payload
 
     def update_export(self, project_id: str, session_id: str, **fields: Any) -> Dict[str, Any]:
         path = sessions_dir(project_id) / f"{session_id}.json"
@@ -263,13 +302,13 @@ class SessionStore:
             if run_id and payload.get("run_id") != run_id:
                 continue
             items.append({key: payload.get(key) for key in (
-                "session_id", "project_id", "run_id", "pool", "mode", "scenario", "opened_at", "closed_at",
+                "session_id", "project_id", "run_id", "candidate_file", "mode", "scenario", "opened_at", "closed_at",
                 "stop_reason", "completion_status", "driver_health", "turns", "protocol_fuzz", "intent_history",
                 "judge_verdict", "judge_summary",
             )})
         return items
 
-    def _export(self, record: _Record, session: Session, is_multi_turn: bool) -> None:
+    def _export(self, record: _Record, session: Session) -> None:
         with self._lock:
             self._open.pop(session.session_id, None)
             self._closed[session.session_id] = record
@@ -287,7 +326,7 @@ class SessionStore:
             reference_contract={},
             initial_request=first_request,
             output=session.last_output or {},
-            is_multi_turn=is_multi_turn,
+            is_multi_turn=session.turn_count > 1,
             intent=session.ctx.intent,
         )
         seed = session.transcript_seed()
@@ -309,13 +348,11 @@ class SessionStore:
             "reference": None,
             "seed": seed,
         }
-        pool_info = case_pool.append_cases(record.project_id, record.pool, [seed_case])
+        record.candidate_file = _append_candidate_case(record.project_id, record.run_id, seed_case)
         payload = {
             "session_id": session.session_id,
             "project_id": record.project_id,
             "run_id": record.run_id,
-            "pool": record.pool,
-            "pool_id": pool_info.get("id"),
             "mode": session.mode,
             "scenario": record.scenario,
             "opened_at": record.opened_at,
@@ -364,7 +401,7 @@ class SessionStore:
             "driver_health": health,
             "turns": session.turn_count,
             "export_path": str(record.export_path) if record.export_path else "",
-            "pool": record.pool,
+            "candidate_file": record.candidate_file,
         }
 
     def _ensure_reaper(self) -> None:

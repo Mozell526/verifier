@@ -51,7 +51,7 @@ execution:
 context:
   data_root: verifier://impl/data/context_runtime
   store_root: verifier://impl/data/context_store
-  max_records_per_project: 200
+  max_records_per_project: 500
   candidate_limit: 20
   load_limit: 8
   content_char_budget: 100000
@@ -208,6 +208,20 @@ environment:
       secret: true
       description: 备用 LLM 端点 1 的 API Key
 
+    LLM_FALLBACK_1_MAX_PROMPT_CHARS:
+      bind: llm.fallback_1.max_prompt_chars
+      type: integer
+      required: false
+      secret: false
+      description: 备用 LLM 端点 1 可接受的 prompt 字符上限；不填则不做预检过滤
+
+    LLM_FALLBACK_1_TOOL_CALLS:
+      bind: llm.fallback_1.tool_calls
+      type: boolean
+      required: false
+      secret: false
+      description: 备用 LLM 端点 1 能否真正执行工具调用；默认 true，不支持就填 false（带工具的请求不再发给它）
+
     LLM_FALLBACK_2_BASE_URL:
       bind: llm.fallback_2.base_url
       type: url
@@ -228,6 +242,34 @@ environment:
       required: false
       secret: true
       description: 备用 LLM 端点 2 的 API Key
+
+    LLM_FALLBACK_2_MAX_PROMPT_CHARS:
+      bind: llm.fallback_2.max_prompt_chars
+      type: integer
+      required: false
+      secret: false
+      description: 备用 LLM 端点 2 可接受的 prompt 字符上限；不填则不做预检过滤
+
+    LLM_FALLBACK_2_TOOL_CALLS:
+      bind: llm.fallback_2.tool_calls
+      type: boolean
+      required: false
+      secret: false
+      description: 备用 LLM 端点 2 能否真正执行工具调用；默认 true
+
+    LLM_MAX_PROMPT_CHARS:
+      bind: llm.max_prompt_chars
+      type: integer
+      required: false
+      secret: false
+      description: 主端点可接受的 prompt 字符上限；不填则不做预检过滤
+
+    LLM_TOOL_CALLS:
+      bind: llm.tool_calls
+      type: boolean
+      required: false
+      secret: false
+      description: 主端点能否真正执行工具调用；默认 true，不支持就填 false
 
     BAILIAN_API_KEY:
       bind: embedding.api_key

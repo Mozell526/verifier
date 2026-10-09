@@ -22,6 +22,10 @@ from impl.core.schema.base import now_iso
 
 from .registry import get_axis_type
 from .types import (
+    FAILURE_AXIS,
+    FAILURE_ENVIRONMENT,
+    FAILURE_KINDS,
+    FAILURE_MATERIAL,
     SOURCE_SAMPLE,
     STATUS_BLOCKED,
     STATUS_DISABLED,
@@ -31,6 +35,7 @@ from .types import (
     VERDICT_SCOPE_AXIS,
     AxisResult,
     AxisRuntime,
+    AxisRequestFailed,
     AxisTimeout,
     AxisType,
     ScenarioAxis,
@@ -127,7 +132,14 @@ def _base_result(
     )
 
 
+_REQUEST_ERROR_CODES = ("llm_call_failed", "llm_request_failed", "llm_empty_response")
+
+
 def _fail(result: AxisResult, error: str, *, items: list[dict[str, Any]] | None = None) -> AxisResult:
+    if not error.startswith(FAILURE_KINDS):
+        # 共用 judge 链路的失败标记里带 llm_client 的请求层错误码时，属于运行环境而不是轴实现。
+        kind = FAILURE_ENVIRONMENT if any(code in error for code in _REQUEST_ERROR_CODES) else FAILURE_AXIS
+        error = f"{kind} {error}"
     result.status = STATUS_FAILED
     result.error = error
     result.verdict = None
@@ -156,7 +168,10 @@ def _run_one(
         upstream = results.get(upstream_id)
         upstream_status[upstream_id] = upstream.status if upstream is not None else "missing"
     if any(upstream_status[key] != STATUS_SUCCEEDED for key in required_ids):
-        blocked_by = "，".join(f"{k}={v}" for k, v in upstream_status.items() if k in required_ids and v != STATUS_SUCCEEDED)
+        # 阻断原因要一眼看到上游为什么没成：直接带上游的失败分类与原文。
+        blocked_by = "，".join(
+            f"{k}={v}" + (f"（{results[k].error}）" if k in results and results[k].error else "")
+            for k, v in upstream_status.items() if k in required_ids and v != STATUS_SUCCEEDED)
         result = _base_result(axis, axis_type, runtime, STATUS_BLOCKED, summary_text=f"上游未成功：{blocked_by}")
         result.trigger_decision = {"depend_on_satisfied": False, "upstream": upstream_status}
         return result
@@ -187,7 +202,17 @@ def _run_one(
     missing: list[str] = []
     for slot in axis_type.inputs:
         if slot.kind == SOURCE_SAMPLE:
-            value = trace if slot.sample_field == "trace" else None
+            if slot.sample_field == "trace":
+                value = trace
+            elif slot.sample_field == "requirements":
+                from ..business_trace.expectation_material import project_requirements
+                from .adapters.process_common import _scenario_entry
+                value = project_requirements(trace, _scenario_entry(runtime))
+            elif slot.sample_field == "business_trace":
+                fields = trace.project_fields if isinstance(trace.project_fields, Mapping) else {}
+                value = fields.get("business_trace")
+            else:
+                value = None
             ref = f"{slot.source}@{trace.trace_id}"
         else:
             upstream = results.get(slot.axis_ref)
@@ -206,7 +231,7 @@ def _run_one(
         result = _base_result(axis, axis_type, runtime, STATUS_FAILED)
         result.trigger_decision = trigger_decision
         result.inputs_used = inputs_used
-        return _fail(result, "必填输入缺失: " + ", ".join(missing))
+        return _fail(result, f"{FAILURE_MATERIAL} 必填输入缺失: " + ", ".join(missing))
 
     # 5. run
     started_at = now_iso()
@@ -222,7 +247,19 @@ def _run_one(
         result.started_at = started_at
         result.finished_at = now_iso()
         result.usage = {"elapsed_ms": int((time.monotonic() - started) * 1000), "timed_out": True}
-        return _fail(result, f"超时（上限 {seconds:g}s）：{exc}")
+        return _fail(result, f"{FAILURE_ENVIRONMENT} 超时（上限 {seconds:g}s）：{exc}")
+    except AxisRequestFailed as exc:  # 请求层失败：与模型格式错误分流，usage 留原始错误文本
+        result = _base_result(axis, axis_type, runtime, STATUS_FAILED)
+        result.trigger_decision = trigger_decision
+        result.inputs_used = inputs_used
+        result.started_at = started_at
+        result.finished_at = now_iso()
+        result.usage = {
+            "elapsed_ms": int((time.monotonic() - started) * 1000),
+            "llm_error": exc.error,
+            "llm_error_text": exc.raw_text,
+        }
+        return _fail(result, f"{FAILURE_ENVIRONMENT} 模型请求失败 {exc.error}：{str(exc.raw_text or '')[:300]}")
     except Exception as exc:  # 单轴失败隔离：不让一个 adapter 的异常拖垮同批其他轴
         result = _base_result(axis, axis_type, runtime, STATUS_FAILED)
         result.trigger_decision = trigger_decision
@@ -287,6 +324,7 @@ def run_axes(
         trace_id=f"{run_id}:{trace.trace_id or case_id or 'sample'}",
         scenario_id=scenario_id,
         case_id=case_id,
+        enabled_axes=tuple(axis.type_id for axis in axes if axis.enabled),
     )
     results: dict[str, AxisResult] = {}
     ordered = topo_order(axes)
@@ -297,4 +335,15 @@ def run_axes(
             if axis.enabled and dependency.optional and upstream is not None and upstream.status not in (STATUS_DISABLED, STATUS_SUCCEEDED):
                 result.summary["text"] += f"（{dependency.type_id}未完成，未纳入）"
         results[axis.type_id] = result
+        if result.status == STATUS_SUCCEEDED:
+            for issue in (result.output or {}).get('issues', []):
+                runtime.process_issues[issue['problem_id']] = issue
+    from .adapters.process_protocol import AXES, validate_issue_references
+    process = {key: value for key, value in results.items() if key in AXES and value.status == STATUS_SUCCEEDED}
+    try:
+        validate_issue_references({key: value.output for key, value in process.items()})
+    except ValueError as exc:
+        for result in process.values():
+            _fail(result, str(exc))
+            result.output = None
     return [results[axis.type_id] for axis in ordered]

@@ -206,6 +206,10 @@ class LlmFallback:
     base_url: str
     model: str
     api_key: str
+    # 端点可接受的 prompt 字符上限；None = 未声明（不作预检过滤）。
+    max_prompt_chars: Optional[int] = None
+    # 端点能否真正执行 tool calls；默认全开，只做减法（见 LlmEndpoint.tool_calls）。
+    tool_calls: bool = True
 
 
 @dataclass(frozen=True)
@@ -231,6 +235,10 @@ class LlmConfig:
     # 流式取回：中转站前面的网关（ALB 60s / Cloudflare 100s）看的是两次收包间隔，
     # 非流式要等整段生成完才回第一个字节，大 prompt 必撞超时；流式 prefill 一结束就开始收包。
     stream: bool = True
+    # 主端点可接受的 prompt 字符上限；None = 未声明（不作预检过滤）。
+    max_prompt_chars: Optional[int] = None
+    # 主端点能否真正执行 tool calls；默认全开，只做减法。
+    tool_calls: bool = True
 
     def policy_for(self, role: str) -> LlmRolePolicy:
         override = self.role_policies.get(str(role or ""), LlmRolePolicyOverride())
@@ -385,6 +393,7 @@ class RuntimeConfig:
                 "reasoning_effort": self.llm.reasoning_effort,
                 "request_timeout_seconds": self.llm.request_timeout_seconds,
                 "stream": self.llm.stream,
+                "max_prompt_chars": self.llm.max_prompt_chars,
                 "capabilities": {
                     "json_mode": self.llm.capabilities.json_mode,
                     "tool_calls": self.llm.capabilities.tool_calls,
@@ -552,6 +561,8 @@ def parse_runtime_document(data: Mapping[str, Any]) -> ParsedRuntimeConfig:
             "reasoning_effort",
             "request_timeout_seconds",
             "stream",
+            "max_prompt_chars",
+            "tool_calls",
             "capabilities",
             "role_policies",
         },
@@ -585,6 +596,12 @@ def parse_runtime_document(data: Mapping[str, Any]) -> ParsedRuntimeConfig:
             minimum=0.001,
         ),
         stream=_boolean(llm_data.get("stream", True), "llm.stream"),
+        max_prompt_chars=(
+            _integer(llm_data["max_prompt_chars"], "llm.max_prompt_chars", minimum=1)
+            if llm_data.get("max_prompt_chars") is not None
+            else None
+        ),
+        tool_calls=_boolean(llm_data.get("tool_calls", True), "llm.tool_calls"),
         capabilities=LlmCapabilities(
             json_mode=_boolean(_required(capability_data, "json_mode", "llm.capabilities"), "llm.capabilities.json_mode"),
             tool_calls=_boolean(_required(capability_data, "tool_calls", "llm.capabilities"), "llm.capabilities.tool_calls"),
@@ -853,13 +870,19 @@ def _validate_bindings(environment: EnvironmentRegistry) -> None:
         "llm.reasoning_effort",
         "llm.request_timeout_seconds",
         "llm.stream",
+        "llm.max_prompt_chars",
+        "llm.tool_calls",
         "llm.role_policies.live_stub.model",
         "llm.fallback_1.base_url",
         "llm.fallback_1.model",
         "llm.fallback_1.api_key",
+        "llm.fallback_1.max_prompt_chars",
+        "llm.fallback_1.tool_calls",
         "llm.fallback_2.base_url",
         "llm.fallback_2.model",
         "llm.fallback_2.api_key",
+        "llm.fallback_2.max_prompt_chars",
+        "llm.fallback_2.tool_calls",
         "embedding.provider",
         "embedding.enabled",
         "embedding.model",

@@ -8,11 +8,11 @@ from __future__ import annotations
 import json
 import urllib.request
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 import pytest
 
-from impl.core import case_pool, session_store
+from impl.core import session_store
 from impl.core.session_store import SessionStore
 from tests.support import cassette
 
@@ -21,21 +21,16 @@ GOLDEN = Path(__file__).parent / "golden" / "policy_search" / "happy"
 
 @pytest.fixture
 def isolated_store(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
-    memory: Dict[str, List[Dict[str, Any]]] = {}
-    monkeypatch.setattr(case_pool, "_read_store", lambda: json.loads(json.dumps(memory)))
-
-    def write(data):
-        memory.clear()
-        memory.update(json.loads(json.dumps(data)))
-
-    monkeypatch.setattr(case_pool, "_write_store", write)
     monkeypatch.setattr(session_store, "sessions_dir", lambda project_id: tmp_path / project_id / "sessions")
 
     def write_json(path: Path, payload: Dict[str, Any]) -> None:
-        # 注册的 artifact family 只认 impl/data/*/sessions；测试写到 tmp，绕过 family writer 但保留形状校验。
+        # 注册的 artifact family 只认 impl/data/*/sessions；测试写到 tmp，绕过 family writer，
+        # 但保留 family 形状校验 + 真实 writer 的 payload 归一化（防裸路径字段逃过离线测试）。
         from impl.core.active_artifacts import _session_export_payload
+        from impl.core.portable_artifact import PortableArtifactWriter
 
         _session_export_payload(None, path, payload)  # type: ignore[arg-type]
+        PortableArtifactWriter().validate(payload)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
@@ -43,7 +38,6 @@ def isolated_store(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     monkeypatch.setenv("VERIFIER_CASSETTE", "replay")
     monkeypatch.setenv("VERIFIER_CASSETTE_DIR", str(GOLDEN))
     monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **k: (_ for _ in ()).throw(AssertionError("network")))
-    return memory
 
 
 def _replay_cassette():
@@ -82,6 +76,7 @@ def test_cli_style_session_exports_multi_turn_trace_and_replayable_seed(isolated
     assert closed["stop_reason"] == "goal_satisfied"
     assert closed["completion_status"] == "completed"
     assert closed["driver_health"]["counts_toward_live_quality"] is True
+    assert closed["candidate_file"].endswith("mock_cases-r1.json")
 
     export = store.export_of("policy_search", session_id)
     trace = export["trace"]
@@ -97,21 +92,25 @@ def test_cli_style_session_exports_multi_turn_trace_and_replayable_seed(isolated
     ]
     assert trace["diverged_at_turn"] is None
 
+    # 落盘 payload 不含裸路径（portable artifact 契约）；候选文件位置由响应给出。
+    on_disk = json.loads((tmp_path / "policy_search" / "sessions" / f"{session_id}.json").read_text(encoding="utf-8"))
+    assert "candidate_file" not in on_disk
+    assert export["run_id"] == "r1"
+    assert export["candidate_file"].endswith("mock_cases-r1.json")
     seed_case = export["seed_case"]
     assert seed_case["seed"]["level"] == "transcript"
     assert [turn["message"]["text"] for turn in seed_case["seed"]["turns"]] == ["保额的保单", "50万以上"]
-    pools = isolated_store["policy_search"]
-    assert len(pools) == 1 and pools[0]["name"] == "harness-r1"
-    assert pools[0]["cases"][0]["id"] == session_id
-    assert pools[0]["cases"][0]["seed"]["level"] == "transcript"
+    # v2 §4：seed case 写候选文件（同 id 覆盖），不进 case pool；用户审后手动拷入 mock_cases.json。
+    candidate_path = tmp_path / "policy_search" / "mock_cases-r1.json"
+    candidate_cases = json.loads(candidate_path.read_text(encoding="utf-8"))
+    assert [case["id"] for case in candidate_cases] == [session_id]
+    assert candidate_cases[0]["seed"]["level"] == "transcript"
 
     # 5.2：seed 经 ReplayDriver 重放（同一 cassette 再放一次，live 未变 → 无分叉），trace 可判。
-    from impl.core.pipeline import _run_interactive_case
     from impl.core.interaction_protocol import normalize_case_interaction
     from impl.core.mock import mock_case_to_single_turn, parse_mock_case
-    from impl.core import pipeline
 
-    stored = parse_mock_case(pools[0]["cases"][0], project_id="policy_search")
+    stored = parse_mock_case(candidate_cases[0], project_id="policy_search")
     runtime_case = mock_case_to_single_turn(stored)
     normalized = normalize_case_interaction("policy_search", runtime_case, 0)
     assert normalized.mode == "interactive_intent"

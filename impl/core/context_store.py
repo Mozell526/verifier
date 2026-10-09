@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import time
 import uuid
 from pathlib import Path
@@ -62,6 +63,7 @@ def _normalize_record(data: Dict[str, Any]) -> ContextRecord:
         elapsed_ms=int(data.get("elapsed_ms") or 0),
         error=data.get("error"),
         governance=dict(data.get("governance") or {}),
+        retry_count=int(data.get("retry_count") or 0),
     )
 
 
@@ -79,12 +81,55 @@ def _record_to_dict(record: ContextRecord) -> Dict[str, Any]:
         "elapsed_ms": record.elapsed_ms,
         "error": record.error,
         "governance": record.governance,
+        "retry_count": record.retry_count,
     }
+
+
+def _record_fingerprint(record: ContextRecord) -> str:
+    """内容与结果完全相同的记录视为同一次逻辑调用的重复落档。"""
+    payload = json.dumps(
+        {"messages": record.messages, "error": record.error, "response": record.response},
+        sort_keys=True,
+        ensure_ascii=False,
+        default=str,
+    )
+    import hashlib
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _dedupe_duplicate_records(record: ContextRecord) -> int:
+    """删除同一 trace/caller 下内容与结果完全相同的旧记录，返回被删除数量。
+
+    重试会造成同一个 prompt + 同一个结果被重复落档（实测 500 条里 76 组 2–3 条），
+    把真正的历史挤出滚动窗口。只声称“完全相同”的重复，首轮失败、次轮成功这类
+    结果不同的调用不会被合并；不携带 prompt 的记录不参与合并。"""
+    if not record.messages:
+        return 0
+    removed = 0
+    fingerprint = _record_fingerprint(record)
+    for path in _record_paths_for_trace(record.project_id, record.trace_id):
+        if not path.name.startswith(f"{record.caller.replace('/', '_').replace(':', '_')}-"):
+            continue
+        try:
+            existing = _normalize_record(json.loads(path.read_text(encoding="utf-8")))
+        except Exception:
+            continue
+        if existing.record_id == record.record_id:
+            continue
+        if _record_fingerprint(existing) != fingerprint:
+            continue
+        removed += 1 + existing.retry_count
+        try:
+            path.unlink()
+        except Exception:
+            pass
+    return removed
 
 
 def save_context(record: ContextRecord) -> str:
     context = _artifact_context()
     _ensure_dir(_store_dir())
+    record.retry_count += _dedupe_duplicate_records(record)
     path = _record_path(
         record.project_id,
         record.trace_id,
@@ -104,14 +149,9 @@ def save_context(record: ContextRecord) -> str:
 
 
 def load_context(project_id: str, trace_id: str, caller: str) -> Optional[ContextRecord]:
-    paths = _record_paths_for_trace(project_id, trace_id)
-    for p in paths:
-        if caller in p.name:
-            try:
-                return _normalize_record(json.loads(p.read_text(encoding="utf-8")))
-            except Exception:
-                continue
-    return None
+    """trace 下该 caller 最近的一条记录。同 caller 可能有多条（重试、ToolLoop 按段落档）。"""
+    records = [r for r in load_contexts_by_trace(project_id, trace_id) if r.caller == caller]
+    return records[-1] if records else None
 
 
 def load_contexts_by_trace(project_id: str, trace_id: str) -> List[ContextRecord]:
@@ -123,6 +163,11 @@ def load_contexts_by_trace(project_id: str, trace_id: str) -> List[ContextRecord
             continue
     records.sort(key=lambda r: r.created_at)
     return records
+
+
+def _runtime_stage(response: Any) -> str:
+    runtime = response.get("runtime") if isinstance(response, dict) else None
+    return str(runtime.get("stage") or "") if isinstance(runtime, dict) else ""
 
 
 def list_recent_contexts(project_id: str, *, caller: str = "", limit: int = 20) -> List[ContextRecordSummary]:
@@ -147,6 +192,8 @@ def list_recent_contexts(project_id: str, *, caller: str = "", limit: int = 20) 
             elapsed_ms=int(data.get("elapsed_ms") or 0),
             created_at=str(data.get("created_at") or ""),
             error=data.get("error"),
+            retry_count=int(data.get("retry_count") or 0),
+            stage=_runtime_stage(data.get("response")),
             governance_blocking=bool(
                 ((data.get("governance") or {}).get("gate") or {}).get("blocking")
             ),

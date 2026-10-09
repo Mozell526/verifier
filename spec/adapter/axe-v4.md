@@ -133,7 +133,7 @@ AXIS_TYPE = AxisType(
 `run_fulfillment` 的流程 = `ProjectJudge.judge_trace` 那层编排的复制：
 
 1. 复制 `LlmProbeJudge.build_context(trace)`，把 `resolve_capability(request)` 换成框里的 `description`（用 `expand_material_uris` 展开，超预算即拒，与旧路径同）。
-2. 调 core `judge_trace(spec, trace, user_intent=description, project_judge_context=context)`——prompt 拼装、项目文档、槽位资料、上下文治理、结构化输出、自检、reprompt 全部原样。
+2. 调 core `judge_trace(spec, trace, user_intent=None, project_judge_context=context)`——能力标准只放在 context 的 `capability`，用户意图由可见请求/对话推断；prompt 拼装、项目文档、槽位资料、上下文治理、结构化输出、自检、reprompt 全部原样。
 3. `is_terminal_judge_failure(result)` 为真 → `status=failed`，`output` 保留诊断。
 4. 复制 `LlmProbeJudge.normalize_result`（填 `actual` / `expected`），再 `finalize_judge_result` 程序派生 `overall_fulfillment.status`。
 5. `verdict = output.overall_fulfillment.status`。

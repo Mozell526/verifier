@@ -4,20 +4,12 @@ from typing import Any
 
 import pytest
 
-from impl.core.live_protocol import MultiTurnInteractiveLive, RealServiceLive, SingleTurnLive
+from impl.core.live_protocol import RealServiceLive
 from impl.core.live_transport import LiveTransport
 from impl.core.mock_agent import MockAgent
+from impl.core.mock_protocol import MultiTurnInteractiveMock
 from impl.core.schema import MockBuildSpec, MockContinueDecision, MockIntentOutput, ProjectSpec, SingleTurnCase
 from impl.core.trace import TraceContext, trace_from_live
-
-
-@pytest.fixture(autouse=True, params=["legacy", "session"])
-def _interaction_driver(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> str:
-    """spec/mock/protocol.md 阶段 1：多轮协议测试在 legacy 与 session 两条路径下都必须成立。"""
-    monkeypatch.setattr(
-        ProjectSpec, "interaction_driver", property(lambda self: request.param)
-    )
-    return request.param
 
 
 class _Checker:
@@ -49,7 +41,7 @@ class _SingleMock:
         return {"query": intent.query}
 
 
-class _MultiMock:
+class _MultiMock(MultiTurnInteractiveMock):
     def __init__(self):
         self.index = 0
         self.inferred = 0
@@ -65,9 +57,6 @@ class _MultiMock:
     def decide_next_action(self, intent: MockIntentOutput, accumulated: dict) -> MockContinueDecision:
         return MockContinueDecision(action="stop", stop_reason="goal_satisfied") if accumulated["current_turn"] >= 2 else MockContinueDecision(action="continue")
 
-    def safety_max_turns(self) -> int:
-        return 3
-
 
 class _Adapter:
     def __init__(self, mock: Any):
@@ -77,7 +66,7 @@ class _Adapter:
         return self._mock
 
 
-class _SingleLive(RealServiceLive, SingleTurnLive):
+class _SingleLive(RealServiceLive):
     def deliver_real(self, request: dict[str, Any], transport: LiveTransport) -> LiveTransport:
         transport.post("http://live.test", json_body=request, carries_live_request=True, contributes_raw_response=True)
         return transport
@@ -86,7 +75,7 @@ class _SingleLive(RealServiceLive, SingleTurnLive):
         return dict(raw_response[0])
 
 
-class _MultiLive(RealServiceLive, MultiTurnInteractiveLive):
+class _MultiLive(RealServiceLive):
     def deliver_real(self, request: dict[str, Any], transport: LiveTransport) -> LiveTransport:
         transport.post("http://live.test", json_body=request, carries_live_request=True, contributes_raw_response=True)
         return transport
@@ -121,8 +110,11 @@ def _fake_live_http(monkeypatch):
     monkeypatch.setattr("impl.core.live_transport.urllib.request.urlopen", lambda request, timeout=0: Response(request))
 
 
+MAX_TURNS = 3
+
+
 def _spec() -> ProjectSpec:
-    return ProjectSpec(project_id="demo", name="demo", runtime={"ready": []})
+    return ProjectSpec(project_id="demo", name="demo", runtime={"ready": [], "session": {"max_turns": MAX_TURNS}})
 
 
 def _live(instance_type: type, mock: Any, *, request_ok: bool = True, output_ok: bool = True):
@@ -157,6 +149,31 @@ def test_multi_turn_returns_last_output_and_keeps_all_turn_facts_in_context():
     assert ctx.final_output_turn == 2
     assert ctx.stop_reason == "goal_satisfied"
     assert ctx.completion_status == "completed"
+
+
+def test_multi_turn_via_replay_seed_keeps_all_turn_facts_in_context():
+    """有 transcript seed 时走 ReplayDriver，不经过 mock 的 persona 回调。"""
+    mock = _MultiMock()
+    live = _live(_MultiLive, mock)
+    seed = {
+        "turns": [
+            {"turn_index": 1, "request": {"query": "turn-1"}},
+            {"turn_index": 2, "request": {"query": "turn-2"}},
+        ],
+        "stop_reason": "goal_satisfied",
+    }
+    ctx = TraceContext(project_id="demo", case_id="case-1", seed=seed)
+    intent = MockIntentOutput(user_intent="finish task", query="start", scenario="multi")
+
+    output = live.execute_live({"query": "turn-1"}, ctx, intent)
+
+    assert output == {"answer": "turn-2"}
+    assert [turn["extracted_output"] for turn in ctx.turns] == [
+        {"answer": "turn-1"},
+        {"answer": "turn-2"},
+    ]
+    assert mock.index == 0
+    assert mock.inferred == 0
 
 
 def test_mock_continue_decision_prompt_defines_all_states_and_long_term_no_progress():
@@ -322,7 +339,7 @@ def test_trace_records_actual_free_current_reference_contract_provenance():
     live.spec = ProjectSpec(
         project_id="demo",
         name="demo",
-        runtime={"ready": ["reference"]},
+        runtime={"ready": ["reference"], "session": {"max_turns": MAX_TURNS}},
     )
     reference = {
         "oracle": "current",
@@ -354,7 +371,7 @@ def test_output_validation_failure_is_not_hidden_by_fallback_output():
     ctx = TraceContext(project_id="demo", case_id="case-1")
     intent = MockIntentOutput(user_intent="answer", query="hello")
 
-    with pytest.raises(ValueError, match="output check failed"):
+    with pytest.raises(RuntimeError, match="output check failed"):
         live.execute_live({"query": "hello"}, ctx, intent)
 
     assert ctx.completion_status == "failed"
@@ -518,7 +535,7 @@ def test_multi_turn_safety_limit_status_combination() -> None:
     assert ctx.stop_reason == "safety_max_turns"
     assert ctx.completion_status == "incomplete"
     assert ctx.interaction_controller_status == "ok"
-    assert ctx.turn_count == mock.safety_max_turns()
+    assert ctx.turn_count == MAX_TURNS
 
 
 def test_multi_turn_midstream_live_error_status_combination(

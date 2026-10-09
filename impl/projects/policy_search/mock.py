@@ -293,5 +293,3 @@ class PolicySearchMock(MultiTurnInteractiveMock, SessionTranslator, ProjectMock)
         request["extra_input_params"] = extra
         return request
 
-    def safety_max_turns(self) -> int:
-        return 3

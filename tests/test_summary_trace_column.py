@@ -51,7 +51,9 @@ def test_trace_cell_uses_only_current_case_trace_and_is_collapsed():
     assert "item.frontend_view?.project_extensions?.trace_show" in renderer
     assert "run_trace_summary" not in renderer
     assert "完整原始 Trace JSON" in renderer
-    assert "Mock 用户" in renderer
+    # 私有 intent 不再持久化/展示：trace 单元格只展示可见请求。
+    assert "Mock 请求" in renderer
+    assert "user_intent" not in renderer
     assert "完整 Request" not in renderer
     assert "完整 Raw Response" not in renderer
     assert "完整 Extracted Output" not in renderer
@@ -163,7 +165,7 @@ def test_case_without_run_evidence_cannot_keep_imported_status():
     end = source.index("\nfunction ", start + 1)
     sanitizer = source[start:end]
 
-    assert "if(!hasStoredResult(item))" in sanitizer
+    assert "if(!hasStoredResult(item) && !runForCase(item))" in sanitizer
     assert "status:'pending'" in sanitizer
     assert "error:null" in sanitizer
 
@@ -185,7 +187,7 @@ def test_selected_cases_show_running_and_surface_batch_failure():
     runner = source[start:end]
 
     assert "selectedIndexes=new Set" in runner
-    assert "status:'running',error:null" in runner
+    assert "clearCaseResult(item,'running')" in runner
     assert "selectedIndexes.has(index) && item.status==='running'" in runner
     assert runner.count("renderCasePool();") >= 2
 
@@ -212,6 +214,7 @@ def test_execution_status_treats_llm_failure_flags_as_error_not_done():
     assert "executionFailureFlags(item)" in status
     assert "llm_call_failed" in source
     assert "llm_output_validation_failed" in source
+    assert "evaluation_execution_failed" in source
     flags = source[source.index("function executionFailureFlags(item)"):source.index("function renderCaseStatus(item)")]
     assert "table_row" in flags or "quality_flags" in source[source.index("function flagsFromRun"):source.index("function executionFailureFlags")]
 
@@ -264,17 +267,19 @@ def test_request_keys_bind_by_submission_index_not_case_id():
     runner = source[source.index("async function submitBatchForEntries("):source.index("\nasync function runSelectedCases()")]
 
     assert "selectedEntries.map((entry,index)" in runner
-    assert "started.requests?.[index]?.request_key" in runner
+    assert "started.requests[index].request_key" in runner
     assert "requestByCase" not in runner
 
 
-def test_active_batch_is_persisted_and_resumed_after_reload():
+def test_current_workspace_restores_completed_and_running_results_from_backend():
     source = _summary_source()
 
-    assert "safeSetSessionJson(scopedKey('activeBatch'),active)" in source
+    assert "post('/api/run_workspace',{project:selectedProject})" in source
     assert "async function resumeActiveBatch()" in source
-    assert "resumeActiveBatch();" in source
-    assert "sessionStorage.removeItem(scopedKey('activeBatch'))" in source
+    assert "if(activeBatch){await resumeActiveBatch();}" in source
+    assert "caseResults=Object.fromEntries((data.runs||[]).map(run=>[run.request_key,run]))" in source
+    assert "resetStalePageState" not in source
+    assert "scopedKey('activeBatch')" not in source
 
 
 def test_persisted_case_pool_keeps_mock_case_separate_from_run_results():

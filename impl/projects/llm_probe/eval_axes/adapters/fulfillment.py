@@ -1,13 +1,4 @@
-"""轴类型 fulfillment：新版轴1（能力兑现）。
-
-实现方式（axe-v4 D7）：复制 ``LlmProbeJudge.build_context`` 与 ``ProjectJudge.judge_trace``
-那层编排，把 capability 解析换成框里的 description；prompt 拼装、项目文档、槽位资料、
-上下文治理、结构化输出、自检、reprompt 复用 core ``judge_trace()``，整体状态复用
-``finalize_judge_result()`` 程序派生。不改生产文件。
-
-与旧链路的已知差异（axe-v4 §11）：模型调用失败 / 输出校验失败在这里是 status=failed，
-旧链路是 overall_fulfillment.status=not_evaluable + evidence 标记。
-"""
+"""无过程 trace 场景的扩展能力兑现轴；trace 场景由主 Judge 统一裁决。"""
 from __future__ import annotations
 
 import json
@@ -51,6 +42,9 @@ _OUTPUT_FIELDS = (
     "summary",
 )
 
+FULFILLED = "fulfilled"
+NOT_FULFILLED = "not_fulfilled"
+NOT_EVALUABLE = "not_evaluable"
 
 def _request_payload(trace: RunTrace) -> Dict[str, Any]:
     request = trace.normalized_request if isinstance(trace.normalized_request, dict) else {}
@@ -67,8 +61,14 @@ def _parse_output_text(output_text: str) -> Any:
         return None
 
 
-def build_context(spec: Any, trace: RunTrace, capability: str, truth: Mapping[str, Any] | None = None) -> Dict[str, Any]:
-    """复制自 ``LlmProbeJudge.build_context``：唯一差别是 capability 由调用方给出（框里的描述）。"""
+def build_context(
+    spec: Any,
+    trace: RunTrace,
+    capability: str,
+    truth: Mapping[str, Any] | None = None,
+) -> Dict[str, Any]:
+    """复制自 ``LlmProbeJudge.build_context``：差别是 capability 由调用方给出（框里的描述），
+    可附上游真实性结果。"""
     request = _request_payload(trace)
     show_schema = request.get("show_schema")
     output = trace.extracted_output if isinstance(trace.extracted_output, dict) else {}
@@ -99,7 +99,6 @@ def build_context(spec: Any, trace: RunTrace, capability: str, truth: Mapping[st
             "下面指出输出里哪些部分重要。没提到的部分不要当成失败依据。\n"
         )
     context = {
-        "user_intent": capability,
         "intent_frame": {
             "project_id": spec.project_id,
             "downstream_consumer": request.get("capability_ref") or "probed HTTP service",
@@ -259,13 +258,16 @@ AXIS_TYPE = AxisType(
     summary="按场景描述派生期望，逐条判 output_text 是否兑现；整体状态由 blocking 期望程序派生",
     verdict_scope=VERDICT_SCOPE_AXIS,
     verdict_enum=(
-        Verdict("fulfilled", "所有 blocking 期望都兑现"),
-        Verdict("not_fulfilled", "至少一条 blocking 期望未兑现"),
-        Verdict("not_evaluable", "证据缺失（output_text 为空/不可读/HTTP 失败）或没有 blocking 期望，无法判"),
+        Verdict(FULFILLED, "所有 blocking 期望都兑现"),
+        Verdict(NOT_FULFILLED, "至少一条 blocking 期望未兑现（含数据源没给数据、原因说错、数据源已给的信息没传达）"),
+        Verdict(NOT_EVALUABLE, "证据缺失（output_text 为空/不可读/HTTP 失败）或没有 blocking 期望，无法判"),
     ),
     depend_on=(Dependency("truthfulness", optional=True),),
     trigger_when=None,
-    inputs=(Input("trace", source="sample.trace"), Input("truth", source="axis.truthfulness.output", fields=("claims", "coverage"), required=False)),
+    inputs=(
+        Input("trace", source="sample.trace"),
+        Input("truth", source="axis.truthfulness.output", fields=("claims", "coverage"), required=False),
+    ),
     output_fields=_OUTPUT_FIELDS,
     verdict_path="overall_fulfillment.status",
     scenario_fields=(Field("description", required=True, expand="prompt_load"),),

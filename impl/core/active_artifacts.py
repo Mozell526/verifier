@@ -1095,6 +1095,11 @@ def _validate_context_record(context: ActiveArtifactContext, path: Path) -> None
     _context_record_payload(context, path, _read_payload(context, path))
 
 
+def _runtime_data_base(context: ActiveArtifactContext) -> Path:
+    from .instances import data_root
+    return data_root(context.root, context.environ)
+
+
 def _context_store_base(context: ActiveArtifactContext) -> Path:
     config_path = context.root / "impl" / "config.yaml"
     if not config_path.is_file():
@@ -1361,69 +1366,69 @@ DEFAULT_ACTIVE_ARTIFACT_REGISTRY = ActiveArtifactRegistry(
         ActiveArtifactFamily(
             "case_pool_store",
             "derived_active",
-            "impl/data/case_pools.json",
+            "case_pools.json",
             _validate_case_pool_store,
             consumer_boundaries=("case pool API", "evaluation input selection"),
-            base=".",
+            base_resolver=_runtime_data_base,
             payload_validator=_case_pool_payload,
         ),
         ActiveArtifactFamily(
             "project_mock_cases",
             "derived_active",
-            "impl/data/*/mock_cases.json",
+            "*/mock_cases.json",
             _validate_mock_cases,
             consumer_boundaries=("MockCase loading", "evaluation input selection"),
-            base=".",
+            base_resolver=_runtime_data_base,
             payload_validator=_mock_cases_payload,
         ),
         ActiveArtifactFamily(
             "session_export",
             "derived_active",
-            "impl/data/*/sessions/*.json",
+            "*/sessions/*.json",
             _validate_session_export,
             consumer_boundaries=("harness session tools", "exploration page", "judge tool"),
-            base=".",
+            base_resolver=_runtime_data_base,
             payload_validator=_session_export_payload,
-            owned_directory_patterns=("impl/data/*/sessions",),
+            owned_directory_patterns=("*/sessions",),
         ),
         ActiveArtifactFamily(
             "findings_ledger",
             "derived_active",
-            "impl/data/*/ledger.json",
+            "*/ledger.json",
             _validate_findings_ledger,
             consumer_boundaries=("harness ledger tool", "exploration page"),
-            base=".",
+            base_resolver=_runtime_data_base,
             payload_validator=_findings_ledger_payload,
         ),
         ActiveArtifactFamily(
             "exploration_runs",
             "derived_active",
-            "impl/data/*/explorations.json",
+            "*/explorations.json",
             _validate_exploration_runs,
             consumer_boundaries=("harness exploration tool", "exploration page"),
-            base=".",
+            base_resolver=_runtime_data_base,
             payload_validator=_exploration_runs_payload,
         ),
         ActiveArtifactFamily(
             "capability_map_store",
             "derived_active",
-            "impl/data/*/capability_map.json",
+            "*/capability_map.json",
             _validate_capability_map,
             consumer_boundaries=("capability preset resolution", "materials management API"),
-            base=".",
+            base_resolver=_runtime_data_base,
             payload_validator=_capability_map_payload,
         ),
         ActiveArtifactFamily(
             "materials_store",
             "derived_active",
-            "impl/data/*/materials/*/manifest.json",
+            "*/materials/*/manifest.json",
             _validate_material_manifest,
             consumer_boundaries=(
                 "materials slot binding", "materials management API", "material:// resolver",
             ),
-            base=".",
+            base_resolver=_runtime_data_base,
             payload_validator=_material_manifest_payload,
-            owned_directory_patterns=("impl/data/*/materials",),
+            owned_directory_patterns=("*/materials",),
         ),
         ActiveArtifactFamily(
             "context_record",

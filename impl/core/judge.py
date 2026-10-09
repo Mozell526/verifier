@@ -59,6 +59,17 @@ def _compact_raw_response_for_judge(raw_response: Any) -> Any:
     return raw_response
 
 
+# provider 原始快照属于证据仓库（案卷与过程轴由 eval_axes 直接读 RunTrace 构建），
+# 不属于 judge payload；judge 只看案卷和轴结论。实测该快照占 judge prompt 体积约 72%。
+_JUDGE_EXCLUDED_PROJECT_FIELDS = frozenset({"business_trace"})
+
+
+def _judge_project_fields(value: Any) -> Any:
+    if not isinstance(value, dict):
+        return value
+    return {key: item for key, item in value.items() if key not in _JUDGE_EXCLUDED_PROJECT_FIELDS}
+
+
 def _judge_turn_view(turn: Any) -> Dict[str, Any]:
     """Project one trace turn into judge evidence without transport-private raw payloads."""
     if not isinstance(turn, dict):
@@ -76,7 +87,10 @@ def _judge_turn_view(turn: Any) -> Dict[str, Any]:
         "application_boundary",
         "project_fields",
     )
-    return {key: turn.get(key) for key in allowed if key in turn}
+    view = {key: turn.get(key) for key in allowed if key in turn}
+    if "project_fields" in view:
+        view["project_fields"] = _judge_project_fields(view["project_fields"])
+    return view
 
 
 def build_judge_evidence_view(trace: RunTrace) -> Dict[str, Any]:
@@ -369,13 +383,6 @@ def judge_trace(
             }
             excluded_segments.extend(excluded)
         governance_config["excluded_segments"] = excluded_segments
-
-    if not user_intent and project_judge_context:
-        user_intent = project_judge_context.get("user_intent") or (
-            project_judge_context.get("intent_frame", {}).get("user_intent")
-            if isinstance(project_judge_context.get("intent_frame"), dict)
-            else None
-        )
 
     system = (
         "你是通用评估系统的 judge agent。\n\n"

@@ -162,7 +162,7 @@ async function showSession(sessionId){
     const msg=t.message||{};const text=msg.type==='text'?msg.text:(msg.type==='action'?msg.name+' '+JSON.stringify(msg.params||{}):'[request] '+JSON.stringify(msg.payload||{}).slice(0,200));
     return '<div class="turn"><b>第 '+(i+1)+' 轮</b> '+pill(t.status||'-',t.status==='succeeded'?'ok':'bad')+'<div class="side"><div class="msg"><b>用户</b><div>'+escapeHtml(text)+'</div></div><div class="msg ai"><b>live</b><div>'+escapeHtml(t.assistant||JSON.stringify(t.extracted_output||{}).slice(0,600))+'</div></div></div></div>';
   }).join('');
-  document.getElementById('sessionView').innerHTML='<div class="card"><b>会话 '+escapeHtml(sessionId)+'</b><div class="muted">stop_reason='+escapeHtml(data.stop_reason)+' · completion='+escapeHtml(data.completion_status)+' · pool='+escapeHtml(data.pool||'')+'</div>'+turns+'<details style="margin-top:8px"><summary>完整导出 JSON（RunTrace + seed_case + judge）</summary><pre>'+escapeHtml(JSON.stringify(data,null,2))+'</pre></details></div>';
+  document.getElementById('sessionView').innerHTML='<div class="card"><b>会话 '+escapeHtml(sessionId)+'</b><div class="muted">stop_reason='+escapeHtml(data.stop_reason)+' · completion='+escapeHtml(data.completion_status)+' · candidate_file='+escapeHtml(data.candidate_file||'')+'</div>'+turns+'<details style="margin-top:8px"><summary>完整导出 JSON（RunTrace + seed_case + judge）</summary><pre>'+escapeHtml(JSON.stringify(data,null,2))+'</pre></details></div>';
   document.getElementById('sessionView').scrollIntoView({behavior:'smooth'});
 }
 async function switchProject(){currentRunId=null;currentRun=null;document.getElementById('launchHint').style.display='none';await refreshRuns();renderRunDetail();}

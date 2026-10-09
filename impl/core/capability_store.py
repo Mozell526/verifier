@@ -6,6 +6,8 @@
 """
 from __future__ import annotations
 
+from .instances import data_root
+
 import json
 import re
 from pathlib import Path
@@ -17,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 NAME_PATTERN = re.compile(r"^[a-z][a-z0-9_-]*$")
 AXIS_TYPE_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
+TRACE_PROVIDER_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
 # 项目 id 允许大写（如 QA）；此校验的目的只是防路径穿越，不是命名政策。
 PROJECT_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_-]*$")
 MAX_CAPABILITY_CHARS = 20000
@@ -29,7 +32,7 @@ def store_path(project_id: str) -> Path:
     # project_id 进路径，必须先过标识符校验，防止 API 传入路径穿越。
     if not PROJECT_PATTERN.fullmatch(str(project_id or "")):
         raise ValueError(f"非法 project id: {project_id!r}")
-    return ROOT / "data" / project_id / "capability_map.json"
+    return data_root(ROOT.parent) / project_id / "capability_map.json"
 
 
 def load_capability_map(project_id: str) -> Dict[str, Any]:
@@ -55,6 +58,20 @@ def validate_entry(name: str, entry: Any) -> Dict[str, Any]:
         raise ValueError(f"capability 描述超过 {MAX_CAPABILITY_CHARS} 字符上限")
     _require_material_refs(capability, field="capability")
     clean: Dict[str, Any] = {"capability": capability}
+    # Explicit requirement-side material: validate shape without rewriting source text.
+    for key in ("criterion", "description"):
+        if key in entry:
+            value = entry[key]
+            if not isinstance(value, str):
+                raise ValueError(f"{key} 必须是字符串")
+            if len(value) > MAX_CAPABILITY_CHARS:
+                raise ValueError(f"{key} 超过 {MAX_CAPABILITY_CHARS} 字符上限")
+            clean[key] = value
+    if "downstream" in entry:
+        downstream = entry["downstream"]
+        if not isinstance(downstream, list) or not all(isinstance(item, str) for item in downstream):
+            raise ValueError("downstream 必须是字符串列表")
+        clean["downstream"] = list(downstream)
     service = entry.get("service")
     if service not in (None, "", {}):
         if not isinstance(service, dict) or not str(service.get("url") or "").strip():
@@ -90,6 +107,18 @@ def validate_entry(name: str, entry: Any) -> Dict[str, Any]:
                 headers[name] = str(value)
             if headers:
                 clean["service"]["headers"] = headers
+    business_trace = entry.get("business_trace")
+    if business_trace not in (None, "", {}):
+        if not isinstance(business_trace, dict):
+            raise ValueError("business_trace 必须是对象")
+        provider = str(business_trace.get("provider") or "").strip().lower()
+        if not TRACE_PROVIDER_PATTERN.fullmatch(provider):
+            raise ValueError("business_trace.provider 必须是小写标识符")
+        config = business_trace.get("config")
+        if not isinstance(config, dict):
+            raise ValueError("business_trace.config 必须是对象")
+        # provider 专属字段由 llm_probe 在保存和运行前校验；core 只保留稳定信封。
+        clean["business_trace"] = {"provider": provider, "config": dict(config)}
     mock_body = entry.get("mock_body")
     if mock_body not in (None, "", {}):
         if not isinstance(mock_body, dict):
@@ -108,7 +137,44 @@ def validate_entry(name: str, entry: Any) -> Dict[str, Any]:
     raw_axes = entry.get("axes")
     if raw_axes not in (None, "", []):
         clean["axes"] = _validate_axes(raw_axes)
+    raw_obligations = entry.get("process_obligations")
+    if raw_obligations not in (None, "", []):
+        clean["process_obligations"] = _validate_process_obligations(raw_obligations)
     return clean
+
+
+def _validate_process_obligations(raw: Any) -> list[Dict[str, Any]]:
+    """项目声明（spec/math-abstract/process-axes.md §4 第 4 层）：这里只校形状；环节类型是否存在由
+    llm_probe 在加载时查。每条必须写明用户确认日期。"""
+    if not isinstance(raw, list):
+        raise ValueError("process_obligations 必须是列表")
+    out: list[Dict[str, Any]] = []
+    seen: set[str] = set()
+    for index, item in enumerate(raw):
+        label = f"process_obligations[{index}]"
+        if not isinstance(item, dict):
+            raise ValueError(f"{label} 必须是 JSON 对象")
+        ob_id = str(item.get("id") or "").strip()
+        if not AXIS_TYPE_PATTERN.fullmatch(ob_id) or ob_id in seen:
+            raise ValueError(f"{label}.id 必须是唯一的小写标识符")
+        seen.add(ob_id)
+        clean: Dict[str, Any] = {"id": ob_id}
+        for key in ("link_type", "situation", "duty", "confirmed"):
+            value = item.get(key)
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(f"{label}.{key} 不能为空")
+            clean[key] = value.strip()
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", clean["confirmed"]):
+            raise ValueError(f"{label}.confirmed 必须是 YYYY-MM-DD")
+        applies_to = item.get("applies_to")
+        if applies_to not in (None, []):
+            if not isinstance(applies_to, list) or not all(isinstance(x, str) and x.strip() for x in applies_to):
+                raise ValueError(f"{label}.applies_to 必须是非空字符串列表")
+            clean["applies_to"] = [x.strip() for x in applies_to]
+        if isinstance(item.get("label"), str) and item["label"].strip():
+            clean["label"] = item["label"].strip()
+        out.append(clean)
+    return out
 
 
 def _validate_axes(raw: Any) -> list[Dict[str, Any]]:
@@ -131,9 +197,10 @@ def _validate_axes(raw: Any) -> list[Dict[str, Any]]:
         enabled = item.get("enabled", False)
         if not isinstance(enabled, bool):
             raise ValueError(f"{label}.enabled 必须是布尔值")
-        description = item.get("description")
-        if not isinstance(description, str) or not description.strip():
-            raise ValueError(f"{label}.description 不能为空")
+        # 是否必填由轴类型决定（eval_axes.validate）；这里只校形状。
+        description = item.get("description", "")
+        if not isinstance(description, str):
+            raise ValueError(f"{label}.description 必须是字符串")
         description = description.strip()
         if len(description) > MAX_CAPABILITY_CHARS:
             raise ValueError(f"{label}.description 超过 {MAX_CAPABILITY_CHARS} 字符上限")

@@ -5,6 +5,8 @@ __pycache__/
 
 # Local secrets and operational notes
 .env
+.env.tool_loop
+.env.tool_loop.lock
 env.md
 git.md
 .claude/settings.local.json
@@ -24,6 +26,8 @@ impl/knowledge.backup/
 report/api-check/
 impl/data/context_store/
 impl/data/context_runtime/
+impl/data/latest_runs.sqlite3*
+impl/data/tool_loop_lab.sqlite3*
 .tmp-model-channel/
 .playwright-cli/
 # One-off verification/session reports at report/ root (framework docs live elsewhere)
@@ -46,3 +50,17 @@ test_agno_session.py
 test_who_creates_knowledge.py
 check_report_agno_refactor.md
 issue.md
+
+# Local pre-tracing configuration backups (contain credentials)
+/.env.before-llmtracing.*
+
+# Project-owned tracing profiles, credentials, process state and captured payloads
+/.runtime/tracing/
+
+# Isolated verifier instances and local port bindings
+/.runtime/instances/
+/.runtime/instances.json
+/.runtime/instances.lock
+
+# Local runtime snapshots (may contain credentials)
+/.runtime/backups/

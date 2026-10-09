@@ -39,7 +39,7 @@
 
 | 角色 | 拥有什么 | 不拥有什么 |
 |---|---|---|
-| **评测系统**（Session 工具 + 回归调度） | Session 工具、预算强制、trace 记录、导出到 case pool、judge 工具、回归回放（`ReplayDriver`） | 用户何时说话、说什么、何时停；探索什么 |
+| **评测系统**（Session 工具 + 回归调度） | Session 工具、预算强制、trace 记录、导出候选 case 文件、judge 工具、回归回放（`ReplayDriver`） | 用户何时说话、说什么、何时停；探索什么 |
 | **harness**（探索侧用户方，外部 agent） | 探索方向与策略、用户私有状态、意图（含推断与漂移）、每轮表达、停止决定、发现台账 | 请求体形状、live API 知识、`session_id` 的生成 |
 | **用户**（通过探索页） | 给 harness 的方向性输入：覆盖目标、关注场景、策略偏好（参考，非任务） | — |
 | **项目 adapter** | 原话 ↔ 请求体的确定性互转、live 历史字段格式、live 调用 | 任何语义推断、任何 LLM 调用（在本协议涉及的方法内） |
@@ -171,7 +171,7 @@ budget:
 |---|---|
 | 每轮 request / response / extracted_output | `turns[]`（沿用 `TraceContext.record_turn`） |
 | 用户原话（`user_message_from_request` 提取或 `text` 消息原文） | `turns[].mock_message` |
-| `declare_intent` 列表 | 新增 `intent_history: [{turn_index, user_intent, user_context, source}]`，性质为模拟用户的真值标签（对应今天 `case.user_intent` 的角色）；`mock_intent` 暂取最后一条并携带 `source`，保持 judge 现状。judge 的推理意图是另一个东西，今天散在 `BusinessExpectation[*].user_intent`，显式化见第 10 节 |
+| `declare_intent` 列表 | `intent_history: [{turn_index, user_intent, user_context, source}]`，性质为 Mock Driver 的私有真值标签，只服务用户模拟、探索诊断和离线校准；正常 Judge 不读取。judge 从可见请求/对话自行推断，结果写在 `BusinessExpectation[*].user_intent` |
 | Driver 停止决定 | `turns[].continue_decision`（沿用） |
 | 归责 | `stop_reason` + 新增 `driver_health: {status, error, budget_usage}`；现 `interaction_controller_status/_error` 作为其别名保留至阶段 5 |
 | 回放分叉 | 回归重放时新增 `diverged_at_turn: int | null`（见 5.3） |
@@ -181,7 +181,9 @@ budget:
 每条会话 `close` 后由 Session **自动**导出（不依赖用户方额外操作），且必须同时产出两样：
 
 1. **完整多轮 `RunTrace`**（`execution_mode = interactive_intent`，含 `turn_records` / `conversation_transcript` / `conversation_summary` / `stop_reason`）——供现有多轮 trace 视图与 judge 使用。前端多轮展示因此无需改动。
-2. **`level: transcript` 的 seed case**（单轮会话为 `level: request`）——进 case pool，供回归回放。
+2. **`level: transcript` 的 seed case**（单轮会话为 `level: request`）——以 `MockCase` 形态追加进候选文件
+   `impl/data/<project>/mock_cases-<run_id>.json`（同 id 覆盖，无 run_id 则 `mock_cases-adhoc.json`），
+   用户审后手动拷入 `mock_cases.json`，供回归回放。
 
 **不允许**把多轮会话扁平化为单轮 case 导出。
 
@@ -204,7 +206,7 @@ session send  <session_id> --request <json>      # 仅 --mode protocol-fuzz 下�
 session intent <session_id> --user-intent "..." [--source seeded|adopted_from_inference|drifted]
 session close <session_id> --reason goal_satisfied|user_abandons|perceived_no_progress
                                                  # close 后 Session 自动按 4.10 导出：impl/data/<project>/sessions/<session_id>.json
-                                                 # + case pool（默认名 harness-<run_id>，无 run_id 则 harness）
+                                                 # + 候选 case 文件 impl/data/<project>/mock_cases-<run_id>.json（无 run_id 则 adhoc）
 session list|get ...
 judge <project> <session_id>                     # 可选；对导出的 RunTrace 跑 judge，结果写回导出文件
 ledger add|query ...                             # 发现台账，见 5.4；impl/data/<project>/ledger.json
@@ -242,7 +244,7 @@ notes: str
 
 ### 5.2 回归侧：评测系统推
 
-评测系统从 case pool 取 seed，用**确定性** `ReplayDriver` 经协议 A 重放：
+评测系统从 `mock_cases.json` 取 seed，用**确定性** `ReplayDriver` 经协议 A 重放：
 
 - `level: request` / `utterance`：单轮重放。
 - `level: transcript`：按录制的用户轮次**逐字**重放；`mode` 见 4.5。
@@ -378,11 +380,7 @@ supports_history_injection: bool   # 能否把 state.transcript 注入请求体�
 
 ## 10. 待办与开放问题
 
-- **两个意图的关系（judge 侧，另开讨论）**。现状：driver 端真值标签（`trace.mock_intent`）与 judge 端推理意图（散在 `BusinessExpectation[*].user_intent`）在多轮时被混在一起——评测进程替 mock 推的工作假设以真值身份传给了 judge（`pipeline.py` 第 572 行附近）。本协议只做 driver 侧修正（`source` 标签、不为填空而推）。judge 侧待议：
-  - 把 judge 的推断显式化为 `JudgeResult.inferred_intent`，与 `intent_history` 中的真值标签对比，用于校准 judge、以及在有真值时多判一层"真实目标是否满足"。
-  - `mock_intent` 进 judge prompt 时携带来源标签，让 judge 知道这是"模拟用户自报的目标"而非正确答案，防锚定。
-  - `intent_history` 多条时取哪条 / 是否分段评判。
-  - `MockAgent.infer_user_intent` 留在 driver 侧供其自身行动使用，**不**迁入 judge；judge 走自己的推断。
+- **Judge 意图隔离已完成**：公开 Judge、RunChain、Batch 协议不接收 `user_intent`；固定 case 默认不持久化私有 intent；`trace.mock_intent` / `intent_history` 不进入 Judge evidence。`MockAgent.infer_user_intent` 留在 Driver 侧供其自身行动使用。以后若用私有真值校准 Judge，应建独立的离线校准步骤，不能把真值喂回被校准的 Judge。
 - **多轮 provided**：Session 两侧（用户方、live 方）均可"提供或执行"的对称性成立；多轮 live 侧 provided 不在前五阶段范围。
 - **A2A / HTTP+SSE**：harness 走 CLI/MCP 即可；如有外部 agent 需按 A2A 或 HTTP 接入，在 Session 工具外包薄层，不预先实现。
 - **judge 结论对齐到轮**：多轮 trace 中"第几轮开始不对"目前不可见；先用 `diverged_at_turn` 与 harness 标注的失败轮次过渡，judge 分段评判与上条"两个意图"合并讨论。

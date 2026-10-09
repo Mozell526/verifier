@@ -432,13 +432,6 @@ def judge_trace(
             excluded_segments.extend(excluded)
         governance_config["excluded_segments"] = excluded_segments
 
-    if not user_intent and project_judge_context:
-        user_intent = project_judge_context.get("user_intent") or (
-            project_judge_context.get("intent_frame", {}).get("user_intent")
-            if isinstance(project_judge_context.get("intent_frame"), dict)
-            else None
-        )
-
     system = (
         "你是通用评估系统的 judge agent。\n\n"
         "## 核心原则\n"

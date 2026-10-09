@@ -5,10 +5,10 @@
 from __future__ import annotations
 
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from impl.core.mock_protocol import MultiTurnInteractiveMock, ProjectMock
-from impl.core.schema import MockContinueDecision, MockIntentOutput, ProjectSpec, SingleTurnCase, MultiTurnCase
+from impl.core.schema import MockContinueDecision, MockIntentOutput, SingleTurnCase, MultiTurnCase
 from impl.core.session import SessionState, SessionTranslator, UserMessage
 
 
@@ -125,8 +125,6 @@ class MarketingPlanningMock(MultiTurnInteractiveMock, SessionTranslator, Project
         from impl.core.mock_agent import MockAgent
         return MockAgent(self.spec).decide_next_action(intent, accumulated_output)
 
-    def safety_max_turns(self) -> int:
-        return 12
 
     def extract_mock_message(self, request: Dict[str, Any]) -> str:
         return str(request.get("user_text") or "") if isinstance(request, dict) else ""

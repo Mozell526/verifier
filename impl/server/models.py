@@ -61,6 +61,14 @@ class EvalAxesRunRequest(ApiRequest):
     run_id: Optional[str] = None
 
 
+class BusinessTraceProvidersRequest(ProjectRequest):
+    pass
+
+
+class BusinessTraceCheckRequest(ApiRequest):
+    business_trace: Optional[Dict[str, Any]] = None
+
+
 class MaterialsListRequest(ProjectRequest):
     pass
 
@@ -114,7 +122,6 @@ class CasePoolDeleteRequest(ApiRequest):
 
 class JudgeRequest(ApiRequest):
     trace: Any = None
-    user_intent: Optional[str] = None
 
 
 class AttributeRequest(ApiRequest):
@@ -146,17 +153,47 @@ class FrontendViewRequest(ApiRequest):
 class RunChainRequest(ApiRequest):
     input: Any = None
     case: Optional[Dict[str, Any]] = None
-    user_intent: Optional[str] = None
 
 
 class BatchRunRequest(ApiRequest):
     cases: List[Dict[str, Any]] = Field(default_factory=list)
-    user_intent: Optional[str] = None
     concurrency: Optional[int] = None
 
 
 class BatchStartRequest(BatchRunRequest):
-    pass
+    pool_indexes: Optional[List[int]] = None
+
+
+class RunWorkspaceReplaceRequest(ProjectRequest):
+    cases: List[Dict[str, Any]]
+    source: str = "uploaded_or_manual"
+
+
+class RunWorkspaceClearRequest(ProjectRequest):
+    keep_cases: bool
+
+
+class RunWorkspaceAttributeRequest(ProjectRequest):
+    request_key: str
+
+
+class ClusteringSelection(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    pool_index: int = Field(ge=0)
+    request_key: Optional[str] = None
+
+
+class AxesClusteringStateRequest(ProjectRequest):
+    selections: List[ClusteringSelection] = Field(min_length=1)
+
+
+class AxesClusteringCriteriaRequest(ProjectRequest):
+    criteria: str = Field(min_length=1, max_length=8000)
+    expected_version: int = Field(ge=1)
+
+
+class AxesClusteringStartRequest(AxesClusteringCriteriaRequest):
+    selections: List[ClusteringSelection] = Field(min_length=1)
 
 
 class BatchStatusRequest(ApiRequest):

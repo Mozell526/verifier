@@ -134,7 +134,8 @@ def test_scenario_contract_rejects_unknown_or_incompatible_interactive_scenario(
         parse_project_document(document, project_id=None, project_root=root)
 
     document["verifier"]["scenarios"]["allowed"].append("unknown_scenario")
-    with pytest.raises(ConfigError, match="requires runtime.interaction.mode multi_turn"):
+    document["runtime"]["session"] = {"max_turns": 1}
+    with pytest.raises(ConfigError, match="requires runtime.session.max_turns > 1"):
         parse_project_document(document, project_id=None, project_root=root)
 
 
@@ -225,7 +226,6 @@ def test_optional_service_mode_without_service_requires_provided_output(tmp_path
     document = load_yaml_document(ROOT / "impl" / "projects" / "project.template.yaml")
     document["runtime"] = {
         "mode": "existing_service_optional",
-        "interaction": {"mode": "single_turn"},
         "ready": ["reference"],
     }
 

@@ -6,6 +6,8 @@ session_store / findings_ledger 中，按 run_id 关联，本模块只保管方�
 """
 from __future__ import annotations
 
+from .instances import data_root
+
 import json
 import threading
 import time
@@ -24,7 +26,7 @@ _LOCK = threading.Lock()
 
 
 def explorations_path(project_id: str) -> Path:
-    return ROOT / "data" / project_id / "explorations.json"
+    return data_root(ROOT.parent) / project_id / "explorations.json"
 
 
 def _read(project_id: str) -> List[Dict[str, Any]]:

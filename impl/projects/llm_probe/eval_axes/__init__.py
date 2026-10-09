@@ -29,15 +29,39 @@ def build_report(spec: Any, trace: Any, *, run_id: str = "") -> dict[str, Any]:
 
     scenario_id = _capability_ref(trace)
     axes, report = load_scenario_axes(spec.project_id, scenario_id)
+    from impl.projects.llm_probe.capability import capability_business_trace
+    business_trace = capability_business_trace(scenario_id)
+    if business_trace:
+        from .types import ScenarioAxis
+        from .adapters.process_common import PROCESS_SPECS
+        configured = {a.type_id: a for a in axes}
+        axes = [ScenarioAxis("expectations", True, ""), ScenarioAxis("trace_analysis", True, "完整整理过程案卷")]
+        # Ordinary dossier execution is sequential: let downstream data/model
+        # units cite already-recorded planning/tool/input problems.
+        process_order = ('context_memory', 'intent_understanding', 'planning_routing',
+                         'tool_execution', 'knowledge_data', 'model_capability')
+        axes += [ScenarioAxis(key, True, configured[key].description if key in configured else PROCESS_SPECS[key].question)
+                 for key in process_order]
     run_id = str(run_id or "").strip() or new_run_id()
-    results = run_axes(spec, trace, axes, scenario_id=scenario_id, run_id=run_id)
+    from .adapters.transcript_axes import transcript_snapshot
+
+    if business_trace and transcript_snapshot(
+        trace, (trace.project_fields or {}).get("business_trace")
+    ):
+        from impl.projects.llm_probe.process_loop.llmtracing_report import build_loop_results
+
+        results = build_loop_results(spec, trace, axes, scenario_id=scenario_id, run_id=run_id)
+    else:
+        results = [item.as_dict() for item in run_axes(
+            spec, trace, axes, scenario_id=scenario_id, run_id=run_id,
+        )]
     return {
         "run_id": run_id,
         "scenario_id": scenario_id,
         "trace_id": str(trace.trace_id or ""),
         "case_id": str(trace.case_id or ""),
         "axes": [axis.as_dict() for axis in axes],
-        "results": [item.as_dict() for item in results],
+        "results": results,
         "warnings": list(report.warnings),
     }
 
@@ -45,6 +69,14 @@ def build_report(spec: Any, trace: Any, *, run_id: str = "") -> dict[str, Any]:
 def run_for_trace(spec: Any, trace: Any) -> Optional[dict[str, Any]]:
     """判后 pass：框是开关。预设里没有启用的框就什么都不做（None），有就跑并返回报告。"""
     from .validate import parse_axes
+
+    pending = getattr(trace, "_pending_process_report", None)
+    if pending is not None:
+        delattr(trace, "_pending_process_report")
+        return pending
+    from impl.projects.llm_probe.capability import capability_business_trace
+    if capability_business_trace(_capability_ref(trace)):
+        return None  # Trace evaluation belongs before main Judge, never a second post-pass.
 
     scenario_id = _capability_ref(trace)
     if not scenario_id:

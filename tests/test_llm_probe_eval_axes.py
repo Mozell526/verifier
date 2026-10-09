@@ -23,6 +23,8 @@ from impl.projects.llm_probe.eval_axes.types import (
     STATUS_FAILED,
     STATUS_NOT_APPLICABLE,
     STATUS_SUCCEEDED,
+    AxisRequestFailed,
+    AxisRuntime,
     AxisType,
     ExecutionLimits,
     Field,
@@ -31,6 +33,7 @@ from impl.projects.llm_probe.eval_axes.types import (
     ScenarioAxis,
     Verdict,
     When,
+    raise_for_error_payload,
 )
 from impl.projects.llm_probe.eval_axes.validate import parse_axes, validate_scenario_axes
 
@@ -159,7 +162,14 @@ def _by_id(results) -> dict[str, Any]:
 
 def test_registry_exposes_types_with_frozen_enums() -> None:
     described = {item["type_id"]: item for item in describe_axis_types()}
-    assert set(described) == {"fulfillment", "carryability", "truthfulness"}
+    assert set(described) == {
+        "fulfillment", "carryability", "truthfulness", "trace_analysis", "expectations", "intent_understanding",
+        "planning_routing", "tool_execution", "context_memory", "knowledge_data",
+        "model_capability",
+    }
+    assert [v["value"] for v in described["trace_analysis"]["verdict_enum"]] == ["complete", "partial"]
+    assert described["trace_analysis"]["verdict_scope"] == "axis"
+    assert described["trace_analysis"]["requires_business_trace"] is True
     assert [v["value"] for v in described["fulfillment"]["verdict_enum"]] == ["fulfilled", "not_fulfilled", "not_evaluable"]
     assert [v["value"] for v in described["carryability"]["verdict_enum"]] == ["做不了", "做错了", "说不清"]
     assert described["fulfillment"]["verdict_scope"] == "axis"
@@ -202,7 +212,8 @@ def test_fulfillment_context_is_byte_identical_to_production_build_context() -> 
         ours = build_context(spec, trace, CAPABILITY)
         assert ours["system_prompt_extras"] == production["system_prompt_extras"]
         assert ours["user_prompt_extras"] == production["user_prompt_extras"]
-        assert ours["user_intent"] == production["user_intent"]
+        assert "user_intent" not in ours
+        assert "user_intent" not in production
         assert ours["intent_frame"] == production["intent_frame"]
 
 
@@ -313,7 +324,8 @@ def test_judge_failure_is_failed_status_and_blocks_downstream(monkeypatch) -> No
     carryability = results["carryability"]
     assert carryability.status == STATUS_BLOCKED
     assert carryability.trigger_decision == {"depend_on_satisfied": False, "upstream": {"fulfillment": STATUS_FAILED}}
-    assert carryability.summary == {"text": "上游未成功：fulfillment=failed", "items": []}
+    assert carryability.summary["text"].startswith("上游未成功：fulfillment=failed（[运行环境] ")
+    assert "llm_call_failed" in carryability.summary["text"]
     assert not [c for c in clients if c.role == "capability_carrier_mapper"]
 
 
@@ -515,6 +527,36 @@ def test_router_view_same_model_never_switches_model() -> None:
     assert result["error"] == "llm_request_failed"
     assert "same_model" in result["raw_text"] and "gpt-x" in result["raw_text"]
     assert shell.usage()["llm_model"] == "gpt-x"   # 没有出现过 deepseek-y
+
+
+def test_router_view_retry_candidate_respects_model_and_request_constraints() -> None:
+    from impl.core.llm_router import LlmEndpoint, LlmRouter
+    from impl.projects.llm_probe.eval_axes.llm import AxisLlm
+
+    router = LlmRouter([
+        LlmEndpoint("primary", "http://fake", "gpt-x", "x", max_prompt_chars=100),
+        LlmEndpoint("fallback2", "http://fake", "deepseek-y", "x"),
+    ])
+    client = FakeLlm("judge", lambda *_: {"ok": True}, router=router)
+    client.model = "gpt-x"
+    AxisLlm(client, policy="same_model")
+    assert client.llm_router.retry_candidate({"primary", "fallback2"}).name == "primary"
+    assert client.llm_router.retry_candidate({"primary"}, prompt_chars=10_000_000) is None
+    _cool_down(router, "primary")
+    assert client.llm_router.retry_candidate({"primary", "fallback2"}) is None
+
+
+def test_same_model_attempts_eligible_endpoint_without_health_probe(monkeypatch) -> None:
+    from impl.projects.llm_probe.eval_axes.llm import AxisLlm
+
+    router = _fake_router(("primary", "gpt-x"), ("fallback2", "deepseek-y"))
+    client = FakeLlm("judge", lambda *_: {"ok": True}, router=router)
+    client.model = "gpt-x"
+    shell = AxisLlm(client, policy="same_model")
+    monkeypatch.setattr(router, "refresh_health_if_stale", lambda: pytest.fail("unexpected probe"))
+    client.llm_router.refresh_health_if_stale()
+    assert shell.complete_json("s", "u") == {"ok": True}
+    assert shell.usage()["llm_endpoint"] == "primary"
 
 
 def test_same_model_policy_makes_fulfillment_fail_closed(monkeypatch) -> None:
@@ -756,8 +798,14 @@ def test_parse_axes_shape_rules() -> None:
             {"type": "fulfillment", "description": "a"},
             {"type": "fulfillment", "description": "b"},
         ])
+    # 形状层只要求字符串；是否必填由轴类型声明决定（validate_scenario_axes）。
     with pytest.raises(ValueError, match="description"):
-        parse_axes([{"type": "fulfillment", "description": "   "}])
+        parse_axes([{"type": "fulfillment", "description": 3}])
+    blank = parse_axes([{"type": "fulfillment", "description": "   "}, {"type": "context_memory", "description": "旧口径"}])
+    errors = validate_scenario_axes(blank).errors
+    assert any("fulfillment.description 不能为空" in e for e in errors)
+    assert any("context_memory 不读取场景 description" in e for e in errors)
+    assert validate_scenario_axes(parse_axes([{"type": "context_memory"}])).errors == []
     with pytest.raises(ValueError, match="enabled"):
         parse_axes([{"type": "fulfillment", "enabled": "yes", "description": "a"}])
 
@@ -784,7 +832,11 @@ def test_types_endpoint_lists_registered_types() -> None:
     response = _post("/api/eval_axes/types", {"project": "llm_probe"})
     assert response.status_code == 200
     body = response.json()
-    assert [item["type_id"] for item in body["types"]] == ["fulfillment", "carryability", "truthfulness"]
+    assert [item["type_id"] for item in body["types"]] == [
+        "fulfillment", "carryability", "truthfulness", "trace_analysis", "expectations", "intent_understanding",
+        "planning_routing", "tool_execution", "context_memory", "knowledge_data",
+        "model_capability",
+    ]
     other = _post("/api/eval_axes/types", {"project": "client_search"})
     assert other.status_code == 500
     assert "llm_probe" in other.json()["error"]
@@ -842,7 +894,7 @@ def test_capability_entry_keeps_axes_and_rejects_bad_shape() -> None:
     with pytest.raises(ValueError, match="axes"):
         validate_entry("policy_search", {"capability": CAPABILITY, "axes": {"type": "fulfillment"}})
     with pytest.raises(ValueError, match="description"):
-        validate_entry("policy_search", {"capability": CAPABILITY, "axes": [{"type": "fulfillment"}]})
+        validate_entry("policy_search", {"capability": CAPABILITY, "axes": [{"type": "fulfillment", "description": 3}]})
 
 
 @pytest.mark.parametrize('upstream_state', ['missing', 'disabled', 'succeeded', 'failed'])
@@ -1267,3 +1319,47 @@ def test_es_loading_rejects_enabled_but_unconfigured_source(monkeypatch):
     monkeypatch.setattr('impl.projects.llm_probe.eval_axes.sources.es_client.get_runtime_config', lambda: invalid)
     report = validate_scenario_axes([ScenarioAxis('truthfulness', True, '{es://kb_policy}')])
     assert any('base_url' in error for error in report.errors)
+
+
+def test_request_failed_payload_raises_instead_of_masquerading_as_format_error() -> None:
+    """v2 §5.2：complete_json 请求层失败返回 error dict，不得被当模型输出进格式重试/salvage。"""
+    payload = {"error": "llm_request_failed", "raw_text": "HTTP 401 invalid api-key"}
+    with pytest.raises(AxisRequestFailed) as caught:
+        raise_for_error_payload(payload)
+    assert caught.value.error == "llm_request_failed"
+    assert caught.value.raw_text == "HTTP 401 invalid api-key"
+    raise_for_error_payload({"route": []})  # 正常模型输出：放行
+    raise_for_error_payload(None)
+
+
+def test_runner_marks_request_failure_failed_with_llm_error_usage(monkeypatch) -> None:
+    """v2 §5.2：请求失败与模型格式错误分流——轴 failed，usage 带 llm_error / llm_error_text。"""
+
+    def _run(_inputs: Any, _axis: Any, _runtime: Any) -> RunOutcome:
+        raise AxisRequestFailed("llm_request_failed", "HTTP 401 invalid api-key")
+
+    axis_type = AxisType(
+        type_id="request_failed_probe",
+        title="probe",
+        summary="",
+        verdict_scope="axis",
+        verdict_enum=(Verdict("ok", ""),),
+        depend_on=(),
+        trigger_when=None,
+        inputs=(),
+        output_fields=("status",),
+        scenario_fields=(),
+        limits=ExecutionLimits(),
+        run=_run,
+        verdict_path="status",
+    )
+    monkeypatch.setattr(runner_module, "get_axis_type", lambda _type_id: axis_type)
+    runtime = AxisRuntime(spec=None, run_id="axes-test", trace_id="t", scenario_id="s", case_id="c")
+
+    result = runner_module._run_one(ScenarioAxis("request_failed_probe", True, ""), _trace(), runtime, {})
+
+    assert result.status == STATUS_FAILED
+    assert result.usage["llm_error"] == "llm_request_failed"
+    assert "401" in result.usage["llm_error_text"]
+    assert result.error.startswith("[运行环境] 模型请求失败 llm_request_failed")
+    assert "HTTP 401" in result.error

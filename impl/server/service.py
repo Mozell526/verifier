@@ -16,9 +16,11 @@ from ..core import (
     findings_ledger,
     materials_store,
     pipeline,
+    run_store,
     session_store,
 )
 from ..core.config import get_runtime_config
+from ..core.instances import INSTANCE_ENV
 from ..core.project_loader import list_projects
 from ..core.schema import (
     BatchRunResult,
@@ -105,6 +107,8 @@ def compact_run(run: Dict[str, Any]) -> Dict[str, Any]:
         "frontend_view": frontend_view,
         "error": run.get("error"),
     }
+    if run.get("llmtracing") is not None:
+        compact["llmtracing"] = run["llmtracing"]
     if run.get("capability_carrier") is not None:
         compact["capability_carrier"] = run.get("capability_carrier")
     if run.get("eval_axes") is not None:
@@ -131,7 +135,10 @@ def compact_batch_result(batch_result: Any, identities: list[Dict[str, Any]] | N
 
 
 def case_event(index: int, run: Dict[str, Any], identity: Dict[str, Any] | None = None) -> Dict[str, Any]:
-    compact = compact_run(run)
+    return case_event_from_compact(index, compact_run(run), identity)
+
+
+def case_event_from_compact(index: int, compact: Dict[str, Any], identity: Dict[str, Any] | None = None) -> Dict[str, Any]:
     table_row = compact.get("table_row") or {}
     judge_summary = table_row.get("judge_summary") or {}
     attribution_summary = table_row.get("attribution_summary") or {}
@@ -158,6 +165,7 @@ def health() -> Dict[str, Any]:
     return {
         "status": "ok",
         "pid": os.getpid(),
+        "instance_id": os.environ.get(INSTANCE_ENV),
         "started_at": datetime.fromtimestamp(SERVER_STARTED_AT, tz=timezone.utc).isoformat(),
         "config_hash": _config_hash(),
         "code_version": _git_commit(),
@@ -204,7 +212,6 @@ def _runtime_case_from_live_payload(data: Dict[str, Any]) -> SingleTurnCase:
     return SingleTurnCase(
         id="",
         input=dict(request),
-        user_intent=str(data.get("user_intent") or ""),
     )
 
 
@@ -325,9 +332,14 @@ def list_capabilities(data: Dict[str, Any]) -> Any:
 
 
 def save_capability(data: Dict[str, Any]) -> Any:
-    return capability_store.save_capability(
-        project_from(data), str(data.get("name") or ""), data.get("entry") or {}
-    )
+    project = project_from(data)
+    name = str(data.get("name") or "")
+    entry = capability_store.validate_entry(name, data.get("entry") or {})
+    if project == "llm_probe":
+        from ..projects.llm_probe.eval_axes.validate import validate_scenario_entry
+
+        validate_scenario_entry(entry, owner=name)
+    return capability_store.save_capability(project, name, entry)
 
 
 def delete_capability(data: Dict[str, Any]) -> Any:
@@ -364,8 +376,22 @@ def eval_axes_run(data: Dict[str, Any]) -> Any:
     return {"project_id": project, **report}
 
 
+def business_trace_providers(data: Dict[str, Any]) -> Any:
+    project = _require_eval_axes_project(project_from(data))
+    from ..projects.llm_probe.business_trace import provider_descriptions
+
+    return {"project_id": project, "providers": provider_descriptions()}
+
+
+def business_trace_check(data: Dict[str, Any]) -> Any:
+    project = _require_eval_axes_project(project_from(data))
+    from ..projects.llm_probe.business_trace import check_connection
+
+    return {"project_id": project, **check_connection(data.get("business_trace"))}
+
+
 def judge(data: Dict[str, Any]) -> Any:
-    return pipeline.judge(project_from(data), normalize_run_trace(data.get("trace")), data.get("user_intent"))
+    return pipeline.judge(project_from(data), normalize_run_trace(data.get("trace")))
 
 
 # --- Session 工具（spec/mock/protocol.md 5.1）---
@@ -431,9 +457,7 @@ def session_judge(data: Dict[str, Any]) -> Any:
     session_id = str(data.get("session_id") or "")
     export = session_store.STORE.export_of(project, session_id)
     trace = normalize_run_trace(export.get("trace"))
-    history = export.get("intent_history") or []
-    user_intent = str(history[-1].get("user_intent") or "") if history else None
-    result = pipeline.judge(project, trace, user_intent=user_intent or None)
+    result = pipeline.judge(project, trace)
     verdict = str((result.overall_fulfillment or {}).get("status") or "") or None
     summary = str(result.reasoning_summary or "")
     session_store.STORE.update_export(
@@ -537,7 +561,7 @@ def check(data: Dict[str, Any]) -> Any:
 
 def run_chain(data: Dict[str, Any]) -> RunChainResponse:
     runtime_case = _runtime_case_from_live_payload(data)
-    run = pipeline.run_chain(project_from(data), runtime_case, user_intent=data.get("user_intent"))
+    run = pipeline.run_chain(project_from(data), runtime_case)
     return RunChainResponse(
         trace=normalize_run_trace(run.get("trace")),
         judge=normalize_judge_result(run.get("judge")),
@@ -549,13 +573,56 @@ def run_chain(data: Dict[str, Any]) -> RunChainResponse:
     )
 
 
+def _workspace_response(project: str) -> Any:
+    from ..core.mock import parse_mock_case
+
+    data = run_store.STORE.load(project)
+    # 用例仍走 MockCase 边界，不能与运行元数据混成普通 dict 后丢掉 output/reference 的 null。
+    for entry in data["cases"]:
+        entry["case"] = parse_mock_case(entry["case"], project_id=project)
+    return data
+
+
+def run_workspace(data: Dict[str, Any]) -> Any:
+    return _workspace_response(project_from(data))
+
+
+def replace_run_workspace(data: Dict[str, Any]) -> Any:
+    from ..core.mock import parse_mock_case
+
+    project = project_from(data)
+    cases = [to_dict(parse_mock_case(case, project_id=project)) for case in data["cases"]]
+    run_store.STORE.replace(project, cases, data.get("source") or "uploaded_or_manual")
+    return _workspace_response(project)
+
+
+def clear_run_workspace(data: Dict[str, Any]) -> Any:
+    project = project_from(data)
+    run_store.STORE.clear(project, keep_cases=data["keep_cases"])
+    return _workspace_response(project)
+
+
+def attribute_run_workspace(data: Dict[str, Any]) -> Any:
+    project, key = project_from(data), data["request_key"]
+    run = run_store.STORE.get_run(project, key)
+    trace, judged = normalize_run_trace(run.get("trace")), normalize_judge_result(run.get("judge"))
+    if trace is None or judged is None:
+        raise ValueError("当前用例缺少 Trace/Judge，不能归因")
+    attr = pipeline.attribute(project, trace, judged, manual_override=True)
+    updated = {**run, "attribute": to_dict(attr)}
+    updated["frontend_view"] = to_dict(frontend_view({"project": project, **updated}))
+    updated["table_row"] = to_dict(build_trace_table_row_from_run(updated))
+    run_store.STORE.update_run(project, key, updated)
+    return updated
+
+
 def batch_run(data: Dict[str, Any]) -> BatchRunResult:
     from ..core.mock import parse_mock_case
 
     concurrency = data.get("concurrency")
     project = project_from(data)
     cases = [to_dict(parse_mock_case(case, project_id=project)) for case in (data.get("cases") or [])]
-    result = pipeline.batch_run(project, cases, user_intent=data.get("user_intent"), concurrency=concurrency)
+    result = pipeline.batch_run(project, cases, concurrency=concurrency)
     return BatchRunResult(
         project_id=result.project_id,
         total=result.total,

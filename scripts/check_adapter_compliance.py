@@ -117,22 +117,19 @@ def _strip_volatile(value: Any, volatile: frozenset[str]) -> Any:
 def check_session_translator(project_id: str) -> List[Tuple[int, str, str]]:
     """spec/mock/protocol.md 6.2 三道自动约束：往返不变式、禁 LLM、确定性。
 
-    只对多轮项目（MultiTurnInteractiveMock）强制；单轮项目跳过。
+    实现了 SessionTranslator 的项目必须受约束。
     运行期检查，行号统一为 0。
     """
     from unittest.mock import patch
 
-    from impl.core.mock_protocol import MultiTurnInteractiveMock
     from impl.core.project_loader import load_adapter, load_project
     from impl.core.session import SessionState, SessionTranslator, UserMessage
     from scripts.trace_canonicalize import VOLATILE_FIELDS
 
     spec = load_project(project_id)
     mock = load_adapter(spec).mock()
-    if not isinstance(mock, MultiTurnInteractiveMock):
-        return []
     if not isinstance(mock, SessionTranslator):
-        return [(0, type(mock).__name__, "多轮项目必须混入 SessionTranslator（protocol.md 6.1）")]
+        return []
 
     violations: List[Tuple[int, str, str]] = []
     volatile = frozenset(VOLATILE_FIELDS.get(project_id, []))

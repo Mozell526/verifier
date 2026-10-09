@@ -59,18 +59,10 @@ class ProjectSpec:
         return list(self.runtime.get("ready") or [])
 
     @property
-    def interaction_mode(self) -> str:
-        interaction = self.runtime.get("interaction") or {}
-        return str(interaction.get("mode") or "single_turn")
-
-    @property
-    def interaction_driver(self) -> str:
-        """多轮执行路径：legacy（评测进程内四回调循环）或 session（Session + Driver）。
-
-        spec/mock/protocol.md 第 8/9 节：阶段 1 引入的开关，默认 legacy；阶段 5 移除。
-        """
-        interaction = self.runtime.get("interaction") or {}
-        return str(interaction.get("driver") or "legacy")
+    def session_max_turns(self) -> int:
+        """会话最大轮数。单轮项目设 1，多轮项目按需调整。缺省 8。"""
+        session = self.runtime.get("session") or {}
+        return int(session.get("max_turns") or 8)
 
     @property
     def runtime_mode(self) -> str:

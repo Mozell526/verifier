@@ -44,6 +44,46 @@ def test_stream_watchdog_aborts_never_ending_drip(monkeypatch):
         assert "wall-clock deadline" in str(exc)
 
 
+def test_stream_watchdog_aborts_stream_that_stops_sending_entirely():
+    """连接活着但一个事件都不再来：next() 本身阻塞，只在事件间查时间的看门狗抓不住。"""
+    import threading
+
+    release = threading.Event()
+
+    class StalledAgent:
+        def run(self, _user, *, stream: bool = False, yield_run_output: bool = False, **_kw):
+            def events():
+                yield object()
+                release.wait(30)   # 模拟挂死的读
+                yield FakeRunOutput()
+            return events()
+
+    started = time.monotonic()
+    try:
+        m._run_agent(StalledAgent(), "hi", stream=True, wall_deadline=time.monotonic() + 0.3)
+        raise AssertionError("expected TimeoutError")
+    except TimeoutError as exc:
+        assert time.monotonic() - started < 2, "watchdog must not wait for the stalled read"
+        assert "wall-clock deadline" in str(exc)
+    finally:
+        release.set()
+
+
+def test_stream_errors_propagate_to_caller():
+    class BrokenAgent:
+        def run(self, _user, **_kw):
+            def events():
+                yield object()
+                raise ConnectionError("reset")
+            return events()
+
+    try:
+        m._run_agent(BrokenAgent(), "hi", stream=True, wall_deadline=time.monotonic() + 5)
+        raise AssertionError("expected ConnectionError")
+    except ConnectionError as exc:
+        assert "reset" in str(exc)
+
+
 def test_stream_watchdog_not_triggered_when_stream_completes(monkeypatch):
     class FastAgent:
         def __init__(self, **_kwargs):
@@ -74,3 +114,34 @@ def test_non_stream_ignores_deadline():
     result = m._run_agent(LegacyAgent(), "hi", stream=False, wall_deadline=time.monotonic() + 0.05)
     assert m._response_content(result) == "ok"
     assert "stream" not in calls and "yield_run_output" not in calls
+
+
+# --------------------------------------------------------------------------- 流式错误事件
+
+
+def test_stream_error_event_raises_instead_of_passing_as_reply():
+    """agno 流式出错时以 RunErrorEvent 收尾（content="Connection error."），不能被当成模型回复。"""
+    from agno.run.agent import RunErrorEvent
+
+    class ErrorAgent:
+        def run(self, _user, **_kw):
+            return iter([RunErrorEvent(content="Connection error.")])
+
+    try:
+        m._run_agent(ErrorAgent(), "hi", stream=True, wall_deadline=time.monotonic() + 5)
+        raise AssertionError("expected RuntimeError")
+    except RuntimeError as exc:
+        assert "Connection error." in str(exc)
+
+
+def test_unreachable_endpoint_fails_the_streamed_attempt():
+    """真实 agno + 连不上的端点：流式尝试必须失败（原先错误文本被当成回复，端点重试不触发）。"""
+    from agno.agent import Agent
+    from agno.models.openai.like import OpenAILike
+
+    agent = Agent(model=OpenAILike(id="m", api_key="k", base_url="http://127.0.0.1:9/v1", max_retries=0))
+    try:
+        m._run_agent(agent, "hi", stream=True, wall_deadline=time.monotonic() + 30)
+        raise AssertionError("expected RuntimeError")
+    except RuntimeError as exc:
+        assert "Connection error" in str(exc)

@@ -353,3 +353,25 @@ def test_authority_output_schemas_render_constrained_not_empty():
         assert set(schema["properties"]) >= {"decision_question"} if dc is AuthorityRequest else set(schema["properties"]) >= {"status", "statement", "reason"}
         for prop in schema["properties"].values():
             assert prop != {}
+
+
+def test_required_string_can_declare_empty_as_a_legal_value():
+    @dataclass
+    class EmptyMeansAbsent:
+        match: str = field(metadata={'allow_empty': True, 'description': 'Empty means no event'})
+        name: str
+    spec = StructuredOutputSpec.from_dataclass(EmptyMeansAbsent)
+    schema = spec.json_schema()
+    assert set(schema['required']) == {'match', 'name'}
+    assert schema['properties']['match'] == {'type': 'string', 'minLength': 0, 'description': 'Empty means no event'}
+    assert schema['properties']['name']['minLength'] == 1
+    enforce_output({'match': '', 'name': 'event'}, spec, caller='test')
+    with pytest.raises(ValueError, match='match'):
+        enforce_output({'name': 'event'}, spec, caller='test')
+    with pytest.raises(ValueError, match='match'):
+        enforce_output({'match': None, 'name': 'event'}, spec, caller='test')
+    # A caller requiring actual content still wins over the field's base schema.
+    strict = StructuredOutputSpec.from_dataclass(EmptyMeansAbsent, required_nonempty=['match'])
+    assert strict.json_schema()['properties']['match']['minLength'] == 1
+    with pytest.raises(ValueError, match='非空'):
+        enforce_output({'match': '', 'name': 'event'}, strict, caller='test')

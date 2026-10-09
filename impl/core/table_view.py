@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import importlib
 from collections import Counter
-from typing import Any, Dict, Iterable, List, Mapping, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
 from . import stop_reasons
 from .capability_carrier import carrier_text
@@ -185,6 +185,14 @@ def eval_axes_summary(report: Any) -> List[Dict[str, Any]]:
             "text": str(report.get("error")),
             "items": [],
         }]
+    analysis = next((entry.get('output') or {} for entry in report.get('results', [])
+                     if entry.get('type_id') == 'trace_analysis'), {})
+    dossier = analysis.get('dossier') or {}
+    records = {r['id']: r for key in ('records', 'sources', 'gaps') for r in dossier.get(key, [])}
+    records.update(dossier.get('contents', {}))
+    expected = next((entry.get('output') or {} for entry in report.get('results', []) if entry.get('type_id') == 'expectations'), {})
+    sources = {r['id']: r for r in expected.get('sources', [])}
+    records.update({'expectation:' + e['expectation_id']: {**e, 'sources': [sources[r] for r in e['source_refs']]} for e in expected.get('expectations', [])})
     rows: List[Dict[str, Any]] = []
     for item in report.get("results") or []:
         if not isinstance(item, dict):
@@ -194,7 +202,27 @@ def eval_axes_summary(report: Any) -> List[Dict[str, Any]]:
         type_id = str(item.get("type_id") or item.get("axis_id") or "")
         status = str(item.get("status") or "")
         items = [dict(entry) for entry in (summary.get("items") or []) if isinstance(entry, dict)]
+        output = item.get('output') or {}
+        assessment = output.get('assessment') or {}
+        issues = output.get('issues', [])
+        cited = {ref for issue in issues for key in ('source_refs', 'input_refs', 'output_refs') for ref in issue[key]}
+        from impl.projects.llm_probe.business_trace.dossier import render_value
+        evidence = {ref: render_value(dossier, records[ref]) for ref in cited if ref in records}
+        for obligation in output.get('obligations', []):
+            key = 'obligation:' + obligation['obligation_id']
+            if key in cited:
+                evidence[key] = obligation
+            if obligation['obligation_id'] in cited:
+                evidence[obligation['obligation_id']] = obligation
+        from impl.projects.llm_probe.eval_axes.registry import AXIS_TYPES
+        kind = AXIS_TYPES.get(type_id)
         rows.append({
+            "role": kind.role if kind else "evaluation",
+            "composition": assessment.get('composition'),
+            "issues": issues if 'issues' in output else None,
+            "contract_missing": assessment.get('contract_missing', []),
+            "evidence_records": evidence,
+            "execution_trace_ref": item.get('execution_trace_ref', ''),
             "axis_id": str(item.get("axis_id") or ""),
             "type_id": type_id,
             "title": str(item.get("title") or type_id),

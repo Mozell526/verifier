@@ -312,7 +312,6 @@ def trace_from_live(
         RunTrace（含 trace 字段、ready 快照）
     """
     from .interaction_protocol import NormalizedCaseInteraction, ready_from_spec
-    from .live_protocol import MultiTurnInteractiveLive
 
     # live 实例自带 spec 和 _adapter（由 adapter_v2 注入）
     spec = live.spec
@@ -333,14 +332,14 @@ def trace_from_live(
         case_id = str(case.id or "")
         scenario = str(case.scenario or "")
         reference_contract = dict(case.reference or {}) if isinstance(case.reference, dict) else {}
-        is_multi_turn = isinstance(live, MultiTurnInteractiveLive)
+        is_multi_turn = spec.session_max_turns > 1
     else:
         normalized_case = normalize_mock_case(case) or SingleTurnCase(id="", input=dict(case or {}))
         case_for_intent = normalized_case
         case_id = str(normalized_case.id or "")
         scenario = str(normalized_case.scenario or "")
         reference_contract = {}
-        is_multi_turn = isinstance(live, MultiTurnInteractiveLive)
+        is_multi_turn = spec.session_max_turns > 1
         # 归一化后从 normalized_case 提取 reference_contract（dict 形态不会自动带 reference）
         if isinstance(normalized_case, SingleTurnCase) and isinstance(normalized_case.reference, dict):
             reference_contract = dict(normalized_case.reference)

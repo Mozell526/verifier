@@ -115,7 +115,8 @@ def test_bypass_proxy_for_loopback_keeps_remote_proxy(monkeypatch):
     assert "127.0.0.1" in llm_module.os.environ["no_proxy"].split(",")
 
 
-def test_endpoint_probe_uses_real_short_completion(monkeypatch):
+@pytest.mark.parametrize('temperature', [0, 1, 0.3])
+def test_endpoint_probe_uses_real_short_completion(monkeypatch, temperature):
     captured = {}
 
     class FakeCompletions:
@@ -130,21 +131,26 @@ def test_endpoint_probe_uses_real_short_completion(monkeypatch):
             captured["client"] = kwargs
             self.chat = type("Chat", (), {"completions": FakeCompletions()})()
 
+        def close(self):
+            captured['closed'] = True
+
     monkeypatch.setattr(llm_module, "OpenAI", FakeOpenAI)
     endpoint = llm_module.LlmEndpoint(
         name="primary",
         base_url="https://example.test/v1",
         model="test-model",
         api_key="test-key",
+        temperature=temperature,
     )
 
     assert LlmClient._endpoint_probe(endpoint) is True
     assert captured["model"] == "test-model"
     assert captured["max_tokens"] == 4
-    assert captured["temperature"] == 0
+    assert captured["temperature"] == temperature
     assert "Health probe" in captured["messages"][0]["content"]
     # 探活 HTTP 超时必须与路由器等待探活结果的时长一致，否则 HTTP 层先超时仍会被记成端点不健康
     assert captured["client"]["timeout"] == llm_module.DEFAULT_PROBE_WAIT_SECONDS
+    assert captured['closed']
 
 
 def test_endpoint_probe_accepts_reasoning_token_as_generation_evidence(monkeypatch):
@@ -163,6 +169,9 @@ def test_endpoint_probe_accepts_reasoning_token_as_generation_evidence(monkeypat
     class FakeOpenAI:
         def __init__(self, **kwargs):
             self.chat = type("Chat", (), {"completions": FakeCompletions()})()
+
+        def close(self):
+            pass
 
     monkeypatch.setattr(llm_module, "OpenAI", FakeOpenAI)
     endpoint = llm_module.LlmEndpoint(

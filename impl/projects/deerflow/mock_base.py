@@ -121,8 +121,6 @@ class DeerflowMockBase(MultiTurnInteractiveMock, SessionTranslator, ProjectMock)
 
         return MockAgent(self.spec).decide_next_action(intent, accumulated_output)
 
-    def safety_max_turns(self) -> int:
-        return 12
 
     def extract_mock_message(self, request: Dict[str, Any]) -> str:
         messages = (

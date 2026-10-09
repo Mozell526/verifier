@@ -4,9 +4,9 @@ spec/mock/protocol.md 第 4 节（协议 A）与第 5 节（协议 B）的运行
 
 - Session：被动的一轮一轮执行器。持有 TraceContext，负责 deliver_turn、
   record_turn、transcript 累积与结束事实上报。不决定用户何时说话、说什么、何时停。
-- Driver：消费 Session 的一方。LegacyMixinDriver 把现有 MultiTurnInteractiveMock 四回调
-  原样翻译成对 Session 的调用（阶段 1）；ReplayDriver 逐字重放录好的 transcript seed 并标
-  回放分叉（阶段 3）；harness 作为外部进程经 session_store 的工具接口消费（阶段 3/4）。
+- Driver：消费 Session 的一方。OneShotDriver 单轮执行（发一次请求就关）；
+  ReplayDriver 逐字重放录好的 transcript seed 并标回放分叉；
+  harness 作为外部进程经 session_store 的工具接口消费。
 - SessionTranslator：项目 adapter 侧的确定性翻译契约（6.1），text/action ↔ REQUEST_SCHEMA。
 """
 from __future__ import annotations
@@ -161,6 +161,7 @@ class Session:
         mode: str = "protocol-fuzz",
         clock: Any = time.monotonic,
         on_close: Optional[Callable[["Session"], None]] = None,
+        initial_request: Optional[Dict[str, Any]] = None,
     ) -> None:
         if mode not in SESSION_MODES:
             raise ValueError(f"unknown session mode: {mode!r}")
@@ -184,7 +185,9 @@ class Session:
         self.transcript_prefix: List[Dict[str, Any]] = []
         self.seed_mode: Optional[str] = None
         self.last_output: Optional[Dict[str, Any]] = None
-        self.last_request: Optional[Dict[str, Any]] = None
+        self.last_error: Optional[str] = None
+        # case 的首轮请求作为首轮翻译的信封模板（身份、capability 等固定字段）；发过一轮后被真实请求覆盖。
+        self.last_request: Optional[Dict[str, Any]] = dict(initial_request) if initial_request else None
         self.closed = False
         self.stop_reason = ""
         self.stopped_by_user = False
@@ -248,7 +251,7 @@ class Session:
         return reason
 
     def accumulated(self) -> Dict[str, Any]:
-        """LegacyMixinDriver 需要的 accumulated_output 形状（与旧循环逐字一致）。"""
+        """当前会话累积状态快照。"""
         return {
             "turns": list(self.turns),
             "current_turn": self.turn_count,
@@ -394,16 +397,28 @@ class Session:
             )
             self.last_activity_at = self._clock()
             # live 故障归 live 组：Session 自行关闭，不等用户方决定，也不落到预算超时上。
+            self.last_error = str(exc)
             self.close("live_error")
             return TurnResult(turn_index=self.turn_count + 1, ok=False, error=str(exc))
 
         runtime_ms = int((time.time() - start) * 1000)
         facts = self.live._take_turn_facts()
         raw_response = facts.get("raw_response")
-        application_boundary = self.live.application_boundary(raw_response, output, request)
-        project_fields = self.live.project_fields(raw_response, output, request, application_boundary)
+        # 包装 LiveRequest：project hooks (application_boundary / project_fields / build_execution_trace)
+        # 期望 LiveRequest 对象而不是原始 dict。
+        from impl.core.schema import LiveRequest as _LiveRequest
+        live_request = _LiveRequest(
+            project_id=self.live.spec.project_id,
+            raw_input={},
+            case_id=self.ctx.case_id or "",
+            normalized_request=request,
+            execution_mode="provided" if self.live._has_provided_output() else "live",
+            session_id=self.session_id,
+        )
+        application_boundary = self.live.application_boundary(raw_response, output, live_request)
+        project_fields = self.live.project_fields(raw_response, output, live_request, application_boundary)
         execution_trace = list(facts.get("validation") or []) + list(
-            self.live.build_execution_trace(raw_response, output, request) or []
+            self.live.build_execution_trace(raw_response, output, live_request) or []
         )
         self.ctx.record_turn(
             request=request,
@@ -539,11 +554,28 @@ class Driver(ABC):
         ...
 
 
-class LegacyMixinDriver(Driver):
-    """包住现有 MultiTurnInteractiveMock 四回调，逐步复刻旧 _execute_multi_turn 的控制流。
+class OneShotDriver(Driver):
+    """单轮执行：发一次请求就关。单轮是 N=1 的会话，不是另一种类型。"""
 
-    goal_satisfied 的可见证据兜底沿用 live._has_visible_goal_evidence——它虽是评测层替用户
-    改主意的逻辑，但项目（如 policy_search）有覆盖，阶段 1 必须原样委托以保证等价；阶段 5 一并删除。
+    def run(
+        self,
+        session: Session,
+        initial_request: Dict[str, Any],
+        intent: Optional["MockIntentOutput"],
+    ) -> None:
+        if intent:
+            session.declare_intent(intent, source="seeded")
+        result = session.send_request(initial_request)
+        if result.ok:
+            session.close("single_turn_completed")
+        # If not ok, session.send_request already closed with live_error
+
+
+class PersonaDriver(Driver):
+    """多轮无 seed：mock 扮演用户，逐轮 infer_user_intent / decide_next_action / build_next_request。
+
+    goal_satisfied 的可见证据兜底委托 live._has_visible_goal_evidence（项目如 policy_search 有覆盖）。
+    轮数上限由 session.budget.max_turns（runtime.session.max_turns）决定。
     """
 
     def __init__(self, mock: Any) -> None:
@@ -573,8 +605,7 @@ class LegacyMixinDriver(Driver):
                     intent = mock.infer_user_intent(dict(initial_request))
                     if not getattr(intent, "user_intent", "") or not getattr(intent, "query", ""):
                         raise ValueError("infer_user_intent returned empty required fields")
-                    # 推断出的意图不是真值标签（协议 8 节），只喂给 mock_intent 保持 judge 现状，
-                    # 不进 intent_history。
+                    # 推断出的意图不是真值标签（协议 8 节），只喂给 mock_intent，不进 intent_history。
                     session.ctx.set_intent(intent)
                 except Exception as exc:
                     logger.warning("mock.infer_user_intent failed: %s", exc, exc_info=True)
@@ -706,9 +737,11 @@ class ReplayDriver(Driver):
             if not result.ok:
                 session.close("live_error")
                 return
-            recorded = output_signature(session.live, dict(turn.get("extracted_output") or {}))
-            if output_signature(session.live, result.output) != recorded:
-                session.mark_divergence(recorded_index or session.turn_count)
+            # 手写的 seed 没有录制响应（无 extracted_output 键），无可比对，不算分叉。
+            if isinstance(turn.get("extracted_output"), dict):
+                recorded = output_signature(session.live, dict(turn.get("extracted_output") or {}))
+                if output_signature(session.live, result.output) != recorded:
+                    session.mark_divergence(recorded_index or session.turn_count)
             declare_for(recorded_index or session.turn_count)
         if not session.closed:
             recorded_stop = str(self.seed.get("stop_reason") or "") or "user_abandons"

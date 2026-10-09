@@ -6,6 +6,8 @@ protocol-fuzz 会话固定 protocol_fuzz。
 """
 from __future__ import annotations
 
+from .instances import data_root
+
 import json
 import threading
 import time
@@ -24,7 +26,7 @@ _LOCK = threading.Lock()
 
 
 def ledger_path(project_id: str) -> Path:
-    return ROOT / "data" / project_id / "ledger.json"
+    return data_root(ROOT.parent) / project_id / "ledger.json"
 
 
 def _read(project_id: str) -> List[Dict[str, Any]]:

@@ -76,7 +76,17 @@
           <option value="sse_last_frame">SSE 取最后一帧（仅限最后一帧是全量内容的伪流式；逐帧增量的接口不适用）</option>
         </select>
       </div>
-      <label>mock_body 请求模板（可选，JSON；{query} 为造 case 时的占位符）</label>
+      <div id="businessTraceSection" style="display:none;margin-top:14px;border-top:1px dashed #cbd5e1;padding-top:6px">
+        <label>业务 Trace（可选，与 service 并列）<span class="hint" style="font-weight:400"> · 配置后由 llm_probe 在业务调用完成时采集一次快照；需要业务 Trace 的扩展轴共享这份快照。</span></label>
+        <select id="businessTraceProvider" onchange="changeBusinessTraceProvider()"><option value="">不采集业务 Trace</option></select>
+        <label style="font-size:13px">Provider config（JSON；请求头可写 ${ENV_NAME}，密钥不直接写入预设）</label>
+        <textarea id="businessTraceConfig" style="min-height:210px" placeholder='{"base_url":"http://127.0.0.1:7777","bindings":{"session_id":{"source":"request","pointer":"/body/session_id"},"business_trace_id":{"source":"response","pointer":"/trace_id"}}}'></textarea>
+        <div class="row">
+          <button class="secondary small" style="margin-top:0" onclick="checkBusinessTrace()">测试 Trace 连接与配置</button>
+          <span class="hint" id="businessTraceHint"></span>
+        </div>
+      </div>
+      <label>mock_body 请求模板（可选，JSON；{query} 为问题，{session_id} 为每个新 case 独立生成的会话 ID）</label>
       <textarea id="mockBody" style="min-height:160px" placeholder='{"user_text": "{query}"}'></textarea>
       <div class="row">
         <button onclick="saveCap()">保存</button>
@@ -152,7 +162,7 @@ async function loadAll(){
   }
   renderSections();
   refreshRefPicker();
-  await loadAxisTypes();
+  await Promise.all([loadAxisTypes(),loadBusinessTraceProviders()]);
 }
 function provenanceLabel(prov){
   if(!prov){return '';}
@@ -509,19 +519,63 @@ document.getElementById('boundary').addEventListener('input',validateRefs);
 // ---- 扩展评估轴（试验）的框：{type, enabled, description}，存进预设条目的 axes[] ----
 let axisTypes=[];      // /api/eval_axes/types 的类型声明；空 = 本项目没有扩展轴体系，整节隐藏
 let axisBoxes=[];      // 当前编辑器里的框
+let businessTraceProviders=[];
 async function loadAxisTypes(){
   try{axisTypes=(await post('/api/eval_axes/types',{project:project()})).types||[];}
   catch(err){axisTypes=[];}
   document.getElementById('axesSection').style.display=axisTypes.length?'block':'none';
 }
 function axisTypeById(id){return axisTypes.find(t=>t.type_id===id)||null}
+async function loadBusinessTraceProviders(){
+  try{businessTraceProviders=(await post('/api/business_trace/providers',{project:project()})).providers||[];}
+  catch(err){businessTraceProviders=[];}
+  const section=document.getElementById('businessTraceSection');
+  section.style.display=businessTraceProviders.length?'block':'none';
+  document.getElementById('businessTraceProvider').innerHTML='<option value="">不采集业务 Trace</option>'+businessTraceProviders.map(p=>'<option value="'+escapeHtml(p.provider)+'">'+escapeHtml(p.title+' ('+p.provider+')')+'</option>').join('');
+}
+function businessTraceProviderById(id){return businessTraceProviders.find(p=>p.provider===id)||null}
+function updateBusinessTraceHint(){
+  const description=businessTraceProviderById(document.getElementById('businessTraceProvider').value);
+  document.getElementById('businessTraceHint').textContent=description?description.summary:'';
+}
+function changeBusinessTraceProvider(){
+  const provider=document.getElementById('businessTraceProvider').value;
+  const config=document.getElementById('businessTraceConfig');
+  const description=businessTraceProviderById(provider);
+  if(provider&&description){config.value=JSON.stringify(description.default_config||{},null,2);}
+  if(!provider){config.value='';}
+  updateBusinessTraceHint();
+}
+function readBusinessTrace(){
+  const provider=document.getElementById('businessTraceProvider').value;
+  if(!provider){return null;}
+  const text=document.getElementById('businessTraceConfig').value.trim();
+  if(!text){throw new Error('business_trace provider 已选择，但 config 为空');}
+  let config;
+  try{config=JSON.parse(text);}catch(err){throw new Error('business_trace config 不是合法 JSON：'+err.message);}
+  return {provider:provider,config:config};
+}
+async function checkBusinessTrace(){
+  try{
+    const businessTrace=readBusinessTrace();
+    if(!businessTrace){setStatus('请先选择业务 Trace provider。',true);return;}
+    const result=await post('/api/business_trace/check',{project:project(),business_trace:businessTrace});
+    setStatus('业务 Trace 连接成功：'+result.provider+' · '+result.base_url);
+  }catch(err){setStatus('业务 Trace 检查失败：'+err.message,true);}
+}
 function axisTypeInfo(t){
   if(!t){return '';}
   const enums=(t.verdict_enum||[]).map(v=>v.value).join(' / ');
   const dep=(t.depend_on||[]).length?'依赖 '+t.depend_on.map(d=>(d.optional?'可选 ':'')+d.type_id).join('、'):'不依赖其他轴';
   const trig=t.trigger_when?('仅 '+t.trigger_when.axis+' 结论为 '+t.trigger_when.verdict_in.join('/')+' 的样本判'):'所有样本都判';
   const reads=(t.inputs||[]).map(i=>i.source+(i.fields&&i.fields.length?'['+i.fields.join(',')+']':'')).join('；')||'—';
-  return '结论（'+(t.verdict_scope==='item'?'逐条':'整轴')+'）：'+enums+' · '+dep+' · '+trig+' · 读：'+reads;
+  const trace=t.requires_business_trace?' · 需要业务 Trace':'';
+  return '结论（'+(t.verdict_scope==='item'?'逐条':'整轴')+'）：'+enums+' · '+dep+' · '+trig+' · 读：'+reads+trace;
+}
+function axisDescriptionField(typeId){
+  // 轴类型声明了 description 才读场景口径；过程六轴等只按协议与定格期望判，不显示也不提交描述。
+  const t=axisTypeById(typeId);
+  return t?(t.scenario_fields||[]).find(f=>f.name==='description'):null;
 }
 function syncAxisBoxesFromDom(){
   axisBoxes=axisBoxes.map((box,i)=>{
@@ -551,7 +605,9 @@ function renderAxisBoxes(){
         '<button class="danger small" style="margin-top:0" onclick="removeAxisBox('+i+')">删除</button>'+
       '</div>'+
       '<div class="hint" style="margin:6px 0">'+escapeHtml(t?t.summary:'未知类型（未注册）')+'</div>'+
-      '<textarea id="axisDesc-'+i+'" class="uri-textarea" style="min-height:110px" placeholder="本场景下这个轴按什么口径评；可写 {material://项目/资料id}" oninput="syncAxisBoxesFromDom();validateRefs()">'+escapeHtml(box.description||'')+'</textarea>'+
+      (axisDescriptionField(box.type)
+        ?'<textarea id="axisDesc-'+i+'" class="uri-textarea" style="min-height:110px" placeholder="本场景下这个轴按什么口径评；可写 {material://项目/资料id}" oninput="syncAxisBoxesFromDom();validateRefs()">'+escapeHtml(box.description||'')+'</textarea>'
+        :'<div class="hint">本轴按统一协议与需求轴定格期望判定，不读场景描述。</div>')+
       '<div class="hint" style="margin-top:6px">'+escapeHtml(axisTypeInfo(t))+'</div>'+
     '</div>';
   }).join('')||'<div class="empty">尚未添加扩展评估轴。</div>';
@@ -589,6 +645,10 @@ function selectCap(name){
   document.getElementById('serviceMethod').value=(service.method||'POST').toUpperCase();
   document.getElementById('serviceTimeout').value=service.timeout_seconds||'';
   document.getElementById('serviceResponseMode').value=service.response_mode||'json';
+  const businessTrace=entry.business_trace||{};
+  document.getElementById('businessTraceProvider').value=businessTrace.provider||'';
+  document.getElementById('businessTraceConfig').value=businessTrace.config?JSON.stringify(businessTrace.config,null,2):'';
+  updateBusinessTraceHint();
   document.getElementById('mockBody').value=entry.mock_body?JSON.stringify(entry.mock_body,null,2):'';
   document.getElementById('deleteBtn').style.display='inline-block';
   axisBoxes=(entry.axes||[]).map(a=>({type:a.type,enabled:!!a.enabled,description:a.description||''}));
@@ -608,6 +668,9 @@ function newCap(){
   document.getElementById('serviceMethod').value='POST';
   document.getElementById('serviceTimeout').value='';
   document.getElementById('serviceResponseMode').value='json';
+  document.getElementById('businessTraceProvider').value='';
+  document.getElementById('businessTraceConfig').value='';
+  document.getElementById('businessTraceHint').textContent='';
   document.getElementById('mockBody').value='';
   document.getElementById('deleteBtn').style.display='none';
   axisBoxes=[];
@@ -626,9 +689,11 @@ async function saveCap(){
   if(boundary){entry.boundary=boundary;}
   syncAxisBoxesFromDom();
   if(axisBoxes.length){
-    const emptyBox=axisBoxes.findIndex(b=>!b.description.trim());
+    const emptyBox=axisBoxes.findIndex(b=>{const f=axisDescriptionField(b.type);return f&&f.required&&!b.description.trim();});
     if(emptyBox>=0){setStatus('扩展评估轴 第 '+(emptyBox+1)+' 个框的描述不能为空', true);return;}
-    entry.axes=axisBoxes.map(b=>({type:b.type,enabled:b.enabled,description:b.description.trim()}));
+    entry.axes=axisBoxes.map(b=>axisDescriptionField(b.type)
+      ?{type:b.type,enabled:b.enabled,description:b.description.trim()}
+      :{type:b.type,enabled:b.enabled});
   }
   const url=document.getElementById('serviceUrl').value.trim();
   if(url){
@@ -643,6 +708,10 @@ async function saveCap(){
     try{entry.mock_body=JSON.parse(mockText);}
     catch(err){setStatus('mock_body 不是合法 JSON：'+err.message, true);return;}
   }
+  try{
+    const businessTrace=readBusinessTrace();
+    if(businessTrace){entry.business_trace=businessTrace;}
+  }catch(err){setStatus(err.message,true);return;}
   try{
     await post('/api/capability/save',{project:project(),name:name,entry:entry});
     setStatus('已保存 '+name+'，评测立即可用（capability_ref: '+name+'）。');

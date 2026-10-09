@@ -45,7 +45,7 @@ def execute_case(
     runtime_case = mock_case_to_single_turn(
         parse_mock_case(case, project_id=project_id)
     )
-    if spec.interaction_mode != "multi_turn":
+    if spec.session_max_turns <= 1:
         raise ValueError(f"{project_id} is not a multi-turn project")
     with ExitStack() as stack:
         stack.enter_context(patch.dict(os.environ, environment))

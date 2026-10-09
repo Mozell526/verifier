@@ -17,8 +17,6 @@
     <select id="project" onchange="switchProject()"></select>
     <label>Input JSON</label>
     <textarea id="input">{"query":"45岁女性保费10万以上"}</textarea>
-    <label>User Intent（可选，传给 judge agent）</label>
-    <textarea id="expected" placeholder="可留空；填写后用于 judge 当前 RunTrace。"></textarea>
     <div class="row">
       <button onclick="liveRun()">请求业务服务</button>
       <button class="secondary" onclick="runJudge()">请求 Judge</button>
@@ -61,7 +59,7 @@
       </div>
     </details>
     <details id="evalAxesStep" class="card step" style="display:none">
-      <summary><h2>扩展评估轴（试验）</h2><span id="evalAxesBadgeInPanel" class="badge">未运行</span></summary>
+      <summary><h2 id="evalAxesTitle">扩展评估轴（试验）</h2><span id="evalAxesBadgeInPanel" class="badge">未运行</span></summary>
       <div class="step-body">
         <div class="hint" style="margin-bottom:8px">新链路：按资料页该预设「扩展评估轴」里启用的框，对上面同一个 trace 各判一遍。与左侧 Judge 面板（生产轴1/轴2）并排对照，互不影响。</div>
         <div id="evalAxesHuman" class="empty">尚未运行扩展轴试验。</div>
@@ -124,7 +122,6 @@ async function initProjects(){
 }
 function payload(){sessionStorage.setItem(scopedKey('input'),document.getElementById('input').value);return {project:project(),input:JSON.parse(document.getElementById('input').value)}}
 function traceMatchesCurrentInput(trace){return !!trace && trace.project_id===project() && JSON.stringify(trace.input || {})===JSON.stringify(payload().input)}
-function expectedIntent(){return document.getElementById('expected').value.trim()}
 function requireValue(value, name){if(!value){throw new Error('缺少 '+name+'，请先执行前一步。')}return value}
 async function refreshFrontendView(){
   if(!currentTrace && !currentJudge && !currentAttribute){currentView=null;sessionStorage.removeItem(scopedKey('lastView'));return null;}
@@ -247,7 +244,12 @@ function renderAttributionFindings(attribute){
     '<table style="width:100%;border-collapse:collapse"><thead><tr><th>Finding</th><th>影响的 Expectations</th><th>结论</th><th>证据数</th></tr></thead><tbody>'+(rows || '<tr><td colspan="4" class="muted">尚无通过证据审查的 finding</td></tr>')+'</tbody></table></details>';
 }
 function fulfillmentStatusFromJudge(judge){const fulfillment=fulfillmentPanel();return fulfillment.overall_fulfillment?.status || judge?.display_status || judge?.overall_fulfillment?.status || '';}
-function fulfillmentBadgeState(status){return status==='fulfilled'?'ok':(status==='not_fulfilled'?'bad':(status==='not_evaluable'?'warn':''));}
+function fulfillmentBadgeState(status){
+  if(status==='fulfilled'||status==='sound'||status==='consistent'||status==='pass'){return 'ok';}
+  if(status==='not_fulfilled'||status==='problematic'||status==='coverage_gap'||status==='fail'){return 'bad';}
+  if(status==='not_evaluable'||status==='insufficient_evidence'||status==='not_applicable'||status==='contract_missing'){return 'warn';}
+  return '';
+}
 function carrierPanel(){return currentView?.capability_carrier_panel || {};}
 function carrierBadgeState(placement){return placement==='做错了'?'bad':(placement==='说不清'?'warn':'');}
 function renderCitation(cite){
@@ -307,6 +309,8 @@ function renderAxisResult(result, axisType){
       body=(output.reasoning_summary?'<div class="kv"><b>原因：</b>'+escapeHtml(output.reasoning_summary)+'</div>':'')+renderFulfillment(output);
     }else if(result.type_id==='carryability'){
       body=renderCarrierReport(output, '承载性归位');
+    }else if(output.assessment && Array.isArray(output.results)){
+      body=renderProcessAxis(output);
     }else{
       body=collapsedJson('output', output);
     }
@@ -314,19 +318,53 @@ function renderAxisResult(result, axisType){
   const inputs=Object.keys(result.inputs_used || {}).length ? '<div class="kv muted">读了什么：'+escapeHtml(Object.values(result.inputs_used).join('；'))+'</div>' : '';
   return '<div style="border-top:1px solid #e5e7eb;padding-top:10px;margin-top:10px">'+head+(trigger?'<div class="kv muted">'+trigger+'</div>':'')+error+summaryText+body+inputs+usageText+'</div>';
 }
+// 过程轴：每对（义务, 环节）一行，偏差与缺证在前；分析轴给本轴选了什么材料一并展示。
+function renderProcessAxis(output){
+  const a=output.assessment || {};
+  const rule=a.verdict_rule?'<div class="kv muted">汇总规则：'+escapeHtml(a.verdict_rule)+(a.scope_note?' · '+escapeHtml(a.scope_note):'')+'</div>':'';
+  const labels={};
+  (output.obligations||[]).forEach(o=>{labels[o.obligation_id]=o.label||o.obligation_id;});
+  const rank={fail:0,insufficient_evidence:1,contract_missing:2,pass:3,not_applicable:4};
+  const results=(output.results||[]).slice().sort((x,y)=>(rank[x.outcome]??5)-(rank[y.outcome]??5));
+  const rows=results.map(r=>{
+    const ev=r.evidence||{};
+    const line=(title,items)=>(items||[]).length?'<div class="kv muted" style="margin-left:14px">'+title+'：'+escapeHtml(items.join('  '))+'</div>':'';
+    const text=(r.outcome==='pass'||r.outcome==='not_applicable')?escapeHtml(r.observed||''):('应做到：'+escapeHtml(r.expected||'')+'；实际：'+escapeHtml(r.observed||''));
+    return '<div class="kv"><span class="badge '+fulfillmentBadgeState(r.outcome)+'">'+escapeHtml(r.outcome)+'</span> <b>'+escapeHtml(labels[r.obligation_id]||r.obligation_id||'')+'</b> <span class="muted">@ '+escapeHtml(r.link_id||'')+(r.judged_by==='program'?' · 程序判定':'')+'</span> '+text
+      +line('出处',r.source_refs)+line('输入端',ev.input)+line('输出端',ev.output)+line('缺证',r.missing)+line('标注',r.flags)+'</div>';
+  }).join('');
+  const gaps=(a.gaps||[]).length?'<div class="kv"><b>缺证汇总：</b>'+escapeHtml(a.gaps.join('；'))+'</div>':'';
+  const contract=(a.contract_missing||[]).length?'<div class="kv"><b>契约缺失（待补项目声明）：</b>'+escapeHtml(a.contract_missing.map(c=>(labels[c.obligation_id]||c.obligation_id)+' @ '+c.link_id).join('；'))+'</div>':'';
+  return selectionText(output)+rule+'<details class="inline-details" open><summary>义务 × 环节（'+results.length+'）</summary><div style="padding:0 12px 10px">'+rows+'</div></details>'+gaps+contract+collapsedJson('output', output);
+}
+// 分析轴为本轴选了哪些编号、为什么；超出预算未纳入的单独列明。
+function selectionText(output){
+  const selection=(output&&output.selection)||{};
+  const refs=selection.refs||[];
+  const view=(output&&output.view)||{};
+  if(!refs.length&&!view.chars){return '';}
+  const why=(selection.why||[]).map(w=>'<div class="kv muted" style="margin-left:14px">'+escapeHtml(w)+'</div>').join('');
+  const excluded=(view.excluded||[]).filter(e=>e.ref);
+  const note=excluded.length?'<div class="kv" style="color:#92400e">未纳入 '+excluded.length+' 条（超本轴视图预算或案卷无此编号），需要时须按缺证处理</div>':'';
+  return '<details class="inline-details"><summary>分析轴选给本轴的材料（'+refs.length+' 条，'+(view.chars||0)+' 字符）</summary><div style="padding:0 12px 10px">'+why+'<div class="kv muted" style="margin-left:14px">'+escapeHtml(refs.join('  '))+'</div>'+note+'</div></details>';
+}
 function renderEvalAxes(data){
   showRaw('evalAxesRaw', data);
   const human=document.getElementById('evalAxesHuman');
-  if(!data){setBadge('evalAxesBadgeInPanel','未运行','');human.innerHTML='<div class="empty">尚未运行扩展轴试验。</div>';return;}
+  const title=document.getElementById('evalAxesTitle');
+  if(!data){setBadge('evalAxesBadgeInPanel','未运行','');if(title){title.textContent='扩展评估轴（试验）';}human.innerHTML='<div class="empty">尚未运行扩展轴试验。</div>';return;}
   const results=data.results || [];
   const types={};(data.types || []).forEach(t=>{types[t.type_id]=t;});
+  const traceEval=results.some(r=>r.type_id==='trace_analysis');
+  if(title){title.textContent=traceEval?'过程证据（支撑主裁决）':'扩展评估轴（试验）';}
   const failed=results.filter(r=>r.status==='failed').length;
   const ran=results.filter(r=>r.status==='succeeded').length;
   setBadge('evalAxesBadgeInPanel', ran+' 轴完成'+(failed?'，'+failed+' 失败':''), failed?'bad':(ran?'ok':'warn'));
   const warnings=(data.warnings || []).map(w=>'<div class="kv" style="color:#92400e">⚠ '+escapeHtml(w)+'</div>').join('');
   const header='<div class="kv"><b>场景：</b>'+escapeHtml(data.scenario_id || '-')+' · <b>run：</b>'+escapeHtml(data.run_id || '')+'</div>';
+  const guide=traceEval?'<div class="hint">开关打开时，过程链在主 Judge 之前执行；页面主状态只以主裁决为准，以下是它的证据与逐轴结论。</div>':'';
   if(!results.length){human.innerHTML=header+warnings+'<div class="kv muted">该预设没有配置扩展评估轴。到资料页 → capability 预设 → 「扩展评估轴（试验）」添加。</div>';return;}
-  human.innerHTML=header+warnings+results.map(r=>renderAxisResult(r, types[r.type_id])).join('');
+  human.innerHTML=header+guide+warnings+results.map(r=>renderAxisResult(r, types[r.type_id])).join('');
 }
 let evalAxesTypesCache=null;
 async function evalAxesTypes(){
@@ -348,7 +386,7 @@ async function runEvalAxes(){
     currentEvalAxes=data;sessionStorage.setItem(scopedKey('lastEvalAxes'), JSON.stringify(data));
     document.getElementById('evalAxesStep').open=true;
     renderEvalAxes(currentEvalAxes);
-    document.getElementById('status').textContent='扩展轴试验完成，可与上方 Judge 面板（生产轴1/轴2）对照。';
+    document.getElementById('status').textContent='过程评测完成。页面主状态以主 Judge 裁决为准；逐轴证据见下方「过程证据」。';
   }catch(err){document.getElementById('status').textContent='扩展轴试验失败：'+err.message}
 }
 function renderJudge(judge){
@@ -410,8 +448,6 @@ async function runJudge(){
       clearEvalAxes();   // trace 换了，旧的扩展轴结果不再对应
     }
     const body={project:project(),trace:requireValue(currentTrace,'lastTrace')};
-    const expected=expectedIntent();
-    if(expected){body.user_intent=expected;}
     const data=await post('/api/judge', body);
     currentJudge=data;currentAttribute=null;
     sessionStorage.setItem(scopedKey('lastJudge'), JSON.stringify(data));sessionStorage.removeItem(scopedKey('lastAttribute'));
@@ -435,8 +471,6 @@ async function runChain(){
   document.getElementById('status').textContent='全链路运行中...';
   try{
     const body=payload();
-    const expected=expectedIntent();
-    if(expected){body.user_intent=expected;}
     const data = await post('/api/run_chain', body);
     currentTrace=data.trace;currentJudge=data.judge;currentAttribute=data.attribute;currentCluster=data.cluster;currentView=data.frontend_view || null;
     sessionStorage.setItem(scopedKey('lastTrace'), JSON.stringify(currentTrace));

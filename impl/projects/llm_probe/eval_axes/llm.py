@@ -1,6 +1,6 @@
 """扩展评估轴专用的 LLM 客户端外壳（axe-v4 D12）。
 
-两件事，都只作用在扩展轴自己新建的客户端上，生产 LlmClient / LlmRouter 一行不改：
+两件事，都只作用在扩展轴自己新建的客户端上，不改变公共路由的选择和回退策略：
 1. 记账：每次 complete_json 实际命中的端点和模型，供 AxisResult.usage 记录（对照时能看出"这条是备用模型判的"）。
 2. 模型策略（config: eval_axes.model_policy / .env: EVAL_AXES_MODEL_POLICY）：
    - any        沿用公共路由的回退：哪个端点可用就用哪个；
@@ -18,6 +18,8 @@ from impl.core.llm_router import LlmEndpoint, LlmRouter
 
 MODEL_POLICY_ANY = "any"
 MODEL_POLICY_SAME_MODEL = "same_model"
+# 没有可用端点时的退避等待（秒）；总和须超过公共路由冷却时长（180s），保证至少再试一次。
+ENDPOINT_WAIT_SECONDS: tuple[float, ...] = (30.0, 60.0, 120.0)
 
 
 def model_policy() -> str:
@@ -46,7 +48,11 @@ class _RouterView:
         return len(self.endpoints)
 
     def refresh_health_if_stale(self) -> None:
-        self._inner.refresh_health_if_stale()
+        # A same-model run has no cross-model routing decision to make. An
+        # optimistic request is more informative than a slow probe that can
+        # cool the only eligible endpoint before the real request starts.
+        if self._allowed_model is None:
+            self._inner.refresh_health_if_stale()
 
     def active_endpoint_names(self) -> list[str]:
         blocked = self._blocked()
@@ -63,6 +69,20 @@ class _RouterView:
                     f"{self._allowed_model!r} is available ({exc})"
                 ) from exc
             raise
+
+    def unavailable_reason(self) -> str:
+        # Diagnostics must obey the same model filter as endpoint selection.
+        reason = self._inner.unavailable_reason(exclude=self._blocked())
+        if self._allowed_model is not None:
+            return f"eval_axes model_policy=same_model（仅允许模型 {self._allowed_model!r}）：{reason}"
+        return reason
+
+    def retry_candidate(self, tried: Collection[str], *, prompt_chars: int = 0,
+                        needs_tools: bool = False) -> Optional[LlmEndpoint]:
+        active = set(self._inner.active_endpoint_names())
+        return next((ep for ep in self.endpoints
+                     if ep.name in active and ep.name in tried
+                     and ep.serves(prompt_chars, needs_tools=needs_tools)), None)
 
     def record_success(self, endpoint: LlmEndpoint) -> None:
         self._recorder._note_attempt(endpoint, True)
@@ -87,6 +107,8 @@ class AxisLlm:
             raise ValueError("eval_axes model_policy=same_model 需要客户端声明 model")
         router_view = _RouterView(inner.llm_router, allowed_model=allowed, recorder=self)
         inner.llm_router = router_view
+        # 离线评测宁可等端点恢复，也不要因瞬时冷却把整条 case 的六轴阻断（本批整理轴失败均为此类）。
+        inner.endpoint_wait_seconds = ENDPOINT_WAIT_SECONDS
         if allowed:
             # 当主端点模型与角色模型不一致时，保证 build_model(endpoint=None) 默认取允许的模型端点
             inner.model = allowed

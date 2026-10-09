@@ -3,13 +3,33 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from .adapters import carryability, fulfillment, truthfulness
+from .adapters import (
+    carryability,
+    expectations,
+    context_memory,
+    fulfillment,
+    intent_understanding,
+    knowledge_data,
+    model_capability,
+    planning_routing,
+    tool_execution,
+    trace_analysis,
+    truthfulness,
+)
 from .types import VERDICT_SCOPE_AXIS, AxisType
 
 _REGISTERED: tuple[AxisType, ...] = (
     fulfillment.AXIS_TYPE,
     carryability.AXIS_TYPE,
     truthfulness.AXIS_TYPE,
+    trace_analysis.AXIS_TYPE,
+    expectations.AXIS_TYPE,
+    intent_understanding.AXIS_TYPE,
+    planning_routing.AXIS_TYPE,
+    tool_execution.AXIS_TYPE,
+    context_memory.AXIS_TYPE,
+    knowledge_data.AXIS_TYPE,
+    model_capability.AXIS_TYPE,
 )
 
 

@@ -8,20 +8,16 @@
 from __future__ import annotations
 import logging
 import inspect
-import time
 from abc import ABC, abstractmethod
 from contextvars import ContextVar
 from typing import TYPE_CHECKING, Any, Optional, Dict, List
 from typing import final as typing_final
 if TYPE_CHECKING:
-    from impl.core.mock_agent import LiveSchema
     from impl.core.trace import TraceContext
     from impl.core.schema import MockIntentOutput
 from impl.core.schema import (
-    ExecutionTraceEvent, FallbackDecision,
-    LiveMultiTurnState, LiveRequest,
-    ProjectSpec, SingleTurnCase, MultiTurnCase, MultiTurnInteraction,
-    to_dict,
+    ExecutionTraceEvent, FallbackDecision, LiveRequest,
+    ProjectSpec, SingleTurnCase, MultiTurnCase,
 )
 from impl.core.protocol_base import check_forbidden_overrides
 from impl.core.live_transport import LiveHTTPStatusError, LiveTransport, validate_real_transport
@@ -52,19 +48,14 @@ class _LiveProtocol(ABC):
     """协议层：Live 投递主流程的具体实现。
 
     主流程（execute_live 模板方法）：
-    1. 通过 TraceContext 上报过程事实（由 trace 层注入）
-    2. 判断单轮/多轮（isinstance MultiTurnInteractiveLive）
-    3. 单轮：build_live_request → deliver_turn（real 路径）或 deliver_provided（provided 路径）
-    4. 多轮：循环 build_next_request → deliver_turn，停止判断只用 mock.should_stop
-    5. 返回 EXTRACT_OUTPUT_SCHEMA，不背 trace 字段
+    所有项目统一走 Session + Driver 路径（spec/mock/protocol.md 协议 A）。
+    返回 EXTRACT_OUTPUT_SCHEMA，不背 trace 字段。
 
     项目不能修改流程的执行顺序。
     """
 
     _FORBIDDEN_OVERRIDES = frozenset({
         'execute_live',
-        '_execute_single_turn',
-        '_execute_multi_turn',
         '_validate_request',
         '_validate_output',
         '_has_provided_output',
@@ -88,18 +79,12 @@ class _LiveProtocol(ABC):
     ) -> Dict[str, Any]:
         """模板方法：完整调用入口，首轮 Request 必填，Intent 可选。
 
-        流程（spec/adapter/trace.md 第八节）：
-        1. 判断单轮/多轮（isinstance MultiTurnInteractiveLive）
-        2. 单轮：调 _execute_single_turn
-        3. 多轮：调 _execute_multi_turn
-
+        所有项目统一走 Session + Driver 路径（spec/mock/protocol.md 协议 A）。
         通过 ctx.record_turn() 上报每轮过程事实，由 trace 层收集。
         """
         turn_count_before = int(getattr(ctx, "turn_count", 0) or 0)
         try:
-            if isinstance(self, MultiTurnInteractiveLive):
-                return self._execute_multi_turn(initial_request, ctx, intent)
-            return self._execute_single_turn(initial_request, ctx, intent)
+            return self._execute_via_session(initial_request, ctx, intent)
         except Exception as exc:
             # build request / request schema 等在 record_turn 前失败时，也必须形成失败 trace，
             # 不能被 trace_from_live 吞成 status=ok 的空输出。
@@ -109,321 +94,65 @@ class _LiveProtocol(ABC):
 
     # === 内部方法：主流程的各个步骤 ===
 
-    def _execute_single_turn(
-        self,
-        initial_request: Dict[str, Any],
-        ctx: "TraceContext",
-        intent: Optional["MockIntentOutput"] = None,
-    ) -> Dict[str, Any]:
-        """单轮执行路径。"""
-        request = dict(initial_request or {})
-        mock_message = str(getattr(intent, "query", "") or "")
-        if not mock_message:
-            mock = self._mock_instance()
-            if hasattr(mock, "extract_mock_message"):
-                mock_message = str(mock.extract_mock_message(request) or "")
-        # 判断走 provided 还是 real：_has_provided_output 已检查 spec ready + ProvidedOutputLive
-        if self._has_provided_output():
-            # provided 路径：不走 deliver_turn，由 deliver_provided → extract_output → 校验
-            output, raw_response, error, fallbacks, validations, delivery_request = self._run_provided(request)
-            application_boundary = self.application_boundary(raw_response, output, delivery_request) if error is None else {}
-            project_fields = self.project_fields(raw_response, output, delivery_request, application_boundary) if error is None else {}
-            execution_trace = self.build_execution_trace(raw_response, output, delivery_request) if error is None else []
-            ctx.record_turn(
-                request=request,
-                raw_response=raw_response,
-                live_exchanges=[],
-                extracted_output=output,
-                call_status="succeeded" if error is None else "failed",
-                runtime_ms=None,
-                error=error,
-                fallbacks=fallbacks,
-                validation=validations,
-                execution_trace=execution_trace,
-                application_boundary=application_boundary,
-                project_fields=project_fields,
-                mock_message=mock_message,
-            )
-            ctx.finish_execution(
-                stop_reason="single_turn_completed" if error is None else "execution_error",
-                transcript=[],
-                final_output_turn=1 if error is None else None,
-                completion_status="completed" if error is None else "failed",
-            )
-            return output
 
-        # real 路径：调 deliver_turn（deliver_real → extract_output → 校验）
-        start = time.time()
-        try:
-            output = self.deliver_turn(request)
-            runtime_ms = int((time.time() - start) * 1000)
-            facts = self._take_turn_facts()
-            raw_response = facts.get("raw_response")
-            application_boundary = self.application_boundary(raw_response, output, request)
-            project_fields = self.project_fields(raw_response, output, request, application_boundary)
-            execution_trace = list(facts.get("validation") or []) + list(self.build_execution_trace(raw_response, output, request) or [])
-            ctx.record_turn(
-                request=request,
-                raw_response=raw_response,
-                live_exchanges=list(facts.get("live_exchanges") or []),
-                extracted_output=output,
-                call_status="succeeded",
-                runtime_ms=runtime_ms,
-                error=None,
-                fallbacks=[],
-                validation=[],
-                execution_trace=execution_trace,
-                application_boundary=application_boundary,
-                project_fields=project_fields,
-                mock_message=mock_message,
-            )
-            ctx.finish_execution(
-                stop_reason="single_turn_completed",
-                transcript=[],
-                final_output_turn=1,
-                completion_status="completed",
-            )
-            return output
-        except Exception as exc:
-            runtime_ms = int((time.time() - start) * 1000)
-            facts = self._take_turn_facts()
-            fallback = self._build_fallback(request, str(exc), unavailable=_is_service_unavailable(exc))
-            ctx.record_turn(
-                request=request,
-                raw_response=facts.get("raw_response"),
-                live_exchanges=list(facts.get("live_exchanges") or []),
-                extracted_output={},
-                call_status="failed",
-                runtime_ms=runtime_ms,
-                error=str(exc),
-                fallbacks=[fallback],
-                validation=list(facts.get("validation") or []),
-                mock_message=mock_message,
-            )
-            ctx.finish_execution(
-                stop_reason="execution_error",
-                transcript=[],
-                final_output_turn=None,
-                completion_status="failed",
-            )
-            raise
 
-    def _execute_multi_turn(
-        self,
-        initial_request: Dict[str, Any],
-        ctx: "TraceContext",
-        intent: Optional["MockIntentOutput"] = None,
-    ) -> Dict[str, Any]:
-        """多轮执行路径：首轮 Request-first，之后先决策再构建下一轮。
 
-        主循环在 execute_live 内部（spec 第十一节 2）。TraceContext 收集每轮过程事实。
-        每轮 output 独立符合 EXTRACT_OUTPUT_SCHEMA；完整轮次事实只进入 TraceContext。
-        """
-        mock = self._mock_for_multi_turn()
-        max_turns = max(1, int(mock.safety_max_turns()))
 
-        # transcript 级 seed 只能由 ReplayDriver 重放（legacy 循环没有回放能力），不看开关。
-        if getattr(self.spec, "interaction_driver", "legacy") == "session" or getattr(ctx, "seed", None):
-            return self._execute_multi_turn_via_session(initial_request, ctx, intent, mock, max_turns)
-
-        interaction_turns: List[Dict[str, Any]] = []
-        transcript: List[Dict[str, Any]] = []
-        last_output: Optional[Dict[str, Any]] = None
-        stop_reason = ""
-        stopped_by_decision = False
-        session_id = f"interactive-{getattr(intent, 'scenario', '') or ctx.scenario or 'session'}"
-
-        request = dict(initial_request or {})
-        for turn_index in range(max_turns):
-            user_query = str(mock.extract_mock_message(request) or "") if hasattr(mock, "extract_mock_message") else str(request.get("query") or request.get("content") or "")
-            transcript.append({"role": "user", "content": user_query, "query": user_query})
-
-            start = time.time()
-            try:
-                output = self.deliver_turn(request)
-                runtime_ms = int((time.time() - start) * 1000)
-                facts = self._take_turn_facts()
-                raw_response = facts.get("raw_response")
-                application_boundary = self.application_boundary(raw_response, output, request)
-                project_fields = self.project_fields(raw_response, output, request, application_boundary)
-                execution_trace = list(facts.get("validation") or []) + list(self.build_execution_trace(raw_response, output, request) or [])
-                ctx.record_turn(
-                    request=request,
-                    raw_response=raw_response,
-                    live_exchanges=list(facts.get("live_exchanges") or []),
-                    extracted_output=output,
-                    call_status="succeeded",
-                    runtime_ms=runtime_ms,
-                    error=None,
-                    fallbacks=[],
-                    validation=[],
-                    execution_trace=execution_trace,
-                    application_boundary=application_boundary,
-                    project_fields=project_fields,
-                    mock_message=user_query,
-                )
-                last_output = output
-                interaction_turns.append({
-                    "turn_index": turn_index + 1,
-                    "live_request": dict(request),
-                    "extract_output": dict(output),
-                    "status": "succeeded",
-                    "error": None,
-                })
-            except Exception as exc:
-                runtime_ms = int((time.time() - start) * 1000)
-                facts = self._take_turn_facts()
-                fallback = self._build_fallback(request, str(exc), unavailable=_is_service_unavailable(exc))
-                ctx.record_turn(
-                    request=request,
-                    raw_response=facts.get("raw_response"),
-                    live_exchanges=list(facts.get("live_exchanges") or []),
-                    extracted_output={},
-                    call_status="failed",
-                    runtime_ms=runtime_ms,
-                    error=str(exc),
-                    fallbacks=[fallback],
-                    validation=list(facts.get("validation") or []),
-                    mock_message=user_query,
-                )
-                stop_reason = "live_error"
-                break
-
-            transcript.append({
-                "role": "assistant",
-                "content": self._summarize_assistant(output),
-                "stage": output.get("stage") if isinstance(output, dict) else None,
-            })
-
-            if intent is None or not getattr(intent, "user_intent", "") or not getattr(intent, "query", ""):
-                try:
-                    intent = mock.infer_user_intent(dict(initial_request))
-                    if not getattr(intent, "user_intent", "") or not getattr(intent, "query", ""):
-                        raise ValueError("infer_user_intent returned empty required fields")
-                    ctx.set_intent(intent)
-                except Exception as exc:
-                    logger.warning("mock.infer_user_intent failed: %s", exc, exc_info=True)
-                    ctx.record_interaction_controller("error", exc)
-                    stop_reason = "intent_unavailable"
-                    break
-
-            accumulated = {
-                "turns": list(interaction_turns),
-                "current_turn": turn_index + 1,
-                "safety_max_turns": max_turns,
-            }
-            decision = None
-            decision_error: Optional[Exception] = None
-            for decision_attempt in range(2):
-                try:
-                    decision = mock.decide_next_action(intent, accumulated)
-                    decision_error = None
-                    break
-                except Exception as exc:
-                    decision_error = exc
-                    logger.warning(
-                        "mock.decide_next_action attempt %d/2 failed: %s",
-                        decision_attempt + 1,
-                        exc,
-                        exc_info=True,
-                    )
-            if decision is None:
-                ctx.record_interaction_controller("error", decision_error)
-                stop_reason = "decision_error"
-                break
-            ctx.record_interaction_controller("ok")
-            if (
-                decision.action == "stop"
-                and decision.stop_reason == "goal_satisfied"
-                and not self._has_visible_goal_evidence(output)
-            ):
-                from impl.core.schema import MockContinueDecision
-                decision = MockContinueDecision(
-                    action="stop",
-                    stop_reason="perceived_no_progress",
-                )
-            ctx.record_decision(decision)
-            if decision.action == "stop":
-                stop_reason = decision.stop_reason or "user_abandons"
-                stopped_by_decision = True
-                break
-            if turn_index + 1 >= max_turns:
-                stop_reason = "safety_max_turns"
-                break
-            try:
-                request = mock.build_next_request(intent, accumulated)
-            except Exception as exc:
-                logger.warning("mock.build_next_request failed at turn %d: %s", turn_index + 2, exc, exc_info=True)
-                ctx.record_interaction_controller("error", exc)
-                stop_reason = "request_build_error"
-                break
-            if not isinstance(request, dict) or not request:
-                ctx.record_interaction_controller(
-                    "error",
-                    "mock.build_next_request returned an empty or invalid request",
-                )
-                stop_reason = "request_build_error"
-                break
-
-        final_output_turn = len(interaction_turns) if last_output is not None else None
-        if last_output is None:
-            completion_status = "failed"
-        elif stopped_by_decision:
-            completion_status = "completed"
-        else:
-            completion_status = "incomplete"
-        ctx.finish_execution(
-            session_id=session_id,
-            stop_reason=stop_reason,
-            transcript=transcript,
-            final_output_turn=final_output_turn,
-            completion_status=completion_status,
-        )
-        if last_output is None:
-            raise RuntimeError(f"{self.spec.project_id} multi-turn execution produced no valid output")
-        # 多轮返回最后一轮有效的项目 EXTRACT_OUTPUT_SCHEMA；完整 turns 由 TraceContext 持有。
-        return last_output
-
-    def _execute_multi_turn_via_session(
+    def _execute_via_session(
         self,
         initial_request: Dict[str, Any],
         ctx: "TraceContext",
         intent: Optional["MockIntentOutput"],
-        mock: Any,
-        max_turns: int,
     ) -> Dict[str, Any]:
-        """多轮 session 路径（spec/mock/protocol.md 阶段 1）：Session 执行、Driver 驱动。
+        """Session 路径（spec/mock/protocol.md 协议 A）：Session 执行、Driver 驱动。
 
-        阶段 1 只有 LegacyMixinDriver，产出的 TraceContext 事实与旧循环逐字一致，
-        由 tests/test_golden_multiturn.py 锁定。
+        - ctx.seed 为 transcript 级 → ReplayDriver 逐字重放。
+        - 否则 mock 实现 MultiTurnInteractiveMock 且 max_turns > 1 → PersonaDriver 扮演用户逐轮交互。
+        - 否则 → OneShotDriver 单轮执行。
         """
+        import uuid
+
+        from impl.core.mock_protocol import MultiTurnInteractiveMock
         from impl.core.session import (
-            LegacyMixinDriver,
+            Driver,
+            OneShotDriver,
+            PersonaDriver,
             ReplayDriver,
             Session,
             SessionBudget,
             SessionTranslator,
         )
 
+        mock = self._mock_instance()
         seed = ctx.seed if isinstance(getattr(ctx, "seed", None), dict) else None
-        session_id = f"interactive-{getattr(intent, 'scenario', '') or ctx.scenario or 'session'}"
         if seed is not None:
-            # 回放的会话身份带 case_id，避免多条 seed 回放共用同一 live 会话。
-            session_id = f"replay-{ctx.case_id or 'session'}"
+            max_turns = max(1, len(seed.get("turns") or []))
+            session_id = f"replay-{ctx.case_id or 'session'}-{uuid.uuid4().hex[:8]}"
+        else:
+            max_turns = self.spec.session_max_turns
+            session_id = f"interactive-{getattr(intent, 'scenario', '') or ctx.scenario or 'session'}"
         session = Session(
             self,
             ctx,
             session_id=session_id,
-            budget=SessionBudget(max_turns=max(max_turns, len(seed.get("turns") or []) if seed else 0)),
+            budget=SessionBudget(max_turns=max_turns),
             user_message_extractor=getattr(mock, "extract_mock_message", None),
             translator=mock if isinstance(mock, SessionTranslator) else None,
+            initial_request=initial_request,
         )
-        driver = ReplayDriver(seed) if seed is not None else LegacyMixinDriver(mock)
+        if seed is not None:
+            driver: Driver = ReplayDriver(seed)
+        elif max_turns > 1 and isinstance(mock, MultiTurnInteractiveMock):
+            driver = PersonaDriver(mock)
+        else:
+            driver = OneShotDriver()
         driver.run(session, dict(initial_request or {}), intent)
         if not session.closed:
             session.close("driver_error")
         if session.last_output is None:
-            raise RuntimeError(f"{self.spec.project_id} multi-turn execution produced no valid output")
+            raise RuntimeError(
+                f"{self.spec.project_id} execution produced no valid output: {session.last_error or session.stop_reason}"
+            )
         return session.last_output
 
     @staticmethod
@@ -581,6 +310,18 @@ class _LiveProtocol(ABC):
         raw_response 和校验事件仅保存在当前执行上下文，供 execute_live 上报 TraceContext；
         不写入共享 Live 实例字段，避免并发 case 串数据。
         """
+        # provided 路径：直接走 deliver_provided，不调 deliver_real。
+        if self._has_provided_output():
+            output, raw_response, error, fallbacks, validations, delivery_request = self._run_provided(request)
+            if error is not None:
+                raise RuntimeError(error)
+            _TURN_FACTS.set({
+                "raw_response": raw_response,
+                "live_exchanges": [],
+                "validation": validations,
+            })
+            return output
+
         _TURN_FACTS.set(None)
         request_validation = self._validate_request(request)
         _TURN_FACTS.set({
@@ -810,60 +551,7 @@ class ProvidedOutputLive(ProjectLive):
         pass
 
 
-class SingleTurnLive:
-    """单轮交互模式 mixin。项目 Live 通过组合继承声明单轮形态。
-
-    使用方式：
-        class XxxLive(RealServiceLive, SingleTurnLive): ...
-        class XxxLive(ProvidedOutputLive, SingleTurnLive): ...
-
-    单轮 Live 不进入多轮主循环。execute_live 通过 isinstance(self, MultiTurnInteractiveLive)
-    判断是否走多轮路径；不继承 MultiTurnInteractiveLive 即视为单轮。
-    """
-
-    _FORBIDDEN_OVERRIDES = frozenset({
-        'deliver_multi_turn',  # 已废弃（trace.md 第十二节删除项）；单轮项目不应实现
-    })
-
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
-        check_forbidden_overrides(cls, cls._FORBIDDEN_OVERRIDES)
 
 
-class MultiTurnInteractiveLive:
-    """多轮交互模式 mixin。声明 execute_live 走多轮路径（_execute_multi_turn）。
 
-    使用方式：
-        class XxxLive(RealServiceLive, MultiTurnInteractiveLive): ...
-        class XxxLive(ProvidedOutputLive, MultiTurnInteractiveLive): ...
 
-    协议层提供的（项目不能覆盖）：
-    - execute_live: 完整调用入口（@final，在 _LiveProtocol）
-    - _execute_multi_turn: 多轮主循环（@final，在 _LiveProtocol）
-    - deliver_turn: 单次 real 投递（@final，在 _LiveProtocol）
-
-    协议层提供的默认实现（项目可选覆盖以注入项目特化语义）：
-    - _summarize_assistant: 默认通用摘要
-
-    项目必须实现（继承自 RealServiceLive / ProvidedOutputLive）：
-    - deliver_real 或 deliver_provided
-
-    项目不应该实现：
-    - 多轮主循环、transcript 累积、停止判断（停止判断在 mock.should_stop）
-    - judge/attribute 调用、run payload 组装
-
-    多轮主循环在 execute_live 内部（spec 第十一节 2），不再抽出独立的 deliver_multi_turn 模板方法
-    （spec 第十二节明确删除项）。多轮过程事实通过 TraceContext 上报，trace 层收集。
-    """
-
-    _FORBIDDEN_OVERRIDES = frozenset({
-        'deliver_multi_turn',  # 已废弃（trace.md 第十二节删除项），多轮主循环合并到 execute_live 内部
-    })
-
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
-        check_forbidden_overrides(cls, cls._FORBIDDEN_OVERRIDES)
-
-    def _mock_for_multi_turn(self) -> Any:
-        """获取同项目的 Mock 实例（多轮主循环用）。复用单轮的 _mock_instance。"""
-        return self._mock_instance()

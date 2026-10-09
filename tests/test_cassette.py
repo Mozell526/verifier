@@ -23,7 +23,7 @@ from tests.support.cassette import Cassette
 from tests.test_core_live_protocol import (
     _MultiLive,
     _MultiMock,
-    _fake_live_http,
+    _fake_live_http,  # noqa: F401  pytest autouse fixture：import 即注册，替 urlopen 打桩
     _live,
 )
 

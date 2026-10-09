@@ -250,11 +250,16 @@ def _resolve_llm_fallbacks(values: Mapping[str, Any]) -> tuple[LlmFallback, ...]
         api_key = str(values.get(f"llm.fallback_{index}.api_key") or "").strip()
         if not (base_url and model and api_key):
             continue
+        raw_capacity = values.get(f"llm.fallback_{index}.max_prompt_chars")
         resolved.append(
             LlmFallback(
                 base_url=openai_compatible_base_url(base_url, f"llm.fallback_{index}.base_url"),
                 model=model,
                 api_key=api_key,
+                max_prompt_chars=(
+                    int(raw_capacity) if str(raw_capacity or "").strip() else None
+                ),
+                tool_calls=bool(values.get(f"llm.fallback_{index}.tool_calls", True)),
             )
         )
     return tuple(resolved)

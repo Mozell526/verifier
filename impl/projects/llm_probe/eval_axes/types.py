@@ -10,6 +10,11 @@ VERDICT_SCOPE_AXIS = "axis"
 VERDICT_SCOPE_ITEM = "item"
 VERDICT_SCOPES = (VERDICT_SCOPE_AXIS, VERDICT_SCOPE_ITEM)
 
+# evaluation=用户面评测维度；analysis=内部分析轴（被评测轴依赖时自动启用，不当独立维度配置/展示）
+ROLE_EVALUATION = "evaluation"
+ROLE_ANALYSIS = "analysis"
+AXIS_ROLES = (ROLE_EVALUATION, ROLE_ANALYSIS)
+
 STATUS_DISABLED = "disabled"
 STATUS_BLOCKED = "blocked"
 STATUS_NOT_APPLICABLE = "not_applicable"
@@ -23,6 +28,13 @@ STATUSES = (
     STATUS_FAILED,
 )
 
+# failed 的原因分三类，写在 error 开头，导出表里直接可筛：
+# 运行环境（端点/限流/超时，重跑可能恢复）、轴实现（轴本身产不出合格结果，要改轴）、需补材料（需用户支持补采集/授权）。
+FAILURE_ENVIRONMENT = "[运行环境]"
+FAILURE_AXIS = "[轴实现]"
+FAILURE_MATERIAL = "[需补材料]"
+FAILURE_KINDS = (FAILURE_ENVIRONMENT, FAILURE_AXIS, FAILURE_MATERIAL)
+
 SOURCE_SAMPLE = "sample"
 SOURCE_AXIS = "axis"
 
@@ -32,7 +44,7 @@ EXPAND_MODES = (EXPAND_PROMPT_LOAD, EXPAND_CATALOG)
 
 TYPE_ID_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
 
-_SAMPLE_SOURCE = re.compile(r"^sample\.(trace)$")
+_SAMPLE_SOURCE = re.compile(r"^sample\.(trace|business_trace|requirements)$")
 _AXIS_SOURCE = re.compile(r"^axis\.([a-z][a-z0-9_]*)\.output$")
 
 
@@ -57,7 +69,8 @@ class Input:
     """一个输入槽位：adapter 收到的 inputs[name] 从哪来。
 
     source 只有两种形态：
-    - ``sample.trace``：整份 RunTrace（轴1本来就看全 trace）；
+    - ``sample.trace``：整份 RunTrace；
+    - ``sample.business_trace``：同一 RunTrace 中固化的业务 Trace 快照；
     - ``axis.<type_id>.output``：上游轴 output 的**具名字段**（fields 必填），
       运行器只投影这些字段，不给整份结果，更不给 trace。
     """
@@ -79,7 +92,7 @@ class Input:
                 )
             return
         raise ValueError(
-            f"Input {self.name}: source 只能是 sample.trace 或 axis.<type_id>.output，得到 {self.source!r}"
+            f"Input {self.name}: source 只能是 sample.trace、sample.business_trace、sample.requirements 或 axis.<type_id>.output，得到 {self.source!r}"
         )
 
     @property
@@ -126,7 +139,8 @@ class Field:
 class ExecutionLimits:
     """tool_calls 由现有 tool_call_limit 硬限（v4 D8）；seconds 是协作式墙钟上限：运行器把截止时刻
     交给 run()，adapter 在每次 LLM 调用之间查 runtime.ensure_time_left()，到点就停止开新的调用并报失败。
-    不强杀线程——一次 LLM 调用最长受 llm.request_timeout_seconds 约束。llm_calls 只记录。"""
+    不强杀线程——一次 LLM 调用最长受 llm.request_timeout_seconds 约束。
+    llm_calls 由接入轮次预算的 ToolLoop 执行；其他 adapter 仍须自行落实声明的上限。"""
 
     llm_calls: Optional[int] = None
     tool_calls: Optional[int] = None
@@ -158,15 +172,40 @@ class AxisRuntime:
     scenario_id: str
     case_id: str
     deadline: Optional[float] = None  # time.monotonic() 时刻；None = 不限
+    # 本场景启用的全部轴 type_id；分析轴据此知道谁在消费它、该往哪些方向探测
+    enabled_axes: tuple[str, ...] = ()
+
+    expectation_projection: dict[str, Any] = field(default_factory=dict)
+
+    process_issues: dict[str, Any] = field(default_factory=dict)
 
     def ensure_time_left(self, about: str = "") -> None:
         """adapter 在开下一次 LLM 调用前调用；超过本轴 seconds 上限即抛 AxisTimeout。"""
         if self.deadline is not None and time.monotonic() >= self.deadline:
-            raise AxisTimeout(f"超出本轴时间上限，未再开始新的调用" + (f"（{about}）" if about else ""))
+            raise AxisTimeout("超出本轴时间上限，未再开始新的调用" + (f"（{about}）" if about else ""))
 
 
 class AxisTimeout(RuntimeError):
     """协作式超时：由 AxisRuntime.ensure_time_left 抛出，运行器记为 failed。"""
+
+
+class AxisRequestFailed(RuntimeError):
+    """请求层失败：complete_json 对鉴权/限流/网络等请求错误返回 {"error", "raw_text"} 而不抛异常。
+
+    由 adapter 经 raise_for_error_payload 抛出，运行器记为 failed 并在 usage 里带
+    llm_error / llm_error_text；不进入格式重试 / salvage（那是模型输出格式错误的通道）。
+    """
+
+    def __init__(self, error: str, raw_text: str = "") -> None:
+        super().__init__(error)
+        self.error = error
+        self.raw_text = raw_text
+
+
+def raise_for_error_payload(raw: Any) -> None:
+    """complete_json 请求层失败返回 error dict（不抛异常）；把它当模型输出会伪装成格式错误。"""
+    if isinstance(raw, Mapping) and "error" in raw:
+        raise AxisRequestFailed(str(raw["error"]), str(raw.get("raw_text") or ""))
 
 
 @dataclass
@@ -212,6 +251,8 @@ class AxisType:
     scenario_fields: tuple[Field, ...]
     limits: ExecutionLimits
     run: RunFn
+    requires_business_trace: bool = False
+    role: str = ROLE_EVALUATION
     # axis 级：output 里的点路径，如 overall_fulfillment.status
     verdict_path: str = ""
     # item 级：output 里的列表字段路径，如 placements[].placement
@@ -224,6 +265,8 @@ class AxisType:
             raise ValueError(f"type_id 必须是小写标识符，得到 {self.type_id!r}")
         if self.verdict_scope not in VERDICT_SCOPES:
             raise ValueError(f"{self.type_id}: verdict_scope 只能是 {VERDICT_SCOPES}")
+        if self.role not in AXIS_ROLES:
+            raise ValueError(f"{self.type_id}: role 只能是 {AXIS_ROLES}")
         if not self.verdict_enum:
             raise ValueError(f"{self.type_id}: verdict_enum 不能为空")
         values = [item.value for item in self.verdict_enum]
@@ -312,6 +355,7 @@ class AxisType:
             "limits": self.limits.as_dict(),
             "verdict_path": self.verdict_path,
             "item_path": self.item_path,
+            "requires_business_trace": self.requires_business_trace,
         }
 
 
