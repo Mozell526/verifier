@@ -37,7 +37,7 @@
 
 ## adaptive-replay
 
-**何时**：用例池里有 transcript seed（别人的会话录音），想知道 live 改版后同样的用户还会不会被服务好；或 `strategy_hints` 含 `adaptive-replay`。
+**何时**：已有导出的 transcript seed（`impl/data/<project>/sessions/` 或 `mock_cases-*.json`，别人的会话录音），想知道 live 改版后同样的用户还会不会被服务好；或 `strategy_hints` 含 `adaptive-replay`。
 
 **起手**：
 ```bash

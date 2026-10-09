@@ -62,7 +62,7 @@ $CLI session close $S --reason goal_satisfied|user_abandons|perceived_no_progres
 
 `close` 的三种理由是用户视角的：拿到了想要的 → `goal_satisfied`；懒得继续 / 换渠道 → `user_abandons`；反复几轮还是原地打转 → `perceived_no_progress`。**不要**因为"测完了"就随便选一个，它进 `stop_reason` 归因。
 
-`close` 后评测系统自动导出：`impl/data/<project>/sessions/<session_id>.json`（完整多轮 RunTrace + transcript seed），seed 同时进用例池 `harness-<run_id>`。你不需要做任何保存动作。
+`close` 后评测系统自动导出：`impl/data/<project>/sessions/<session_id>.json`（完整多轮 RunTrace + transcript seed），seed 同时写进候选文件 `impl/data/<project>/mock_cases-<run_id>.json`（无 run_id 则 `mock_cases-adhoc.json`，同 id 覆盖）。你不需要做任何保存动作。
 
 ### 1.4 judge 与台账
 
@@ -115,7 +115,7 @@ $CLI exploration report <project> <run_id> --report '{
 |---|---|---|---|
 | persona | 一个具体的人（年龄/身份/表达习惯/隐含约束），按其习惯说话，条件分几轮给 | `seeded` | 多轮澄清丢上下文、隐含约束没被问出来 |
 | scripted | 预写 3–5 句剧本（复现已知问题 / 覆盖指定场景），照剧本走但每轮看回复决定是否提前 close | `seeded` | 场景覆盖、回归确认 |
-| adaptive-replay | 从用例池里的 transcript seed（`impl/data/case_pools.json` 或 `session get`）起手，先推断录制用户的目标，live 回答变了就改台词 | `adopted_from_inference` | live 改版后的新行为、分叉点 |
+| adaptive-replay | 从已导出的 transcript seed（`impl/data/<project>/sessions/` 或 `mock_cases-*.json`）起手，先推断录制用户的目标，live 回答变了就改台词 | `adopted_from_inference` | live 改版后的新行为、分叉点 |
 | boundary | 值域边缘、单位、口语数字、否定/排除、组合条件、空/超长/错字 | `seeded` | 解析越界执行、静默丢条件 |
 | drift | 前两轮一个目标，中途明确改主意（换字段/换阈值/撤回条件） | 先 `seeded` 后 `drifted` | 旧条件残留、上下文覆盖失败 |
 
