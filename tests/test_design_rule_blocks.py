@@ -354,18 +354,3 @@ def test_frozen_persisted_tool_gets_actual_paired_description_block():
         e['ref'] == tool['id'] for side in ('input', 'output') for e in l[side]))
 
 
-def test_report_fingerprint_tracks_original_rule_and_validation_dependencies(monkeypatch):
-    from impl.projects.llm_probe.process_loop import llmtracing_report as report
-    required = {'business_trace/design_rules.py', 'business_trace/dossier.py',
-                'business_trace/materials.py', 'process_loop/evaluation.py',
-                'eval_axes/adapters/process_output.py', 'process_contract.py'}
-    paths = {'impl/projects/llm_probe/' + path for path in required}
-    assert paths <= set(report.FILES)
-    original = Path.read_bytes
-    before = report._fingerprint('tool_execution')
-    for dependency in paths:
-        with monkeypatch.context() as patch:
-            patch.setattr(Path, 'read_bytes', lambda self, dep=dependency:
-                          original(self) + (b'\n# fingerprint probe' if self == report.ROOT / dep else b''))
-            assert report._fingerprint('tool_execution') != before
-

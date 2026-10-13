@@ -26,12 +26,13 @@ FP_KINDS = {"split", "overclaim", "contradicted", "other_false_positive"}
 
 def variants(payload):
     """新方案臂按程序条目口径分三种报（CORRECTION-3）：v1 原样 / 只有模型条目 / 模型条目 + 程序 v2。"""
-    model_only = [row for row in payload["new"] if row.get("verified_by") != "程序"]
+    model_only = [row for row in payload.get("new") or [] if row.get("verified_by") != "程序"]
     return {"current": payload["current"],
             "new": payload["new"],
             "new_model_only": model_only,
             "new_model_v2": model_only + (payload.get("new_program_v2") or []),
-            "new2": payload.get("new2") or [], "new3": payload.get("new3") or [], "new4": payload.get("new4") or []}
+            "new2": payload.get("new2") or [], "new3": payload.get("new3") or [], "new4": payload.get("new4") or [],
+            "impl": payload.get("impl") or []}
 INTERNAL_REF_PREFIX = ("程序-", "unexp-", "item_", "exp_", "exp-")
 
 
@@ -209,7 +210,7 @@ def main():
     soft = {item["id"] for item in gold if item["grade"] == "soft"}
     report = {"pass": pass_no, "gold": {"hard": len(hard), "soft": len(soft)}, "arms": {}}
     for name, rows in variants(problems).items():
-        arm = {"current": "current", "new2": "new2", "new3": "new3", "new4": "new4"}.get(name, "new")
+        arm = {"current": "current", "new2": "new2", "new3": "new3", "new4": "new4", "impl": "impl"}.get(name, "new")
         metrics = arm_metrics(rows, cls, grade_by_id, arm, pass_no, keymap, refs_index)
         metrics["recall_hard"] = round(len(set(metrics["hits"]) & hard) / len(hard), 3)
         metrics["recall_soft"] = round(len(set(metrics["hits"]) & soft) / len(soft), 3)
@@ -223,7 +224,7 @@ def main():
     if pass_no != 2 and second_path.exists():
         second = variants(io.load_json(second_path))
         for name, rows in variants(problems).items():
-            if name in ("new2", "new3", "new4"):
+            if name in ("new2", "new3", "new4", "impl"):
                 continue
             arm = "current" if name == "current" else "new"
             report["arms"][name]["overlap_pass1_pass2"] = overlap_consistency(rows, second[name])

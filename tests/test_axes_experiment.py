@@ -384,23 +384,23 @@ const fs=require('fs'), assert=require('node:assert/strict');
     assert result.returncode == 0, result.stdout + result.stderr
 
 
-def test_browser_process_composition_evidence_and_upstream_issue_navigation():
+def test_browser_process_composition_and_quoted_evidence():
     cli = shutil.which('playwright-cli')
     if not cli:
         pytest.skip('browser regression requires playwright-cli')
     module = Path(cli).resolve().parent / 'node_modules' / 'playwright'
     if not module.exists():
         pytest.skip('Playwright library is unavailable')
-    issue = dict(problem_id='lost-prompt', phenomenon='Policy omitted', expected='Include policy',
-                 observed='Policy missing', source_refs=['case'], input_refs=['prompt'], output_refs=[],
-                 attribution_axes=['context_memory'], attribution='local', impact='yes')
+    issue = dict(problem_id='context_memory-B1-P1', phenomenon='Policy omitted', expected='Include policy',
+                 observed='Policy missing', source_refs=[], input_refs=[], output_refs=['prompt'],
+                 quotes=[dict(ref='prompt', quote='no policy here')],
+                 attribution='local', attribution_detail='本轴', impact='用户看不到保单')
     cases = [dict(id='local-test', input='request', output='answer', axes=[
         dict(type_id='context_memory', status='succeeded', verdict='problematic', issues=[issue],
-             composition={'counts': {'fail': 1}}, evidence_records={'prompt': 'ACTUAL PROMPT BODY'}),
+             composition={'counts': {'没达到': 1}}, evidence_records={'prompt': 'ACTUAL PROMPT BODY'}),
         dict(type_id='model_capability', status='succeeded', verdict='untested', issues=[],
-             composition={'counts': {'input_invalid': 1}}, items=[{
-                 'key': 'faithful', 'value': 'input_invalid', 'reason': 'Depends on policy',
-                 'upstream_issue_ids': ['lost-prompt']}])])]
+             composition={'counts': {'没达到': 1, '问题·上游': 1}}, items=[{
+                 'key': '输出忠实于输入 @ call1', 'value': '没达到', 'reason': '本应：…；实际：…'}])])]
     types = [dict(type_id=a, verdict_scope='axis', verdict_enum=[{'value': v}])
              for a, v in [('context_memory', 'problematic'), ('model_capability', 'untested')]]
     html = run_js('process.stdout.write(JSON.stringify(A.renderPage(input.cases,input.types)));', cases, types)
@@ -413,14 +413,12 @@ const fs=require('fs'), assert=require('node:assert/strict');
   page.on('pageerror',e=>errors.push(e.message));
   await page.setContent(fs.readFileSync(0,'utf8'));
   await page.click('#matrix-mode');
-  const cell=page.locator('.matrix-cell[data-axis-id="model_capability"]');
-  assert((await cell.textContent()).includes('输入无效 1'));
-  await cell.click();
-  await page.locator('.upstream-issue-link').click();
-  assert.equal(await page.locator('#issue-lost-prompt').count(),1);
-  assert((await page.locator('.case-axis-detail').textContent()).includes('归因：context_memory'));
-  await page.locator('.issue-evidence').filter({hasText:'证据 prompt'}).locator('summary').click();
-  assert.equal(await page.locator('.issue-evidence').filter({hasText:'证据 prompt'}).locator('pre').textContent(),'ACTUAL PROMPT BODY');
+  assert((await page.locator('.matrix-cell[data-axis-id="model_capability"]').textContent()).includes('问题·上游 1'));
+  await page.locator('.matrix-cell[data-axis-id="context_memory"]').click();
+  assert.equal(await page.locator('#issue-context_memory-B1-P1').count(),1);
+  assert((await page.locator('.case-axis-detail').textContent()).includes('归因：本轴；对最终交付的影响：用户看不到保单'));
+  await page.locator('.issue-evidence').filter({hasText:'引文 · prompt'}).locator('summary').click();
+  assert.equal(await page.locator('.issue-evidence').filter({hasText:'引文 · prompt'}).locator('pre').textContent(),'ACTUAL PROMPT BODY');
   assert.deepEqual(errors,[]);
  } finally {await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1});

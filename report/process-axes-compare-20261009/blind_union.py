@@ -31,11 +31,11 @@ def load_passes():
         pass_no = int(path.stem.replace("pass", ""))
         payload = io.load_json(path)
         for arm in ("current", "new"):
-            for row in payload[arm]:
+            for row in payload.get(arm) or []:
                 rows.append({"arm": arm, "pass": pass_no, "row": row})
         for row in payload.get("new_program_v2") or []:
             rows.append({"arm": "new", "pass": pass_no, "row": row})
-        for extra_arm in ("new2", "new3", "new4"):
+        for extra_arm in ("new2", "new3", "new4", "impl"):
             for row in payload.get(extra_arm) or []:
                 rows.append({"arm": extra_arm, "pass": pass_no, "row": row})
     return rows

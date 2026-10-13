@@ -208,19 +208,12 @@ def eval_axes_summary(report: Any) -> List[Dict[str, Any]]:
         cited = {ref for issue in issues for key in ('source_refs', 'input_refs', 'output_refs') for ref in issue[key]}
         from impl.projects.llm_probe.business_trace.dossier import render_value
         evidence = {ref: render_value(dossier, records[ref]) for ref in cited if ref in records}
-        for obligation in output.get('obligations', []):
-            key = 'obligation:' + obligation['obligation_id']
-            if key in cited:
-                evidence[key] = obligation
-            if obligation['obligation_id'] in cited:
-                evidence[obligation['obligation_id']] = obligation
         from impl.projects.llm_probe.eval_axes.registry import AXIS_TYPES
         kind = AXIS_TYPES.get(type_id)
         rows.append({
             "role": kind.role if kind else "evaluation",
             "composition": assessment.get('composition'),
             "issues": issues if 'issues' in output else None,
-            "contract_missing": assessment.get('contract_missing', []),
             "evidence_records": evidence,
             "execution_trace_ref": item.get('execution_trace_ref', ''),
             "axis_id": str(item.get("axis_id") or ""),

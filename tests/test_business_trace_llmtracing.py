@@ -1,8 +1,7 @@
 """llmtracing provider 协议测试：事件合并、execution 切片、完结判定、reader 映射。不访问真实中转。"""
 from __future__ import annotations
 
-from tests.support.expectations import E, PROJECTION
-from tests.support.unit_reply import unit_reply
+from tests.support.expectations import E
 import json
 from pathlib import Path
 
@@ -231,12 +230,12 @@ def test_check_connection(tmp_path):
     assert llmtracing.check_connection(_config(log))["size_bytes"] == 2
 
 
-def test_llmtracing_runs_transcript_path_not_dossier(tmp_path, monkeypatch):
-    """llmtracing 不经 dossier/links：分析步确定性重建，单轴入口委托 ToolLoop。"""
+def test_llmtracing_transcript_is_analysed_but_six_axes_report_unsupported(tmp_path, monkeypatch):
+    """llmtracing 不经 dossier/links：分析步确定性重建；过程六轴暂不支持对话稿，记运行错误、不调模型。"""
     from types import SimpleNamespace
 
     from impl.projects.llm_probe.eval_axes import registry  # noqa: F401  注册六轴定义
-    from impl.projects.llm_probe.eval_axes.adapters import process_common, trace_analysis, transcript_axes
+    from impl.projects.llm_probe.eval_axes.adapters import process_common, process_expected, trace_analysis
     from impl.projects.llm_probe.eval_axes.types import ScenarioAxis
 
     monkeypatch.setattr(trace_analysis, "build_dossier", lambda *a: pytest.fail("不应走案卷"))
@@ -250,97 +249,11 @@ def test_llmtracing_runs_transcript_path_not_dossier(tmp_path, monkeypatch):
     assert set(analysis.output) == set(trace_analysis.AXIS_TYPE.output_fields)
     assert analysis.output["verdict"] == "complete" and analysis.usage["llm_calls"] == 0
 
-    spec = process_common.PROCESS_SPECS["planning_routing"]
-    seen = []
-
-    from impl.core.tool_loop import Step
-    from impl.projects.llm_probe.process_loop import llmtracing as loop_adapter
-
-    class Client:
-        def complete_step(self, messages, functions, **kw):
-            seen.append(messages)
-            if len(seen) == 1:
-                return Step({"role": "assistant", "tool_calls": [{"id": "read", "type": "function", "function": {
-                    "name": "evidence_read", "arguments": json.dumps({"ids": [r["id"] for r in analysis.output["dossier"]["records"]]})}}]})
-            if len(seen) == 3:
-                return Step({"role": "assistant", "content": "done"})
-            briefing = json.loads(messages[1]['content'])['axes'][0]
-            payload = unit_reply(briefing, 'not_applicable', '未出现',
-                                 reason='r', scope_note='t1 全部 2 次调用')
-            uid = next(uid for uid, unit in briefing['units'].items()
-                       if unit['obligation'] == 'work_coverage' and unit['link'] == 't1.c1.response')
-            row = next(row for row in payload['units'] if row['unit'] == uid)
-            assert row['checks']
-            for check in row['checks']:
-                check.update(outcome='fail', fact='o')
-            payload['problems'] = [{'phenomenon': 'missing work',
-                                    'breaks': [uid + '/' + check['criterion'] for check in row['checks']],
-                                    'axes': ['planning_routing'], 'impact': 'unknown'}]
-            return Step({"role": "assistant", "tool_calls": [{"id": "submit", "type": "function", "function": {
-                "name": "eval_planning_routing", "arguments": json.dumps(payload)}}]})
-
-        def usage(self):
-            return {}
-
-    monkeypatch.setattr(loop_adapter, "prepare", lambda e, client, trace_id, *, tools: PROJECTION)
-    monkeypatch.setattr(loop_adapter, "axis_llm", lambda *a, **kw: Client())
+    monkeypatch.setattr(process_expected, "axis_llm", lambda *a, **kw: pytest.fail("对话稿不应调用评测模型"))
     outcome = process_common.run_process_axis("planning_routing", {"expectations": E, "trace_analysis": analysis.output},
-                                              ScenarioAxis("planning_routing", True, "d"), runtime, spec)
-    assert "tool lookup#t1" in json.dumps(seen, ensure_ascii=False)
-    assert not outcome.failed, outcome.failure_reason
-    assert outcome.output["assessment"]["verdict"] == "problematic"
-    assert outcome.output["results"][0]["link_id"] == "t1.c1.response"
-    assert any(row['obligation_id'] == 'work_coverage' and row['link_id'] == 't1.c1.response'
-               and row['outcome'] == 'fail' for row in outcome.output['results'])
-    assert outcome.output['issues'][0]['phenomenon'] == 'missing work'
-    assert len(seen) == 2   # 读取、提交即完成；不额外请求结束回复
-    assert outcome.output["view"]["kind"] == "transcript"
-    assert outcome.output["view"]["execution"] == "tool_loop"
-
-
-def test_transcript_axis_does_not_salvage_unanswered_obligations(tmp_path, monkeypatch):
-    from types import SimpleNamespace
-
-    from impl.projects.llm_probe.eval_axes import registry  # noqa: F401  注册六轴定义
-    from impl.projects.llm_probe.eval_axes.adapters import process_common, transcript_axes
-    from impl.projects.llm_probe.eval_axes.types import ScenarioAxis
-
-    log = tmp_path / "calls.jsonl"
-    log.write_bytes(b"")
-    _tool_round(log)
-    snap = _collect(log, {"execution_id": EXEC, "case_id": "case-1", "log_offset": 0})
-    transcript = build_transcript(_Trace(), snap)
-    runtime = SimpleNamespace(spec=SimpleNamespace(project_id="llm_probe"), scenario_id="no-such-scenario",
-                              trace_id="x", ensure_time_left=lambda _: None)
-    from impl.core.tool_loop import Step
-    from impl.projects.llm_probe.process_loop import llmtracing as loop_adapter
-
-    class Client:
-        def complete_step(self, messages, functions, **kw):
-            if len(messages) == 2:
-                name, args = 'evidence_read', {'ids': [r['id'] for r in transcript['records']]}
-            else:
-                name = 'eval_intent_understanding'
-                briefing = json.loads(messages[1]['content'])['axes'][0]
-                args = unit_reply(briefing, 'insufficient_evidence', reason='r', scope_note='s')
-                args['units'] = []  # 新协议合法形状，但故意不回答任何必判单位。
-            return Step({"role": "assistant", "tool_calls": [{"id": str(len(messages)), "type": "function", "function": {
-                "name": name, "arguments": json.dumps(args)}}]})
-
-        def usage(self):
-            return {}
-
-    monkeypatch.setattr(loop_adapter, "prepare", lambda e, client, trace_id, *, tools: PROJECTION)
-    monkeypatch.setattr(loop_adapter, "axis_llm", lambda *a, **kw: Client())
-    spec = process_common.PROCESS_SPECS["intent_understanding"]
-    outcome = process_common.run_process_axis(
-        "intent_understanding", {"expectations": E, "trace_analysis": {"dossier": transcript, "coverage": transcript["coverage"]}},
-        ScenarioAxis("intent_understanding", True, "d"), runtime, spec)
-    assert outcome.failed and outcome.output == {}
-    assert "budget" in outcome.failure_reason
-    assert any(call['tool'] == 'eval_intent_understanding' and call['result']['accepted'] is False
-               and '单位未判' in call['result']['error'] for call in outcome.usage['loop_calls']
-               if call['result'])
+                                              ScenarioAxis("planning_routing", True, "d"), runtime,
+                                              process_common.PROCESS_SPECS["planning_routing"])
+    assert outcome.failed and "暂不支持对话稿" in outcome.failure_reason
 
 
 def test_reader_base_carries_no_agno_representation_semantics():

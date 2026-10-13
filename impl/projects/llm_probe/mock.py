@@ -1,13 +1,16 @@
 """llm_probe Mock：fixture 为主，动态生成只产信封形状。
 
 SessionTranslator（spec/mock/protocol.md 6.1）：原话 ↔ 信封的确定性互转。
-原话写进 capability mock_body 模板的 `{query}` 槽位，会话身份写进 `{session_id}` 槽位；
-历史由被测服务按 session_id 自己记，不注入请求体。
+原话写进 capability mock_body 模板的 `{query}` 槽位，会话身份写进 `{session_id}` 槽位。
+`{query}` 位于消息数组（OpenAI 式 [{role, content}]）时，按接口约定由调用方带历史：
+本会话此前各轮的原话与被测服务的实际答复依次写在本轮原话之前；
+不在消息数组里的模板没有历史字段，历史由被测服务按 session_id 自己记。
 """
 from __future__ import annotations
 
 import copy
-from typing import Any, Dict
+import json
+from typing import Any, Dict, List, Optional
 
 from impl.core.mock_protocol import ProjectMock
 from impl.core.session import SessionState, SessionTranslator, UserMessage
@@ -60,7 +63,11 @@ class LlmProbeMock(SessionTranslator, ProjectMock):
         slots = template_slots(ref)
         body = envelope.setdefault("body", {})
         for path in slots["query"]:
-            slot_set(body, path, message.text)
+            messages = _message_list(path)
+            if messages is None:
+                slot_set(body, path, message.text)
+            else:
+                slot_set(body, messages, _history(state.transcript) + [{"role": "user", "content": message.text}])
         for path in slots["session_id"]:
             slot_set(body, path, state.session_id)
         return envelope
@@ -68,8 +75,43 @@ class LlmProbeMock(SessionTranslator, ProjectMock):
     def user_message_from_request(self, request: Dict[str, Any]) -> UserMessage:
         ref = str(request.get("capability_ref") or "").strip() or default_capability_ref()
         body = request.get("body") if isinstance(request.get("body"), dict) else {}
-        text = slot_get(body, template_slots(ref)["query"][0])
+        path = template_slots(ref)["query"][0]
+        messages = _message_list(path)
+        if messages is None:
+            text = slot_get(body, path)
+        else:
+            items = slot_get(body, messages)
+            text = items[-1].get("content") if isinstance(items, list) and items and isinstance(items[-1], dict) else None
         return UserMessage(type="text", text=str(text or ""))
 
     def extract_mock_message(self, request: Dict[str, Any]) -> str:
         return self.user_message_from_request(request).text
+
+
+def _message_list(path: tuple) -> Optional[tuple]:
+    """`{query}` 在 [..., <数组>, i, "content"] 位置时返回该消息数组的路径。"""
+    return path[:-2] if len(path) >= 2 and path[-1] == "content" and isinstance(path[-2], int) else None
+
+
+def _answer_text(entry: Dict[str, Any]) -> str:
+    """被测服务实际返回给用户的答复正文；transcript 前缀条目直接带 content。"""
+    output = entry.get("extracted_output")
+    if not isinstance(output, dict):
+        return str(entry.get("content") or "")
+    text = str(output.get("output_text") or "")
+    try:
+        payload = json.loads(text)
+    except ValueError:
+        return text
+    # 业务报错、繁忙、答非所问等都原样进历史；没有 answer 字段时带整个返回体，不丢这一轮。
+    return str(payload["answer"] or "") if isinstance(payload, dict) and "answer" in payload else text
+
+
+def _history(transcript: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+    history = []
+    for entry in transcript:
+        role = entry.get("role")
+        text = str(entry.get("content") or "") if role == "user" else _answer_text(entry) if role == "assistant" else ""
+        if text.strip():
+            history.append({"role": role, "content": text})
+    return history

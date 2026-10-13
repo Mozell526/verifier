@@ -12,11 +12,6 @@ from impl.core.tool_loop import History
 from impl.projects.llm_probe.business_trace.expectation_material import project_requirements
 from impl.projects.llm_probe.business_trace.providers import agno
 from impl.projects.llm_probe.business_trace.providers.llmtracing_transcript import build_transcript
-from impl.projects.llm_probe.business_trace.providers.llmtracing_evidence import TranscriptEvidence
-from impl.projects.llm_probe.eval_axes.adapters import process_common as common
-from impl.projects.llm_probe.process_loop.llmtracing import TranscriptEvaluation
-from tests.support.unit_reply import set_outcome
-from tests.test_llmtracing_tool_loop import payload
 
 
 @pytest.fixture(autouse=True)
@@ -190,50 +185,6 @@ def test_nonmessage_slots_do_not_renumber_original_input_positions():
     rows = {r['id']: r for r in tr['records']}
     assert rows['t1.c1.m2']['message']['content'] == 'Outer original'
     assert 't1.c1.m2' in wants(project_requirements(t))[0]['trace_refs']
-
-
-@pytest.mark.parametrize('call_id,accepted', [('t1.c1', True), ('t1.c2', False), ('t1.c3', True)])
-def test_full_submitter_checks_original_arrival_not_previous_query(call_id, accepted):
-    t = interleaved_trace()
-    e, p = frozen(t)
-    spec = common.PROCESS_SPECS['model_capability']
-    spec = replace(spec, obligations=tuple(o for o in spec.obligations if o.obligation_id == 'output_faithful'))
-    ev = TranscriptEvaluation(build_transcript(t, t.project_fields['business_trace']),
-        {'model_capability': spec}, None, None, expectations=e, projection=p, trace_id='source-boundary')
-    answer = payload('model_capability', instance=ev)
-    for unit in answer['units']:
-        if 'candidates' in ev.units['model_capability'][unit['unit']]:
-            unit['matched'] = call_id + '.response'
-            for check in unit['checks']:
-                set_outcome(check, 'pass', evidence=[call_id + '.response'])
-    ev.evidence.read(list(ev.evidence.records))
-    ev.post_batch_hook.post_batch(History(calls=[]), [])
-    receipt = ev._submitter('model_capability')(**answer)
-    assert receipt['accepted'] is accepted, receipt
-    if not accepted:
-        assert '出处未证实进入本次输入' in receipt['error']
-
-
-@pytest.mark.parametrize('misleading', ['message_ref', 'call_metadata', 'rendered_text'])
-def test_even_matching_trace_ref_requires_actual_source_content(misleading):
-    t = interleaved_trace()
-    tr = build_transcript(t, t.project_fields['business_trace'])
-    e, _ = frozen(t)
-    rows = {r['id']: r for r in tr['records']}
-    # Simulate an existing mismapped ref: the source points to an old query.
-    e['sources'][0]['trace_refs'] = ['t1.c1.m1']
-    if misleading == 'call_metadata':
-        rows['t1.c2']['text'] = e['sources'][0]['value']
-    if misleading == 'rendered_text':
-        rows['t1.c1.m1']['text'] = e['sources'][0]['value']
-    ev = TranscriptEvidence(tr)
-    result = dict(obligation_id='output_faithful', link_id='t1.c2.response', outcome='pass',
-        source_refs=['expectation:E1'], evidence=dict(input=['t1.c1.m1'], output=['t1.c2.response']),
-        expectation_ids=['E1'], expectation_checks=[dict(expectation_id='E1', outcome='pass')],
-        criterion_checks=[dict(criterion_ref='expectation:E1', outcome='pass')])
-    ob = next(o for o in common.PROCESS_SPECS['model_capability'].obligations if o.obligation_id == 'output_faithful')
-    errors = ev.validate([result], {ob.obligation_id: ob}, set(rows), expectations=e)
-    assert any('出处未证实进入本次输入' in err for err in errors)
 
 
 def test_save_preserves_need_fields_through_active_artifact_and_projection(tmp_path, monkeypatch):

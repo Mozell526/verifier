@@ -9,4 +9,3 @@ def content_sha256(value):
 
 E = {'verdict': 'partial', 'expectations': [], 'sources': [], 'missing': [],
      'sha256': content_sha256([]), 'material_sha256': content_sha256({'sources': [], 'missing': []})}
-PROJECTION = {'data_needs': [], 'expectations_sha256': E['sha256']}

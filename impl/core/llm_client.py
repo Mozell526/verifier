@@ -93,6 +93,27 @@ class JsonExtractionError(ValueError):
     """Raised when an LLM response cannot be parsed into a JSON value."""
 
 
+def with_output_constraint(user: str, output_spec: "StructuredOutputSpec") -> str:
+    """输出结构约束放在本轮 user 末尾时的确切文本。
+
+    多轮追加里，后一轮把前一轮 user 原样放进 history；前一轮发出去的就是这个文本，必须逐字一致。
+    """
+    from .structured_output import render_output_constraint
+    return user + "\n\n" + render_output_constraint(output_spec)
+
+
+class OutputRejected(ValueError):
+    """complete_json 拒收了一次模型产出（解析失败或结构化强校验不通过）。
+
+    `content` 是被拒收的模型原文：调用方的纠错轮把它作为上一轮 assistant 消息带回，
+    纠错请求才是"新一轮追加"，前缀能命中缓存（report/process-axes-compare-20261009/CACHE-FINDINGS.md）。
+    """
+
+    def __init__(self, message: str, content: str):
+        super().__init__(message)
+        self.content = content
+
+
 def _json_error_summary(exc: json.JSONDecodeError) -> str:
     return f"{exc.msg} at line {exc.lineno} column {exc.colno} (char {exc.pos})"
 
@@ -981,7 +1002,9 @@ class LlmClient:
                       reasoning_effort: Any = _USE_CONFIG,
                       output_spec: "StructuredOutputSpec" = None,
                       stage: str = "",
-                      tools_override: Any = _USE_CONFIG) -> Dict[str, Any]:
+                      tools_override: Any = _USE_CONFIG,
+                      history: Optional[List[Dict[str, str]]] = None,
+                      constraint_in_user: bool = False) -> Dict[str, Any]:
         """
         Complete JSON request with isolated session per trace.
 
@@ -999,6 +1022,10 @@ class LlmClient:
                 - 注入 render_output_constraint 文案到 system prompt（兜底强化）
                 - response_format 传 {"type":"json_object"}（DeepSeek 不支持 json_schema）
                 - LLM 返回后跑 enforce_output，不合规直接抛 ValueError 阻断
+            history: 夹在 system 与本轮 user 之间的前几轮消息（[{role, content}]）。纠错轮把原题与被拒收的
+                产出放这里、更正说明作为本轮 user，前缀才能命中缓存。不合规的拒收抛 OutputRejected（带原文）。
+            constraint_in_user: 输出结构约束放到本轮 user 末尾（with_output_constraint），system 保持逐字不变；
+                同一会话里各轮输出结构不同、又要共享前缀缓存时使用。
         """
         if output_spec is None:
             raise TypeError(
@@ -1032,7 +1059,7 @@ class LlmClient:
             stage=str(stage or "complete_json"),
             trace_id=str(trace_id),
             system=system,
-            user=user,
+            user="\n\n".join([str(m.get("content") or "") for m in history or []] + [user]),
             output_spec=output_spec,
             tools=effective_tools,
         )
@@ -1042,8 +1069,10 @@ class LlmClient:
         enforce_spec = output_spec
         from .structured_output import render_output_constraint
         request = [
-            {"role": "system", "content": system + "\n\n" + render_output_constraint(enforce_spec)},
-            {"role": "user", "content": user},
+            {"role": "system",
+             "content": system if constraint_in_user else system + "\n\n" + render_output_constraint(enforce_spec)},
+            *[{"role": m["role"], "content": m["content"]} for m in history or []],
+            {"role": "user", "content": with_output_constraint(user, enforce_spec) if constraint_in_user else user},
         ]
 
         def problem(result: Any) -> Optional[str]:
@@ -1120,7 +1149,7 @@ class LlmClient:
                 parsed = extract_json(content)
         except JsonExtractionError as exc:
             track(str(exc))
-            raise ValueError(f"[{getattr(self, '_caller', '') or 'llm'}] {exc}") from exc
+            raise OutputRejected(f"[{getattr(self, '_caller', '') or 'llm'}] {exc}", content) from exc
         raw_response = _raw_response(result)
 
         # spec/struct_output.md：强校验阻断，不放行假货
@@ -1136,9 +1165,7 @@ class LlmClient:
             syntax = _strict_json_error(content)
             message = f"{exc}\n{syntax}" if syntax else str(exc)
             track(message)
-            if syntax:
-                raise ValueError(message) from exc
-            raise
+            raise OutputRejected(message, content) from exc
 
         # Add token metrics to raw_response if available
         if token_metrics:

@@ -26,9 +26,9 @@ def report():
     from tests.test_expectations_v2_need_judge import frozen
     return {'results':[{'type_id':'trace_analysis','status':'succeeded','verdict':'complete','output':ANALYSIS_OUTPUT},
                        {'type_id':'context_memory','status':'succeeded',
-                        'output':{'results':[{'obligation_id':'arrives_intact','link_id':'context_memory:x','outcome':'fail',
-                                              'expected':'原义到达','observed':'上下文缺失','source_refs':[],
-                                              'evidence':{'input':['turn1/records/run'],'output':[]},'missing':[]}]}},
+                        'output':{'results':[{'batch':1,'id':'E1','subcapability':'传递保留原义','about':'context_memory:x',
+                                              'statement':'原义到达','basis':'通用职责','observed':'上下文缺失','verdict':'没达到',
+                                              'quotes':[{'ref':'turn1/records/run','quote':'…'}],'refs':['turn1/records/run'],'links':[]}]}},
                        {'type_id':'expectations', 'status':'succeeded', 'output': frozen()}]}
 
 
@@ -46,7 +46,7 @@ def test_trace_axes_run_before_main_and_report_consumed_once(monkeypatch):
             # 主轴只拿编号+原文（含被引用那条的正文），不拿整份案卷
             assert material['records'][0]['fields']['output']['value']=='FULL FINAL ANSWER'
             assert material['structure']['route'][0]['action']=='gate'
-            assert c['user_prompt_extras']['process_axes'][0]['output']['results'][0]['outcome']=='fail'
+            assert c['user_prompt_extras']['process_axes'][0]['output']['results'][0]['verdict']=='没达到'
             return JudgeResult(trace_id='x',project_id='llm_probe')
     monkeypatch.setattr('impl.projects.llm_probe.need_judge.run_need_judge', Judge().run_need_judge)
     ProcessJudgeExecution().run(Judge(),t,None)
@@ -173,28 +173,30 @@ def test_live_service_unavailable_skips_judge_and_flags_execution_failure(monkey
 
 def test_slim_process_axis_drops_coverage_and_view():
     from impl.projects.llm_probe.judge import _slim_process_axis_for_main
+    met = {'batch': 1, 'id': 'E1', 'subcapability': '传递保留原义', 'about': 'ok', 'statement': 's', 'basis': 'b',
+           'observed': 'fine', 'quotes': [], 'refs': [], 'links': [], 'verdict': '达到'}
+    missed = {'batch': 1, 'id': 'E2', 'subcapability': '交付保留原义', 'about': 'bad', 'statement': 's2', 'basis': 'b2',
+              'observed': 'bad', 'quotes': [{'ref': 'b', 'quote': 'q'}], 'refs': ['b'], 'links': ['L1'],
+              'verdict': '没达到', 'needs_external': '否'}
     slim = _slim_process_axis_for_main({
         'type_id': 'context_memory', 'status': 'succeeded', 'verdict': None,
         'output': {
-            'assessment': {'verdict': 'sound'},
-            'results': [{'obligation_id': 'o1', 'link_id': 'context_memory:ok', 'outcome': 'pass', 'expected': 'e', 'observed': 'fine',
-                         'source_refs': [], 'evidence': {'input': ['a'], 'output': []}, 'missing': [], 'flags': []},
-                        {'obligation_id': 'o1', 'link_id': 'context_memory:bad', 'outcome': 'fail', 'expected': 'e', 'observed': 'bad',
-                         'source_refs': [], 'evidence': {'input': ['a'], 'output': ['b']}, 'missing': [],
-                         'flags': ['未见读取回执'], 'judged_by': 'llm', 'noise': 1}],
+            'assessment': {'verdict': 'problematic'},
+            'results': [met, missed],
             'coverage': [{'huge': 'x' * 100}],
             'view': {'chars': 99},
             'selection': {'refs': ['a'], 'why': ['y']},
-            'evidence_refs': ['a'],
+            'issues': [], 'unexpected': [],
+            'evidence_refs': ['b'],
             'missing_evidence': [],
         },
     })
-    assert slim['output']['assessment']['verdict'] == 'sound'
-    # 偏差排前、给全；pass 只留定位与结论。
+    assert slim['output']['assessment']['verdict'] == 'problematic'
+    # 没达到排前、带本应 / 实际 / 引文；达到只留定位与结论。
     assert slim['output']['results'] == [
-        {'obligation_id': 'o1', 'link_id': 'context_memory:bad', 'outcome': 'fail', 'expected': 'e', 'observed': 'bad',
-         'source_refs': [], 'evidence': {'input': ['a'], 'output': ['b']}, 'missing': [], 'flags': ['未见读取回执']},
-        {'obligation_id': 'o1', 'link_id': 'context_memory:ok', 'outcome': 'pass'}]
+        {'batch': 1, 'id': 'E2', 'subcapability': '交付保留原义', 'about': 'bad', 'verdict': '没达到',
+         'statement': 's2', 'basis': 'b2', 'observed': 'bad', 'quotes': [{'ref': 'b', 'quote': 'q'}], 'links': ['L1']},
+        {'batch': 1, 'id': 'E1', 'subcapability': '传递保留原义', 'about': 'ok', 'verdict': '达到'}]
     assert 'coverage' not in slim['output']
     assert 'view' not in slim['output']
 

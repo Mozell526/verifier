@@ -563,3 +563,30 @@ fallback2 修复后对同一冻结样本完整重跑（primary 地区不支持�
 - 用户确认两点（2026-10-11）：归因只写方向（本轴 / 上游 / 未定位），不强制指向上游记录；轴 verdict 五值按"本轴问题 → 无法核或未定位 → 达到 → 归上游 → 不需要"的顺序汇总。
 - 据此修订：需求 §4「判定单位」「统一归属口径」「verdict 取值」三行，§5 新增三条 ⟡（通用职责待补、本应清单覆盖、引文只证明存在）；方案文档按「本应 / 实际」重写 §2–§5、§9–§14（改前备份不入库），§8 只改引用旧取值的措辞。
 - 代码未改；改造顺序见方案 §13。
+
+### 15.3 改造第 2 步：纠错轮改为新一轮追加（2026-10-11，已实现）
+- `impl/core/llm_client.py`：`complete_json` 新增 `history`（夹在 system 与本轮 user 之间的前几轮消息）；解析失败或强校验拒收改抛 `OutputRejected(ValueError)`，带被拒收的模型原文 `content`。
+- `impl/projects/llm_probe/eval_axes/adapters/process_common.py`：纠错轮从「原题 + 更正说明拼进同一条 user」改为 `history=[原题, 被拒收的产出]` + 本轮 user=更正说明；没有产出可带回的 ValueError 不纠错、照原样失败。
+- 测试：三个假客户端改为从 history 第一条取原题（`test_process_axis_investigation`、`test_process_prompt_contract`、`test_axis_materials`）；`test_process_prompt_contract` 新增断言纠错请求是 [原题, 被拒收产出, 更正说明]；`test_llm_client_json_extract` 新增 history 顺序与 `OutputRejected.content` 两个测试。全量 2414 通过，失败 12 个与改前相同（与本改动无关）。
+- 实测（正式 LlmClient，gemini-3.8-flash-medium，约 2.4 万 token）：第一次 cache_read 0；纠错 cache_read 21,940 / 24,130。
+- 未改：`adapters/carryability.py` 也有一处把纠错拼进同一条 user 的写法，不属于六轴本次改造。
+
+### 15.4 新判定路径核心（2026-10-11，已实现，未接入线上入口）
+- 新模块 `impl/projects/llm_probe/eval_axes/adapters/process_expected.py`：实验 new4 的正式实现——两次调用（本应冻结 → 实际多轮追加）、第一次只给输入端（材料从同一份完整视图切出）、引文核对 + 至多一轮纠错（新一轮追加）、纠错后结构仍不合格才算评测器错误，引文仍不对则丢弃 / 降无法核（§4）、needs_external 锁无法核、§5 五值汇总与组成、问题记录（problem_id 带轴与批次前缀）、入口 `run_expected_axis`（环节与批次沿用分析轴产物）。子能力取各轴义务的 label + duty。
+- `impl/core/llm_client.py`：新增 `constraint_in_user` 与 `with_output_constraint`（两次调用输出结构不同、system 仍逐字相同）。
+- 测试 `tests/test_process_expected.py` 14 个；相关测试 527 通过。
+- 真实 case 核对（`report/process-axes-compare-20261009/impl_check.py`，正式 LlmClient、gemini-3.8-flash-medium）：B01 与 agg-paid 共 12 轴全部跑通；gold hard 命中 B01 3/4（漏 B01-2）、AP 3/3，与实验一致；36 次请求、输入 0.94M、缓存 0.32M。首跑时把"纠错后引文仍不对"当成评测器错误致 B01 规划轴失败，已按 §4 改正并重跑（旧记录留作 `planning_routing.before-quote-fix.json`）。
+- 未做：接入 `run_process_axis` 与三个入口、转写案卷（transcript）路径、跨批去重（实测 agg-paid 上下文轴同一假缺口在两批各报一次）、主轴/表格/前端读新结构、删除网格判法。
+- 补充（同日）：跨批去重改为模型声明 `same_as`（后面批次拿到本轴前面批次已记录的问题，同一问题填其 problem_id，程序并入、不另计）——程序按证据比对认不出"同一调用在运行记录与 trace span 两种形态"的重复；第一次调用也加一轮纠错（新一轮追加）。实测：agg-paid 上下文轴 5→3 条，B01 规划轴两种形态的重复查询被合并；测试 17 个通过。
+
+### 15.5 接入线上入口、删除网格与六轴 ToolLoop、下游改读新结构（2026-10-11）
+- 入口：`process_common.run_process_axis` 对普通案卷直接走 `process_expected.run_expected_axis`；对话稿案卷（llmtracing）记评测运行错误"过程六轴暂不支持对话稿案卷"，不调模型。`eval_axes/__init__.py` 去掉 llmtracing 自动分流到六轴 ToolLoop。
+- 用户确认删除两套六轴 ToolLoop（Agno 版 `process_loop/evaluation.py`、llmtracing 版 `process_loop/llmtracing.py` + `llmtracing_report.py`）——聚类用的 ToolLoop（`impl/core/tool_loop`、`tool_loop_lab`）不受影响。随之删除只为网格服务的 `process_loop/expectation_projection.py`（需求倒推展开）、`adapters/process_output.py`（网格输出结构）、`adapters/process_protocol.py`、`business_trace/providers/llmtracing_evidence.py`、`process_contract.py`；`process_common.py` 只剩轴定义（`Subcapability`、`AxisSpec`）、环节、入口、注册。分析轴 ToolLoop（`process_loop/analysis.py`、`tools.py`）保留。
+- 六个轴的"义务"改为"子能力"（名字 / 什么时候用到 / 做对必须成立），去掉环节类型、适用前缀、出处类别、程序直判；duty 文字里的网格取值代码改为新说法。场景配置 `process_obligations`（"不可重试后拦住同参重发"，2026-09-29 确认）作为该场景规划轴额外子能力进第一次调用。
+- 运行器去掉问题登记与"输入无效引用上游问题"校验；`AxisRuntime` 去掉 `expectation_projection`、`process_issues`。轴注册 `output_fields` 改为新结构，五值 verdict 说明改写。
+- 下游：主轴 `judge.py` 的精简结果与取原文顺序改读本应 / 实际 / 引文；`table_view.py` 去掉义务与 contract_missing；前端 `axes_experiment.js` 问题卡片改为归因原文、影响一句话、逐条引文（展开看记录原文），删除上游问题跳转；`live.html` 过程轴面板改为问题 / 本应·实际 / 意外 / 未覆盖。
+- 测试：删除 12 个只测网格或六轴 ToolLoop 的文件（及 `tests/support/unit_reply.py`），混合文件只删网格用例（`test_expectations`、`test_need_source_boundaries`、`test_process_axis_investigation`、`test_axis_materials`、`test_design_rule_blocks`、`test_tool_loop_package`、`test_process_axis_gap_fixes`）；`make_trace` 移到 `tests/support/llmtracing.py`；对话稿改为断言"暂不支持"；新增新输出与注册表契约一致的测试。
+
+### 15.6 冻结样本核对（2026-10-11）
+正式实现跑 8 个冻结 case 一遍：hard 召回 19/22、误报 10%、引用可解析 100%、全价输入 2.14M（缓存 0.78M）、每 case 六轴串行中位 504s；稳定漏 B01-2、D01-3、PL-1。首跑 1/48 轴因引文抄入未转义的英文双引号致输出非法，改为"引文写中文引号、核对视同"后重跑通过。详见 `report/process-axes-compare-20261009/RESULT.md` 末节。§9 P1–P7 的逐条落位与人工业务核对仍待做（方案 D12）。
+- P1–P7 落位测试 `tests/test_process_axes_p1_p7.py`（8 个，程序侧汇总 / 组成 / 问题记录 / 聚类输入）全部通过。方案 §9 P2 一行改为"两轴各记一条问题"，与 §3.3"同一事件多轴各记"一致（原写"一条问题"是网格时代按 problem_id 跨轴共享的说法）。

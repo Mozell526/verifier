@@ -335,15 +335,4 @@ def run_axes(
             if axis.enabled and dependency.optional and upstream is not None and upstream.status not in (STATUS_DISABLED, STATUS_SUCCEEDED):
                 result.summary["text"] += f"（{dependency.type_id}未完成，未纳入）"
         results[axis.type_id] = result
-        if result.status == STATUS_SUCCEEDED:
-            for issue in (result.output or {}).get('issues', []):
-                runtime.process_issues[issue['problem_id']] = issue
-    from .adapters.process_protocol import AXES, validate_issue_references
-    process = {key: value for key, value in results.items() if key in AXES and value.status == STATUS_SUCCEEDED}
-    try:
-        validate_issue_references({key: value.output for key, value in process.items()})
-    except ValueError as exc:
-        for result in process.values():
-            _fail(result, str(exc))
-            result.output = None
     return [results[axis.type_id] for axis in ordered]

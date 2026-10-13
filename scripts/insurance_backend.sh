@@ -44,6 +44,9 @@ NO_PROXY="${NO_PROXY:-127.0.0.1,localhost,::1}"
 no_proxy="${no_proxy:-$NO_PROXY}"
 export NO_PROXY no_proxy
 GATEWAY_DIR="/Users/xiaozijian/WorkSpace/package/llmtracing/llm_gateway"
+# verifier 独占网关（insurance_4002 留给 llmtracing :18063）；通过 INSURANCE_QA_MODEL_BASE_URL 覆盖 yaml 里的 base_url。
+GATEWAY_PROFILE="insurance_verifier_4202"
+MODEL_BASE_URL="http://127.0.0.1:4202/v1"
 # STARTER 按端口写 pid/meta，退出时自行清理。
 PID_FILE="$STATE_DIR/server-$PORT.pid"
 META_FILE="$STATE_DIR/server-$PORT.meta.json"
@@ -59,7 +62,7 @@ require_tracing() {
 
 require_model_gateway() {
   local url host port
-  url="$(grep -E '^[[:space:]]*base_url:' "$MODEL_CFG" | tail -1 | sed -E 's/^[[:space:]]*base_url:[[:space:]]*//; s/[[:space:]]+$//')"
+  url="$MODEL_BASE_URL"
   if [[ -z "$url" ]]; then
     echo "$MODEL_CFG 里没读到 base_url，无法校验模型网关。"; return 1
   fi
@@ -67,8 +70,8 @@ require_model_gateway() {
   port="$(sed -nE 's#^[A-Za-z0-9+.~-]+://[^:/]+:([0-9]+).*#\1#p' <<<"$url")"
   [[ -n "$port" ]] || port=80
   if ! nc -z -w 3 "$host" "$port" >/dev/null 2>&1; then
-    echo "模型网关不可达：$host:$port（来自 $MODEL_CFG 的 base_url=$url）。"
-    echo "先起保险专用网关：cd $GATEWAY_DIR && ./start_insurance_litellm.sh"
+    echo "模型网关不可达：$host:$port（MODEL_BASE_URL=$url）。"
+    echo "先起保险专用网关：cd $GATEWAY_DIR && ./start_insurance_litellm.sh --profile $GATEWAY_PROFILE"
     return 1
   fi
   echo "model gateway ok: $host:$port"
@@ -175,6 +178,7 @@ start() {
   (
     ENV_TYPE=dev NO_PROXY="$NO_PROXY" no_proxy="$no_proxy" \
     INSURANCE_QA_ROOT="$AGENT_DIR" INSURANCE_QA_PORT="$PORT" INSURANCE_QA_DB="$DB_FILE" \
+    INSURANCE_QA_MODEL_BASE_URL="$MODEL_BASE_URL" \
     INSURANCE_UPSTREAM_ALIGN=0 IQA_EVAL_HEADER_PASSTHROUGH=1 \
     nohup "$PY" -c "
 import os, runpy

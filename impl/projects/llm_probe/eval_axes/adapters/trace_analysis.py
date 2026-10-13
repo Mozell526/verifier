@@ -187,14 +187,14 @@ def prepare_selections(dossier: Mapping[str, Any], structure: Mapping[str, Any],
     truncating material the downstream judge needs to verify a processing link.
     """
     from impl.projects.llm_probe.business_trace.materials import prepare_axis_materials
-    from .process_common import _absent_obligation, _axis_links
+    from impl.projects.llm_probe.business_trace.links import AXIS_LINK_TYPES
+    from .process_common import _axis_links
 
     for axis_id, selection in selections.items():
         links = _axis_links(axis_id, dossier, structure)
         extra = []
         if not links:
-            absent = _absent_obligation(axis_id)
-            links = [{"link_id": f"{axis_id}:none", "link_type": absent.link_type, "turn": "", "input": [], "output": [],
+            links = [{"link_id": f"{axis_id}:none", "link_type": "/".join(AXIS_LINK_TYPES[axis_id]), "turn": "", "input": [], "output": [],
                       "facts": {}, "basis": "程序未列出本轴类型的环节"}]
             extra = list(selection.get("refs") or [])
         selection["materials"] = prepare_axis_materials(dossier, links, list(structure.get("suspects") or []), extra_refs=extra)

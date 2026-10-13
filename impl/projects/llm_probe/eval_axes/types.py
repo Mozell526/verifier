@@ -175,10 +175,6 @@ class AxisRuntime:
     # 本场景启用的全部轴 type_id；分析轴据此知道谁在消费它、该往哪些方向探测
     enabled_axes: tuple[str, ...] = ()
 
-    expectation_projection: dict[str, Any] = field(default_factory=dict)
-
-    process_issues: dict[str, Any] = field(default_factory=dict)
-
     def ensure_time_left(self, about: str = "") -> None:
         """adapter 在开下一次 LLM 调用前调用；超过本轴 seconds 上限即抛 AxisTimeout。"""
         if self.deadline is not None and time.monotonic() >= self.deadline:

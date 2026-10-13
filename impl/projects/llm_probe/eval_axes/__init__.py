@@ -43,18 +43,7 @@ def build_report(spec: Any, trace: Any, *, run_id: str = "") -> dict[str, Any]:
         axes += [ScenarioAxis(key, True, configured[key].description if key in configured else PROCESS_SPECS[key].question)
                  for key in process_order]
     run_id = str(run_id or "").strip() or new_run_id()
-    from .adapters.transcript_axes import transcript_snapshot
-
-    if business_trace and transcript_snapshot(
-        trace, (trace.project_fields or {}).get("business_trace")
-    ):
-        from impl.projects.llm_probe.process_loop.llmtracing_report import build_loop_results
-
-        results = build_loop_results(spec, trace, axes, scenario_id=scenario_id, run_id=run_id)
-    else:
-        results = [item.as_dict() for item in run_axes(
-            spec, trace, axes, scenario_id=scenario_id, run_id=run_id,
-        )]
+    results = [item.as_dict() for item in run_axes(spec, trace, axes, scenario_id=scenario_id, run_id=run_id)]
     return {
         "run_id": run_id,
         "scenario_id": scenario_id,

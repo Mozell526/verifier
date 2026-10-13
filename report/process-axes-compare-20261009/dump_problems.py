@@ -132,6 +132,21 @@ def program_v2_problems():
     return out
 
 
+def impl_problems(pass_no: int):
+    """正式实现（impl_check.py → runs/impl/pass<N>）的问题记录：已跨批合并，直接一条一行。"""
+    out = []
+    for path in sorted((io.HERE / "runs" / "impl" / f"pass{pass_no}").glob("*/*.json")):
+        if "before" in path.name:
+            continue
+        record = io.load_json(path)
+        for issue in (record.get("output") or {}).get("issues") or []:
+            out.append({"case": record["tag"], "arm": "impl", "axis": record["axis"], "axes": [record["axis"]],
+                        "part": "impl", "outcome": "fail", "text": issue["phenomenon"], "observed": issue["observed"],
+                        "attribution": issue["attribution_detail"], "verified_by": "模型",
+                        "refs": issue["output_refs"], "source": f"{path.parent.name}/{path.name}#{issue['problem_id']}"})
+    return out
+
+
 def main():
     pass_no = int(sys.argv[1]) if len(sys.argv) > 1 else 1
     current = current_problems(pass_no)
@@ -141,6 +156,8 @@ def main():
     for extra_arm in ("new2", "new3", "new4"):
         if (io.HERE / "runs" / extra_arm / f"pass{pass_no}").exists():
             extra[extra_arm] = new_problems(pass_no, extra_arm)
+    if (io.HERE / "runs" / "impl" / f"pass{pass_no}").exists():
+        extra["impl"] = impl_problems(pass_no)
     for extra_arm, rows in extra.items():  # 不进洗牌，已有盲 id 不变
         for n, row in enumerate(rows, 1):
             row["blind_id"] = f"{extra_arm.upper()}-{pass_no}-{n:02d}"

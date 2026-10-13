@@ -104,8 +104,8 @@ def case(id, axis, verdict, reason, question, answer):
     return {'id': id, 'scenario': '合成聚类示例', 'input': {'query': question}, 'inputPreview': question,
             'output': {'answer': answer}, 'axes': [{'type_id': axis, 'status': 'succeeded', 'verdict': verdict, 'text': reason, 'items': [],
                 'issues': [dict(problem_id=id+'-issue', phenomenon=reason, expected='按合成场景完成职责', observed=reason,
-                               source_refs=['case'], input_refs=[id+'-input'], output_refs=[id+'-output'],
-                               attribution_axes=[axis], attribution='local', impact='yes', units=[])] if verdict == 'problematic' else []}]}
+                               source_refs=[], input_refs=[], output_refs=[id+'-output'], quotes=[],
+                               attribution='local', attribution_detail='本轴', impact='合成示例', units=[])] if verdict == 'problematic' else []}]}
 
 
 CASES = [

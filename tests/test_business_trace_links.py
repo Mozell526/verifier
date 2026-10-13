@@ -96,3 +96,15 @@ def test_reconstructed_model_input_includes_its_agents_tool_definitions():
     assert links["model_capability:call1"]["input"] == [{"ref": "m-tool", "field": "content"},
                                          {"ref": "def/helper/tools/0", "field": "definition"}]
     assert links["model_capability:call2"]["input"] == [{"ref": "call2", "field": "exact_request"}]
+
+
+def test_model_output_end_uses_span_output_when_message_content_not_saved():
+    """持久化助手消息常不存正文；输出端不得指向空字段，改用 span 记录的输出。"""
+    d = dossier()
+    d["records"] = [r for r in d["records"] if r["id"] != "m-out"] + [
+        {**row("m-out", "messages", {}, role="assistant"),
+         "fields": {"content": {"status": "missing", "note": "本记录没有保存此字段"}}}]
+    d["model_calls"][0]["output"] = {"status": "available", "value": "answer"}
+    assert by_id(build_links(d))["model_capability:call1"]["output"] == [{"ref": "call1", "field": "output"}]
+    d["model_calls"][0]["output"] = {"status": "missing"}
+    assert by_id(build_links(d))["model_capability:call1"]["output"] == [{"ref": "m-out", "field": "content"}]

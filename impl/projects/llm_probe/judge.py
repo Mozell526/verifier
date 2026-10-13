@@ -15,16 +15,14 @@ from impl.projects.llm_probe.live import application_boundary_for
 # 两端 LLM 都返回非 JSON「Connection error.」，整案被打成 evaluation_execution_failed。
 MAIN_VIEW_BUDGET_CHARS = 80_000
 
-# 主轴要看到每对（义务, 环节）的结论；pass/不适用只留结论，偏差、缺证、契约缺失带全文。
-# flags 是程序标注（如引用未见读取回执）：主轴据此决定采信程度，而不是看不到。
-_RESULT_KEYS_BRIEF = ("obligation_id", "link_id", "outcome")
-_RESULT_KEYS_FULL = _RESULT_KEYS_BRIEF + ("expected", "observed", "source_refs", "evidence", "missing", "flags",
-                                        "upstream_issue_ids", "criterion_checks", "checks", "problems")
-_BRIEF_OUTCOMES = {"pass", "not_applicable"}
+# 主轴要看到六轴每条本应的判定：达到只留结论，没达到 / 无法核带本应、实际与引文（spec/alg/process-axes.md §4）。
+_RESULT_KEYS_BRIEF = ("batch", "id", "subcapability", "about", "verdict")
+_RESULT_KEYS_FULL = _RESULT_KEYS_BRIEF + ("statement", "basis", "observed", "quotes", "links")
+_MET = "达到"
 
 
 def _slim_process_axis_for_main(result: Mapping[str, Any]) -> dict[str, Any]:
-    """主轴综合只要各轴结论，不要每轴再塞一份 coverage/view（与 process_dossier 重复）。"""
+    """主轴综合只要各轴结论，不要每轴再塞一份材料批次视图（与 process_dossier 重复）。"""
     raw = result.get("output") if isinstance(result.get("output"), Mapping) else None
     slim_out: dict[str, Any] | None = None
     if raw is not None:
@@ -33,15 +31,11 @@ def _slim_process_axis_for_main(result: Mapping[str, Any]) -> dict[str, Any]:
             slim_out["assessment"] = raw.get("assessment")
         results = raw.get("results")
         if isinstance(results, list):
-            slim_out["results"] = [
-                {key: item.get(key) for key in
-                 (_RESULT_KEYS_BRIEF if item.get("outcome") in _BRIEF_OUTCOMES and all(
-                     c['outcome'] in _BRIEF_OUTCOMES for check in item.get('checks', [item])
-                     for c in (check.get('criterion_checks') or [check])) else _RESULT_KEYS_FULL) if key in item}
-                for item in sorted((r for r in results if isinstance(r, Mapping)),
-                                   key=lambda r: r.get("outcome") in _BRIEF_OUTCOMES)
-            ]
-        for key in ("issues", "evidence_refs", "missing_evidence", "selection"):
+            rows = sorted((r for r in results if isinstance(r, Mapping)), key=lambda r: r.get("verdict") == _MET)
+            slim_out["results"] = [{key: row.get(key) for key in
+                                    (_RESULT_KEYS_BRIEF if row.get("verdict") == _MET else _RESULT_KEYS_FULL)
+                                    if key in row} for row in rows]
+        for key in ("issues", "unexpected", "evidence_refs", "missing_evidence", "selection"):
             if key in raw:
                 slim_out[key] = raw.get(key)
     item: dict[str, Any] = {
@@ -70,16 +64,16 @@ def _main_judge_material(results: list[dict], analysis: dict, dossier: dict) -> 
     for result in results:
         if result.get("type_id") == "trace_analysis":
             continue
-        items = [r for r in (result.get("output") or {}).get("results") or [] if isinstance(r, Mapping)]
-        # 偏差与缺证的引用先装，预算紧时它们不被 pass 的引用挤掉。
-        items.sort(key=lambda r: r.get("outcome") in _BRIEF_OUTCOMES)
-        for item in items:
-            evidence = item.get("evidence") or {}
-            for ref in [*(item.get("source_refs") or []), *(evidence.get("input") or []),
-                        *(evidence.get("output") or [])]:
-                # "case"/"project:*" 指场景材料与项目声明，不是案卷编号。
-                if ref != "case" and not str(ref).startswith("project:") and ref not in ordered:
-                    ordered.append(ref)
+        output = result.get("output") or {}
+        # 问题与没达到 / 意外的引文先装，预算紧时它们不被达到行的引文挤掉。
+        rows = [r for r in output.get("results") or [] if isinstance(r, Mapping)]
+        rows.sort(key=lambda r: r.get("verdict") == _MET)
+        cited = [ref for issue in output.get("issues") or [] for ref in issue.get("output_refs") or []]
+        cited += [ref for row in output.get("unexpected") or [] for ref in row.get("refs") or []]
+        cited += [ref for row in rows for ref in row.get("refs") or []]
+        for ref in cited:
+            if ref not in ordered:
+                ordered.append(ref)
     selections = (analysis.get("output") or {}).get("selections") or {}
     for slot in selections.values():
         if not isinstance(slot, Mapping):

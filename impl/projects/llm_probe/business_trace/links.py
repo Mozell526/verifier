@@ -122,8 +122,11 @@ def _model_links(dossier: Mapping[str, Any], rows: Mapping[str, Mapping[str, Any
         messages = [ref for ref in (call.get("reconstructed_input") or {}).get("message_refs") or [] if ref in rows]
         inputs = ([(call["id"], "exact_request")] if exact else
                   [(ref, "content") for ref in messages] + [(ref, "definition") for ref in _agent_definitions(rows, call)])
+        # 与输入端同理：端点选实际保存了内容的字段。持久化消息常不存助手正文，此时用 span 记录的输出。
         out = call.get("output_message_ref")
-        outputs = [(out, "content")] if out in rows else [(call["id"], "output")]
+        saved = ((rows.get(out) or {}).get("fields") or {}).get("content", {}).get("status") == "available"
+        outputs = [(out, "content")] if saved or (out in rows and (call.get("output") or {}).get("status") != "available") \
+            else [(call["id"], "output")]
         links.append(_link(f"model_capability:{call['id']}", "model_capability", call.get("turn"), inputs, outputs,
                            "span 记录的请求" if exact else "持久化消息重建的请求",
                            input_source="exact_request" if exact else

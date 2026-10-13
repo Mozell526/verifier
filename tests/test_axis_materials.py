@@ -1,7 +1,5 @@
 """Analysis handoff must carry recorded endpoint bodies, not just readable IDs."""
-from tests.support.expectations import E, PROJECTION
 import json
-from tests.support.unit_reply import unit_reply
 from types import SimpleNamespace
 
 
@@ -110,36 +108,6 @@ def test_batches_do_not_split_or_omit_calls_and_single_oversize_unit_stays_whole
         ids = {r['id'] for r in batch['view']['records']}
         assert ids == {f'c{n}', f'c{n}-out'}
         assert batch['view']['excluded'] == []
-
-
-def test_axis_consumes_each_prepared_batch_once_and_retries_only_the_bad_batch(monkeypatch):
-    d = data()
-    for n in range(2): model(d, f'c{n}', [{"role": "user", "content": str(n) * 2000}], 'reply')
-    links = common._axis_links('model_capability', d, {})
-    batches = prepare_axis_materials(d, links, [], target_chars=100)
-    seen = []
-    class Client:
-        def complete_json(self, system, prompt, **kw):
-            p, _ = json.JSONDecoder().raw_decode(prompt)
-            seen.append(p)
-            assert 'tool_budget' not in p and 'catalog' not in p
-            if len(seen) == 2: return {'reason': 'r', 'scope_note': 's', 'units': [], 'problems': []}
-            return unit_reply(p, 'fail', 'o', reason='r', scope_note='s')
-        def usage(self): return {'llm_calls': len(seen)}
-    def client(*a, **kw):
-        assert not kw.get('tools')
-        return Client()
-    monkeypatch.setattr(common, 'axis_llm', client)
-    monkeypatch.setattr(common, '_scenario_entry', lambda _: None)
-    runtime = SimpleNamespace(spec=None, trace_id='test', ensure_time_left=lambda *_: None, expectation_projection=PROJECTION)
-    spec = common.AxisSpec('q', '', (common.Obligation('faithful', 'model_capability', 's', 'd'),))
-    outcome = common.run_process_axis('model_capability', {'expectations': E, 'trace_analysis': {'dossier': d,
-        'selections': {'model_capability': {'materials': batches}}}}, ScenarioAxis('model_capability', True, ''), runtime, spec)
-    assert len(seen) == 3 and seen[1] == seen[2] and seen[0] != seen[1]
-    assert len(outcome.output['results']) == 2
-    assert outcome.usage['tool_calls'] == 0
-    assert len(outcome.output['view']['batches']) == 2
-    assert outcome.output['view']['unverified_refs'] == []
 
 
 def test_execution_gets_actual_paired_span_description_metrics_and_declared_schema():

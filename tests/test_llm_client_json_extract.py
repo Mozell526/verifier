@@ -12,6 +12,7 @@ from impl.core.llm_client import (
     _tool_budget_error,
     extract_json,
     provider_error_body,
+    OutputRejected,
 )
 from impl.core.judge import _build_judge_output_spec
 from impl.core.schema.judge import JudgeLLMOutput
@@ -546,3 +547,51 @@ def test_quoted_json_looking_fragments_and_fenced_bodies_are_repaired_the_same_w
     assert extract_json(prose) == {'fact': 'gaps 一致为["本轮部分内容缺少可核验来源"]，唯一差异是 trace_id 从"TR-1"变为 null', 'ok': True}
     fenced = '```json\n{"reason":"称"已命中"字段","n":[1, 2],"s":"x"}\n```'
     assert extract_json(fenced) == {'reason': '称"已命中"字段', 'n': [1, 2], 's': 'x'}
+
+
+def _fake_agent(monkeypatch, content, seen):
+    class Result:
+        status = type("Status", (), {"value": "COMPLETED"})()
+        metrics = None
+        messages = []
+
+        def __init__(self):
+            self.content = content
+
+        def to_dict(self):
+            return {"content": self.content, "status": "COMPLETED"}
+
+    class FakeAgent:
+        def __init__(self, **_kwargs):
+            pass
+
+        def run(self, messages, **_run_kwargs):
+            seen.append([(m.role, m.content) for m in messages])
+            return Result()
+
+    _isolate_llm_router(monkeypatch)
+    monkeypatch.setattr("impl.core.llm_client.Agent", FakeAgent)
+    monkeypatch.setattr("impl.core.llm_client.OpenAILike", lambda **_kwargs: object())
+    monkeypatch.setattr("impl.core.llm_client._track_context", lambda *_args, **_kwargs: None)
+    return LlmClient(config=replace(get_llm_config(), api_key="test-key"))
+
+
+def test_history_sits_between_system_and_this_turn(monkeypatch):
+    """纠错轮是新一轮追加：前几轮消息原样插在 system 与本轮 user 之间，前缀才与上一次请求一致。"""
+    seen = []
+    client = _fake_agent(monkeypatch, '{"investigation_summary":"ok"}', seen)
+    spec = StructuredOutputSpec.from_dataclass(_InvestigationOutput, required_nonempty=["investigation_summary"])
+    history = [{"role": "user", "content": "原题"}, {"role": "assistant", "content": "上次产出"}]
+    out = client.complete_json("system", "更正说明", trace_id="t-history", output_spec=spec, history=history)
+    assert out["investigation_summary"] == "ok"
+    assert seen == [[("user", "原题"), ("assistant", "上次产出"), ("user", "更正说明")]]
+
+
+def test_rejected_output_carries_the_model_text(monkeypatch):
+    """被强校验拒收时，异常带出模型原文，调用方的纠错轮才能把它作为上一轮 assistant 带回。"""
+    seen = []
+    client = _fake_agent(monkeypatch, '{"investigation_summary":""}', seen)
+    spec = StructuredOutputSpec.from_dataclass(_InvestigationOutput, required_nonempty=["investigation_summary"])
+    with pytest.raises(OutputRejected) as caught:
+        client.complete_json("system", "user", trace_id="t-reject", output_spec=spec)
+    assert caught.value.content == '{"investigation_summary":""}'

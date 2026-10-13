@@ -455,7 +455,7 @@ def test_single_turn_case_gets_fresh_business_session_each_delivery(monkeypatch)
 
 
 def test_transcript_seed_replays_serially_in_one_fresh_session(monkeypatch):
-    """ctx 类用例：T1/T2 同一新会话、按序发送，单轮 live 也走 Session 路径。"""
+    """多轮用例：同一新会话按序发送；接口约定由调用方带历史，第 n 轮带上此前各轮原话与实际答复。"""
     from impl.core.interaction_protocol import normalize_case_interaction
     from impl.core.mock import mock_case_to_single_turn, parse_mock_case
     from impl.core.project_loader import load_adapter
@@ -472,19 +472,24 @@ def test_transcript_seed_replays_serially_in_one_fresh_session(monkeypatch):
     cases = json.loads(
         (__import__("pathlib").Path(__file__).parents[1] / "impl/data/llm_probe/mock_cases.json").read_text(encoding="utf-8")
     )
-    case = next(item for item in cases if item["id"] == "llm-probe-insurance-real-ctx-ref")
+    case = next(item for item in cases if item["id"] == "llm-probe-insurance-real-main-E13-return-to-first-policy")
     normalized = normalize_case_interaction("llm_probe", mock_case_to_single_turn(parse_mock_case(case)), 0)
     assert normalized.mode == "interactive_intent"
 
     trace = trace_from_live(load_adapter(load_project("llm_probe")).live(), normalized)
-    assert len(sent) == 2
-    assert [body["messages"][-1]["content"] for body in sent] == ["皮奕辰名下有哪些保单？", "这张保单的被保人是谁？"]
-    assert sent[0]["session_id"] == sent[1]["session_id"] == trace.session_id
-    assert trace.session_id.startswith("replay-llm-probe-insurance-real-ctx-ref-")
-    assert sent[0]["empno"] == sent[1]["empno"] == "EMP000006"
-    assert len(trace.turn_records) == 2
+    questions = ["P260922000005855和P260922000008708的状态分别是什么？", "先讲讲电子保单怎么找。", "回到刚才第一张，再看看累计已交保费。"]
+    assert [body["messages"] for body in sent] == [
+        [{"role": "user", "content": questions[0]}],
+        [{"role": "user", "content": questions[0]}, {"role": "assistant", "content": "reply-1"},
+         {"role": "user", "content": questions[1]}],
+        [{"role": "user", "content": questions[0]}, {"role": "assistant", "content": "reply-1"},
+         {"role": "user", "content": questions[1]}, {"role": "assistant", "content": "reply-2"},
+         {"role": "user", "content": questions[2]}],
+    ]
+    assert sent[0]["session_id"] == sent[1]["session_id"] == sent[2]["session_id"] == trace.session_id
+    assert trace.session_id.startswith("replay-llm-probe-insurance-real-main-E13-return-to-first-policy-")
+    assert len(trace.turn_records) == 3
     assert trace.diverged_at_turn is None
-    assert trace.completion_status == "completed"
 
 
 def test_streaming_response_is_rejected_before_body_read(monkeypatch):
@@ -754,3 +759,29 @@ def test_resolve_http_expands_capability_header_placeholders(monkeypatch):
     assert response_mode == "sse_last_frame"
     assert headers["Authorization"] == "Bearer sk-test-not-real"
     assert headers["X-DashScope-SSE"] == "enable"
+
+
+def test_history_keeps_failed_business_turns():
+    """业务层失败的轮也进历史：报错答复原样带上；没有 answer 字段时带整个返回体；空答复只留用户原话（接口不收空正文）。"""
+    from impl.core.session import SessionState, UserMessage
+
+    mock = LlmProbeMock(load_project("llm_probe"))
+    from impl.projects.llm_probe.capability import mock_body
+
+    first = {"body": mock_body("insurance-agno-e2e", "q1"), "method": "POST", "capability_ref": "insurance-agno-e2e"}
+    turns = [("q1", {"answer": "系统繁忙，请稍后再试", "status": "ERROR"}),
+             ("q2", {"error": {"code": "TIMEOUT"}}),
+             ("q3", {"answer": ""})]
+    transcript = []
+    for question, body in turns:
+        transcript += [{"role": "user", "content": question},
+                       {"role": "assistant", "content": "ok",
+                        "extracted_output": {"output_text": json.dumps(body, ensure_ascii=False)}}]
+    request = mock.request_from_user_message(UserMessage(type="text", text="q4"),
+                                             SessionState("s", 4, transcript, first))
+    assert request["body"]["messages"] == [
+        {"role": "user", "content": "q1"}, {"role": "assistant", "content": "系统繁忙，请稍后再试"},
+        {"role": "user", "content": "q2"}, {"role": "assistant", "content": '{"error": {"code": "TIMEOUT"}}'},
+        {"role": "user", "content": "q3"},
+        {"role": "user", "content": "q4"}]
+    assert mock.user_message_from_request(request).text == "q4"

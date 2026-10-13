@@ -49,8 +49,7 @@
 
   // 只选取已有原文作预览，不推断问题、不把条目结论重新分成好坏。
   function compositionText(source) {
-    const names = {pass:'做到', fail:'没做到', insufficient_evidence:'缺证', input_invalid:'输入无效', not_applicable:'未发生', contract_missing:'缺判准'};
-    return source?.composition ? Object.entries(source.composition.counts).map(([key, count]) => `${names[key] || key} ${count}`).join(' · ') : '';
+    return source?.composition ? Object.entries(source.composition.counts).map(([key, count]) => `${key} ${count}`).join(' · ') : '';
   }
   function issueReason(issue) {return issue.phenomenon + '；预期：' + issue.expected + '；实际：' + issue.observed;}
   function reasonSummary(source) {
@@ -192,12 +191,11 @@
         const row = element('section', undefined, 'process-issue');
         row.id = 'issue-' + issue.problem_id;
         row.append(element('strong', issue.problem_id + ' · ' + issue.phenomenon),
-          element('p', issueReason(issue)), element('p', '归因：' + issue.attribution_axes.join(' / ') +
-            (issue.attribution === 'unresolved' ? '（未定位）' : '') + '；对最终交付影响：' + ({yes:'有',no:'无',unknown:'不明'}[issue.impact])));
-        [...new Set([...issue.source_refs, ...issue.input_refs, ...issue.output_refs])].forEach(ref => {
+          element('p', issueReason(issue)), element('p', '归因：' + issue.attribution_detail + '；对最终交付的影响：' + issue.impact));
+        (issue.quotes || []).forEach(quote => {
           const details = element('details', undefined, 'issue-evidence');
-          details.append(element('summary', '证据 ' + ref));
-          details.append(element('pre', valueText(source.evidence_records?.[ref], '判准或引用位置：' + ref)));
+          details.append(element('summary', '引文 · ' + quote.ref + '：「' + quote.quote + '」'));
+          details.append(element('pre', valueText(source.evidence_records?.[quote.ref], '记录 ' + quote.ref)));
           row.append(details);
         });
         parent.append(row);
@@ -207,10 +205,6 @@
         const title = element('div', undefined, 'judgment-title');
         title.append(element('span', item.value ?? '(空值)', 'value-tag'), element('strong', item.key || '未提供条目标识'));
         row.append(title, element('p', item.reason || '未提供判断理由', 'reason'));
-        (item.upstream_issue_ids || []).forEach(id => row.append(button('上游问题 ' + id, 'upstream-issue-link', () => {
-          const upstream = (cases[selectedCase].axes || []).find(a => (a.issues || []).some(issue => issue.problem_id === id));
-          if (upstream) {showCase(selectedCase, axisId(upstream));document.getElementById('issue-' + id)?.scrollIntoView({block:'center'});}
-        })));
         parent.append(row);
       });
       if (!source.text && !(source.items || []).length) {parent.append(element('p', '未提供判断理由或条目。', 'empty-reason'));}
@@ -763,7 +757,7 @@
       input: kase.input ?? null, output: kase.output ?? null, fulfillment: kase.fulfillment || '',
       axes: (kase.axes || []).map(a => ({type_id: a.type_id || a.axis_id, title: a.title, status: a.status, verdict: a.verdict,
         text: a.text || '', composition: a.composition, issues: a.issues || [], evidence_records: a.evidence_records || {},
-        contract_missing: a.contract_missing || [], execution_trace_ref: a.execution_trace_ref,
+        execution_trace_ref: a.execution_trace_ref,
         items: (a.items || []).map(item => ({key: item.key, value: item.value, reason: item.reason || '',
           problem_ids: item.problem_ids || [], upstream_issue_ids: item.upstream_issue_ids || []})),
       }))}));

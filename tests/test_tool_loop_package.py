@@ -45,8 +45,6 @@ def test_internal_modules_depend_downwards_not_on_public_entry():
 @pytest.mark.parametrize("module", [
     "impl.core.llm_client",
     "impl.projects.llm_probe.process_loop.analysis",
-    "impl.projects.llm_probe.process_loop.evaluation",
-    "impl.projects.llm_probe.process_loop.llmtracing",
 ])
 def test_existing_consumers_import_the_package(module):
     assert importlib.import_module(module)
@@ -55,30 +53,26 @@ def test_existing_consumers_import_the_package(module):
 def test_implementation_fingerprints_cover_every_package_source(tmp_path, monkeypatch):
     from impl.projects.llm_probe.eval_axes import runner
     from impl.projects.llm_probe.eval_axes.adapters.trace_analysis import AXIS_TYPE
-    from impl.projects.llm_probe.process_loop import llmtracing_report
 
     assert set(SOURCE_FILES) <= set(AXIS_TYPE.implementation_files)
-    assert set(SOURCE_FILES) <= set(llmtracing_report.FILES)
     assert "impl/core/tool_loop.py" not in AXIS_TYPE.implementation_files
-    assert "impl/core/tool_loop.py" not in llmtracing_report.FILES
 
-    for name in set(AXIS_TYPE.implementation_files) | set(llmtracing_report.FILES):
+    for name in AXIS_TYPE.implementation_files:
         path = tmp_path / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("initial source\n")
     monkeypatch.setattr(runner, "ROOT", tmp_path)
     monkeypatch.setattr(runner, "_IMPLEMENTATION_FINGERPRINTS", {})
-    monkeypatch.setattr(llmtracing_report, "ROOT", tmp_path)
 
     def fingerprints():
         runner._IMPLEMENTATION_FINGERPRINTS.clear()
-        return runner.implementation_fingerprint(AXIS_TYPE), llmtracing_report._fingerprint("trace_analysis")
+        return runner.implementation_fingerprint(AXIS_TYPE)
 
     baseline = fingerprints()
     for name in SOURCE_FILES:
         path = tmp_path / name
         path.write_text("changed source\n")
         changed = fingerprints()
-        assert all(before != after for before, after in zip(baseline, changed)), name
+        assert baseline != changed, name
         path.write_text("initial source\n")
         assert fingerprints() == baseline

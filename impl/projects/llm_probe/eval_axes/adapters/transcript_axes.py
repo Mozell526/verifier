@@ -1,4 +1,4 @@
-"""llmtracing 的轴 adapter：确定性分析、ToolLoop 委托及主轴材料。
+"""llmtracing 的轴 adapter：对话稿的确定性分析与主轴材料（过程六轴暂不支持对话稿，见 process_common.run_process_axis）。
 
 不再保留一次性 complete_json / 格式重试 / salvage 评判路线。
 """
@@ -10,7 +10,6 @@ from impl.projects.llm_probe.business_trace.providers.llmtracing import PROVIDER
 from impl.projects.llm_probe.business_trace.providers.llmtracing_transcript import (
     build_transcript, is_transcript, render)
 from ..types import AxisSummary, RunOutcome, ScenarioAxis
-from .process_common import AxisSpec, _scenario_entry
 
 _EVIDENCE_BOUNDARY = """【证据边界】
 只核对有证据的实际边界。工具调用参数不是工具原始产出；模型输入里的 tool 消息只证明模型收到了该内容，
@@ -51,14 +50,6 @@ def run_analysis(inputs: Mapping[str, Any], axis: ScenarioAxis, runtime: Any) ->
                             f"{len(transcript['records'])} 个位置、{len(text)} 字；证据限制见 gap 条目", []),
         usage={'llm_calls': 0, 'transcript_chars': len(text)},
     )
-
-
-def run_axis(axis_id: str, inputs: Mapping[str, Any], axis: ScenarioAxis, runtime: Any, spec: AxisSpec) -> RunOutcome:
-    """单轴入口也委托同一loop实现；项目整案入口一次提交全部六轴，不逐轴重跑。"""
-    from impl.projects.llm_probe.process_loop.llmtracing import run_evaluation
-
-    return run_evaluation(inputs['trace_analysis']['dossier'], {axis_id: spec}, _scenario_entry(runtime),
-                          runtime.spec, expectations=inputs["expectations"], trace_id=runtime.trace_id)[axis_id]
 
 
 def main_judge_material(transcript: Mapping[str, Any], budget_chars: int) -> dict[str, Any]:

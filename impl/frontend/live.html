@@ -318,24 +318,28 @@ function renderAxisResult(result, axisType){
   const inputs=Object.keys(result.inputs_used || {}).length ? '<div class="kv muted">读了什么：'+escapeHtml(Object.values(result.inputs_used).join('；'))+'</div>' : '';
   return '<div style="border-top:1px solid #e5e7eb;padding-top:10px;margin-top:10px">'+head+(trigger?'<div class="kv muted">'+trigger+'</div>':'')+error+summaryText+body+inputs+usageText+'</div>';
 }
-// 过程轴：每对（义务, 环节）一行，偏差与缺证在前；分析轴给本轴选了什么材料一并展示。
+// 过程轴（本应 / 实际）：每条本应一行，没达到与无法核在前；问题、意外、未覆盖范围另列。
 function renderProcessAxis(output){
   const a=output.assessment || {};
   const rule=a.verdict_rule?'<div class="kv muted">汇总规则：'+escapeHtml(a.verdict_rule)+(a.scope_note?' · '+escapeHtml(a.scope_note):'')+'</div>':'';
-  const labels={};
-  (output.obligations||[]).forEach(o=>{labels[o.obligation_id]=o.label||o.obligation_id;});
-  const rank={fail:0,insufficient_evidence:1,contract_missing:2,pass:3,not_applicable:4};
-  const results=(output.results||[]).slice().sort((x,y)=>(rank[x.outcome]??5)-(rank[y.outcome]??5));
+  const counts=(a.composition&&a.composition.counts)||{};
+  const parts=Object.keys(counts).length?'<div class="kv muted">组成：'+escapeHtml(Object.entries(counts).map(([k,v])=>k+' '+v).join('、'))+'</div>':'';
+  const rank={'没达到':0,'无法核':1,'达到':2};
+  const state={'没达到':'bad','无法核':'warn','达到':'ok'};
+  const quoteLines=quotes=>(quotes||[]).map(q=>'<div class="kv muted" style="margin-left:14px">引文 · '+escapeHtml(q.ref)+'：「'+escapeHtml(q.quote)+'」</div>').join('');
+  const results=(output.results||[]).slice().sort((x,y)=>(rank[x.verdict]??3)-(rank[y.verdict]??3));
   const rows=results.map(r=>{
-    const ev=r.evidence||{};
-    const line=(title,items)=>(items||[]).length?'<div class="kv muted" style="margin-left:14px">'+title+'：'+escapeHtml(items.join('  '))+'</div>':'';
-    const text=(r.outcome==='pass'||r.outcome==='not_applicable')?escapeHtml(r.observed||''):('应做到：'+escapeHtml(r.expected||'')+'；实际：'+escapeHtml(r.observed||''));
-    return '<div class="kv"><span class="badge '+fulfillmentBadgeState(r.outcome)+'">'+escapeHtml(r.outcome)+'</span> <b>'+escapeHtml(labels[r.obligation_id]||r.obligation_id||'')+'</b> <span class="muted">@ '+escapeHtml(r.link_id||'')+(r.judged_by==='program'?' · 程序判定':'')+'</span> '+text
-      +line('出处',r.source_refs)+line('输入端',ev.input)+line('输出端',ev.output)+line('缺证',r.missing)+line('标注',r.flags)+'</div>';
+    const text=r.verdict==='达到'?escapeHtml(r.observed||''):('本应：'+escapeHtml(r.statement||'')+'（依据：'+escapeHtml(r.basis||'')+'）；实际：'+escapeHtml(r.observed||''));
+    return '<div class="kv"><span class="badge '+(state[r.verdict]||'')+'">'+escapeHtml(r.verdict||'')+'</span> <b>'+escapeHtml(r.subcapability||'')+'</b> <span class="muted">@ '+escapeHtml(r.about||'')+'</span> '+text+quoteLines(r.quotes)+'</div>';
   }).join('');
-  const gaps=(a.gaps||[]).length?'<div class="kv"><b>缺证汇总：</b>'+escapeHtml(a.gaps.join('；'))+'</div>':'';
-  const contract=(a.contract_missing||[]).length?'<div class="kv"><b>契约缺失（待补项目声明）：</b>'+escapeHtml(a.contract_missing.map(c=>(labels[c.obligation_id]||c.obligation_id)+' @ '+c.link_id).join('；'))+'</div>':'';
-  return selectionText(output)+rule+'<details class="inline-details" open><summary>义务 × 环节（'+results.length+'）</summary><div style="padding:0 12px 10px">'+rows+'</div></details>'+gaps+contract+collapsedJson('output', output);
+  const unexpected=(output.unexpected||[]).map(u=>'<div class="kv"><b>意外</b> '+escapeHtml(u.observed||'')+'（'+escapeHtml(u.why||'')+'）'+quoteLines(u.quotes)+'</div>').join('');
+  const issues=(output.issues||[]).map(i=>'<div class="kv"><b>'+escapeHtml(i.problem_id)+'</b> '+escapeHtml(i.phenomenon||'')+'<div class="kv muted" style="margin-left:14px">归因：'+escapeHtml(i.attribution_detail||'')+'；影响：'+escapeHtml(i.impact||'')+'</div></div>').join('');
+  const gaps=(a.gaps||[]).length?'<div class="kv"><b>未覆盖的范围：</b>'+escapeHtml(a.gaps.join('；'))+'</div>':'';
+  return selectionText(output)+rule+parts
+    +'<details class="inline-details" open><summary>问题（'+(output.issues||[]).length+'）</summary><div style="padding:0 12px 10px">'+issues+'</div></details>'
+    +'<details class="inline-details"><summary>本应 / 实际（'+results.length+'）</summary><div style="padding:0 12px 10px">'+rows+'</div></details>'
+    +(unexpected?'<details class="inline-details" open><summary>意外（'+(output.unexpected||[]).length+'）</summary><div style="padding:0 12px 10px">'+unexpected+'</div></details>':'')
+    +gaps+collapsedJson('output', output);
 }
 // 分析轴为本轴选了哪些编号、为什么；超出预算未纳入的单独列明。
 function selectionText(output){
