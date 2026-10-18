@@ -51,6 +51,23 @@ def test_llm_probe_translator_fills_template_slots_and_keeps_identity() -> None:
     assert turn2["body"]["messages"][-1]["content"] == "这张保单的被保人是谁？"
 
 
+def test_llm_probe_translator_resets_request_id_each_turn(monkeypatch: pytest.MonkeyPatch) -> None:
+    """多轮沿用首轮信封时，请求标识槽每轮放回占位符；发送前各自换成新值，会话身份不变。"""
+    from impl.projects.llm_probe import capability
+
+    template = {"session_id": "{session_id}", "trace_id": "{request_id}", "messages": [{"role": "user", "content": "{query}"}]}
+    monkeypatch.setattr(capability, "load_capability_map", lambda: {"lf": {"mock_body": template}})
+    mock = load_adapter(load_project("llm_probe")).mock()
+    sent_first = capability.fresh_delivery_placeholders(
+        {"session_id": "s-1", "trace_id": "{request_id}", "messages": [{"role": "user", "content": "q1"}]})
+    first_request = {"capability_ref": "lf", "method": "POST", "body": sent_first}
+    state = SessionState(session_id="s-1", turn_index=2, transcript=[], last_request=first_request)
+    turn2 = mock.request_from_user_message(UserMessage(type="text", text="q2"), state)
+    assert turn2["body"]["trace_id"] == "{request_id}"
+    assert turn2["body"]["session_id"] == "s-1"
+    sent_second = capability.fresh_delivery_placeholders(turn2["body"])
+    assert sent_second["trace_id"].startswith("llm-probe-req-") and sent_second["trace_id"] != sent_first["trace_id"]
+
 def test_compliance_check_flags_broken_round_trip(monkeypatch: pytest.MonkeyPatch) -> None:
     from impl.projects.policy_search.mock import PolicySearchMock
 

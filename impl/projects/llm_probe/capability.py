@@ -158,12 +158,12 @@ Slot = tuple[Any, ...]
 
 
 def template_slots(ref: str) -> dict[str, list[Slot]]:
-    """mock_body 模板里 `{query}` / `{session_id}` 占位符所在的路径。
+    """mock_body 模板里 `{query}` / `{session_id}` / `{request_id}` 占位符所在的路径。
 
     会话翻译（SessionTranslator）用它把原话与会话身份确定性地写进请求体，
     不需要知道每个被测接口的字段名。
     """
-    slots: dict[str, list[Slot]] = {"query": [], "session_id": []}
+    slots: dict[str, list[Slot]] = {"query": [], "session_id": [], "request_id": []}
 
     def walk(value: Any, path: Slot) -> None:
         if isinstance(value, str):
@@ -171,6 +171,8 @@ def template_slots(ref: str) -> dict[str, list[Slot]]:
                 slots["query"].append(path)
             elif value == "{session_id}":
                 slots["session_id"].append(path)
+            elif value == "{request_id}":
+                slots["request_id"].append(path)
         elif isinstance(value, dict):
             for key, item in value.items():
                 walk(item, path + (key,))

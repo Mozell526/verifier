@@ -70,6 +70,10 @@ class LlmProbeMock(SessionTranslator, ProjectMock):
                 slot_set(body, messages, _history(state.transcript) + [{"role": "user", "content": message.text}])
         for path in slots["session_id"]:
             slot_set(body, path, state.session_id)
+        # 沿用的首轮信封里请求标识已落成具体值；每轮放回占位符，发送时由 fresh_delivery_placeholders 换新，
+        # 否则多轮共用一个请求标识，按它关联 trace 的 provider 会撞号。
+        for path in slots["request_id"]:
+            slot_set(body, path, "{request_id}")
         return envelope
 
     def user_message_from_request(self, request: Dict[str, Any]) -> UserMessage:
