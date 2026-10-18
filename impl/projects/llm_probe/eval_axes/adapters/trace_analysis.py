@@ -9,6 +9,7 @@ Each process axis then gets its own link types: suspects first, then the ends of
 from __future__ import annotations
 
 import json
+import re
 from typing import Any, Mapping
 
 from impl.core.tool_loop import LoopContext
@@ -179,6 +180,51 @@ def axis_selections(links: list[Mapping[str, Any]], suspects: list[Mapping[str, 
     return slots
 
 
+def _turn_no(text: str) -> int | None:
+    found = [int(n) for n in re.findall(r"turn(\d+)", text)]
+    return max(found) if found else None
+
+
+def _link_turn(link: Mapping[str, Any], owners: Mapping[str, set[int]], turns: list[int]) -> int:
+    """环节属于哪一轮：跨轮环节按较晚一轮；只引用共享正文的表外环节按正文最早出现的一轮；单轮 case 即第 1 轮。"""
+    refs = [end["ref"] for end in (link.get("input") or []) + (link.get("output") or [])]
+    found = [_turn_no(str(link.get("turn") or "")), *(_turn_no(ref) for ref in refs)]
+    found += [min(owners[ref]) for ref in refs if owners.get(ref)]
+    found = [t for t in found if t]
+    if found:
+        return max(found)
+    if len(turns) == 1:
+        return turns[0]
+    raise ValueError(f"环节算不出属于哪一轮：{link['link_id']}")
+
+
+def axis_batches(axis_id: str, dossier: Mapping[str, Any], structure: Mapping[str, Any],
+                 selection: Mapping[str, Any]) -> list[dict[str, Any]]:
+    """本轴环节按所属轮次排好再按大小切批（spec/alg/process-axes.md §2.3）；一批可含几轮，批次记下含哪几轮 turns。"""
+    from impl.projects.llm_probe.business_trace.materials import prepare_axis_materials
+    from .process_common import _axis_links
+
+    records = dossier.get("records") or []
+    turns = sorted({_turn_no(r.get("id", "")) for r in records} - {None}) or [1]
+    suspects = list(structure.get("suspects") or [])
+    links = _axis_links(axis_id, dossier, structure)
+    if not links:
+        none = [{"link_id": f"{axis_id}:none", "link_type": "/".join(AXIS_LINK_TYPES[axis_id]), "turn": "",
+                 "input": [], "output": [], "facts": {}, "basis": "程序未列出本轴类型的环节"}]
+        return [{**b, "turns": [f"t{turns[-1]}"]} for b in
+                prepare_axis_materials(dossier, none, suspects, extra_refs=list(selection.get("refs") or []))]
+    owners: dict[str, set[int]] = {}
+    for record in records:
+        turn = _turn_no(record.get("id", ""))
+        for token in set(re.findall(r"content#\d+", json.dumps(record.get("fields") or {}, ensure_ascii=False))):
+            if turn:
+                owners.setdefault(token, set()).add(turn)
+    turn_of = {link["link_id"]: _link_turn(link, owners, turns) for link in links}
+    ordered = sorted(links, key=lambda link: turn_of[link["link_id"]])
+    return [{**b, "turns": [f"t{t}" for t in sorted({turn_of[link['link_id']] for link in b["links"]})]}
+            for b in prepare_axis_materials(dossier, ordered, suspects)]
+
+
 def prepare_selections(dossier: Mapping[str, Any], structure: Mapping[str, Any],
                        selections: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
     """Analysis's deterministic handoff: complete endpoints, independent of suspect recall.
@@ -186,18 +232,8 @@ def prepare_selections(dossier: Mapping[str, Any], structure: Mapping[str, Any],
     Reading receipts still constrain the analyst's claims. They do not authorize
     truncating material the downstream judge needs to verify a processing link.
     """
-    from impl.projects.llm_probe.business_trace.materials import prepare_axis_materials
-    from impl.projects.llm_probe.business_trace.links import AXIS_LINK_TYPES
-    from .process_common import _axis_links
-
     for axis_id, selection in selections.items():
-        links = _axis_links(axis_id, dossier, structure)
-        extra = []
-        if not links:
-            links = [{"link_id": f"{axis_id}:none", "link_type": "/".join(AXIS_LINK_TYPES[axis_id]), "turn": "", "input": [], "output": [],
-                      "facts": {}, "basis": "程序未列出本轴类型的环节"}]
-            extra = list(selection.get("refs") or [])
-        selection["materials"] = prepare_axis_materials(dossier, links, list(structure.get("suspects") or []), extra_refs=extra)
+        selection["materials"] = axis_batches(axis_id, dossier, structure, selection)
     return selections
 
 
@@ -284,6 +320,8 @@ def _axis_type() -> Any:
             "impl/core/tool_loop/__init__.py", "impl/core/tool_loop/runtime.py", "impl/core/tool_loop/hooks.py",
             "impl/core/tool_loop/types.py", "impl/core/tool_loop/outputs.py",
             "impl/projects/llm_probe/business_trace/providers/agno_reader.py",
+            "impl/projects/llm_probe/business_trace/providers/langfuse.py",
+            "impl/projects/llm_probe/business_trace/providers/langfuse_reader.py",
             "impl/projects/llm_probe/eval_axes/adapters/transcript_axes.py",
             "impl/projects/llm_probe/business_trace/providers/llmtracing_transcript.py"))
 

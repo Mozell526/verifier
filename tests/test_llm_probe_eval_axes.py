@@ -1257,7 +1257,9 @@ def test_fulfillment_truth_adds_exactly_two_prompt_extras(output_text):
     assert enriched['system_prompt_extras'].pop() == (
         '## 真实性核验结果\n'
         '上游已对回答中的事实断言逐条核验。`refuted` 的断言视为事实错误，据此判相关期望 not_fulfilled；'
-        '`unverifiable` 不构成失败依据；不要重复核验，也不要发明核验结果里没有的断言。'
+        '`unverifiable` 不构成失败依据，也不构成通过依据：期望结果所依赖的断言被判 `unverifiable`、'
+        'trace 里也没有业务自己核实过的记录时，该期望判 not_evaluable 并写明缺哪份证据。'
+        '不要重复核验，也不要发明核验结果里没有的断言。'
     )
     assert enriched == base
     assert truth == original

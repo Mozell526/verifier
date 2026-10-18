@@ -7,4 +7,5 @@
 > 多轮方案应该对齐verifier/demand/multi_turn_interaction.md
 > 过程六轴的需求遵循verifier/demand/process_axes.md
 > 需求／期望（用户和下游对业务系统的期望）是什么、谁用，遵循verifier/demand/expectations.md
+> 信息源（trace、知识、业务描述等评测过程中取用的信息）是什么、有哪几种、要满足什么，遵循verifier/demand/information_sources.md
 > 过程六轴与上下文一致性的实施进度、验证证据和未决事项见 [实施记录](../spec/implementation/process-axes.md)

@@ -819,13 +819,22 @@ def build_dossier(trace: Any, snapshot: Any) -> dict[str, Any]:
             continue
         reader = open_reader(snap)
         source["original_records"] = contents.add(reader.source["records"])
+        if getattr(reader, "link_limits", None):
+            source["link_limits"] = reader.link_limits
+        if getattr(reader, "recorder", None):
+            source["recorder"] = reader.recorder
         overview = reader.overview()
         coverage.append({"turn": turn, "status": snap.get("status"), "coverage": snap.get("coverage"),
                          "association": overview["association"], "errors": overview["collection_errors"],
                          "limitations": reader.limitations})
         for name, limitation in reader.limitations.items():
             if limitation.get("status") not in {"complete", "available", "supported"}:
-                gaps.append({"id": f"{turn}.gap.{name}", **limitation})
+                gap = {"id": f"{turn}.gap.{name}", **limitation}
+                if isinstance(limitation.get("items"), list):
+                    # 逐条缺口的 ref 与案卷编号同一命名空间，下游可直接对号。
+                    gap["items"] = [dict(item, ref=turn + item["ref"]) if str(item.get("ref", "")).startswith("/records/") else item
+                                    for item in limitation["items"]]
+                gaps.append(gap)
         # Namespace every source pointer so historical snapshots cannot be confused with this turn.
         def qualified(value: Any) -> Any:
             if isinstance(value, str) and value.startswith("/records/"):
@@ -855,6 +864,9 @@ def build_dossier(trace: Any, snapshot: Any) -> dict[str, Any]:
                               "reconstructed_input": reconstructed,
                               "output_message_ref": qualified(entry.get("output_message_ref")),
                               "input_limit": reader.model_call_note(entry)})
+                for key in ("recorded_request", "task_ref"):
+                    if key in entry:
+                        calls[-1][key] = qualified(entry[key])
             if entry["kind"] in {"runs", "steps", "messages", "tool_calls", "model_calls"}:
                 scope = entry.get("scope", "observed_at_collection")
                 bucket = scope if scope in timelines else "observed_at_collection"

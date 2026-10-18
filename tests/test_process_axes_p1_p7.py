@@ -19,7 +19,7 @@ QUOTE = {"ref": "rec", "quote": "证据原文"}
 
 def axis(axis_id, rows, problems=(), not_covered=(), unexpected=()):
     expected = {"expected": [dict(id=r[0], about="a", subcapability=r[3] if len(r) > 3 else "s", statement=f"本应{r[0]}",
-                                  basis="b", needs_external="否") for r in rows],
+                                  basis="b", needs_external="否", turn="t1") for r in rows],
                 "not_covered": list(not_covered)}
     actual = {"actual": [dict(id=r[0], links=["L"], observed=f"实际{r[0]}", verdict=r[1],
                               quotes=[QUOTE] if r[2] else []) for r in rows],
@@ -27,7 +27,7 @@ def axis(axis_id, rows, problems=(), not_covered=(), unexpected=()):
               "problems": [dict(phenomenon=p[0], items=p[1], attribution=p[2], impact="i",
                                 problem_id=f"{axis_id}-B1-P{k}") for k, p in enumerate(problems, 1)],
               "reason": "r", "scope_note": "s"}
-    batch = {"number": 1, "links": ["L"], "chars": {}, "expected": expected,
+    batch = {"number": 1, "turns": ["t1"], "duties": {}, "links": ["L"], "chars": {}, "expected": expected,
              "actual": px.settle(actual, expected, TEXTS)}
     return px.outcome_of(axis_id, [batch], [], {"llm_calls": 2}, {"refs": [], "why": []})
 
@@ -84,13 +84,13 @@ def test_p6_invalid_evaluator_output_is_a_run_error_not_an_item_value(monkeypatc
     monkeypatch.setattr(px, "input_view", lambda dossier, links: {"records": []})
     bad = {"actual": [], "unexpected": [], "problems": [], "reason": "r", "scope_note": "s"}
     replies = iter([{"expected": [dict(id="E1", about="a", subcapability="s", statement="x", basis="b",
-                                       needs_external="否")], "not_covered": []}, bad, bad])
+                                       needs_external="否", turn="t1")], "not_covered": []}, bad, bad])
     client = SimpleNamespace(complete_json=lambda *a, **k: copy.deepcopy(next(replies)), usage=lambda: {})
     monkeypatch.setattr(px, "axis_llm", lambda *a, **k: client)
     monkeypatch.setattr("impl.projects.llm_probe.eval_axes.adapters.process_common._scenario_entry", lambda runtime: None)
     analysis = {"dossier": {"records": []}, "structure": {}, "selections": {"intent_understanding": {
         "materials": [{"links": [{"link_id": "L", "link_type": "intent_understanding", "input": [], "output": []}],
-                       "view": {"records": []}}]}}}
+                       "view": {"records": []}, "turns": ["t1"]}]}}}
     spec = AxisSpec("q", "x", (Subcapability("对象与字段一致", "w", "d"),))
     out = px.run_expected_axis("intent_understanding", {"trace_analysis": analysis, "expectations": {}}, None,
                                SimpleNamespace(spec=None, trace_id="t", ensure_time_left=lambda *_: None), spec)

@@ -7,9 +7,9 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from .providers import agno, llmtracing
+from .providers import agno, langfuse, llmtracing
 
-_PROVIDERS = {"agno": agno, "llmtracing": llmtracing}
+_PROVIDERS = {"agno": agno, "llmtracing": llmtracing, "langfuse": langfuse}
 
 
 def provider_descriptions() -> list[dict[str, Any]]:

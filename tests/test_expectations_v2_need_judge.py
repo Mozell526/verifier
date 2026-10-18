@@ -52,7 +52,7 @@ def entry(refs=None):
 
 def frozen():
     material = project_requirements(trace())
-    es = [entry()]
+    es = [{**entry(), 'expectation_id': 't1.E1', 'turn': 't1'}]
     return dict(expectations=es, sources=material['sources'], missing=material['missing'],
                 material_sha256=material['sha256'], verdict='complete',
                 sha256=hashlib.sha256(json.dumps(es, ensure_ascii=False, sort_keys=True).encode()).hexdigest())
@@ -120,8 +120,8 @@ def test_frozen_main_projection_keeps_id_hash_and_condition(monkeypatch):
             assert material['E'] == e
             if kw['stage'] == 'llm_probe_need_blocking':
                 assert set(material) == {'E'}  # no actual, capability or design inputs
-                return {'expectations_sha256': e['sha256'], 'items': [{'expectation_id': 'E1', 'blocking': True}]}
-            return {'expectations_sha256': e['sha256'], 'items': [{'expectation_id': 'E1',
+                return {'expectations_sha256': e['sha256'], 'items': [{'expectation_id': 't1.E1', 'blocking': True}]}
+            return {'expectations_sha256': e['sha256'], 'items': [{'expectation_id': 't1.E1',
                 'status': 'fulfilled', 'observed': '答复为交费有效', 'downstream_impact': '用户获得状态'}],
                 'reasoning_summary': '状态已交付'}
     monkeypatch.setattr(need_judge, 'axis_llm', lambda *a, **kw: Client())
@@ -133,7 +133,7 @@ def test_frozen_main_projection_keeps_id_hash_and_condition(monkeypatch):
     assert result.fulfillment_assessments[0].evidence_refs[0]['expectations_sha256'] == e['sha256']
     assert result.business_expectations[0].expected_outcome == e['expectations'][0]['statement']
     assert result.business_expectations[0].acceptance_criteria == [{'condition': '总是', 'ambiguity_group': ''}]
-    assert result.fulfillment_assessments[0].expectation_id == 'E1'
+    assert result.fulfillment_assessments[0].expectation_id == 't1.E1'
     assert len(calls) == 2
 
 
@@ -176,3 +176,34 @@ def test_changed_frozen_content_rejected_before_client(monkeypatch):
     monkeypatch.setattr(need_judge, 'axis_llm', lambda *a, **kw: pytest.fail('must not call client'))
     with pytest.raises(ValueError, match='内容指纹不匹配'):
         need_judge.run_need_judge(None, trace(), e, {})
+
+
+def test_needs_are_written_per_turn_without_later_turns(monkeypatch):
+    """每轮一份（spec/alg/expectations.md §2.1）：写第 1 轮时看不到第 2 轮；判准只在最后一轮，背景每轮都带。"""
+    src = lambda ref, side, turn, component, value: dict(id=ref, side=side, turn=turn, component=component, value=value,
+                                                        scope='request', trace_refs=[])
+    material = {'sources': [src('t1.user', 'want', 't1', 'user', '查伏云平'),
+                            src('t2.history.0', 'history', 't2', 'history', {'role': 'user', 'content': '查伏云平'}),
+                            src('t2.user', 'want', 't2', 'user', '说错了，是余昕雅'),
+                            src('scenario.description', 'background', 'case', 'description', '保险业务'),
+                            src('scenario.criterion', 'want', 'case', 'criterion', '承接更正')],
+                'missing': [], 'sha256': 'x'}
+    prompts = []
+
+    class Client:
+        def complete_json(self, system, prompt, **kw):
+            body = json.loads(prompt)
+            prompts.append([s['id'] for s in body['sources']])
+            want = next(s['id'] for s in body['sources'] if s['side'] == 'want')
+            return {'expectations': [{**entry([want]), 'expectation_id': 'E1'}]}
+        def usage(self): return {}
+    monkeypatch.setattr(expectations, 'axis_llm', lambda *a, **k: Client())
+    runtime = SimpleNamespace(spec=None, trace_id='test', ensure_time_left=lambda _: None)
+    out = expectations.run({'requirements': material}, None, runtime).output
+    assert prompts == [['t1.user', 'scenario.description'],
+                       ['t2.history.0', 't2.user', 'scenario.description', 'scenario.criterion']]
+    assert [(e['expectation_id'], e['turn']) for e in out['expectations']] == [('t1.E1', 't1'), ('t2.E1', 't2')]
+    expectations.validate_frozen(out)
+    out['expectations'][0]['source_refs'] = ['t2.user']
+    with pytest.raises(ValueError, match='本轮或整案'):
+        expectations.validate_frozen(out)

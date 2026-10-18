@@ -38,9 +38,9 @@ def test_split_is_lossless_and_first_part_has_no_output_fields():
     assert px.record_fields(px.merge_views(part1, part2)) == px.record_fields(FULL)
 
 
-def _expected(*items):
-    return {"expected": [dict(id=i, about="a", subcapability="交付保留原义", statement=f"本应{i}", basis="通用职责",
-                              needs_external=ext) for i, ext in items], "not_covered": []}
+def _expected(*items, turn="t1"):
+    return {"expected": [dict(id=i, about="a", subcapability="交付保留原义", statement=f"本应{i}", basis="原文",
+                              needs_external=ext, turn=turn) for i, ext in items], "not_covered": []}
 
 
 def _row(i, verdict, quotes=()):
@@ -85,7 +85,7 @@ def test_settle_locks_external_checks_and_drops_problems_that_lost_their_basis()
 
 
 def _batch(rows, problems=(), unexpected=()):
-    return {"number": 1, "links": ["L1"], "chars": {}, "expected": _expected(*[(r["id"], "否") for r in rows]),
+    return {"number": 1, "turns": ["t1"], "duties": {}, "links": ["L1"], "chars": {}, "expected": _expected(*[(r["id"], "否") for r in rows]),
             "actual": {"actual": rows, "unexpected": list(unexpected), "problems": list(problems),
                        "reason": "r", "scope_note": "s", "demoted": []}}
 
@@ -109,7 +109,7 @@ def test_issue_records_carry_expected_actual_quotes_and_attribution():
                    [dict(id="X1", observed="覆盖了答案", links=["L2"], quotes=[dict(ref="final", quote="保费:0.00")], why="丢答案")])
     issue = px.issues_of("context_memory", [batch])[0]
     assert issue["problem_id"] == "context_memory-B1-P1" and issue["attribution"] == "local"
-    assert issue["expected"] == "本应E1（依据：通用职责）" and issue["observed"] == "实际E1；覆盖了答案"
+    assert issue["expected"] == "本应E1（依据：原文）" and issue["observed"] == "实际E1；覆盖了答案"
     assert issue["output_refs"] == ["final"] and issue["origin"] == "expected" and issue["links"] == ["L1", "L2"]
 
 
@@ -131,7 +131,7 @@ def test_batch_sends_second_call_and_correction_as_new_turns(monkeypatch):
 
     spec = SimpleNamespace(question="q", excludes="x", subcapabilities=[SimpleNamespace(name="交付保留原义", when="w", duty="duty")])
     runtime = SimpleNamespace(trace_id="t", ensure_time_left=lambda *_: None)
-    out = px.judge_batch(Client(), runtime, "context_memory", spec, 1, {}, [{"link_id": "L1"}], FULL,
+    out = px.judge_batch(Client(), runtime, "context_memory", spec, 1, ["t1"], {}, [{"link_id": "L1"}], FULL,
                          {"expectations": [], "sources": []}, "limits")
     assert len(calls) == 3 and len({c["system"] for c in calls}) == 1
     assert all(c["constraint_in_user"] for c in calls)
@@ -161,7 +161,7 @@ def test_second_bad_answer_is_an_evaluator_error(monkeypatch):
     spec = SimpleNamespace(question="q", excludes="x", subcapabilities=[])
     runtime = SimpleNamespace(trace_id="t", ensure_time_left=lambda *_: None)
     with pytest.raises(ValueError, match="一一对应"):
-        px.judge_batch(Client(), runtime, "intent_understanding", spec, 1, {}, [{"link_id": "L1"}], FULL,
+        px.judge_batch(Client(), runtime, "intent_understanding", spec, 1, ["t1"], {}, [{"link_id": "L1"}], FULL,
                        {"expectations": [], "sources": []}, "limits")
 
 
@@ -181,7 +181,7 @@ def test_quotes_still_bad_after_rewrite_are_dropped_not_fatal(monkeypatch):
 
     spec = SimpleNamespace(question="q", excludes="x", subcapabilities=[])
     runtime = SimpleNamespace(trace_id="t", ensure_time_left=lambda *_: None)
-    out = px.judge_batch(Client(), runtime, "intent_understanding", spec, 1, {}, [{"link_id": "L1"}], FULL,
+    out = px.judge_batch(Client(), runtime, "intent_understanding", spec, 1, ["t1"], {}, [{"link_id": "L1"}], FULL,
                          {"expectations": [], "sources": []}, "limits")
     assert Client.n == 3
     assert out["actual"]["actual"][0]["verdict"] == "无法核" and out["actual"]["problems"] == []
@@ -226,7 +226,7 @@ def test_first_call_gets_one_correction_as_a_new_turn(monkeypatch):
 
     spec = SimpleNamespace(question="q", excludes="x", subcapabilities=[])
     runtime = SimpleNamespace(trace_id="t", ensure_time_left=lambda *_: None)
-    out = px.judge_batch(Client(), runtime, "intent_understanding", spec, 1, {}, [{"link_id": "L1"}], FULL,
+    out = px.judge_batch(Client(), runtime, "intent_understanding", spec, 1, ["t1"], {}, [{"link_id": "L1"}], FULL,
                          {"expectations": [], "sources": []}, "limits")
     assert calls[1]["history"] == [{"role": "user", "content": with_output_constraint(calls[0]["user"], px.EXPECTED_SPEC)},
                                    {"role": "assistant", "content": '{"expected":[{"id":"E1"}]}'}]
@@ -258,3 +258,116 @@ def test_chinese_quote_marks_stand_for_ascii_quotes_in_verbatim_check():
     texts = px.record_texts(FULL)
     assert px.bad_quotes({"quotes": [{"ref": "final", "quote": "“answer”:“保费:0.00”"}]}, texts) == []
     assert px.bad_quotes({"quotes": [{"ref": "final", "quote": "“answer”:“保费:9.99”"}]}, texts)
+
+
+def _duty_batch(number, turn, verdict, duty="D1"):
+    batch = _batch([_row("E1", verdict, [GOOD] if verdict == "没达到" else [])])
+    batch["number"], batch["turns"], batch["duties"] = number, [turn], {"E1": duty}
+    batch["expected"]["expected"][0]["turn"] = turn
+    return batch
+
+
+def test_standing_duty_is_settled_per_turn_by_any_batch_that_could_check_it():
+    """通用职责按轮、按轴取值：同一轮里别的批判过，这一批的无法核不再拖累整轴；整轮都核不了才算一条无法核。"""
+    verdict, _, comp = px.aggregate([_duty_batch(1, "t1", "无法核"), _duty_batch(2, "t1", "达到")])
+    assert verdict == "sound" and comp["standing_duties"] == {"t1 D1": "达到"} and comp["counts"]["无法核"] == 0
+    verdict, _, comp = px.aggregate([_duty_batch(1, "t1", "无法核"), _duty_batch(2, "t1", "无法核"),
+                                     _duty_batch(3, "t2", "达到")])
+    assert verdict == "not_evaluable" and comp["counts"]["无法核"] == 1
+    assert comp["standing_duties"] == {"t1 D1": "无法核", "t2 D1": "达到"}
+
+
+def test_duty_items_must_carry_the_given_number(monkeypatch):
+    monkeypatch.setattr(px, "input_view", lambda dossier, links: FIRST)
+    unnumbered = _expected(("E1", "否"))
+    unnumbered["expected"][0]["basis"] = "通用职责"
+    numbered = copy.deepcopy(unnumbered)
+    numbered["expected"][0]["basis"] = "通用职责 D2"
+    replies = iter([unnumbered, numbered, {"actual": [_row("E1", "达到")], "unexpected": [], "problems": [],
+                                           "reason": "r", "scope_note": "s"}])
+    calls = []
+
+    class Client:
+        def complete_json(self, system, user, **kwargs):
+            calls.append(user)
+            return copy.deepcopy(next(replies))
+
+    spec = SimpleNamespace(question="q", excludes="x", subcapabilities=[])
+    runtime = SimpleNamespace(trace_id="t", ensure_time_left=lambda *_: None)
+    out = px.judge_batch(Client(), runtime, "context_memory", spec, 1, ["t1"], {}, [{"link_id": "L1"}], FULL,
+                         {"expectations": [], "sources": []}, "limits")
+    assert '"D1"' in calls[0] and "本批不涉及" in calls[0] and "没写给定的编号" in calls[1]
+    assert out["duties"] == {"E1": "D2"} and out["turns"] == ["t1"]
+
+
+def test_axis_without_duties_neither_asks_for_nor_checks_duty_numbers(monkeypatch):
+    """没有通用职责的轴：提示词不提通用职责；模型自己在 basis 里写了「通用职责」也不当成格式错误（2026-10-14 整批里 7 个轴因此失败）。"""
+    monkeypatch.setattr(px, "input_view", lambda dossier, links: FIRST)
+    loose = _expected(("E1", "否"))
+    loose["expected"][0]["basis"] = "通用职责"
+    replies = iter([loose, {"actual": [_row("E1", "达到")], "unexpected": [], "problems": [],
+                            "reason": "r", "scope_note": "s"}])
+    calls = []
+
+    class Client:
+        def complete_json(self, system, user, **kwargs):
+            calls.append(user)
+            return copy.deepcopy(next(replies))
+
+    spec = SimpleNamespace(question="q", excludes="x", subcapabilities=[])
+    runtime = SimpleNamespace(trace_id="t", ensure_time_left=lambda *_: None)
+    out = px.judge_batch(Client(), runtime, "model_capability", spec, 1, ["t1"], {}, [{"link_id": "L1"}], FULL,
+                         {"expectations": [], "sources": []}, "limits")
+    assert len(calls) == 2 and "通用职责" not in calls[0].split("\n\n")[0]
+    assert out["duties"] == {}
+
+
+def test_each_batch_gets_only_the_needs_of_the_turns_it_holds(monkeypatch):
+    seen = []
+    monkeypatch.setattr(px, "axis_llm", lambda *a, **k: SimpleNamespace(usage=lambda: {}))
+    monkeypatch.setattr(px, "judge_batch", lambda client, runtime, axis_id, spec, number, turns, dossier, links, view, e, *rest:
+                        seen.append((turns, [x["expectation_id"] for x in e["expectations"]], [s["id"] for s in e["sources"]]))
+                        or {**_batch([{**_row("E1", "达到"), "refs": []}]), "number": number, "turns": turns})
+    monkeypatch.setattr("impl.projects.llm_probe.eval_axes.adapters.process_common._scenario_entry", lambda runtime: None)
+    analysis = {"dossier": {"records": []}, "structure": {}, "selections": {"intent_understanding": {"materials": [
+        {"links": [{"link_id": "A"}], "view": {}, "turns": ["t1", "t2"]}, {"links": [{"link_id": "B"}], "view": {}, "turns": ["t3"]}]}}}
+    e = {"expectations": [{"expectation_id": "t1.查伏云平", "turn": "t1"}, {"expectation_id": "t2.查余昕雅", "turn": "t2"},
+                          {"expectation_id": "t3.查状态", "turn": "t3"}],
+         "sources": [{"id": "t1.user", "turn": "t1"}, {"id": "t2.user", "turn": "t2"}, {"id": "t3.user", "turn": "t3"},
+                     {"id": "scenario.description", "turn": "case"}]}
+    from dataclasses import dataclass
+
+    @dataclass
+    class Spec:
+        subcapabilities: tuple = ()
+    px.run_expected_axis("intent_understanding", {"trace_analysis": analysis, "expectations": e}, None,
+                         SimpleNamespace(spec=None, trace_id="t", ensure_time_left=lambda *_: None), Spec())
+    assert seen == [(["t1", "t2"], ["t1.查伏云平", "t2.查余昕雅"], ["t1.user", "t2.user", "scenario.description"]),
+                    (["t3"], ["t3.查状态"], ["t3.user", "scenario.description"])]
+
+
+def test_expected_items_must_belong_to_a_turn_the_batch_holds(monkeypatch):
+    """几轮合一批时，本应条目必须标出它属于批里的哪一轮（spec/alg/process-axes.md §2.3），标错的纠错一次。"""
+    monkeypatch.setattr(px, "input_view", lambda dossier, links: FIRST)
+    replies = iter([_expected(("E1", "否"), turn="t3"), _expected(("E1", "否"), turn="t2"),
+                    {"actual": [_row("E1", "达到")], "unexpected": [], "problems": [], "reason": "r", "scope_note": "s"}])
+    calls = []
+
+    class Client:
+        def complete_json(self, system, user, **kwargs):
+            calls.append(user)
+            return copy.deepcopy(next(replies))
+
+    spec = SimpleNamespace(question="q", excludes="x", subcapabilities=[])
+    runtime = SimpleNamespace(trace_id="t", ensure_time_left=lambda *_: None)
+    out = px.judge_batch(Client(), runtime, "intent_understanding", spec, 1, ["t1", "t2"], {}, [{"link_id": "L1"}], FULL,
+                         {"expectations": [], "sources": []}, "limits")
+    assert "不是本批材料含有的轮" in calls[1] and out["expected"]["expected"][0]["turn"] == "t2"
+
+
+def test_standing_duty_follows_the_items_own_turn_inside_a_multi_turn_batch():
+    batch = _batch([_row("E1", "没达到", [GOOD]), _row("E2", "达到")],
+                   [dict(phenomenon="p", items=["E1"], attribution="本轴", impact="i")])
+    batch["turns"], batch["duties"] = ["t1", "t2"], {"E1": "D2", "E2": "D2"}
+    batch["expected"]["expected"][1]["turn"] = "t2"
+    assert px.aggregate([batch])[2]["standing_duties"] == {"t1 D2": "没达到", "t2 D2": "达到"}

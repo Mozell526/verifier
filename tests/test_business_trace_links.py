@@ -108,3 +108,58 @@ def test_model_output_end_uses_span_output_when_message_content_not_saved():
     assert by_id(build_links(d))["model_capability:call1"]["output"] == [{"ref": "call1", "field": "output"}]
     d["model_calls"][0]["output"] = {"status": "missing"}
     assert by_id(build_links(d))["model_capability:call1"]["output"] == [{"ref": "m-out", "field": "content"}]
+
+
+def test_step_ends_use_step_span_when_step_results_not_saved():
+    """Agno 的 step_results 常不存步骤输出；端点改用同一步骤 span 记录的输出，同名 span 不唯一时不配。"""
+    d = dossier()
+    unsaved = {"output": {"status": "missing", "note": "本记录没有保存此字段"}}
+    d["records"] = [{**r, "fields": unsaved} if r["id"] in {"s0", "s1"} else r for r in d["records"]] + [
+        row("span-s0", "steps", {"output": "prepared"}, name="prepare.aexecute", representation="span")]
+    d["records"][[r["id"] for r in d["records"]].index("span-s1")]["fields"]["output"] = {"status": "available", "value": "routed"}
+    links = by_id(build_links(d))
+    step = links["context_memory:step:s0→s1"]
+    assert step["input"] == [{"ref": "span-s0", "field": "output"}] and step["facts"]["contains"] is True
+    assert links["intent_understanding:turn1"]["output"][0] == {"ref": "span-s0", "field": "output"}
+    assert {"ref": "span-s1", "field": "output"} in links["planning_routing:path:turn1"]["output"]
+    assert links["planning_routing:branch:s1"]["output"] == [{"ref": "span-s1", "field": "output"}]
+    assert links["context_memory:deliver:turn1"]["input"] == [{"ref": "span-s1", "field": "output"}]
+    d["records"].append(row("span-s0b", "steps", {"output": "again"}, name="prepare.aexecute", representation="span"))
+    assert by_id(build_links(d))["context_memory:step:s0→s1"]["input"] == [{"ref": "s0", "field": "output"}]
+
+
+def test_agent_task_end_uses_agent_span_when_run_input_not_saved():
+    d = dossier()
+    d["records"] += [{**row("agent", "runs", {}, parent_ref="run", run_id="agent-run"),
+                      "fields": {"input": {"status": "missing", "note": "本记录没有保存此字段"}}},
+                     {**row("span-agent", "steps", {"input": "task"}, name="helper.arun", representation="span"),
+                      "agent_run_id": "agent-run"}]
+    d["records"][0]["run_id"] = "workflow-run"
+    d["records"][[r["id"] for r in d["records"]].index("m-out")]["run_id"] = "agent-run"
+    assert by_id(build_links(d))["context_memory:input:call1"]["input"] == [{"ref": "span-agent", "field": "input"}]
+
+
+
+def test_intent_link_covers_the_expression_up_to_its_turn():
+    """意图环节（spec/alg/process-axes.md §8）：第 N 轮 = 第 1..N 轮的用户原文 → 截至本轮的全部步骤产出、
+    Agent 收到的任务与各次模型调用发出的工具调用，不只看本轮第一个步骤和第一次决策。"""
+    def at(turn, ident, kind, fields, **meta):
+        return {**row(f"{turn}/{ident}", kind, fields, **meta), "turn": turn}
+    records, calls = [], []
+    for turn in ("turn1", "turn2"):
+        records += [at(turn, "run", "runs", {"input": f"{turn} question"}),
+                    at(turn, "s0", "steps", {"output": "gate"}, parent_ref=f"{turn}/run", name="gate"),
+                    at(turn, "s1", "steps", {"output": "agent"}, parent_ref=f"{turn}/run", name="agent"),
+                    at(turn, "agent", "runs", {"input": "task"}, parent_ref=f"{turn}/s1", run_id=f"{turn}-agent"),
+                    at(turn, "m1", "messages", {"tool_calls": ["lookup A"]}, role="assistant"),
+                    at(turn, "m2", "messages", {"tool_calls": ["lookup B"]}, role="assistant")]
+        calls += [{"id": f"{turn}/c{k}", "turn": turn, "scope": "current", "output_message_ref": f"{turn}/m{k}"} for k in (1, 2)]
+    links = by_id(build_links({"sources": [{"id": "turn1"}, {"id": "turn2"}], "contents": {}, "gaps": [],
+                               "records": records, "model_calls": calls}, axis_id="intent_understanding"))
+    expressed = lambda turn: [(f"{turn}/s0", "output"), (f"{turn}/s1", "output"), (f"{turn}/agent", "input"),
+                              (f"{turn}/m1", "tool_calls"), (f"{turn}/m2", "tool_calls")]
+    ends = lambda link, side: [(e["ref"], e["field"]) for e in link[side]]
+    assert ends(links["intent_understanding:turn1"], "input") == [("turn1/run", "input")]
+    assert ends(links["intent_understanding:turn1"], "output") == expressed("turn1")
+    assert ends(links["intent_understanding:turn2"], "input") == [("turn1/run", "input"), ("turn2/run", "input")]
+    assert ends(links["intent_understanding:turn2"], "output") == expressed("turn1") + expressed("turn2")

@@ -1,11 +1,11 @@
-"""Link instances enumerated from generic Agno structure (W1 §1: t → Λ, Φ).
+"""Link instances enumerated from recorded execution structure (W1 §1: t → Λ, Φ).
 
 A link is one processing unit with an input side and an output side, both given as
 dossier record ids (plus the field names on each side). ``facts`` holds only relations
 the program can check exactly (same name+arguments, text containment, equality,
 timing). Facts state relations; they never judge whether a link behaved correctly.
 
-Only Agno concepts are used: runs, steps (nested step_results), model calls, tool
+Only execution concepts are used: runs, steps (nested step_results), model calls, tool
 calls, messages, final/delivered output. No business field names are read.
 """
 from __future__ import annotations
@@ -122,14 +122,17 @@ def _model_links(dossier: Mapping[str, Any], rows: Mapping[str, Mapping[str, Any
         messages = [ref for ref in (call.get("reconstructed_input") or {}).get("message_refs") or [] if ref in rows]
         inputs = ([(call["id"], "exact_request")] if exact else
                   [(ref, "content") for ref in messages] + [(ref, "definition") for ref in _agent_definitions(rows, call)])
+        if call.get("recorded_request"):
+            inputs = [(call["id"], "input")]
         # 与输入端同理：端点选实际保存了内容的字段。持久化消息常不存助手正文，此时用 span 记录的输出。
         out = call.get("output_message_ref")
         saved = ((rows.get(out) or {}).get("fields") or {}).get("content", {}).get("status") == "available"
         outputs = [(out, "content")] if saved or (out in rows and (call.get("output") or {}).get("status") != "available") \
             else [(call["id"], "output")]
         links.append(_link(f"model_capability:{call['id']}", "model_capability", call.get("turn"), inputs, outputs,
+                           "SDK 记录的请求表示（完整性未证实）" if call.get("recorded_request") else
                            "span 记录的请求" if exact else "持久化消息重建的请求",
-                           input_source="exact_request" if exact else
+                           input_source="recorded_input" if call.get("recorded_request") else "exact_request" if exact else
                            (call.get("reconstructed_input") or {}).get("status", "missing")))
     return links
 
@@ -178,37 +181,58 @@ def _transfer_links(dossier: Mapping[str, Any], rows: Mapping[str, Mapping[str, 
     return links
 
 
+def _step_spans(rows: Mapping[str, Mapping[str, Any]]) -> dict[tuple[Any, str], Mapping[str, Any]]:
+    """步骤在 trace 里的 span，按（轮次, 步骤名）配对；同名出现多次（如循环）时无法一一对应，不配。"""
+    groups = defaultdict(list)
+    for r in _live(rows.values(), "steps"):
+        if r.get("representation") == "span":
+            groups[(r.get("turn"), str(r.get("name") or "").split(".")[0])].append(r)
+    return {key: spans[0] for key, spans in groups.items() if len(spans) == 1}
+
+
+def _step_end(dossier: Mapping[str, Any], spans: Mapping[tuple[Any, str], Mapping[str, Any]],
+              step: Mapping[str, Any], field: str) -> tuple[str, str]:
+    """端点选实际保存了内容的字段：Agno 的 step_results 常不存步骤输入输出，此时用同一步骤 span 记录的。"""
+    span = spans.get((step.get("turn"), step.get("name")))
+    if _value(dossier, step, field) is None and _value(dossier, span, field) is not None:
+        return span["id"], field
+    return step["id"], field
+
+
+def _end_value(dossier: Mapping[str, Any], rows: Mapping[str, Mapping[str, Any]], end: tuple[str, str]) -> Any:
+    return _value(dossier, rows.get(end[0]), end[1])
+
+
 def _step_links(dossier: Mapping[str, Any], rows: Mapping[str, Mapping[str, Any]]) -> list[dict[str, Any]]:
-    steps = [r for r in _live(rows.values(), "steps") if r.get("representation") != "span"]
-    spans = {(r.get("turn"), str(r.get("name") or "").split(".")[0]): r
-             for r in _live(rows.values(), "steps") if r.get("representation") == "span"}
-    children = defaultdict(list)
+    steps = [r for r in _live(rows.values(), "steps") if r.get("representation") != "span"
+             and r.get("sequence_known") is not False]
+    spans, children = _step_spans(rows), defaultdict(list)
     for step in steps:
         children[step.get("parent_ref")].append(step)
     links = []
     for parent, siblings in children.items():
         for prev, nxt in zip(siblings, siblings[1:]):
-            span = spans.get((nxt.get("turn"), nxt.get("name")))
-            recorded = _value(dossier, span, "input") if span else None
-            inputs = [(prev["id"], "output")]
-            outputs = [(span["id"], "input")] if recorded is not None else [(nxt["id"], "output")]
-            links.append(_link(f"context_memory:step:{prev['id']}→{nxt['id']}", "context_memory", nxt.get("turn"), inputs, outputs,
-                               "步骤产出 → 下一步骤" + ("输入（span 记录）" if recorded is not None else "（下一步输入未记录，输出端为其产出）"),
+            produced, received = _step_end(dossier, spans, prev, "output"), _step_end(dossier, spans, nxt, "input")
+            recorded = _end_value(dossier, rows, received)
+            outputs = [received] if recorded is not None else [_step_end(dossier, spans, nxt, "output")]
+            links.append(_link(f"context_memory:step:{prev['id']}→{nxt['id']}", "context_memory", nxt.get("turn"), [produced], outputs,
+                               "步骤产出 → 下一步骤" + ("输入" if recorded is not None else "（下一步输入未记录，输出端为其产出）"),
                                next_input_recorded=recorded is not None,
-                               contains=_contains(recorded, _value(dossier, prev, "output")) if recorded is not None else None))
+                               contains=_contains(recorded, _end_value(dossier, rows, produced)) if recorded is not None else None))
         for step in siblings:
             nested = children.get(step["id"]) or []
             if nested:
                 previous = siblings[siblings.index(step) - 1] if siblings.index(step) else None
                 links.append(_link(f"planning_routing:branch:{step['id']}", "planning_routing", step.get("turn"),
-                                   [(previous["id"], "output")] if previous else [(parent, "input")],
-                                   [(step["id"], "output")], "带子步骤的控制步骤（Condition/Router/Loop 等）→ 实际执行的子步骤",
+                                   [_step_end(dossier, spans, previous, "output")] if previous else [(parent, "input")],
+                                   [_step_end(dossier, spans, step, "output")], "带子步骤的控制步骤（Condition/Router/Loop 等）→ 实际执行的子步骤",
                                    executed=[c.get("name") for c in nested]))
     return links
 
 
 def _input_links(dossier: Mapping[str, Any], rows: Mapping[str, Mapping[str, Any]]) -> list[dict[str, Any]]:
     """context_memory:input：Agent 收到的任务（及会话历史）→ 系统为该次模型调用组装的实际输入。"""
+    spans = {r["agent_run_id"]: r for r in _live(rows.values(), "steps") if r.get("agent_run_id")}
     agent_runs = defaultdict(list)
     for run in _live(rows.values(), "runs"):
         if run.get("parent_ref"):
@@ -223,15 +247,25 @@ def _input_links(dossier: Mapping[str, Any], rows: Mapping[str, Mapping[str, Any
         exact = (call.get("exact_request") or {}).get("status") == "available"
         messages = [ref for ref in (call.get("reconstructed_input") or {}).get("message_refs") or [] if ref in rows]
         outputs = [(call["id"], "exact_request")] if exact else [(ref, "content") for ref in messages]
+        task = None
+        if owner:  # 同上：run 记录常不存 Agent 收到的任务，此时用该 run 的 span（agent_run_id 相同）记录的输入。
+            span = spans.get(owner[0].get("run_id"))
+            task = (span["id"], "input") if _value(dossier, owner[0], "input") is None and _value(dossier, span, "input") is not None \
+                else (owner[0]["id"], "input")
+        if call.get("recorded_request"):
+            outputs = [(call["id"], "input")]
+            task = (call["task_ref"], "input") if call.get("task_ref") in rows else None
         links.append(_link(f"context_memory:input:{call['id']}", "context_memory", call.get("turn"),
-                           [(owner[0]["id"], "input")] if owner else [], outputs,
+                           [task] if task else [], outputs,
                            "Agent 收到的任务 → 该次模型调用的实际输入（系统组装）"))
     return links
 
 
 def _turn_links(dossier: Mapping[str, Any], rows: Mapping[str, Mapping[str, Any]]) -> list[dict[str, Any]]:
-    links = []
+    links, spans = [], _step_spans(rows)
+    agent_spans = {r["agent_run_id"]: r for r in _live(rows.values(), "steps") if r.get("agent_run_id")}
     current = [r for r in rows.values() if r.get("scope") == "current" and not r.get("copy_of")]
+    said, expressed = [], []  # 意图：截至本轮的用户原文与内部表达
     for source in dossier.get("sources") or []:
         turn = source["id"]
         turn_rows = [r for r in current if r.get("turn") == turn]
@@ -240,15 +274,20 @@ def _turn_links(dossier: Mapping[str, Any], rows: Mapping[str, Mapping[str, Any]
                and runs and r.get("parent_ref") == runs[0]["id"]]
         calls = [c for c in dossier.get("model_calls") or [] if c.get("turn") == turn and c.get("scope") == "current"]
         if runs:
-            outputs = [(top[0]["id"], "output")] if top else []
-            if calls and calls[0].get("output_message_ref") in rows:
-                outputs.append((calls[0]["output_message_ref"], "tool_calls"))
-            links.append(_link(f"intent_understanding:{turn}", "intent_understanding", turn, [(runs[0]["id"], "input")], outputs,
-                               "用户原文 → 首个步骤产出与首次模型决策"))
+            tasks = []
+            for run in (r for r in turn_rows if r["kind"] == "runs" and r.get("parent_ref")):
+                span = agent_spans.get(run.get("run_id"))
+                tasks.append((span["id"], "input") if span and _value(dossier, run, "input") is None
+                             and _value(dossier, span, "input") is not None else (run["id"], "input"))
+            said.append((runs[0]["id"], "input"))
+            expressed += [_step_end(dossier, spans, step, "output") for step in top] + tasks
+            expressed += [(c["output_message_ref"], "tool_calls") for c in calls if c.get("output_message_ref") in rows]
+            links.append(_link(f"intent_understanding:{turn}", "intent_understanding", turn, list(said), list(expressed),
+                               "第 1 轮到本轮的用户原文 → 截至本轮的内部表达（各步骤产出、交给 Agent 的任务、各次模型调用发出的工具调用）"))
             tools = sorted((t for t in turn_rows if t["kind"] == "tool_calls" and not t.get("persisted_ref")),
                            key=lambda t: (_time(dossier, t, "start_time") is None, _time(dossier, t, "start_time") or 0))
             states = [(r["id"], "") for r in turn_rows if r["kind"] == "states"]
-            steps_out = [(s["id"], "output") for s in top]
+            steps_out = [_step_end(dossier, spans, s, "output") for s in top]
             tool_ends = [(t["id"], "arguments") for t in tools] + [(t["id"], "result") for t in tools]
             links.append(_link(f"planning_routing:path:{turn}", "planning_routing", turn, [(runs[0]["id"], "input")] + states,
                                steps_out + tool_ends, "本轮任务与运行末态 → 实际走的路径、调用序列与收尾",
@@ -262,16 +301,16 @@ def _turn_links(dossier: Mapping[str, Any], rows: Mapping[str, Mapping[str, Any]
         delivered = next((r for r in turn_rows if r["kind"] == "delivered_output"), None)
         last = top[-1] if top else None
         if delivered and (stored or last):
-            source_row = last or stored
+            source = _step_end(dossier, spans, last, "output") if last else (stored["id"], "output")
             delivered_value = _value(dossier, delivered, "output")
-            links.append(_link(f"context_memory:deliver:{turn}", "context_memory", turn, [(source_row["id"], "output")], [(delivered["id"], "output")],
+            links.append(_link(f"context_memory:deliver:{turn}", "context_memory", turn, [source], [(delivered["id"], "output")],
                                "最后步骤产出 → 调用方实收",
                                vs_stored=_key_diff(_value(dossier, stored, "output"), delivered_value)
                                if stored else None))
     return links
 
 
-def program_suspects(links: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
+def program_suspects(links: Iterable[Mapping[str, Any]], *, recorder: str = "Agno") -> list[dict[str, Any]]:
     """Links whose facts depart from identity. Recall-oriented: a hit is a place to look, not a finding."""
     hits = []
     for link in links:
@@ -286,7 +325,7 @@ def program_suspects(links: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]
         if diff.get("dropped"):
             why.append(f"实收相对落库缺少 {diff['dropped']}")
         if facts.get("tool_error"):
-            why.append("Agno 标记工具出错")
+            why.append(f"{recorder} 标记工具出错")
         if why:
             hits.append({"link_id": link["link_id"], "why": "；".join(why), "origin": "program"})
     return hits
@@ -303,4 +342,5 @@ def build_links(dossier: Mapping[str, Any], *, axis_id: str | None = None) -> di
              + _tool_links(dossier, rows) + _transfer_links(dossier, rows) + _input_links(dossier, rows))
     types = AXIS_LINK_TYPES.get(axis_id, ()) if axis_id else tuple(LINK_TYPES)
     return {"types": {t: LINK_TYPES[t] for t in types}, "links": [l for l in links if l["link_type"] in types],
-            "limits": LIMITS}
+            "limits": "\n".join(dict.fromkeys(s["link_limits"] for s in dossier.get("sources", [])
+                                              if s.get("link_limits"))) or LIMITS}

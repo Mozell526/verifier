@@ -146,7 +146,10 @@ class Analysis:
         self.catalog_text = render_catalog(build_catalog(dossier))
         self.table = build_links(dossier)
         self.links = {link["link_id"]: link for link in self.table["links"]}
-        self.flagged = program_suspects(self.table["links"])
+        # 记录来源默认 Agno；其他 provider 的 reader 声明 recorder，提示与可疑说明随之改名。
+        recorder = next((s["recorder"] for s in dossier.get("sources") or [] if s.get("recorder")), "Agno")
+        self.system = SYSTEM if recorder == "Agno" else derive_prompt(SYSTEM, {"从 Agno 结构枚举": f"从 {recorder} 结构枚举"})
+        self.flagged = program_suspects(self.table["links"], recorder=recorder)
         self.gap_ids = {str(gap["id"]) for gap in dossier.get("gaps") or []}
         self.index = EvidenceIndex(dossier)
         downstream = [{"axis": axis_id, "link_types": list(AXIS_LINK_TYPES[axis_id]),
@@ -155,7 +158,7 @@ class Analysis:
                       for axis_id in enabled if axis_id in PROCESS_SPECS]
         self.prompt = "\n\n".join([
             "## 案卷目录\n" + self.catalog_text,
-            "## 环节表（程序从 Agno 结构枚举）\n" + json.dumps(self.table, ensure_ascii=False),
+            f"## 环节表（程序从 {recorder} 结构枚举）\n" + json.dumps(self.table, ensure_ascii=False),
             "## 程序已标出的可疑环节（program_suspects）\n" + json.dumps(self.flagged, ensure_ascii=False),
             "## 启用的下游轴与需求\n" + json.dumps(downstream, ensure_ascii=False),
             f"## 预算\nLLM 调用最多 {LLM_CALL_LIMIT} 轮；每轮可同时发出多个取证工具调用，按轮次计预算。"
@@ -172,7 +175,7 @@ class Analysis:
         )
         receipts = ReceiptGate(self.index, {SUBMIT}, payload_refs, allowed=self.gap_ids)
         self.loop = ToolLoop(
-            "trace_analysis", SYSTEM, [*dossier_tools(self.index), submit], client,
+            "trace_analysis", self.system, [*dossier_tools(self.index), submit], client,
             completion_hook=StructureCompleted(),
             hooks={"pre_tool": [receipts], "post_batch": [receipts]},
             end=self._end,

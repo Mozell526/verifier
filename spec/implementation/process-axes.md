@@ -590,3 +590,52 @@ fallback2 修复后对同一冻结样本完整重跑（primary 地区不支持�
 ### 15.6 冻结样本核对（2026-10-11）
 正式实现跑 8 个冻结 case 一遍：hard 召回 19/22、误报 10%、引用可解析 100%、全价输入 2.14M（缓存 0.78M）、每 case 六轴串行中位 504s；稳定漏 B01-2、D01-3、PL-1。首跑 1/48 轴因引文抄入未转义的英文双引号致输出非法，改为"引文写中文引号、核对视同"后重跑通过。详见 `report/process-axes-compare-20261009/RESULT.md` 末节。§9 P1–P7 的逐条落位与人工业务核对仍待做（方案 D12）。
 - P1–P7 落位测试 `tests/test_process_axes_p1_p7.py`（8 个，程序侧汇总 / 组成 / 问题记录 / 聚类输入）全部通过。方案 §9 P2 一行改为"两轴各记一条问题"，与 §3.3"同一事件多轴各记"一致（原写"一条问题"是网格时代按 problem_id 跨轴共享的说法）。
+
+### 15.7 步骤端点改用实际记录了内容的字段（2026-10-13，修 bug）
+- 起因：fec 批 248 条「无法核」里约一半写的是 assemble / gate / finalize 等步骤"输出未记录"。核对原始 agno 库：`agno_runs.run_data.step_results[*].content` 恒为空，但 `agno_spans` 记录了每个步骤 span 的输入输出（如 gate 的 `{"action":"AGENT",…}`、finalize 的答复正文）。环节端点却指向 `step_results` 的空字段，判定材料里没有这些 span。与此前模型输出端（持久化消息不存正文 → 用 span 输出）是同一类 bug。
+- `business_trace/links.py`：
+  - `_step_end`：步骤记录没存该字段时，用同轮同名步骤 span 记录的；同名 span 不唯一（循环）时不配。用于意图首步产出、规划路径与分支、步骤传递、交付环节。
+  - `context_memory:input`：Agent run 记录没存收到的任务时，用 `agent_run_id` 相同的 Agent span 的输入。
+  - 步骤传递环节的 `contains` 事实因此能算出（以前一端缺失恒为空）；fec 批程序可疑数不变（44）。
+- 未改：容器步骤（`to_agent`/`to_direct` 这类 Condition/Steps）自身无产出记录、trace 里也没有它的 span，规划分支 / 路径与前后传递环节里它的端点仍如实缺失。试过"容器无记录时改用实际执行的子步骤产出"：规划材料从 2.9M 字符涨到 6.6M、批次 44 → 71，子步骤产出与模型输出、工具调用大量重复；唯一的 direct 分支 span 也只记了 `direct_completed`，无增益，已撤回。
+- 离线核对（fec 批 32 case，不调模型，`report/multiturn-needs-20261012/`）：870 个环节的环节集合不变；指向空字段的端点 737 → 179（剩余全是容器步骤）；判定材料里 missing_endpoints 规划 264 → 88、意图 44 → 0、上下文 417 → 88、知识 12 → 3；规划材料字符 +6%、批次 44 → 45，其余轴基本不变。
+- 测试：`tests/test_business_trace_links.py` 新增 2 个（步骤 span、Agent span），新测试在旧代码上失败；全量失败 11 个与改前相同（与本改动无关）。
+- 实测重判（`exp5_step_ends.py`，新旧 links 各判一次，同一分析产物与需求）：见该目录 README 实验 5。
+
+### 15.8 需求按轮、一批一轮、通用职责按轴取值（2026-10-13，用户确认）
+- 起因：F01「用户更正实体未被承接」聚类不属实——第 1 轮的批次被拿去对第 2 轮改口后的需求。调查与实验见 `report/multiturn-needs-20261012/README.md`（70 道多轮题 43% 会在后面改掉前面的要求；实验 1–4）。
+- 规格：`spec/alg/expectations.md` §2.1–§2.2（每轮一份需求、E 每条带轮次、判准多轮归最后一轮）；`spec/alg/process-axes.md` §2.1（一批只放一轮、每批只拿本轮需求）、§3.4（通用职责带编号，本批不涉及放 not_covered，按轮按轴取值）、§5（职责每轮每条计一项）。
+- 代码：
+  - `adapters/expectations.py`：`turn_materials` 按轮切材料，每轮一次调用（`_write`，纠错一次）；编号程序加轮次前缀、标 `turn`；`validate_frozen` 校验冻结 E（出处属于本轮或整案），主判 `need_judge.py` 改用它；最多 8 轮（调用上限 16）。单轮 case 的材料与改前逐字相同（fec 批 24/24）。
+  - `adapters/trace_analysis.py`：`turn_batches` 先按轮分组再按大小切批，批次带 `turn`；`prepare_selections` 改用它。与实验 4 的分批逐字节一致（fec 批 192/192）。
+  - `adapters/process_expected.py`：`judge_batch` 新增 `turn` 参数；通用职责在提示词中编号 D1…，basis 写了通用职责但无编号时纠错；`standing_duties` 按（轮, 职责）取值，`aggregate` 不再逐条计职责条目；`run_expected_axis` 每批用 `turn_expectations` 取本轮需求，删除"没有 materials 时现场切批"的旁路（与线上分批规则不同），改为报错；结果行与批次带 `turn`、`standing_duty`。
+- 测试：新增 5 个（按轮写需求、按轮分批、每批本轮需求、职责按轮取值、职责编号纠错），改 4 个文件的夹具（批次带 turn / duties，冻结 E 带轮次）。
+- 实测：见 `report/multiturn-needs-20261012/README.md` 实验 6。
+
+### 15.9 几轮合批（需求按轮标注）、意图看截至本轮的表达（2026-10-14，用户确认）
+- 起因：
+  - 一批一轮让多轮题批数从 96 增到 150（+56%），多出的多是半空的批，比如意图轴每轮只有一个环节。
+  - 意图轴只看本轮首个步骤与首次决策，依赖前一步结果的子问题必然被判遗漏（A11、B17、F01），单轮也受影响。
+  - 实验见 `report/multiturn-needs-20261012/README.md` 实验 7a、8、9。
+- 规格：`spec/alg/process-axes.md` §2.1（环节按轮排序装批，一批可含几轮，需求按轮标注，本应条目带轮次）、§3.4（职责按条目所属轮取值）、§8（意图的内部表达为截至本轮的全部表达）。
+- 代码：
+  - `adapters/trace_analysis.py`：`turn_batches` 改为 `axis_batches`，按所属轮次排序后整体按大小切批，批次带 `turns`（列表）。
+  - `adapters/process_expected.py`：
+    - `ExpectedItem` 新增 `turn`，提示词要求只依据同一轮的需求与材料写；
+    - `_expected_list` 校验轮次属于本批，否则纠错；
+    - `judge_batch` 的 `turn` 改为 `turns`；
+    - `turn_expectations` 取批里各轮的需求；
+    - `standing_duties` 按条目的 `turn` 归（轮, 职责）；
+    - 结果行轮次取自条目，批次视图带 `turns`。
+  - `business_trace/links.py`：意图环节第 N 轮的输入 = 第 1..N 轮用户原文，输出 = 第 1..N 轮全部顶层步骤产出、Agent 收到的任务（run 未存时用其 span 输入）、各次模型调用的工具调用。
+  - `adapters/intent_understanding.py`：子能力与 requires 去掉"首个/首批/首次"。
+- 测试：
+  - 新增 3 个：条目轮次不属本批时纠错、合批时职责按条目轮次取值、意图环节截至本轮；
+  - 改写 2 个：批次按轮排序并记录 turns（原"一批一轮"）、批里几轮的需求都给到（原"每批本轮需求"）；
+  - 改夹具：批次带 `turns`，本应条目带 `turn`。
+- 未做（待重复对比后定）：needs_external 改写为 external_fact、通用职责挪到场景配置（实验 7b/7c）。
+
+### 15.10 没有通用职责的轴不再要求、不再校验职责编号（2026-10-14，修 bug）
+- 起因：2026-10-14 整批（c7a504df + f763d7da）里 7 个轴判定失败（model_capability 6 个、knowledge_data 1 个），错误都是"basis 写了通用职责但没写给定的编号"。15.8 把职责写法改成带编号后，提示词对所有轴都讲了通用职责，但只有 context_memory 给了职责；其他轴的模型照样写"通用职责"，却没有编号可填，纠错一次仍不合格。
+- 代码：`adapters/process_expected.py` 把职责那条要求拆成 `DUTY_RULE`，只在本轴有职责时接到第一步要求后面；编号校验也只在有职责时做。
+- 测试：新增 `test_axis_without_duties_neither_asks_for_nor_checks_duty_numbers`。

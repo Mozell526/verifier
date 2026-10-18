@@ -9,7 +9,7 @@ from typing import Literal
 
 from impl.core.schema import BusinessExpectation, FulfillmentAssessment, JudgeResult
 from impl.core.structured_output import StructuredOutputSpec, enforce_output
-from .eval_axes.adapters.expectations import validate as validate_expectations
+from .eval_axes.adapters.expectations import validate_frozen
 from .eval_axes.llm import axis_llm
 from .eval_axes.types import raise_for_error_payload
 
@@ -69,7 +69,7 @@ def _call(client, trace_id, stage, system, material, cls, frozen):
 
 def run_need_judge(spec, trace, frozen, context):
     frozen = copy.deepcopy(frozen)
-    validate_expectations({'expectations': frozen['expectations']}, frozen)
+    validate_frozen(frozen)
     digest = hashlib.sha256(json.dumps(frozen['expectations'], ensure_ascii=False, sort_keys=True).encode()).hexdigest()
     if digest != frozen['sha256']:
         raise ValueError('冻结 E 内容指纹不匹配')

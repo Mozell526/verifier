@@ -1,4 +1,7 @@
-"""e(y) -> E: immutable, consumer-independent expectations; no runtime trace input."""
+"""e(y) -> E: immutable, consumer-independent expectations; no runtime trace input.
+
+One call per turn: each turn's needs come from that turn's user message, with only earlier
+messages as history (spec/alg/expectations.md §2.1). Items carry the program-set turn."""
 from __future__ import annotations
 
 import copy
@@ -30,6 +33,8 @@ class ExpectationSet:
 
 
 OUTPUT = StructuredOutputSpec.from_dataclass(ExpectationSet)
+# 每轮一次调用（不合格时纠错一次）；调用上限按最多轮数给。
+MAX_TURNS = 8
 SYSTEM = '''你读取 sources 中的需求原文，输出 expectations 期望清单。不评表现，不猜实际发生什么，不判断系统能否承载。
 sources.side 的 want 表示本轮用户要求或场景判准，history 表示历史对话，background 表示业务描述。
 只从 want 原文提取需求；history 只解释指代和省略，background 只帮助理解业务，二者都不能独立产生需求。
@@ -77,9 +82,22 @@ def validate(payload: Any, material: dict) -> None:
         raise ValueError('有用户要求时不可提交空期望集')
 
 
-def run(inputs, axis, runtime):
-    material = copy.deepcopy(inputs['requirements'])
-    client = axis_llm(runtime.spec, role='judge')
+def turn_materials(material: dict) -> list[tuple[str, dict]]:
+    """每轮一份需求材料（spec/alg/expectations.md §2.1）：本轮用户原话 + 本轮请求里的历史，看不到后面的轮次。
+    整案出处：业务背景每轮都带；场景判准是整案的判准，只放在最后一轮。"""
+    turns = sorted({s['turn'] for s in material['sources'] if s['turn'] != 'case'}, key=lambda t: int(t[1:])) or ['t1']
+    case = [s for s in material['sources'] if s['turn'] == 'case']
+    out = []
+    for turn in turns:
+        sources = [s for s in material['sources'] if s['turn'] == turn] + [
+            s for s in case if s['side'] == 'background' or turn == turns[-1]]
+        body = {'sources': sources, 'missing': [m for m in material['missing'] if m['turn'] in (turn, 'case')]}
+        body['sha256'] = hashlib.sha256(json.dumps(body, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
+        out.append((turn, body))
+    return out
+
+
+def _write(client, runtime, material: dict) -> list[dict]:
     prompt = json.dumps(material, ensure_ascii=False)
     for attempt in range(2):
         runtime.ensure_time_left('expectations')
@@ -89,16 +107,48 @@ def run(inputs, axis, runtime):
             raise_for_error_payload(raw)
             payload = {k: v for k, v in raw.items() if k not in {'raw_model_response', 'metrics', '_tool_call_log'}} if isinstance(raw, dict) else raw
             validate(payload, material)
-            break
+            return payload['expectations']
         except ValueError as exc:
             if attempt:
                 raise
             prompt = json.dumps(material, ensure_ascii=False) + '\n上次输出无效，重新按原文提取：' + str(exc)
-    encoded = json.dumps(payload['expectations'], ensure_ascii=False, sort_keys=True)
+    raise AssertionError('unreachable')
+
+
+def validate_frozen(frozen: dict) -> None:
+    """冻结 E 的结构：每条属于一轮，编号全案唯一，出处属于本轮或整案且至少一处是 want。"""
+    sources = {s['id']: s for s in frozen['sources']}
+    ids = [e['expectation_id'] for e in frozen['expectations']]
+    if len(ids) != len(set(ids)):
+        raise ValueError('期望 id 重复')
+    for e in frozen['expectations']:
+        refs = [sources.get(r) for r in e['source_refs']]
+        if not refs or None in refs or any(s['turn'] not in (e['turn'], 'case') for s in refs):
+            raise ValueError(f"期望 {e['expectation_id']} 的出处必须属于本轮或整案")
+        if not any(s['side'] == 'want' for s in refs):
+            raise ValueError('历史和业务描述不能独立产生期望')
+
+
+def run(inputs, axis, runtime):
+    material = copy.deepcopy(inputs['requirements'])
+    client = axis_llm(runtime.spec, role='judge')
+    parts = turn_materials(material)
+    if len(parts) > MAX_TURNS:
+        raise ValueError(f'需求按轮写，最多 {MAX_TURNS} 轮，本 case {len(parts)} 轮')
+    expectations = []
+    for turn, part in parts:
+        if not any(s['side'] == 'want' for s in part['sources']):
+            continue  # 本轮用户原文未记录（已在 missing），没有可写的需求
+        # 编号带轮次前缀，全案唯一；轮次由程序标注，不由模型写。
+        expectations += [{**e, 'expectation_id': f"{turn}.{e['expectation_id']}", 'turn': turn}
+                         for e in _write(client, runtime, part)]
+    encoded = json.dumps(expectations, ensure_ascii=False, sort_keys=True)
     output = dict(verdict='partial' if material['missing'] else 'complete',
-                  expectations=payload['expectations'], sources=material['sources'], missing=material['missing'],
+                  expectations=expectations, sources=material['sources'], missing=material['missing'],
                   material_sha256=material['sha256'], sha256=hashlib.sha256(encoded.encode()).hexdigest())
-    return RunOutcome(output, AxisSummary(f"需求材料 {output['verdict']}；{len(payload['expectations'])} 条期望（不代表期望已核实完整）"),
+    validate_frozen(output)
+    turns = len({e['turn'] for e in expectations})
+    return RunOutcome(output, AxisSummary(f"需求材料 {output['verdict']}；{turns} 轮共 {len(expectations)} 条期望（不代表期望已核实完整）"),
                       usage=client.usage())
 
 
@@ -107,7 +157,7 @@ AXIS_TYPE = AxisType(
     verdict_scope='axis', verdict_enum=(Verdict('complete', '需求侧材料齐全'), Verdict('partial', '需求侧材料缺失')),
     depend_on=(), trigger_when=None, inputs=(Input('requirements', 'sample.requirements'),),
     output_fields=('verdict', 'expectations', 'sources', 'missing', 'material_sha256', 'sha256'),
-    scenario_fields=(), limits=ExecutionLimits(llm_calls=2, seconds=1200), run=run,
+    scenario_fields=(), limits=ExecutionLimits(llm_calls=2 * MAX_TURNS, seconds=1200), run=run,
     verdict_path='verdict', requires_business_trace=True,
     implementation_files=('impl/projects/llm_probe/eval_axes/adapters/expectations.py',
                           'impl/projects/llm_probe/business_trace/expectation_material.py'))

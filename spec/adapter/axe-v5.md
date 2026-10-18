@@ -14,7 +14,7 @@
 | D15 | ES 文档形状不假设：locator 两级 `<_id>#<field>`（字段级可选）；可检索字段由 `es_outline` 现场从 mapping 读出，场景框描述里可指定优先字段 | 用户明确 ES 文档形状尚不确定 |
 | D16 | 依赖协议加"可选依赖"：`Dependency(type_id, optional=True)`。可选上游在本预设没有框或未启用 → 当它不存在，正常跑；有且启用 → 等它、吃它 | 让 fulfillment 能按场景选择是否依赖真实性轴，同时守住"框就是开关"、不开放场景级依赖编辑 |
 | D17 | 新类型 `truthfulness`：核的是**回答里的事实断言 vs 知识库**，`verdict_scope=item`，逐断言 `verified / refuted / unverifiable`；输入只有 `sample.trace`；不给轴2用 | 用户确认 |
-| D18 | fulfillment 声明可选输入 `truth ← axis.truthfulness.output`；有则作为证据注入 prompt，被 `refuted` 的断言按 not_fulfilled 处理。这使启用真实性框的场景下 fulfillment 的 prompt 与生产分叉，列入已知差异 | 让轴1不必自己查库，保持轻 |
+| D18 | fulfillment 声明可选输入 `truth ← axis.truthfulness.output`；有则作为证据注入 prompt，被 `refuted` 的断言按 not_fulfilled 处理；结果所依赖的断言被判 `unverifiable`、trace 内也没有业务核实记录时，相关期望判 not_evaluable，不得自行推测成 fulfilled（2026-10-17 补）。这使启用真实性框的场景下 fulfillment 的 prompt 与生产分叉，列入已知差异 | 让轴1不必自己查库，保持轻 |
 
 ---
 
@@ -204,9 +204,15 @@ inputs=(
 `build_context` 里：`inputs.get("truth")` 有值时，`user_prompt_extras["truthfulness"] = {claims: [...仅 claim_id/text/context/verdict/reason/citations...]}`，`system_prompt_extras` 追加：
 
 > ## 真实性核验结果
-> 上游已对回答中的事实断言逐条核验。`refuted` 的断言视为事实错误，据此判相关期望 not_fulfilled；`unverifiable` 不构成失败依据；不要重复核验，也不要发明核验结果里没有的断言。
+> 上游已对回答中的事实断言逐条核验。`refuted` 的断言视为事实错误，据此判相关期望 not_fulfilled；`unverifiable` 不构成失败依据，也不构成通过依据：期望结果所依赖的断言被判 `unverifiable`、trace 里也没有业务自己核实过的记录时，该期望判 not_evaluable 并写明缺哪份证据。不要重复核验，也不要发明核验结果里没有的断言。
 
 没有 `truth` 时这两段都不出现，prompt 与生产逐字相同（现有的逐字相等测试继续钉住这条路径）。
+
+**2026-10-17 补（已实施：`adapters/fulfillment.py` 真实性核验段，测试 `test_fulfillment_truth_adds_exactly_two_prompt_extras`）**：上面那句"`unverifiable` 不构成失败依据"只说了不能据此判失败，没说能不能据此判通过。补为：
+结果所依赖的断言被判 `unverifiable`，且 trace 内没有业务自己核实过的记录（例如业务调了详情接口、返回里有能对上的字段）时，相关期望判 not_evaluable，并写明缺哪份证据；主轴不得把真实性轴的 `unverifiable` 自行升级为成立。只在场景启用了真实性轴时生效，没启用的场景不受影响。
+trace 路线主判提示词里的"需要的证据缺失时判 not_evaluable，即使答复可读也不能据此通过"（`impl/projects/llm_probe/judge.py` 的 system_prompt_extras）以本条为出处。
+背景：Langfuse 验收的单轮 case（`spec/implementation/business-trace-langfuse.md` 真实验收结果）。
+实测：`report/d18-validation-20261017/RESULT.md`（核心核实不了的 3 条由 F×9 变 NE×9，其余 13 条及注入的附带细节检查结论不变）。
 
 ---
 

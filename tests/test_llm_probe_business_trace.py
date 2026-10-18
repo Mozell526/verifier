@@ -91,11 +91,11 @@ def test_capability_entry_preserves_provider_specific_config() -> None:
     assert entry["business_trace"]["config"]["bindings"]["session_id"]["pointer"] == "/body/session_id"
 
 
-def test_agno_provider_validation_is_specific_and_langfuse_is_not_faked() -> None:
+def test_agno_provider_validation_is_specific_and_unknown_provider_is_rejected() -> None:
     clean = validate_business_trace({"provider": "agno", "config": _config()})
     assert clean["config"]["poll_attempts"] == 2
     with pytest.raises(ValueError, match="当前支持: agno"):
-        validate_business_trace({"provider": "langfuse", "config": {}})
+        validate_business_trace({"provider": "unknown", "config": {}})
     broken = _config()
     broken["bindings"] = {}
     with pytest.raises(ValueError, match="bindings.session_id"):
@@ -410,7 +410,7 @@ def test_materials_page_exposes_provider_config_and_connection_check() -> None:
 def test_business_trace_provider_endpoints_expose_agno_and_check(monkeypatch) -> None:
     providers = _post("/api/business_trace/providers", {"project": "llm_probe"})
     assert providers.status_code == 200
-    assert [item["provider"] for item in providers.json()["providers"]] == ["agno", "llmtracing"]
+    assert [item["provider"] for item in providers.json()["providers"]] == ["agno", "llmtracing", "langfuse"]
     monkeypatch.setattr(
         "impl.projects.llm_probe.business_trace.check_connection",
         lambda value: {"ok": True, "provider": value["provider"], "base_url": value["config"]["base_url"]},

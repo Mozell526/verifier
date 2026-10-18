@@ -2,6 +2,8 @@
 import json
 from types import SimpleNamespace
 
+import pytest
+
 
 from impl.projects.llm_probe.business_trace.materials import material_view, prepare_axis_materials
 from impl.projects.llm_probe.eval_axes.adapters.trace_analysis import prepare_selections
@@ -157,3 +159,28 @@ def test_reconstructed_request_does_not_certify_collection_time_definition_as_re
     assert view['input_limitations'][0]['ref']=='def/agent/tool'
     assert '不能证明本次模型收到' in view['input_limitations'][0]['reason']
     assert not any(r['id']=='def/agent' for r in view['records'])
+
+
+def test_links_are_batched_in_turn_order_and_batches_record_their_turns(monkeypatch):
+    """按所属轮次排好再切批（spec/alg/process-axes.md §2.3）：跨轮环节归较晚一轮，只引共享正文的表外环节归正文最早出现的一轮；
+    一批可含几轮，turns 记下含哪几轮。"""
+    from impl.projects.llm_probe.eval_axes.adapters import trace_analysis as ta
+    links = [{"link_id": "b", "link_type": "planning_routing", "turn": "turn2", "input": [], "output": []},
+             {"link_id": "a", "link_type": "planning_routing", "turn": "turn1", "input": [], "output": []},
+             {"link_id": "x", "link_type": "planning_routing", "turn": "turn1",
+              "input": [{"ref": "turn1/r", "field": ""}], "output": [{"ref": "turn2/r", "field": ""}]},
+             {"link_id": "off", "link_type": "planning_routing", "turn": "", "input": [{"ref": "content#7", "field": ""}], "output": []}]
+    monkeypatch.setattr("impl.projects.llm_probe.eval_axes.adapters.process_common._axis_links", lambda *a: links)
+    monkeypatch.setattr("impl.projects.llm_probe.business_trace.materials.prepare_axis_materials",
+                        lambda dossier, ordered, suspects, **kw: [{"links": ordered[:1]}, {"links": ordered[1:]}])
+    dossier = {"records": [{"id": "turn1/r", "fields": {}}, {"id": "turn2/r", "fields": {"v": {"value": "content#7"}}},
+                           {"id": "turn2/s", "fields": {}}]}
+    batches = ta.axis_batches("planning_routing", dossier, {}, {})
+    assert [([l["link_id"] for l in b["links"]], b["turns"]) for b in batches] == [
+        (["a"], ["t1"]), (["b", "x", "off"], ["t2"])]
+    monkeypatch.setattr("impl.projects.llm_probe.business_trace.materials.prepare_axis_materials",
+                        lambda dossier, ordered, suspects, **kw: [{"links": ordered}])
+    assert ta.axis_batches("planning_routing", dossier, {}, {})[0]["turns"] == ["t1", "t2"]
+    links[3]["input"] = [{"ref": "content#9", "field": ""}]
+    with pytest.raises(ValueError, match="算不出属于哪一轮"):
+        ta.axis_batches("planning_routing", dossier, {}, {})

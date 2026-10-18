@@ -37,9 +37,10 @@ class ExpectedItem:
     about: str = field(metadata={'description': '针对输入里的哪个对象或环节（记录编号、需求编号、原话里的条件）'})
     subcapability: str = field(metadata={'description': '取给定子能力之一；都不合适写「其他」'})
     statement: str = field(metadata={'description': '做对时必须成立什么；具体到能核对（对象、地点、条件、数量）'})
-    basis: str = field(metadata={'description': '依据：输入里的原文片段或记录编号；通用职责写「通用职责」'})
+    basis: str = field(metadata={'description': '依据：输入里的原文片段或记录编号（给了通用职责时写「通用职责 D1」这样带编号）'})
     needs_external: Literal['是', '否', '不确定'] = field(
         metadata={'description': '是否必须独立查证（例如库里到底有没有）才判得了'})
+    turn: str = field(metadata={'description': '这条属于哪一轮（tN，取本批材料含有的轮）'})
 
 
 @dataclass
@@ -105,12 +106,12 @@ SYSTEM = ("你是过程评测员。这次评测分两步：第一步只看输入
 EXPECTED_TASK = """【第一步：本应清单】你只看得到这个轴在本次运行里的输入端材料，看不到运行实际产出了什么。
 
 写：在这样的输入下，做对时必须成立什么。要求：
-- 每条 statement 具体到能核对（点得出对象、地点、条件、数量），不写通用职责原文；
+- 每条 statement 具体到能核对（点得出对象、地点、条件、数量）；
 - 只写这个输入本身提出的要求，不猜运行结果，不写"如果…则…"的假设条目；
 - 要求系统应该发生的动作（例如必须取数），先想清：要不要外部数据、系统有什么办法拿到、当时是否仍必须行动（已有有效数据或等价路径就不写）；
 - basis 引输入里的原文片段或记录编号；
+- 本批可能含几轮的材料（记录编号里的 turnN 是第 N 轮），需求清单每条也标了 turn：每条本应只依据同一轮的需求和该轮的材料写，turn 填那一轮；不拿一轮的需求去要求另一轮的材料（例如用户在后一轮更正了对象，前一轮按原对象处理不算错）；
 - subcapability 取给定子能力之一，都不合适写「其他」；
-- 「每个 case 必带的通用职责」每条各写成一条（about 点出本 case 对应的环节，basis 写「通用职责」）；
 - needs_external：这条是否必须独立查证（例如库里到底有没有、数据源是否真缺失）才判得了；
 - 写不全、拿不准、本次看不到的放进 not_covered；本次确实不需要的子能力也在 not_covered 里点名说明。"""
 
@@ -130,6 +131,11 @@ ACTUAL_TASK = """【第二步：实际清单】下面是本轴的输出端补充
 - 要靠两处对比才看得出的（上游写了什么、下游变成了什么；前一次请求里的某句、后一次请求里同一句），两处都引；
 - 引文短而关键（一般 40 字以内），不改写、不用省略号拼接；达到的行引文可选，有能直接证明的原文就引；
 - 原文里的英文双引号在引文里一律写成中文引号“”（程序核对时视为同一字符），反斜杠不要抄进引文；尽量摘不带引号的那一段。"""
+
+# 只在本轴有通用职责时接在第一步要求后面；没有通用职责的轴不提这件事。
+DUTY_RULE = ("- 「通用职责」逐条、逐轮看：本批材料涉及它说的环节时，每轮写成一条（about 点出本 case 对应的环节，"
+             "statement 写本 case 的具体要求而不是职责原文，basis 写「通用职责 D1」这样带编号）；"
+             "本批材料不涉及时不写，在 not_covered 里写「通用职责 D1：本批不涉及」。")
 
 # spec/alg/process-axes.md §3.4：每个 case 都带的固定条目（需求 §5 ⟡ 待补）。
 STANDING_DUTIES = {
@@ -358,9 +364,11 @@ def expected_prompt(axis_id: str, spec: Any, material: Mapping[str, Any], expect
         "需求清单": expectations.get("expectations") or [], "需求出处": expectations.get("sources") or [],
         "本轴输入端材料": material,
     }
+    task = EXPECTED_TASK
     if STANDING_DUTIES.get(axis_id):
-        body["每个 case 必带的通用职责"] = list(STANDING_DUTIES[axis_id])
-    return EXPECTED_TASK + "\n\n" + json.dumps(body, ensure_ascii=False, default=str)
+        body["通用职责"] = {f"D{k}": duty for k, duty in enumerate(STANDING_DUTIES[axis_id], 1)}
+        task += "\n" + DUTY_RULE
+    return task + "\n\n" + json.dumps(body, ensure_ascii=False, default=str)
 
 
 def actual_prompt(axis_id: str, links: list[Mapping[str, Any]], limits: str, material: Mapping[str, Any],
@@ -372,9 +380,15 @@ def actual_prompt(axis_id: str, links: list[Mapping[str, Any]], limits: str, mat
         "本轴补充材料": material}, ensure_ascii=False, default=str)
 
 
-def _expected_list(client: Any, runtime: Any, axis_id: str, stage: str, user1: str) -> dict[str, Any]:
+def duty_of(item: Mapping[str, Any], duties: int) -> str:
+    """本应条目对应的通用职责编号（D1…）；不是通用职责或编号不在给定范围时为空。"""
+    found = re.search(r"通用职责\s*(D\d+)", item.get("basis") or "")
+    return found.group(1) if found and 1 <= int(found.group(1)[1:]) <= duties else ""
+
+
+def _expected_list(client: Any, runtime: Any, axis_id: str, stage: str, user1: str, turns: list[str]) -> dict[str, Any]:
     """第一次调用；不合格时以新一轮追加纠错一次，仍不合格是评测器错误。"""
-    history, prompt = None, user1
+    history, prompt, duties = None, user1, len(STANDING_DUTIES.get(axis_id) or ())
     for attempt in (1, 2):
         runtime.ensure_time_left(axis_id)
         try:
@@ -383,6 +397,13 @@ def _expected_list(client: Any, runtime: Any, axis_id: str, stage: str, user1: s
                 reasoning_effort="low", output_spec=EXPECTED_SPEC, history=history, constraint_in_user=True))
             ids = [item["id"] for item in expected["expected"]]
             issue = f"本应清单的 id 不能重复：{ids}" if len(set(ids)) != len(ids) else ""
+            unnumbered = [item["id"] for item in expected["expected"]
+                          if duties and "通用职责" in item["basis"] and not duty_of(item, duties)]
+            if not issue and unnumbered:
+                issue = f"这些条目的 basis 写了通用职责但没写给定的编号（如「通用职责 D1」）：{unnumbered}"
+            stray = [item["id"] for item in expected["expected"] if item["turn"] not in turns]
+            if not issue and stray:
+                issue = f"这些条目的 turn 不是本批材料含有的轮 {turns}：{stray}"
             content = json.dumps(expected, ensure_ascii=False)
         except OutputRejected as exc:
             issue, content = str(exc), exc.content
@@ -396,17 +417,18 @@ def _expected_list(client: Any, runtime: Any, axis_id: str, stage: str, user1: s
     raise AssertionError("unreachable")
 
 
-def judge_batch(client: Any, runtime: Any, axis_id: str, spec: Any, number: int, dossier: Mapping[str, Any],
+def judge_batch(client: Any, runtime: Any, axis_id: str, spec: Any, number: int, turns: list[str], dossier: Mapping[str, Any],
                 links: list[Mapping[str, Any]], full_view: Mapping[str, Any], expectations: Mapping[str, Any],
                 limits: str, earlier: list[Mapping[str, Any]] = ()) -> dict[str, Any]:
-    """一批：本应（冻结）→ 实际（多轮追加）→ 至多一轮纠错 → 程序处理。不合格抛 ValueError（评测器错误）。"""
+    """一批（含 turns 这几轮）：本应（冻结）→ 实际（多轮追加）→ 至多一轮纠错 → 程序处理。
+    expectations 是这几轮的需求，每条带轮次。不合格抛 ValueError（评测器错误）。"""
     full = model_material(full_view)
     first = input_view(dossier, links)
     part1, part2 = split_views(first, full)
     texts = record_texts(full)
     stage = f"llm_probe_process_{axis_id}_batch{number}"
     user1 = expected_prompt(axis_id, spec, part1, expectations)
-    expected = _expected_list(client, runtime, axis_id, stage, user1)
+    expected = _expected_list(client, runtime, axis_id, stage, user1, turns)
     turn1 = [{"role": "user", "content": with_output_constraint(user1, EXPECTED_SPEC)},
              {"role": "assistant", "content": json.dumps(expected, ensure_ascii=False)}]
     user2 = actual_prompt(axis_id, links, limits, part2, list(earlier))
@@ -440,7 +462,9 @@ def judge_batch(client: Any, runtime: Any, axis_id: str, spec: Any, number: int,
     actual = settle(actual, expected, texts)
     for k, problem in enumerate(actual["problems"], 1):
         problem["problem_id"] = f"{axis_id}-B{number}-P{k}"
-    return {"number": number, "links": [l["link_id"] for l in links], "expected": expected, "actual": actual,
+    duties = len(STANDING_DUTIES.get(axis_id) or ())
+    return {"number": number, "turns": turns, "links": [l["link_id"] for l in links], "expected": expected, "actual": actual,
+            "duties": {item["id"]: duty_of(item, duties) for item in expected["expected"] if duty_of(item, duties)},
             "chars": {"first": len(user1), "second": len(user2)}}
 
 
@@ -454,18 +478,33 @@ def _kind(attribution: str) -> str:
     return "local"
 
 
+def standing_duties(batches: list[Mapping[str, Any]]) -> dict[str, str]:
+    """通用职责按轮、按轴取值（§3.4）：一条职责在某一轮里（按条目自己的 turn），任一批判出达到 / 没达到即为该值
+    （没达到优先），写了但都无法核才是无法核；没有一批写它 = 本轮不涉及，不出现。"""
+    found: dict[str, set[str]] = {}
+    for b in batches:
+        turn_of = {item["id"]: item["turn"] for item in b["expected"]["expected"]}
+        for row in b["actual"]["actual"]:
+            duty = b["duties"].get(row["id"])
+            if duty:
+                found.setdefault(f"{turn_of[row['id']]} {duty}", set()).add(row["verdict"])
+    return {key: next(v for v in (NOT_MET, MET, UNCHECKABLE) if v in verdicts) for key, verdicts in found.items()}
+
+
 def aggregate(batches: list[Mapping[str, Any]]) -> tuple[str, str, dict[str, Any]]:
-    rows = [row for b in batches for row in b["actual"]["actual"]]
+    duties = standing_duties(batches)
+    rows = [row for b in batches for row in b["actual"]["actual"] if row["id"] not in b["duties"]]
     problems = [p for b in batches for p in b["actual"]["problems"] if not p.get("same_as")]
     kinds = [_kind(p["attribution"]) for p in problems]
-    counts = {MET: sum(r["verdict"] == MET for r in rows),
-              NOT_MET: sum(r["verdict"] == NOT_MET for r in rows),
-              UNCHECKABLE: sum(r["verdict"] == UNCHECKABLE for r in rows),
+    verdicts = [r["verdict"] for r in rows] + list(duties.values())
+    counts = {MET: verdicts.count(MET),
+              NOT_MET: verdicts.count(NOT_MET),
+              UNCHECKABLE: verdicts.count(UNCHECKABLE),
               "意外": sum(len(b["actual"]["unexpected"]) for b in batches),
               "问题·本轴": kinds.count("local"), "问题·上游": kinds.count("upstream"),
               "问题·未定位": kinds.count("unresolved"),
               "未覆盖": sum(len(b["expected"].get("not_covered") or []) for b in batches)}
-    composition = {"counts": counts,
+    composition = {"counts": counts, "standing_duties": duties,
                    "not_covered": [n for b in batches for n in b["expected"].get("not_covered") or []],
                    "demoted": [d for b in batches for d in b["actual"].get("demoted") or []]}
     if "local" in kinds:
@@ -524,7 +563,8 @@ def outcome_of(axis_id: str, batches: list[dict[str, Any]], failures: list[str],
     reason = "；".join(b["actual"]["reason"] for b in batches)
     scope = "；".join(b["actual"]["scope_note"] for b in batches)
     issues = issues_of(axis_id, batches)
-    results = [{"batch": b["number"], **item, **{k: v for k, v in row.items() if k != "id"}}
+    results = [{"batch": b["number"], "standing_duty": b["duties"].get(item["id"], ""), **item,
+                **{k: v for k, v in row.items() if k != "id"}}
                for b in batches
                for item in b["expected"]["expected"]
                for row in [next(r for r in b["actual"]["actual"] if r["id"] == item["id"])]]
@@ -539,7 +579,7 @@ def outcome_of(axis_id: str, batches: list[dict[str, Any]], failures: list[str],
                                         | {ref for i in issues for ref in i["output_refs"]}),
                 "missing_evidence": composition["not_covered"],
                 "selection": dict(selection),
-                "view": {"batches": [{"number": b["number"], "links": b["links"], "chars": b["chars"]} for b in batches],
+                "view": {"batches": [{"number": b["number"], "turns": b["turns"], "links": b["links"], "chars": b["chars"]} for b in batches],
                          "failed_batches": failures}},
         summary=AxisSummary(reason + note, [
             {"key": f"{r['subcapability']} @ {r['about']}", "value": r["verdict"],
@@ -557,29 +597,31 @@ def outcome_of(axis_id: str, batches: list[dict[str, Any]], failures: list[str],
 
 # ---- 入口 -------------------------------------------------------------------------------------
 
+def turn_expectations(expectations: Mapping[str, Any], turns: list[str]) -> dict[str, Any]:
+    """一批只用它含有的那几轮的需求与出处（整案出处如业务背景各批都带）。"""
+    return {**expectations, "expectations": [e for e in expectations.get("expectations") or [] if e.get("turn") in turns],
+            "sources": [s for s in expectations.get("sources") or [] if s.get("turn") in [*turns, "case"]]}
+
+
 def run_expected_axis(axis_id: str, inputs: Mapping[str, Any], axis: Any, runtime: Any, spec: Any) -> RunOutcome:
-    """案卷入口的一轴：环节与材料批次沿用分析轴的产物，逐批 judge_batch，再按 §5 汇总。"""
+    """案卷入口的一轴：批次沿用分析轴的产物，逐批用批里那几轮的需求 judge_batch，再按 §5 汇总。"""
     from impl.projects.llm_probe.business_trace.links import LIMITS
-    from impl.projects.llm_probe.business_trace.materials import prepare_axis_materials
     from dataclasses import replace
-    from .process_common import _axis_links, _scenario_entry, project_subcapabilities
+    from .process_common import _scenario_entry, project_subcapabilities
 
     analysis = inputs["trace_analysis"]
     dossier = analysis["dossier"]
-    structure = analysis.get("structure") or {}
     selection = (analysis.get("selections") or {}).get(axis_id) or {}
-    if "materials" in selection and not selection["materials"]:
+    batches = selection.get("materials")
+    if not batches:
         raise ValueError("分析轴未交付的环节材料")
-    links = _axis_links(axis_id, dossier, structure)
-    batches = list(selection.get("materials") or prepare_axis_materials(
-        dossier, links, list(structure.get("suspects") or []), extra_refs=list(selection.get("refs") or [])))
     client = axis_llm(runtime.spec, role="judge")
     spec = replace(spec, subcapabilities=spec.subcapabilities + project_subcapabilities(_scenario_entry(runtime), axis_id))
     judged, failures = [], []
     for number, batch in enumerate(batches, 1):
         try:
-            judged.append(judge_batch(client, runtime, axis_id, spec, number, dossier, batch["links"], batch["view"],
-                                      inputs["expectations"], LIMITS,
+            judged.append(judge_batch(client, runtime, axis_id, spec, number, batch["turns"], dossier, batch["links"],
+                                      batch["view"], turn_expectations(inputs["expectations"], batch["turns"]), LIMITS,
                                       [p for b in judged for p in b["actual"]["problems"] if not p.get("same_as")]))
         except ValueError as exc:
             failures.append(f"批次{number}（{len(batch['links'])} 个环节）：{exc}")
