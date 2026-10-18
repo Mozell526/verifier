@@ -379,8 +379,8 @@ def test_new_case_session_is_unique_and_query_is_not_reinterpreted(monkeypatch):
 
     template = {"session_id": "{session_id}", "nested": ["{session_id}", "{query}"], "fixed": "keep"}
     monkeypatch.setattr(capability, "load_capability_map", lambda: {"example": {"mock_body": template}})
-    first = capability.fresh_session_placeholders(capability.mock_body("example", "literal {session_id} {query}"))
-    second = capability.fresh_session_placeholders(capability.mock_body("example", "another query"))
+    first = capability.fresh_delivery_placeholders(capability.mock_body("example", "literal {session_id} {query}"))
+    second = capability.fresh_delivery_placeholders(capability.mock_body("example", "another query"))
     assert first["session_id"] != second["session_id"]
     assert first["nested"][0] == first["session_id"]
     assert first["nested"][1] == "literal {session_id} {query}"
@@ -455,3 +455,17 @@ def test_trace_analysis_request_failure_is_failed_axis_with_error_text(monkeypat
     assert result.usage["llm_error"] == "llm_request_failed"
     assert "401" in result.usage["llm_error_text"]
     assert result.error.startswith("[运行环境] 模型请求失败 llm_request_failed")
+
+
+def test_request_id_placeholder_is_fresh_on_every_delivery_and_not_fixed_at_case_generation(monkeypatch):
+    from impl.projects.llm_probe import capability
+
+    template = {"session_id": "{session_id}", "trace_id": "{request_id}", "messages": [{"content": "{query}"}]}
+    monkeypatch.setattr(capability, "load_capability_map", lambda: {"example": {"mock_body": template}})
+    case_body = capability.mock_body("example", "q")
+    assert case_body["trace_id"] == "{request_id}"  # 生成用例时不落定，保存的用例里仍是占位符
+    first = capability.fresh_delivery_placeholders(case_body)
+    second = capability.fresh_delivery_placeholders(case_body)
+    assert first["trace_id"].startswith("llm-probe-req-") and first["trace_id"] != second["trace_id"]
+    assert first["trace_id"] != first["session_id"]
+    assert case_body["trace_id"] == "{request_id}"

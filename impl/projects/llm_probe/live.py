@@ -16,7 +16,7 @@ from impl.core.schema import ExecutionTraceEvent, LiveRequest, ProjectSpec
 from impl.projects.llm_probe.capability import (
     capability_business_trace,
     capability_service,
-    fresh_session_placeholders,
+    fresh_delivery_placeholders,
     resolve_capability,
 )
 
@@ -143,7 +143,7 @@ class LlmProbeLive(RealServiceLive):
         if isinstance(payload.get("body"), (dict, list)):
             # 用例里写 "{session_id}" 表示"每次执行都是新的业务会话"，发送时才落成真实 id；
             # 多轮走 Session 路径时翻译函数已填具体会话身份，这里不会再碰到占位符。
-            payload["body"] = fresh_session_placeholders(payload["body"])
+            payload["body"] = fresh_delivery_placeholders(payload["body"])
         url, method, headers, body, timeout, response_mode = resolve_http(payload, self.spec)
         ref = str(payload.get("capability_ref") or "").strip()
         trace_config = capability_business_trace(ref) if ref else None

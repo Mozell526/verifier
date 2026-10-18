@@ -132,13 +132,19 @@ def mock_body(ref: str, query: str) -> dict[str, Any]:
     return _fill_template(_body_template(ref), query, "{session_id}")
 
 
-def fresh_session_placeholders(body: Any) -> Any:
-    """把请求体里残留的 "{session_id}" 占位符全部换成同一个新会话 id。"""
+def fresh_delivery_placeholders(body: Any) -> Any:
+    """发送前落定请求体里残留的占位符。
+
+    "{session_id}"：同一次投递里全部换成同一个新会话 id（生成用例时通常已落定，多轮靠它保持同一会话）。
+    "{request_id}"：每次投递都换成新的请求标识，生成用例时不落定；用于被测系统按调用方请求标识关联本轮 trace，
+    同一用例重跑或多轮的每一轮都不会撞号。
+    """
     session_id = new_session_id()
+    request_id = f"llm-probe-req-{uuid4().hex}"
 
     def fill(value: Any) -> Any:
         if isinstance(value, str):
-            return session_id if value == "{session_id}" else value
+            return session_id if value == "{session_id}" else request_id if value == "{request_id}" else value
         if isinstance(value, dict):
             return {key: fill(item) for key, item in value.items()}
         if isinstance(value, list):

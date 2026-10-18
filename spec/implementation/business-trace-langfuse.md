@@ -144,3 +144,8 @@ trace_analysis → 六轴 → 主轴以及与 Agno 结论对照需单独运行�
 S1 的搜索内部四步（`backend.customer_search.request`、`result.parse_customer_query`、`backend.customer_query.request`、`result.parse_page`）
 都列为 `not_recorded`，`recorded_attributes` 只有 `request.bytes / response.bytes / http.response.status_code` 等。
 Agno 5 份快照产出与 HEAD 逐字节一致（Agno 的限制没有 `items`）。
+
+
+## 请求标识占位符（2026-10-18）
+
+Insurance 场景按请求 `body.trace_id` 关联，写死的值重跑会在 Langfuse 里出现两条同 ID 的 trace，按规则判关联失败。改为场景模板与 case 里写 `"trace_id": "{request_id}"`：`capability.fresh_delivery_placeholders` 在每次投递发送前把它换成新的 `llm-probe-req-<uuid>`（生成 case 时不落定）。原 `fresh_session_placeholders` 改名并同时处理 `{session_id}` 与 `{request_id}`。这是 verifier 作为调用方自己给的请求标识，不改被测系统。
