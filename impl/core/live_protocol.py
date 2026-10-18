@@ -33,15 +33,29 @@ class LiveServiceUnavailableError(RuntimeError):
     """业务服务不可达；区别于 request/output schema 等协议实现错误。"""
 
 
-def _is_service_unavailable(exc: BaseException) -> bool:
-    """服务不可达（recoverable）的分类判定。
+LIVE_SERVICE_UNAVAILABLE = "live_service_unavailable"
+LIVE_HTTP_ERROR = "live_http_error"
+LIVE_PROTOCOL_ERROR = "live_protocol_error"
 
-    LiveHTTPStatusError 继承 URLError/OSError，但语义是服务已响应并以
-    4xx/5xx 明确拒绝，不是不可达，也不应标记 recoverable。
+
+def live_failure_type(exc: BaseException) -> str:
+    """投递失败三分：不可达（可补跑）/ 业务已响应但非 2xx（被测系统调用失败）/ 其余协议实现错误。
+
+    LiveHTTPStatusError 继承 URLError/OSError，必须先判，否则会被当成不可达。
     """
     if isinstance(exc, LiveHTTPStatusError):
-        return False
-    return isinstance(exc, (LiveServiceUnavailableError, OSError))
+        return LIVE_HTTP_ERROR
+    if isinstance(exc, (LiveServiceUnavailableError, OSError)):
+        return LIVE_SERVICE_UNAVAILABLE
+    return LIVE_PROTOCOL_ERROR
+
+
+def business_call_failure(trace: Any) -> str:
+    """被测系统已响应但以非 2xx 拒绝时返回失败原文（含状态码与响应体），否则空串。"""
+    for fallback in getattr(trace, "fallbacks", None) or []:
+        if LIVE_HTTP_ERROR in (getattr(fallback, "quality_flags", None) or []):
+            return str(getattr(fallback, "reason", "") or LIVE_HTTP_ERROR)
+    return ""
 
 
 class _LiveProtocol(ABC):
@@ -262,13 +276,13 @@ class _LiveProtocol(ABC):
             output_validation = self._validate_output(output)
             return output, raw_response, None, [], [request_validation, output_validation], live_request
         except Exception as exc:
-            fallback = self._build_fallback(live_request, str(exc), unavailable=False)
+            fallback = self._build_fallback(live_request, str(exc), LIVE_PROTOCOL_ERROR)
             return {}, None, str(exc), [fallback], [], live_request
 
-    def _build_fallback(self, request: Any, reason: str, unavailable: bool = True) -> FallbackDecision:
+    def _build_fallback(self, request: Any, reason: str, failure_type: str) -> FallbackDecision:
         """内部方法：构建错误 fallback 决策。"""
         from impl.core.live import fallback_decision
-        failure_type = "live_service_unavailable" if unavailable else "live_protocol_error"
+        unavailable = failure_type == LIVE_SERVICE_UNAVAILABLE
         case_id = getattr(request, "case_id", "") if hasattr(request, "case_id") else str(request.get("case_id", "") if isinstance(request, dict) else "")
         session_id = getattr(request, "session_id", "") if hasattr(request, "session_id") else ""
         return fallback_decision(

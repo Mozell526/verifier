@@ -22,7 +22,8 @@ from .config import get_runtime_config, resolve_batch_concurrency
 from .frontend_view import build_frontend_view, project_frontend_extensions
 from .table_view import build_case_pool_table_from_runs, build_trace_table_row, display_input_for_project
 from .interaction_protocol import normalize_case_interaction, ready_from_spec
-from .judge import generate_reference
+from .judge import BUSINESS_CALL_FAILED, business_call_failure_result, generate_reference
+from .live_protocol import LIVE_SERVICE_UNAVAILABLE, business_call_failure
 from .mock_agent import load_live_schema
 from .project_loader import load_adapter, load_project, load_project_role_instance
 from .portable_artifact import write_active_artifact, write_portable_export
@@ -166,6 +167,9 @@ def _normalize_attribute_schema_payload(attribute_result: AttributeResult) -> At
 
 @traced_entry()
 def judge(project_id: str, trace: RunTrace) -> JudgeResult:
+    failure = business_call_failure(trace)
+    if failure:
+        return business_call_failure_result(trace, failure)
     spec = load_project(project_id)
     adapter = load_adapter(spec)
     if not getattr(trace, "ready", None):
@@ -195,6 +199,18 @@ def attribute(
 ) -> AttributeResult:
     started_at = time.monotonic()
     spec = load_project(project_id)
+    if BUSINESS_CALL_FAILED in (judge_result.evidence or []):
+        # 失败原因就是被测系统的响应原文（已在判定里），没有可调查的业务缺陷，不花归因调用。
+        result = AttributeResult(
+            trace_id=trace.trace_id,
+            project_id=trace.project_id,
+            case_id=str(trace.case_id or ""),
+            unresolved_reason="被测系统调用失败，原因见判定中的响应原文，不做归因",
+            summary={"attribution_status": "skipped", "execution_source": "business_call_failed",
+                     "manual_override": manual_override, "is_formal_attribution": False},
+        )
+        return _record_attribute_execution(trace, result, source="business_call_failed", status="skipped",
+                                           manual_override=manual_override, started_at=started_at)
     if not spec.attribution_enabled and not manual_override:
         result = AttributeResult(
             trace_id=trace.trace_id,
@@ -520,7 +536,7 @@ def _run_interactive_case(project_id: str, normalized: Any) -> Dict[str, Any]:
 
 def _live_service_unavailable(trace: RunTrace) -> bool:
     return any(
-        "live_service_unavailable" in (getattr(fb, "quality_flags", None) or [])
+        LIVE_SERVICE_UNAVAILABLE in (getattr(fb, "quality_flags", None) or [])
         for fb in (trace.fallbacks or [])
     )
 
@@ -542,7 +558,7 @@ def _chain_from_trace(project_id: str, trace: RunTrace, timings: Dict[str, int])
     """
     # 业务服务不可达时没有可评对象：不进 judge（省 LLM），直接记执行失败，前端「补跑执行失败」可整链重跑。
     if _live_service_unavailable(trace):
-        return _failed_evaluation_run(project_id, trace, trace.error or "live_service_unavailable")
+        return _failed_evaluation_run(project_id, trace, trace.error or LIVE_SERVICE_UNAVAILABLE)
     judge_result = _timed(timings, "judge_ms", judge, project_id, trace)
     from .judge_protocol import is_terminal_judge_failure
     if is_terminal_judge_failure(judge_result):

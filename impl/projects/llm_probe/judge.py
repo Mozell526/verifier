@@ -234,7 +234,7 @@ class LlmProbeJudge(ProjectJudge):
             "## 能力描述\n"
             "只根据能力描述判断 output_text 是否兑现了该能力。没有 gold output，不要编造参考答案。\n",
             "## not_evaluable 的边界\n"
-            "not_evaluable 只在证据本身缺失时使用：output_text 为空、无法读取、或 HTTP 层失败。\n"
+            "not_evaluable 只在证据本身缺失时使用：output_text 为空或无法读取。\n"
             "只要 output_text 有内容且可读，就必须对照能力描述和本次输入判 fulfilled 或 not_fulfilled。\n"
             "不要因为「不知道被测系统支不支持这种查询」而判 not_evaluable——系统能力边界是判后承载性裁决（轴2）的职责，不是本判定的输入。\n"
             "## 期望派生\n"

@@ -16,6 +16,7 @@ from dataclasses import replace
 import json
 import hashlib
 
+from impl.core.judge import BUSINESS_CALL_FAILED
 from impl.core.capability_carrier import (
     PLACEMENT_CANNOT,
     PLACEMENT_UNCLEAR,
@@ -53,7 +54,7 @@ from ..types import (
 )
 
 _OUTPUT_FIELDS = ("applicable", "axis1_status", "placements", "errors", "snapshot_id")
-_INPUT_FIELDS = ("overall_fulfillment", "business_expectations", "fulfillment_assessments")
+_INPUT_FIELDS = ("overall_fulfillment", "business_expectations", "fulfillment_assessments", "evidence")
 
 
 class BoxBoundaryCarrier(TextCarrier):
@@ -136,7 +137,7 @@ class BoxBoundaryCarrier(TextCarrier):
         system = _CARRIER_SYSTEM + (_CARRIER_TOOLS_GUIDE if tools else "")
         es_catalog = [item for item in catalog if item.get('source') == 'es']
         if es_catalog:
-            system += "\nES 资料同样可作原文证据：source=es://索引，ref=文档ID#字段。使用 es_outline/es_search/es_read，note 逐字引用回读字段。"
+            system += "\nES 资料同样可作原文证据：source=es://<知识源名>/<索引>，ref=文档ID#字段。使用 es_outline/es_search/es_read，note 逐字引用回读字段。"
         user = (
             f"未达成的期望：\n{expectation_text}\n\n"
             f"能力边界描述：\n{boundary['text']}"
@@ -193,6 +194,8 @@ def _summary(report: Mapping[str, Any]) -> AxisSummary:
 
 def run_carryability(inputs: Mapping[str, Any], axis: ScenarioAxis, runtime: AxisRuntime) -> RunOutcome:
     payload = dict(inputs["fulfillment"])
+    if BUSINESS_CALL_FAILED in (payload.get("evidence") or []):
+        return RunOutcome(output={}, not_applicable="被测系统调用失败，没有答复，不判承载")
     carrier = BoxBoundaryCarrier(runtime.spec, axis.description, runtime)
     report = carrier.place(payload)
     usage = {"llm_calls": 0, **carrier.llm_usage, "tool_calls": carrier.tool_calls}

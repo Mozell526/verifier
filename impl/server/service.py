@@ -390,6 +390,34 @@ def business_trace_check(data: Dict[str, Any]) -> Any:
     return {"project_id": project, **check_connection(data.get("business_trace"))}
 
 
+def knowledge_sources(data: Dict[str, Any]) -> Any:
+    project = _require_eval_axes_project(project_from(data))
+    from ..projects.llm_probe.eval_axes.sources import list_sources
+
+    return {"project_id": project, **list_sources()}
+
+
+def knowledge_source_save(data: Dict[str, Any]) -> Any:
+    project = _require_eval_axes_project(project_from(data))
+    from ..projects.llm_probe.eval_axes.sources import save_source
+
+    return {"project_id": project, **save_source(str(data.get("name") or ""), data.get("entry"))}
+
+
+def knowledge_source_delete(data: Dict[str, Any]) -> Any:
+    project = _require_eval_axes_project(project_from(data))
+    from ..projects.llm_probe.eval_axes.sources import delete_source
+
+    return {"project_id": project, **delete_source(str(data.get("name") or ""))}
+
+
+def knowledge_source_check(data: Dict[str, Any]) -> Any:
+    project = _require_eval_axes_project(project_from(data))
+    from ..projects.llm_probe.eval_axes.sources import check_source
+
+    return {"project_id": project, **check_source(str(data.get("name") or ""))}
+
+
 def judge(data: Dict[str, Any]) -> Any:
     return pipeline.judge(project_from(data), normalize_run_trace(data.get("trace")))
 

@@ -206,21 +206,37 @@ def _validate_axes(raw: Any) -> list[Dict[str, Any]]:
             raise ValueError(f"{label}.description 超过 {MAX_CAPABILITY_CHARS} 字符上限")
         # 保存时按检索式口径校引用有效性（不因大小拒写）；prompt-load 类型的预算在加载时由该类型自己查。
         validate_es_refs(description)
+        validate_mcp_refs(description)
         _require_material_refs(description, field=f"{label}.description", catalog=True)
         axes.append({"type": type_id, "enabled": enabled, "description": description})
     return axes
 
 
 def validate_es_refs(text: str) -> list[str]:
-    """ES 引用保存时只校格式，绝不连接数据源。"""
-    indices = []
+    """ES 引用保存时只校格式，绝不连接数据源；返回 ``<知识源名>/<索引>`` 列表。
+
+    各业务系统的 ES 各自独立：知识源名指向 knowledge_sources.json 里登记的连接。
+    """
+    refs = []
     for match in re.finditer(r"\{es://([^}]*)\}|(\{es://[^}]*$)", text):
-        index = match.group(1)
-        if index is None or not re.fullmatch(r"[a-z0-9][a-z0-9_.-]*", index):
-            raise ValueError("ES 引用必须形如 {es://<index>}，索引名须为小写字母、数字、_、.、-")
-        if index not in indices:
-            indices.append(index)
-    return indices
+        ref = match.group(1)
+        if ref is None or not re.fullmatch(r"[a-z0-9][a-z0-9_-]*/[a-z0-9][a-z0-9_.-]*", ref):
+            raise ValueError("ES 引用必须形如 {es://<知识源名>/<索引>}，知识源名为小写字母、数字、_、-，索引名为小写字母、数字、_、.、-")
+        if ref not in refs:
+            refs.append(ref)
+    return refs
+
+
+def validate_mcp_refs(text: str) -> list[str]:
+    """MCP 引用保存时只校格式，不拉起进程；返回知识源名列表。"""
+    names = []
+    for match in re.finditer(r"\{mcp://([^}]*)\}|(\{mcp://[^}]*$)", text):
+        name = match.group(1)
+        if name is None or not re.fullmatch(r"[a-z0-9][a-z0-9_-]*", name):
+            raise ValueError("MCP 引用必须形如 {mcp://<知识源名>}，知识源名为小写字母、数字、_、-")
+        if name not in names:
+            names.append(name)
+    return names
 
 
 def _require_material_refs(text: str, *, field: str, catalog: bool | None = None) -> None:

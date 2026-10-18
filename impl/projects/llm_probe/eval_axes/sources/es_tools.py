@@ -55,19 +55,24 @@ def _text(value):
 
 
 class EsTools:
-    def __init__(self, catalog, recorder, client=None):
+    def __init__(self, catalog, recorder):
+        # 目录条目是 <知识源名>/<索引>；不同业务系统的 ES 各连各的，按知识源名各建一个客户端。
         self.allowed = {item['uri'][len('es://'):] for item in catalog if item.get('source') == 'es'}
         self.recorder = recorder
-        self.client = client or EsClient()
+        self.clients: dict[str, EsClient] = {}
 
-    def _guard(self, index):
-        if index not in self.allowed:
-            raise ValueError(f'index 必须是目录里的索引之一: {sorted(self.allowed)}')
+    def _target(self, ref):
+        if ref not in self.allowed:
+            raise ValueError(f'index 必须是目录里的知识源之一: {sorted(self.allowed)}')
+        source, index = ref.split('/', 1)
+        if source not in self.clients:
+            self.clients[source] = EsClient(source)
+        return self.clients[source], index
 
     def _run(self, tool, index, args, action):
         receipt: dict[str, Any] = {'tool': tool, 'index': index, **args, 'returned_locators': []}
         try:
-            self._guard(index)
+            self._target(index)
             result = action()
             receipt['returned_locators'] = ([result['locator']] if 'locator' in result else
                                             [hit['locator'] for hit in result.get('hits', [])])
@@ -78,12 +83,13 @@ class EsTools:
         finally:
             self.recorder.append(receipt)
 
-    def _outline(self, index):
-        mapping = self.client.mapping(index)
+    def _outline(self, ref):
+        client, index = self._target(ref)
+        mapping = client.mapping(index)
         if index not in mapping:
             raise ValueError('ES 引用须为具体索引名')
-        return {'index': index, 'fields': _fields(mapping[index]['mappings'].get('properties', {})),
-                'doc_count': self.client.count(index)}
+        return {'index': ref, 'fields': _fields(mapping[index]['mappings'].get('properties', {})),
+                'doc_count': client.count(index)}
 
     def es_outline(self, index: str):
         return self._run('es_outline', index, {}, lambda: self._outline(index))
@@ -99,31 +105,42 @@ class EsTools:
             terms = [t for t in str(query or '').split() if t]
             if not terms:
                 raise ValueError('query 不能为空（空白分隔的关键词）')
+            client, name = self._target(index)
             available = {f['name']: f for f in self._outline(index)['fields']}
-            text_fields = fields if fields is not None else [name for name, f in available.items() if f['full_text']]
-            if not text_fields or any(f not in available or not available[f]['text_or_keyword'] or available[f]['nested'] for f in text_fields):
+            full_text = [name for name, f in available.items() if f['full_text']]
+            if fields is None:
+                text_fields = full_text
+                keyword_fields = [name for name, f in available.items()
+                                  if f['type'] == 'keyword' and not f['nested'] and not f.get('source_field')]
+            elif any(f not in available or not available[f]['text_or_keyword'] or available[f]['nested'] for f in fields):
+                text_fields = keyword_fields = []
+            else:
+                # 显式字段按各自类型取子串语义：text 用 phrase，keyword 用通配；keyword 走 phrase 只能整值命中。
+                text_fields = [f for f in fields if available[f]['type'] == 'text']
+                keyword_fields = [f for f in fields if available[f]['type'] == 'keyword']
+            if not text_fields and not keyword_fields:
                 raise ValueError('fields 必须是 mapping 中可检索的 text/keyword 字段；nested 字段需要 nested 查询，暂不支持')
-            keyword_fields = [] if fields is not None else [
-                name for name, f in available.items() if f['type'] == 'keyword' and not f['nested'] and not f.get('source_field')]
             should = []
             for term in terms:
-                should.append({'multi_match': {'query': term, 'fields': text_fields, 'type': 'phrase'}})
+                if text_fields:
+                    should.append({'multi_match': {'query': term, 'fields': text_fields, 'type': 'phrase'}})
                 escaped = re.sub(r'([*?\\])', r'\\\1', term)
                 should.extend({'wildcard': {k: {'value': f'*{escaped}*', 'case_insensitive': True}}} for k in keyword_fields)
-            response = self.client.search(index, {
-                'size': self.client.config.max_hits,
-                'query': {'bool': {'should': should, 'minimum_should_match': 1}},
-                'highlight': {'pre_tags': [''], 'post_tags': [''], 'fields': {f: {} for f in text_fields}},
-            })
-            limit = self.client.config.max_field_chars
+            body = {'size': client.config.max_hits, 'query': {'bool': {'should': should, 'minimum_should_match': 1}}}
+            if text_fields:
+                body['highlight'] = {'pre_tags': [''], 'post_tags': [''], 'fields': {f: {} for f in text_fields}}
+            response = client.search(name, body)
+            # 只查 keyword 字段时没有 highlight：展示全文字段原文；索引没有全文字段时展示命中的 keyword 字段本身，不丢命中。
+            shown_fields = text_fields or full_text or keyword_fields
+            limit = client.config.max_field_chars
             hits = []
-            for hit in response.get('hits', {}).get('hits', [])[:self.client.config.max_hits]:
+            for hit in response.get('hits', {}).get('hits', [])[:client.config.max_hits]:
                 source = hit.get('_source') or {}
                 haystack = ' '.join(_text(_project(source, f)) for f in [*text_fields, *keyword_fields] if _has(source, f))
                 matched = [t for t in terms if t.lower() in haystack.lower()]
                 highlight = {name: snippets for name, snippets in hit.get('highlight', {}).items() if name in text_fields}
                 # 只在 keyword 字段（如产品名）命中的文档没有 highlight，用第一个文本字段原文顶上，别把它丢了。
-                shown = highlight or {f: [_text(_project(source, f))] for f in text_fields[:1] if _has(source, f)}
+                shown = highlight or {f: [_text(_project(source, f))] for f in shown_fields[:1] if _has(source, f)}
                 for name, snippets in shown.items():
                     text = '\n'.join(snippets)
                     hits.append({'locator': hit['_id'] + '#' + available[name].get('source_field', name),
@@ -140,9 +157,10 @@ class EsTools:
             doc_id, separator, field = locator.partition('#')
             if not doc_id or (separator and not field):
                 raise ValueError('locator 必须为 <_id> 或 <_id>#<field>')
-            source = self.client.get_doc(index, doc_id)
+            client, name = self._target(index)
+            source = client.get_doc(name, doc_id)
             text = _text(_project(source, field))
-            limit = self.client.config.max_field_chars
+            limit = client.config.max_field_chars
             return {'index': index, 'locator': locator, 'text': text[:limit], 'truncated': len(text) > limit}
         return self._run('es_read', index, {'locator': locator}, action)
 
@@ -159,12 +177,12 @@ class EsTools:
              '关键词检索：空白分隔多个词，每个词按子串匹配（text 字段找连续原文，keyword 字段如产品名做包含匹配），'
              '任一词命中即返回、命中词多者排前，每条带 matched（命中了哪些词）与可回读 locator。零命中就是知识库里没有这个词。',
              {'query': {'type': 'string', 'description': '空白分隔的关键词，如「产品名 条款事项」'},
-              'fields': {'type': 'array', 'items': {'type': 'string'}, 'description': '可选：只在这些 text 字段里找（缺省全部文本字段 + keyword 字段）'}}),
+              'fields': {'type': 'array', 'items': {'type': 'string'}, 'description': '可选：只在这些 text/keyword 字段里找，同样按子串匹配（缺省全部文本字段 + keyword 字段）'}}),
             ('es_read', self.es_read, '回读 ES 原文；字段 locator 为文档ID#字段路径，只有 ID 时返回整篇摘要。',
              {'locator': {'type': 'string', 'description': '工具返回的文档ID#字段路径'}}),
         ]
         return build_agno_tools([VerifiableTool(tool_id=name, description=description, execute_fn=fn,
-            parameters={'type': 'object', 'properties': {'index': {'type': 'string', 'description': '目录里的具体索引名'}, **params},
+            parameters={'type': 'object', 'properties': {'index': {'type': 'string', 'description': '目录里的 ES 知识源，形如 <知识源名>/<索引>'}, **params},
                         'required': ['index'] + [key for key in params if key != 'fields']})
             for name, fn, description, params in specs])
 

@@ -10,6 +10,7 @@ from .adapters import (
     fulfillment,
     intent_understanding,
     knowledge_data,
+    knowledge_evidence,
     model_capability,
     planning_routing,
     tool_execution,
@@ -21,6 +22,7 @@ from .types import VERDICT_SCOPE_AXIS, AxisType
 _REGISTERED: tuple[AxisType, ...] = (
     fulfillment.AXIS_TYPE,
     carryability.AXIS_TYPE,
+    knowledge_evidence.AXIS_TYPE,
     truthfulness.AXIS_TYPE,
     trace_analysis.AXIS_TYPE,
     expectations.AXIS_TYPE,

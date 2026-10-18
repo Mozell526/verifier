@@ -378,11 +378,9 @@ class Session:
         except Exception as exc:
             runtime_ms = int((time.time() - start) * 1000)
             facts = self.live._take_turn_facts()
-            from impl.core.live_protocol import _is_service_unavailable
+            from impl.core.live_protocol import live_failure_type
 
-            fallback = self.live._build_fallback(
-                request, str(exc), unavailable=_is_service_unavailable(exc)
-            )
+            fallback = self.live._build_fallback(request, str(exc), live_failure_type(exc))
             self.ctx.record_turn(
                 request=request,
                 raw_response=facts.get("raw_response"),

@@ -163,7 +163,7 @@ def _by_id(results) -> dict[str, Any]:
 def test_registry_exposes_types_with_frozen_enums() -> None:
     described = {item["type_id"]: item for item in describe_axis_types()}
     assert set(described) == {
-        "fulfillment", "carryability", "truthfulness", "trace_analysis", "expectations", "intent_understanding",
+        "fulfillment", "carryability", "knowledge_evidence", "truthfulness", "trace_analysis", "expectations", "intent_understanding",
         "planning_routing", "tool_execution", "context_memory", "knowledge_data",
         "model_capability",
     }
@@ -833,7 +833,7 @@ def test_types_endpoint_lists_registered_types() -> None:
     assert response.status_code == 200
     body = response.json()
     assert [item["type_id"] for item in body["types"]] == [
-        "fulfillment", "carryability", "truthfulness", "trace_analysis", "expectations", "intent_understanding",
+        "fulfillment", "carryability", "knowledge_evidence", "truthfulness", "trace_analysis", "expectations", "intent_understanding",
         "planning_routing", "tool_execution", "context_memory", "knowledge_data",
         "model_capability",
     ]
@@ -939,12 +939,9 @@ def test_optional_dependency_rejects_required_input_and_trigger():
 
 
 @pytest.fixture
-def fake_es(monkeypatch):
-    from dataclasses import replace
+def fake_es(monkeypatch, tmp_path):
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
     from threading import Thread
-    from impl.core.config import get_runtime_config
-    from impl.core.config_schema import EvalAxesEsConfig
     requests = []
     documents = {'doc1': {'clause': '犹豫期二十日', 'nested': {'title': '保障条款'}, 'tags': ['保障', '保险']}}
     class Handler(BaseHTTPRequestHandler):
@@ -980,12 +977,11 @@ def fake_es(monkeypatch):
     server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
     thread = Thread(target=server.serve_forever, daemon=True)
     thread.start()
-    config = get_runtime_config()
-    es = EvalAxesEsConfig(enabled=True, base_url=f'http://127.0.0.1:{server.server_port}', api_key='test-key')
-    monkeypatch.setattr('impl.core.config._RUNTIME_CONFIG', replace(config, eval_axes=replace(config.eval_axes, es=es)))
-    # Consumers use the resolver accessor, with the same typed config as production.
-    monkeypatch.setattr('impl.projects.llm_probe.eval_axes.sources.es_client.get_runtime_config', lambda: replace(config, eval_axes=replace(config.eval_axes, es=es)))
-    monkeypatch.setattr('impl.projects.llm_probe.eval_axes.sources.get_runtime_config', lambda: replace(config, eval_axes=replace(config.eval_axes, es=es)))
+    from impl.projects.llm_probe.eval_axes.sources import registry
+    path = tmp_path / 'knowledge_sources.json'
+    path.write_text(json.dumps({'test': {'type': 'es', 'url': f'http://127.0.0.1:{server.server_port}', 'api_key': '${TEST_ES_API_KEY}'}}))
+    monkeypatch.setattr(registry, 'registry_path', lambda: path)
+    monkeypatch.setenv('TEST_ES_API_KEY', 'test-key')
     try:
         yield requests, documents
     finally:
@@ -998,15 +994,15 @@ def test_es_tools_catalog_receipts_scope_and_quote_readback(fake_es):
     from impl.projects.llm_probe.eval_axes.sources import expand_sources, build_tools
     from impl.projects.llm_probe.eval_axes.sources.es_tools import EsTools
     requests, documents = fake_es
-    text, catalog = expand_sources('核对 {es://kb_policy} 条款。')
+    text, catalog = expand_sources('核对 {es://test/kb_policy} 条款。')
     assert '{es://' not in text
     assert catalog[0]['snapshot_id'].startswith('uuid-test@')
     assert catalog[0]['doc_count'] == 1
     receipts = []
     tools = {t.name: t.entrypoint for t in build_tools(catalog, receipts)}
-    outline = tools['es_outline'](index='kb_policy')
+    outline = tools['es_outline'](index='test/kb_policy')
     assert [f['name'] for f in outline['fields'] if f['full_text']] == ['clause', 'nested.title']
-    search = tools['es_search'](index='kb_policy', query='犹豫期 康宁')
+    search = tools['es_search'](index='test/kb_policy', query='犹豫期 康宁')
     assert search['hits'][0]['locator'] == 'doc1#clause'
     assert search['hits'][0]['matched'] == ['犹豫期']
     sent = next(r for r in requests if r[0] == 'POST')
@@ -1022,71 +1018,84 @@ def test_es_tools_catalog_receipts_scope_and_quote_readback(fake_es):
         {'tags': {'value': '*康宁*', 'case_insensitive': True}},
     ]
     assert sent[3] == 'ApiKey test-key'
-    empty = tools['es_search'](index='kb_policy', query='不存在的词')
+    empty = tools['es_search'](index='test/kb_policy', query='不存在的词')
     assert empty['hits'] == [] and '零命中' in empty['note']
-    assert tools['es_read'](index='kb_policy', locator='doc1#nested.title')['text'] == '保障条款'
-    assert 'clause' in tools['es_read'](index='kb_policy', locator='doc1')['text']
+    assert tools['es_read'](index='test/kb_policy', locator='doc1#nested.title')['text'] == '保障条款'
+    assert 'clause' in tools['es_read'](index='test/kb_policy', locator='doc1')['text']
     before = len(requests)
     assert 'error' in tools['es_read'](index='../secret', locator='x')
     assert len(requests) == before
     assert receipts[-1]['returned_locators'] == [] and receipts[-1]['error']
     verifier = EsTools(catalog, receipts)
-    assert verifier.verify_quote('kb_policy', 'doc1#clause', '犹豫期二十日')
-    assert not verifier.verify_quote('kb_policy', 'doc1#clause', '十五日')
-    assert not verifier.verify_quote('kb_policy', 'doc1#absent', '二十日')
+    assert verifier.verify_quote('test/kb_policy', 'doc1#clause', '犹豫期二十日')
+    assert not verifier.verify_quote('test/kb_policy', 'doc1#clause', '十五日')
+    assert not verifier.verify_quote('test/kb_policy', 'doc1#absent', '二十日')
     documents.clear()
-    assert not verifier.verify_quote('kb_policy', 'doc1#clause', '二十日')
+    assert not verifier.verify_quote('test/kb_policy', 'doc1#clause', '二十日')
     assert all('tool' in r and 'returned_locators' in r for r in receipts)
 
 
-def test_es_save_only_validates_format_and_load_rejects_disabled(monkeypatch):
-    from dataclasses import replace
-    from impl.core.config import get_runtime_config
-    config = get_runtime_config()
-    monkeypatch.setattr('impl.projects.llm_probe.eval_axes.sources.get_runtime_config', lambda: replace(config, eval_axes=replace(config.eval_axes, es=replace(config.eval_axes.es, enabled=False))))
-    for marker in ('{es://}', '{es://UPPER}', '{es://x/y}', '{es://x*}', '{es://x'):
+def test_es_save_only_validates_format_and_load_rejects_unregistered_source(monkeypatch, tmp_path):
+    from impl.projects.llm_probe.eval_axes.sources import registry
+    monkeypatch.setattr(registry, 'registry_path', lambda: tmp_path / 'knowledge_sources.json')
+    for marker in ('{es://}', '{es://kb_policy}', '{es://UPPER/kb}', '{es://src/UPPER}', '{es://src/x*}', '{es://src/x'):
         with pytest.raises(ValueError, match='ES 引用'):
             validate_entry('test', {'capability': 'test', 'axes': [{'type': 'carryability', 'enabled': True, 'description': marker}]})
-    entry = validate_entry('test', {'capability': 'test', 'axes': [{'type': 'fulfillment', 'enabled': True, 'description': '{es://kb_policy}'}]})
+    entry = validate_entry('test', {'capability': 'test', 'axes': [{'type': 'fulfillment', 'enabled': True, 'description': '{es://test/kb_policy}'}]})
     report = validate_scenario_axes(parse_axes(entry['axes']))
-    assert any('ES 数据源未启用' in e for e in report.errors)
-    # 未启用的框写了 {es://}：ES 关着也不报错，不拦同预设里已启用的其他轴。
+    assert any('知识源 test 未登记' in e for e in report.errors)
+    # 未启用的框引用了未登记的知识源：不拦同预设里已启用的其他轴。
     entry = validate_entry('test', {'capability': 'test', 'axes': [
-        {'type': 'truthfulness', 'enabled': False, 'description': '{es://kb_policy}'},
+        {'type': 'knowledge_evidence', 'enabled': False, 'description': '{es://test/kb_policy}'},
         {'type': 'fulfillment', 'enabled': True, 'description': '按要求回答'},
     ]})
     assert validate_scenario_axes(parse_axes(entry['axes'])).ok
 
 
-def test_es_configuration_registration_conditional_requirement_and_secrets(tmp_path):
-    from impl.core.config import resolve_runtime_config
-    dotenv = tmp_path / '.env'
-    dotenv.write_text('EVAL_AXES_ES_URL=invalid-url\nEVAL_AXES_ES_API_KEY=secret-test\n')
-    config = resolve_runtime_config(dotenv_path=dotenv, environ={})
-    assert config.eval_axes.es.enabled is False
-    assert config.eval_axes.es.api_key == '' and config.eval_axes.es.base_url == ''
-    dotenv.write_text('EVAL_AXES_ES_ENABLED=true\n')
-    config = resolve_runtime_config(dotenv_path=dotenv, environ={})
-    assert 'eval_axes.es.base_url' in config.missing_required
-    dotenv.write_text('EVAL_AXES_ES_ENABLED=true\nEVAL_AXES_ES_URL=http://localhost:9200\nEVAL_AXES_ES_API_KEY=secret-test\n')
-    config = resolve_runtime_config(dotenv_path=dotenv, environ={})
-    assert config.eval_axes.es.api_key == 'secret-test'
-    assert config.source_for('eval_axes.es.api_key').secret
-    assert 'secret-test' not in str(config.redacted_dict())
+def test_es_sources_are_registered_per_business_system_with_env_secrets(monkeypatch, tmp_path):
+    from impl.projects.llm_probe.eval_axes.sources import registry
+    path = tmp_path / 'knowledge_sources.json'
+    monkeypatch.setattr(registry, 'registry_path', lambda: path)
+    path.write_text(json.dumps({
+        'biz-a': {'type': 'es', 'url': 'http://a:9200', 'api_key': '${BIZ_A_ES_KEY}', 'max_hits': 3},
+        'biz-b': {'type': 'es', 'url': 'https://b:9200', 'basic_auth': 'u:p'},
+        'bad-url': {'type': 'es', 'url': 'http://user@b:9200'},
+        'bad-type': {'type': 'mysql', 'url': 'http://c'},
+        'bad-key': {'type': 'es', 'url': 'http://c', 'index': 'x'},
+    }))
+    monkeypatch.setenv('BIZ_A_ES_KEY', 'secret-a')
+    a, b = registry.load_es_source('biz-a'), registry.load_es_source('biz-b')
+    assert (a.base_url, a.api_key, a.max_hits, a.max_field_chars) == ('http://a:9200', 'secret-a', 3, 6000)
+    assert (b.base_url, b.basic_auth, b.api_key) == ('https://b:9200', 'u:p', '')
+    monkeypatch.delenv('BIZ_A_ES_KEY')
+    with pytest.raises(ValueError, match='BIZ_A_ES_KEY 未设置'):
+        registry.load_es_source('biz-a')
+    for name, message in (('bad-url', '无凭据'), ('bad-type', 'type=es'), ('bad-key', '未知字段'), ('missing', '未登记')):
+        with pytest.raises(ValueError, match=message):
+            registry.load_es_source(name)
 
 
 def test_es_read_truncation_and_explicit_fields(fake_es):
     from impl.projects.llm_probe.eval_axes.sources.es_tools import EsTools
     requests, documents = fake_es
     documents['doc1']['long'] = '甲' * 6001
-    tools = EsTools([{'source': 'es', 'uri': 'es://kb_policy'}], [])
-    result = tools.es_read('kb_policy', 'doc1#long')
+    tools = EsTools([{'source': 'es', 'uri': 'es://test/kb_policy'}], [])
+    result = tools.es_read('test/kb_policy', 'doc1#long')
     assert result['truncated'] and len(result['text']) == 6000
-    assert 'error' in tools.es_search('kb_policy', 'x', ['not_in_mapping'])
-    tools.es_search('kb_policy', 'x', ['clause.raw'])
-    # 显式指定 fields 时只查这些字段，不再附带 keyword 通配。
-    should = requests[-1][2]['query']['bool']['should']
-    assert should == [{'multi_match': {'query': 'x', 'fields': ['clause.raw'], 'type': 'phrase'}}]
+    assert 'error' in tools.es_search('test/kb_policy', 'x', ['not_in_mapping'])
+    assert 'error' in tools.es_search('test/kb_policy', 'x', [])
+    keyword_only = tools.es_search('test/kb_policy', 'x', ['clause.raw'])
+    # 显式 keyword 字段同样是子串语义：走通配，不走 phrase（phrase 只能整值命中）；命中仍带可回读的全文字段 locator。
+    assert keyword_only['hits'][0]['locator'] == 'doc1#clause'
+    sent = requests[-1][2]
+    assert sent['query']['bool']['should'] == [{'wildcard': {'clause.raw': {'value': '*x*', 'case_insensitive': True}}}]
+    assert 'highlight' not in sent
+    tools.es_search('test/kb_policy', 'x', ['clause', 'tags'])
+    # 显式混合字段：text 走 phrase，keyword 走通配，不附带其他字段。
+    assert requests[-1][2]['query']['bool']['should'] == [
+        {'multi_match': {'query': 'x', 'fields': ['clause'], 'type': 'phrase'}},
+        {'wildcard': {'tags': {'value': '*x*', 'case_insensitive': True}}},
+    ]
 
 
 def test_source_dispatch_preserves_material_entries(monkeypatch):
@@ -1102,146 +1111,200 @@ def test_carryability_es_quotes_are_read_back(fake_es, monkeypatch):
     from impl.projects.llm_probe.eval_axes.adapters.carryability import BoxBoundaryCarrier
     from impl.projects.llm_probe.eval_axes.types import AxisRuntime
     runtime = AxisRuntime(spec=load_project('llm_probe'), run_id='axes-test', trace_id='axes-test', scenario_id='s', case_id='c')
-    carrier = BoxBoundaryCarrier(load_project('llm_probe'), '范围 {es://kb_policy}', runtime)
-    monkeypatch.setattr(carrier, '_call_llm', lambda *args: {'carry': 'yes', 'reason': '条款覆盖', 'citations': [{'source': 'es://kb_policy', 'ref': 'doc1#clause', 'note': '犹豫期二十日'}]})
+    carrier = BoxBoundaryCarrier(load_project('llm_probe'), '范围 {es://test/kb_policy}', runtime)
+    monkeypatch.setattr(carrier, '_call_llm', lambda *args: {'carry': 'yes', 'reason': '条款覆盖', 'citations': [{'source': 'es://test/kb_policy', 'ref': 'doc1#clause', 'note': '犹豫期二十日'}]})
     verdict = carrier.verdict_for({'expectation_id': '查犹豫期'})
     assert verdict.carry == 'yes'
     assert verdict.tool_trail[-1]['tool'] == 'es_read'
 
 
-def _truth_llm(monkeypatch, extracted, verdicts):
-    clients, options = [], []
-    remaining = iter(verdicts)
+class FakeStepLlm(FakeLlm):
+    """知识查证 loop 用 complete_step：按 steps 逐条回放模型回复，[(工具名, 参数)]，空列表 = 不再调工具。"""
+
+    def __init__(self, role, script, steps):
+        super().__init__(role, script)
+        self.steps, self.step_messages = steps, []
+
+    def complete_step(self, messages, functions, *, trace_id, stage):
+        from impl.core.tool_loop import Step
+        from impl.tools.protocol import runtime_tool_name
+        self.step_messages.append(list(messages))
+        self.step_functions = [fn.name for fn in functions]
+        calls = self.steps.pop(0) if self.steps else []
+        return Step({'role': 'assistant', 'content': '' if calls else '完成', 'tool_calls': [
+            {'id': f's{len(self.step_messages)}-{i}', 'type': 'function',
+             'function': {'name': runtime_tool_name(name), 'arguments': json.dumps(args, ensure_ascii=False)}}
+            for i, (name, args) in enumerate(calls)]})
+
+
+def _knowledge_llm(monkeypatch, extracted, steps=(), judges=(), other=None):
+    """truthfulness 角色：含 output_text 的是抽取，其余 complete_json 是逐条判定；complete_step 是查证 loop。"""
+    clients, steps, judges = [], [list(step) for step in steps], iter(judges)
+
     def script(role, system, user):
-        if 'output_text' in json.loads(user):
-            return extracted
-        value = next(remaining)
-        if isinstance(value, Exception):
-            raise value
-        return value
+        if role != 'truthfulness':
+            return other(role, system, user)
+        if user.startswith('{"output_text"'):
+            return extracted(user) if callable(extracted) else extracted
+        return next(judges)
+
     def factory(spec, role, **kwargs):
-        client = FakeLlm(role, script)
+        client = FakeStepLlm(role, script, steps)
         clients.append(client)
-        options.append(kwargs)
         return client
     monkeypatch.setattr('impl.core.llm_client.project_llm_client', factory)
-    return clients, options
+    return clients
+
+
+def _search(query):
+    return ('es_search', {'index': 'test/kb_policy', 'query': query})
+
+
+def _submit(item_id, status, citations=(), searches=('c0',), note='检索了 犹豫期'):
+    return ('submit_item', {'item_id': item_id, 'status': status, 'citations': list(citations),
+                            'search_calls': list(searches), 'note': note})
 
 
 def _truth_verdict(verdict='refuted', note='犹豫期二十日'):
-    return {'verdict': verdict, 'reason': '资料中是二十日', 'citations': [{'source': 'es://kb_policy', 'ref': 'doc1#clause', 'note': note}]}
+    return {'verdict': verdict, 'reason': '资料中是二十日', 'citations': [{'source': 'es://test/kb_policy', 'ref': 'c0', 'note': note}]}
 
 
-def test_truthfulness_three_stages_isolated_and_deterministic(fake_es, monkeypatch):
-    # 断言 = text + context：上下文片段单独带着，核验时才知道该找哪个产品、哪个条件下的条款；不需要的填 []。
+def _knowledge_axes(description='核对事实 {es://test/kb_policy}', truth=''):
+    return [ScenarioAxis('knowledge_evidence', True, description), ScenarioAxis('truthfulness', True, truth)]
+
+
+def test_knowledge_evidence_gathers_then_truthfulness_judges(fake_es, monkeypatch):
+    # 断言 = text + context：上下文片段单独带着，查证时才知道该找哪个产品、哪个条件下的条款；不需要的填 []。
     extracted = {'claims': [{'claim_id': '天数', 'text': '犹豫期十五日', 'context': ['康宁险']}, {'claim_id': '条款', 'text': '保障条款'}]}
-    clients, options = _truth_llm(monkeypatch, extracted, [_truth_verdict(), {'verdict': 'unverifiable', 'reason': '没有相关原文', 'citations': []}])
-    result = run_axes(load_project('llm_probe'), _trace('康宁险犹豫期十五日；保障条款'), [ScenarioAxis('truthfulness', True, '核对事实 {es://kb_policy}')], scenario_id='s')[0]
-    assert result.status == 'succeeded' and result.verdict is None
-    assert result.output['coverage'] == {'extracted': 2, 'verified': 0, 'refuted': 1, 'unverifiable': 1}
-    assert result.summary['text'].startswith('$refuted\n天数')
-    assert [item['key'] for item in result.summary['items']] == ['康宁险：犹豫期十五日', '保障条款']
-    assert len(result.summary['items']) == 2 and result.usage['llm_calls'] == 3
-    expected_claims = [{'claim_id': '天数', 'text': '犹豫期十五日', 'context': ['康宁险']}, {'claim_id': '条款', 'text': '保障条款', 'context': []}]
-    assert result.output['sources'][0]['snapshot_id'].startswith('uuid-test@')
-    assert options[0]['tools'] == []
+    clients = _knowledge_llm(monkeypatch, extracted, steps=[
+        [_search('犹豫期')],
+        [_submit('truthfulness:天数', 'found', [{'call_id': 'c0', 'quote': '犹豫期二十日'}]),
+         _submit('truthfulness:条款', 'not_found', note='检索 犹豫期 只命中犹豫期条款，没有保障条款原文')],
+    ], judges=[{'reason': '原文是二十日，说法是十五日', 'verdict': 'refuted', 'basis': [0]}])
+    results = _by_id(run_axes(load_project('llm_probe'), _trace('康宁险犹豫期十五日；保障条款'), _knowledge_axes(), scenario_id='s'))
+    evidence, truth = results['knowledge_evidence'], results['truthfulness']
+    assert evidence.status == 'succeeded' and evidence.verdict is None
+    assert evidence.output['coverage'] == {'items': 2, 'found': 1, 'not_found': 1, 'by_origin': {'truthfulness': 2}}
+    assert evidence.output['searches'][0]['source'] == 'es://test/kb_policy'
+    assert evidence.output['sources'][0]['snapshot_id'].startswith('uuid-test@')
+    assert truth.status == 'succeeded'
+    assert truth.output['coverage'] == {'extracted': 2, 'verified': 0, 'refuted': 1, 'unverifiable': 1}
+    assert truth.output['claims'][0]['citations'] == [{'source': 'es://test/kb_policy', 'ref': 'c0', 'note': '犹豫期二十日'}]
+    assert truth.summary['text'].startswith('$refuted\n天数')
+    assert [item['key'] for item in truth.summary['items']] == ['康宁险：犹豫期十五日', '保障条款']
+    # 没找到的直接给 unverifiable，不调模型：真实性只调一次（判"天数"）。
+    assert truth.usage['llm_calls'] == 1
     extraction = json.loads(clients[0].calls[0]['user'])
     assert set(extraction) == {'output_text', 'question'}
-    # 提取与核验都是摘抄/查资料，不吃深推理：与生产轴2一致用 low。
+    loop_input = clients[1].step_messages[0][1]['content']
+    # 查证只拿清单、目录和骨架，不拿整份回答。
+    assert '待查清单' in loop_input and 'truthfulness:天数' in loop_input and 'ES 字段骨架' in loop_input
+    assert '康宁险犹豫期十五日；保障条款' not in loop_input
+    judged = json.loads(clients[2].calls[0]['user'])
+    assert judged['claim'] == {'text': '犹豫期十五日', 'context': ['康宁险']}
+    assert judged['citations'][0]['quote'] == '犹豫期二十日' and judged['citations'][0]['window']
     assert all(call.get('reasoning_effort') == 'low' for client in clients for call in client.calls)
-    for i in (1, 2):
-        payload = json.loads(clients[i].calls[0]['user'])
-        # 首轮就带知识源骨架，模型不必再花一次工具调用 outline，也一开始就知道字段在哪。
-        assert set(payload) == {'claim', 'description', 'catalog', 'outline', 'feedback'}
-        assert payload['outline'][0]['index'] == 'kb_policy'
-        assert [f['name'] for f in payload['outline'][0]['fields'] if f['type'] == 'keyword'] == ['clause.raw', 'tags']
-        assert payload['claim'] == expected_claims[i - 1]
-        assert 'question' not in payload and 'output_text' not in payload
-        assert options[i]['tool_call_limit'] == 16
-        assert {tool.name for tool in options[i]['tools']} == {'es_outline', 'es_search', 'es_read'}
 
 
-def test_truthfulness_extraction_repairs_schema_block_once(monkeypatch):
+def test_extraction_repairs_schema_block_once(fake_es, monkeypatch):
     """提取被结构校验阻断（如模型把 schema 里的 required 当字段输出）时，与生产 judge 一样只做一次带具体错误的格式修复。"""
     attempts = []
 
-    def script(role, system, user):
+    def extracted(user):
         attempts.append(user)
         if len(attempts) == 1:
             raise ValueError('额外字段不允许：required')
         assert '上次输出不符合要求' in user and 'required' in user
         return {'claims': []}
 
-    clients = []
-    def factory(spec, role, **kwargs):
-        client = FakeLlm(role, script)
-        clients.append(client)
-        return client
-    monkeypatch.setattr('impl.core.llm_client.project_llm_client', factory)
-    result = run_axes(None, _trace('答复'), [ScenarioAxis('truthfulness', True, '核对事实')], scenario_id='s')[0]
-    assert result.status == 'succeeded' and len(attempts) == 2
-    assert result.usage['llm_calls'] == 2
+    _knowledge_llm(monkeypatch, extracted)
+    results = _by_id(run_axes(None, _trace('答复'), _knowledge_axes(), scenario_id='s'))
+    assert results['knowledge_evidence'].status == 'succeeded' and len(attempts) == 2
+    assert results['knowledge_evidence'].usage['llm_calls'] == 2
+    assert results['truthfulness'].summary['text'] == '回答不含可核验的事实断言'
 
 
-@pytest.mark.parametrize('claims,success', [([], True), ([{'claim_id': 'fake', 'text': '原文中不存在'}], False), ([{'claim_id': 'x', 'text': '答 复'}], False),
-                                            ([{'claim_id': 'x', 'text': '答复', 'context': ['原文中不存在']}], False)])
-def test_truthfulness_empty_and_fabricated_claims(monkeypatch, claims, success):
-    clients, options = _truth_llm(monkeypatch, {'claims': claims}, [])
-    result = run_axes(None, _trace('答复'), [ScenarioAxis('truthfulness', True, '核对事实')], scenario_id='s')[0]
-    assert result.status == ('succeeded' if success else 'failed')
-    assert len(clients) == 1
-    assert result.output['claims'] == []
-    if success:
-        assert result.summary['text'] == '回答不含可核验的事实断言'
-    else:
-        assert result.output['errors'] and result.usage['llm_calls'] == 2
+@pytest.mark.parametrize('claims', [[{'claim_id': 'fake', 'text': '原文中不存在'}], [{'claim_id': 'x', 'text': '答案'}],
+                                    [{'claim_id': 'x', 'text': '答复', 'context': ['原文中不存在']}]])
+def test_fabricated_claims_fail_evidence_and_block_truthfulness(fake_es, monkeypatch, claims):
+    clients = _knowledge_llm(monkeypatch, {'claims': claims})
+    results = _by_id(run_axes(None, _trace('答复'), _knowledge_axes(), scenario_id='s'))
+    assert results['knowledge_evidence'].status == 'failed' and '待查清单生成失败' in results['knowledge_evidence'].error
+    assert results['knowledge_evidence'].usage['llm_calls'] == 2 and len(clients) == 1
+    assert results['truthfulness'].status == 'blocked'
 
 
-def test_truthfulness_context_must_not_leak_other_claims(monkeypatch):
+def test_context_must_not_leak_other_claims(fake_es, monkeypatch):
     """context 带了别条断言的值 = 把整句塞回来，隔离失效，程序打回；给一次带具体错误的修复机会，仍偷懒则 failed。"""
     answer = '安心医疗险的等待期为三十日，免赔额为一万元。'
-    lazy = {'claims': [
-        {'claim_id': '1', 'text': '等待期为三十日', 'context': [answer]},
-        {'claim_id': '2', 'text': '免赔额为一万元', 'context': ['安心医疗险']},
-    ]}
     attempts = []
 
-    def script(role, system, user):
+    def lazy(user):
         attempts.append(user)
-        return lazy
+        return {'claims': [{'claim_id': '1', 'text': '等待期为三十日', 'context': [answer]},
+                           {'claim_id': '2', 'text': '免赔额为一万元', 'context': ['安心医疗险']}]}
 
-    monkeypatch.setattr('impl.core.llm_client.project_llm_client', lambda spec, role, **kwargs: FakeLlm(role, script))
-    result = run_axes(None, _trace(answer), [ScenarioAxis('truthfulness', True, '核对事实')], scenario_id='s')[0]
-    assert result.status == 'failed' and '含了断言 2 的值' in result.summary['text']
+    _knowledge_llm(monkeypatch, lazy)
+    result = _by_id(run_axes(None, _trace(answer), _knowledge_axes(), scenario_id='s'))['knowledge_evidence']
+    assert result.status == 'failed' and '含了断言 2 的值' in result.error
     assert len(attempts) == 2 and '含了断言 2 的值' in attempts[1]
-    assert result.output['claims'] == [] and result.usage['llm_calls'] == 2
 
 
-@pytest.mark.parametrize('invalid', [_truth_verdict(note='十五日'), {'verdict': 'verified', 'reason': '支持', 'citations': []}, {'error': 'llm down'}])
-def test_truthfulness_retries_invalid_citations_then_succeeds(fake_es, monkeypatch, invalid):
-    clients, _ = _truth_llm(monkeypatch, {'claims': [{'claim_id': 'days', 'text': '十五日'}]}, [invalid, _truth_verdict('verified')])
-    result = run_axes(None, _trace('十五日'), [ScenarioAxis('truthfulness', True, '{es://kb_policy}')], scenario_id='s')[0]
-    assert result.status == 'succeeded'
-    assert result.output['coverage']['verified'] == 1
-    assert result.usage['llm_calls'] == 3
-    assert json.loads(clients[2].calls[0]['user'])['feedback']
+def test_unfinished_checklist_fails_instead_of_becoming_not_found(fake_es, monkeypatch):
+    """模型查了却交不齐：预算耗尽记执行失败，不产出部分案卷，没交的条目不会变成"没找到"。"""
+    _knowledge_llm(monkeypatch, {'claims': [{'claim_id': 'x', 'text': '十五日'}]}, steps=[[_search('犹豫期')]] * 30)
+    results = _by_id(run_axes(None, _trace('十五日'), _knowledge_axes(), scenario_id='s'))
+    assert results['knowledge_evidence'].status == 'failed'
+    assert '查证未完成（已接受 0/1 条）' in results['knowledge_evidence'].error and 'budget' in results['knowledge_evidence'].error
+    assert results['truthfulness'].status == 'blocked'
 
 
-def test_truthfulness_exhaustion_retains_partial_results(fake_es, monkeypatch):
-    clients, _ = _truth_llm(monkeypatch, {'claims': [{'claim_id': 'one', 'text': '十五日'}, {'claim_id': 'two', 'text': '二十日'}]}, [_truth_verdict(), _truth_verdict(note='伪造'), _truth_verdict(note='伪造')])
-    result = run_axes(None, _trace('十五日二十日'), [ScenarioAxis('truthfulness', True, '{es://kb_policy}')], scenario_id='s')[0]
-    assert result.status == 'failed' and result.verdict is None
-    assert len(result.output['claims']) == len(result.summary['items']) == 1
-    assert result.output['errors'][0]['claim_id'] == 'two'
-    # 每条断言最多 2 次：首轮上下文已经把骨架和检索语义给全，重试是兜底不是常态。
-    assert result.output['errors'][0]['attempts'] == 2
-    assert len(clients) == 4
+@pytest.mark.parametrize('invalid', [{'reason': '支持', 'verdict': 'verified', 'basis': []},
+                                     {'reason': '支持', 'verdict': 'verified', 'basis': [3]},
+                                     {'error': 'llm down'}])
+def test_judgement_repairs_once_then_records_error(fake_es, monkeypatch, invalid):
+    steps = [[_search('犹豫期')], [_submit('truthfulness:days', 'found', [{'call_id': 'c0', 'quote': '犹豫期二十日'}])]]
+    good = {'reason': '原文二十日', 'verdict': 'refuted', 'basis': [0]}
+    _knowledge_llm(monkeypatch, {'claims': [{'claim_id': 'days', 'text': '十五日'}]}, steps=steps, judges=[invalid, good])
+    truth = _by_id(run_axes(None, _trace('十五日'), _knowledge_axes(), scenario_id='s'))['truthfulness']
+    assert truth.status == 'succeeded' and truth.output['coverage']['refuted'] == 1 and truth.usage['llm_calls'] == 2
+    _knowledge_llm(monkeypatch, {'claims': [{'claim_id': 'days', 'text': '十五日'}]}, steps=[list(s) for s in steps], judges=[invalid, invalid])
+    truth = _by_id(run_axes(None, _trace('十五日'), _knowledge_axes(), scenario_id='s'))['truthfulness']
+    assert truth.status == 'failed' and truth.output['errors'][0]['claim_id'] == 'truthfulness:days'
 
 
-def test_truthfulness_tool_errors_cannot_be_unverifiable(fake_es, monkeypatch):
-    from impl.projects.llm_probe.eval_axes.adapters.truthfulness import _verify_result
-    with pytest.raises(ValueError, match='工具调用失败'):
-        _verify_result({'verdict': 'unverifiable', 'reason': '没有找到', 'citations': []}, [], '', [{'error': 'HTTP 500'}])
+def test_without_knowledge_source_both_axes_not_applicable(monkeypatch):
+    clients = _knowledge_llm(monkeypatch, {'claims': []})
+    results = _by_id(run_axes(None, _trace('答复'), _knowledge_axes(description='核对事实'), scenario_id='s'))
+    assert results['knowledge_evidence'].status == 'not_applicable' and '场景未声明知识源' in results['knowledge_evidence'].summary['text']
+    assert results['truthfulness'].status == 'not_applicable' and '上游不适用' in results['truthfulness'].summary['text']
+    assert clients == []
+
+
+def test_truthfulness_box_rejects_knowledge_source_refs():
+    report = validate_scenario_axes([ScenarioAxis('knowledge_evidence', True, '核对 {es://test/kb_policy}'),
+                                     ScenarioAxis('truthfulness', True, '核对 {es://test/kb_policy}')])
+    assert any('truthfulness' in e and '知识查证框' in e for e in report.errors)
+    report = validate_scenario_axes([ScenarioAxis('truthfulness', True, '')])
+    assert any('依赖 knowledge_evidence' in e for e in report.errors)
+
+
+def test_small_material_goes_to_catalog_with_tools_and_snapshot(monkeypatch):
+    import impl.core.materials_store as ms
+    from impl.projects.llm_probe.eval_axes.sources import expand_sources
+    token = '{material://llm_probe/client-search-match-rule}'
+    content = ms.read_content('llm_probe', 'client-search-match-rule')
+    quote = next(line for line in content.splitlines() if line.strip())
+    clients = _knowledge_llm(monkeypatch, {'claims': [{'claim_id': '规则', 'text': quote}]}, steps=[
+        [('material_read', {'material_id': 'client-search-match-rule', 'locator': 'L1-L10'})],
+        [_submit('truthfulness:规则', 'found', [{'call_id': 'c0', 'quote': quote}])],
+    ], judges=[{'reason': '原文支持', 'verdict': 'verified', 'basis': [0]}])
+    results = _by_id(run_axes(None, _trace(quote), _knowledge_axes(description=token), scenario_id='s'))
+    assert results['truthfulness'].status == 'succeeded'
+    assert results['truthfulness'].output['claims'][0]['citations'][0]['source'] == token[1:-1]
+    assert results['knowledge_evidence'].output['sources'][0]['snapshot_id']
+    assert {'material_outline', 'material_search', 'material_read', 'submit_item'} == set(clients[1].step_functions)
+    assert expand_sources(token)[1] == []  # 承载性原有小资料内联行为不变
 
 
 @pytest.mark.parametrize('output_text', ['plain answer', '{"conditions": []}', ''])
@@ -1256,9 +1319,10 @@ def test_fulfillment_truth_adds_exactly_two_prompt_extras(output_text):
     assert enriched['user_prompt_extras'].pop('truthfulness') == {'claims': [{k: v for k, v in truth['claims'][0].items() if k != 'private'}]}
     assert enriched['system_prompt_extras'].pop() == (
         '## 真实性核验结果\n'
-        '上游已对回答中的事实断言逐条核验。`refuted` 的断言视为事实错误，据此判相关期望 not_fulfilled；'
-        '`unverifiable` 不构成失败依据，也不构成通过依据：期望结果所依赖的断言被判 `unverifiable`、'
-        'trace 里也没有业务自己核实过的记录时，该期望判 not_evaluable 并写明缺哪份证据。'
+        '上游已对回答中的事实断言逐条核验。`refuted` 的断言视为事实错误，据此判相关期望 not_fulfilled。\n'
+        '`unverifiable` 表示评测侧在知识源里没找到支持它的原文——可能是业务编造，也可能是评测侧没检索到，'
+        '不能据此判对，也不能据此判错：结论依赖该断言的期望判 not_evaluable，不判 fulfilled，也不判 not_fulfilled；'
+        'trace 里有业务自己核实过该事实的记录时除外。\n'
         '不要重复核验，也不要发明核验结果里没有的断言。'
     )
     assert enriched == base
@@ -1266,61 +1330,21 @@ def test_fulfillment_truth_adds_exactly_two_prompt_extras(output_text):
 
 
 def test_truthfulness_flows_to_fulfillment_but_not_carryability(fake_es, monkeypatch):
-    clients = []
-    def script(role, system, user):
-        if role == 'truthfulness':
-            if 'output_text' in json.loads(user):
-                return {'claims': [{'claim_id': 'days', 'text': '十五日'}]}
-            return _truth_verdict()
+    def other(role, system, user):
         if role == 'judge':
             assert '## 真实性核验结果' in system
             assert 'truthfulness' in user and '十五日' in user
             return _judge_payload('not_fulfilled')
         assert 'truthfulness' not in user and '十五日' not in user
         return _carrier_payload('no')
-    def factory(spec, role, **kwargs):
-        client = FakeLlm(role, script)
-        clients.append(client)
-        return client
-    monkeypatch.setattr('impl.core.llm_client.project_llm_client', factory)
-    results = run_axes(load_project('llm_probe'), _trace('十五日'), _axes() + [ScenarioAxis('truthfulness', True, '{es://kb_policy}')], scenario_id='s')
-    assert [r.axis_id for r in results] == ['truthfulness', 'fulfillment', 'carryability']
+    _knowledge_llm(monkeypatch, {'claims': [{'claim_id': 'days', 'text': '十五日'}]}, steps=[
+        [_search('犹豫期')], [_submit('truthfulness:days', 'found', [{'call_id': 'c0', 'quote': '犹豫期二十日'}])],
+    ], judges=[{'reason': '原文二十日', 'verdict': 'refuted', 'basis': [0]}], other=other)
+    results = run_axes(load_project('llm_probe'), _trace('十五日'), _axes() + _knowledge_axes(), scenario_id='s')
+    assert [r.axis_id for r in results] == ['knowledge_evidence', 'truthfulness', 'fulfillment', 'carryability']
     assert all(r.status == 'succeeded' for r in results)
-    assert set(results[1].inputs_used) == {'trace', 'truth'}
-    assert set(results[2].inputs_used) == {'fulfillment'}
-
-
-def test_truthfulness_small_material_has_tools_and_source_snapshot(monkeypatch):
-    import impl.core.materials_store as ms
-    from impl.projects.llm_probe.eval_axes.sources import expand_sources
-    token = '{material://llm_probe/client-search-match-rule}'
-    content = ms.read_content('llm_probe', 'client-search-match-rule')
-    quote = next(line for line in content.splitlines() if line.strip())
-    clients, options = _truth_llm(monkeypatch, {'claims': [{'claim_id': '规则', 'text': quote}]}, [{'verdict': 'verified', 'reason': '原文支持', 'citations': [{'source': token[1:-1], 'ref': 'L1-L10', 'note': quote}]}])
-    result = run_axes(None, _trace(quote), [ScenarioAxis('truthfulness', True, token)], scenario_id='s')[0]
-    assert result.status == 'succeeded'
-    assert result.output['sources'][0]['snapshot_id']
-    assert {tool.name for tool in options[1]['tools']} == {'material_outline', 'material_search', 'material_read'}
-    assert expand_sources(token)[1] == []  # 承载性原有小资料内联行为不变
-
-
-def test_es_disabled_cli_ignores_invalid_url_even_when_env_enables(tmp_path):
-    from impl.core.config import resolve_runtime_config
-    dotenv = tmp_path / '.env'
-    dotenv.write_text('EVAL_AXES_ES_ENABLED=true\nEVAL_AXES_ES_URL=invalid\n')
-    config = resolve_runtime_config(dotenv_path=dotenv, environ={}, cli_overrides={'eval_axes.es.enabled': False, 'eval_axes.es.base_url': 'invalid'})
-    assert not config.eval_axes.es.enabled and config.eval_axes.es.base_url == ''
-
-
-def test_es_loading_rejects_enabled_but_unconfigured_source(monkeypatch):
-    from dataclasses import replace
-    from impl.core.config import get_runtime_config
-    config = get_runtime_config()
-    invalid = replace(config, eval_axes=replace(config.eval_axes, es=replace(config.eval_axes.es, enabled=True, base_url='')))
-    monkeypatch.setattr('impl.projects.llm_probe.eval_axes.sources.get_runtime_config', lambda: invalid)
-    monkeypatch.setattr('impl.projects.llm_probe.eval_axes.sources.es_client.get_runtime_config', lambda: invalid)
-    report = validate_scenario_axes([ScenarioAxis('truthfulness', True, '{es://kb_policy}')])
-    assert any('base_url' in error for error in report.errors)
+    assert set(results[2].inputs_used) == {'trace', 'truth'}
+    assert set(results[3].inputs_used) == {'fulfillment'}
 
 
 def test_request_failed_payload_raises_instead_of_masquerading_as_format_error() -> None:
@@ -1365,3 +1389,112 @@ def test_runner_marks_request_failure_failed_with_llm_error_usage(monkeypatch) -
     assert "401" in result.usage["llm_error_text"]
     assert result.error.startswith("[运行环境] 模型请求失败 llm_request_failed")
     assert "HTTP 401" in result.error
+
+
+# ---------------------------------------------------------------- 被测系统调用失败
+def _http_failed_trace() -> RunTrace:
+    from impl.core.live import fallback_decision
+    from impl.core.live_protocol import LIVE_HTTP_ERROR
+    trace = _trace()
+    trace.extracted_output = {}
+    trace.fallbacks = [fallback_decision(
+        fallback_id="live-error-llm_probe", source_stage="live", fallback_type="live_error", status="error",
+        reason='HTTP 400: {"code":"Arrearage"}', missing_evidence=["valid_live_response"], recoverable=False,
+        needs_human_review=True, quality_flags=[LIVE_HTTP_ERROR], metadata={"failure_type": LIVE_HTTP_ERROR})]
+    return trace
+
+
+def test_business_http_failure_is_not_fulfilled_without_llm_and_others_not_applicable(monkeypatch) -> None:
+    created = _install_fake_llm(monkeypatch)
+    axes = [*_knowledge_axes("核验条款。知识源：{es://local-es/clause_kb} 条款原文。"), *_axes()]
+    results = _by_id(run_axes(load_project("llm_probe"), _http_failed_trace(), axes, scenario_id="client_search"))
+    assert created == []
+    assert results["fulfillment"].status == "succeeded"
+    assert results["fulfillment"].verdict == "not_fulfilled"
+    assert "Arrearage" in json.dumps(results["fulfillment"].summary, ensure_ascii=False)
+    assert results["fulfillment"].output["evidence"] == ["business_call_failed"]
+    assert results["knowledge_evidence"].status == "not_applicable"
+    assert results["truthfulness"].status == "not_applicable"
+    assert "被测系统调用失败" in results["truthfulness"].summary["text"]
+    assert results["carryability"].status == "not_applicable"
+
+
+def test_pipeline_judge_and_attribute_short_circuit_on_business_http_failure(monkeypatch) -> None:
+    from impl.core import pipeline
+    monkeypatch.setattr(pipeline, "load_project", lambda _pid: (_ for _ in ()).throw(AssertionError("不应进入项目判定")))
+    trace = _http_failed_trace()
+    result = pipeline.judge("llm_probe", trace)
+    assert result.overall_fulfillment["status"] == "not_fulfilled"
+    assert result.evidence == ["business_call_failed"]
+    assert "HTTP 400" in result.reasoning_summary and "Arrearage" in result.summary["reason"]
+    # 展示状态单列 fail：一眼区别于"答得不好"的 not_fulfilled；结果表规范化后仍是 fail。
+    assert result.summary["fulfillment_status"] == "fail" and result.summary["reason"].startswith("fail · 被测系统报错：HTTP 400")
+    from impl.core.schema import normalize_trace_table_row
+    assert normalize_trace_table_row({"trace_id": "t", "fulfillment_status": "fail"}).fulfillment_status == "fail"
+    assert normalize_trace_table_row({"trace_id": "t", "fulfillment_status": "weird"}).fulfillment_status == "not_evaluable"
+    monkeypatch.undo()
+    attribution = pipeline.attribute("llm_probe", trace, result)
+    assert attribution.summary["attribution_status"] == "skipped"
+    assert "被测系统调用失败" in attribution.unresolved_reason
+
+
+# ---------------------------------------------------------------- 知识源登记的增删与 MCP 回读
+def test_knowledge_source_save_delete_share_data_root_with_presets(monkeypatch, tmp_path):
+    from impl.core import capability_store
+    from impl.projects.llm_probe.eval_axes import sources
+    from impl.projects.llm_probe.eval_axes.sources import registry
+    monkeypatch.setattr(capability_store, 'store_path', lambda project: tmp_path / project / 'capability_map.json')
+    assert registry.registry_path() == tmp_path / 'llm_probe' / 'knowledge_sources.json'
+    with pytest.raises(ValueError, match='无凭据'):
+        sources.save_source('biz-a', {'type': 'es', 'url': 'http://u@x'})
+    with pytest.raises(ValueError, match='type 必须是'):
+        sources.save_source('biz-a', {'type': 'mysql'})
+    # 凭据变量可以晚于登记设置：保存只校写法。
+    sources.save_source('biz-a', {'type': 'es', 'url': 'http://x:9200', 'api_key': '${BIZ_A_UNSET_KEY}'})
+    sources.save_source('biz-m', {'type': 'mcp', 'command': '/bin/python', 'args': ['-m', 'x'], 'env': {'K': 'v'}, 'tools': ['qa']})
+    presets = tmp_path / 'llm_probe' / 'capability_map.json'
+    presets.write_text(json.dumps({'preset-a': capability_store.validate_entry('preset-a', {
+        'capability': '回答问题', 'axes': [{'type': 'truthfulness', 'enabled': True, 'description': '核验 {es://biz-a/kb} 与 {mcp://biz-m}'}]})}, ensure_ascii=False))
+    for name in ('biz-a', 'biz-m'):
+        with pytest.raises(ValueError, match='preset-a'):
+            sources.delete_source(name)
+    presets.write_text('{}')
+    assert sources.delete_source('biz-a')['sources'] == {'biz-m': {'type': 'mcp', 'command': '/bin/python', 'args': ['-m', 'x'], 'env': {'K': 'v'}, 'tools': ['qa']}}
+
+
+def test_mcp_refs_format():
+    from impl.core.capability_store import validate_mcp_refs
+    assert validate_mcp_refs('看 {mcp://insurance-tools} 和 {mcp://insurance-tools}') == ['insurance-tools']
+    for bad in ('{mcp://}', '{mcp://A}', '{mcp://a/b}', '{mcp://a'):
+        with pytest.raises(ValueError, match='MCP 引用'):
+            validate_mcp_refs(bad)
+
+
+def test_mcp_source_exposes_only_allowlisted_read_tools(monkeypatch):
+    from impl.projects.llm_probe.eval_axes.sources import mcp_tools
+    from impl.projects.llm_probe.eval_axes.sources.registry import parse_mcp
+
+    with pytest.raises(ValueError, match='tools'):
+        parse_mcp('biz', {'type': 'mcp', 'command': '/bin/python'})
+    source = parse_mcp('biz', {'type': 'mcp', 'command': '/bin/python', 'tools': ['general_qa']})
+    # 入参没写说明的 MCP 也要能接：评测侧补占位，不要求业务方改 schema。
+    offered = [{'name': name, 'description': name, 'schema': {'type': 'object', 'properties': {'query': {'type': 'string'}}}}
+               for name in ('general_qa', 'customer_detail')]
+    monkeypatch.setattr(mcp_tools, 'load_mcp_source', lambda name: source)
+    monkeypatch.setattr(mcp_tools, 'list_tools', lambda src: offered)
+    names = [fn.name for fn in mcp_tools.build_mcp_tools([{'source': 'mcp', 'uri': 'mcp://biz'}], [])]
+    assert names == ['biz__general_qa', 'mcp_read']
+    missing = parse_mcp('biz', {'type': 'mcp', 'command': '/bin/python', 'tools': ['nope']})
+    monkeypatch.setattr(mcp_tools, 'load_mcp_source', lambda name: missing)
+    with pytest.raises(ValueError, match='不在服务提供的工具里'):
+        mcp_tools.build_mcp_tools([{'source': 'mcp', 'uri': 'mcp://biz'}], [])
+
+
+def test_extraction_verbatim_ignores_markdown_emphasis_and_spacing():
+    """回答常带 **加粗**、数字两侧空格：格式符不是内容，摘句去掉它们仍算逐字；改了字就不算。"""
+    from impl.projects.llm_probe.knowledge_loop.extract import parse_claims
+    answer = '收到资料后，应在**5个工作日内**作出回复；中止后 **2 年内**可申请复效。'
+    got = parse_claims({'claims': [{'claim_id': 'a', 'text': '应在5个工作日内'}, {'claim_id': 'b', 'text': '2年内', 'context': ['中止后']}]}, answer)
+    assert [c['text'] for c in got] == ['应在5个工作日内', '2年内']
+    with pytest.raises(ValueError, match='逐字连续原文'):
+        parse_claims({'claims': [{'claim_id': 'a', 'text': '应在7个工作日内'}]}, answer)

@@ -69,6 +69,19 @@ class BusinessTraceCheckRequest(ApiRequest):
     business_trace: Optional[Dict[str, Any]] = None
 
 
+class KnowledgeSourcesRequest(ProjectRequest):
+    pass
+
+
+class KnowledgeSourceSaveRequest(ApiRequest):
+    name: Optional[str] = None
+    entry: Optional[Dict[str, Any]] = None
+
+
+class KnowledgeSourceNameRequest(ApiRequest):
+    name: Optional[str] = None
+
+
 class MaterialsListRequest(ProjectRequest):
     pass
 

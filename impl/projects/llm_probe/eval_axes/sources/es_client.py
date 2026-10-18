@@ -1,31 +1,23 @@
-"""只读 ES REST 客户端；配置来自公共 resolver，零第三方 HTTP 依赖。"""
+"""只读 ES REST 客户端；连接取自知识源登记（registry），零第三方 HTTP 依赖。"""
 from __future__ import annotations
 
 import base64
 import json
+import re
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote, urlsplit
+from urllib.parse import quote
 from urllib.request import Request, urlopen
 
-from impl.core.config import get_runtime_config
-from impl.core.capability_store import validate_es_refs
+from .registry import load_es_source
+
+INDEX_NAME = r"[a-z0-9][a-z0-9_.-]*"
 
 
 class EsClient:
-    def __init__(self):
-        self.config = get_runtime_config().eval_axes.es
-        if not self.config.enabled:
-            raise ValueError("ES 数据源未启用")
-        url = urlsplit(self.config.base_url)
-        if url.scheme not in ('http', 'https') or not url.netloc or url.query or url.fragment or url.username:
-            raise ValueError("eval_axes.es.base_url 必须是无凭据的 HTTP(S) 地址")
-        if self.config.api_key and self.config.basic_auth:
-            raise ValueError("ES ApiKey 与 Basic Auth 不能同时配置")
-        if self.config.basic_auth and ':' not in self.config.basic_auth:
-            raise ValueError("ES Basic Auth 必须是 user:pass")
+    def __init__(self, source_name):
+        self.config = load_es_source(source_name)
 
-    def _request(self, index, suffix, body=None):
-        validate_es_refs('{es://' + index + '}')
+    def _send(self, path, label, body=None):
         headers = {'Accept': 'application/json'}
         if self.config.api_key:
             headers['Authorization'] = 'ApiKey ' + self.config.api_key
@@ -35,17 +27,29 @@ class EsClient:
         if body is not None:
             data = json.dumps(body).encode()
             headers['Content-Type'] = 'application/json'
-        request = Request(self.config.base_url.rstrip('/') + '/' + quote(index, safe='') + '/' + suffix,
-                          data=data, headers=headers, method='POST' if body is not None else 'GET')
+        request = Request(self.config.base_url.rstrip('/') + path, data=data, headers=headers,
+                          method='POST' if body is not None else 'GET')
         try:
             with urlopen(request, timeout=self.config.timeout_seconds) as response:
-                result = json.load(response)
+                return json.load(response)
         except HTTPError as exc:
-            raise ValueError(f'ES {index}/{suffix}: HTTP {exc.code}') from None
+            raise ValueError(f'ES {label}: HTTP {exc.code}') from None
         except (URLError, TimeoutError, OSError, ValueError) as exc:
-            raise ValueError(f'ES {index}/{suffix}: 请求失败 ({type(exc).__name__})') from None
+            raise ValueError(f'ES {label}: 请求失败 ({type(exc).__name__})') from None
+
+    def indices(self):
+        """登记页「测试连接」用：列出可引用的索引（跳过 . 开头的系统索引）。"""
+        rows = self._send('/_cat/indices?format=json&h=index', f'{self.config.name}/_cat/indices')
+        if not isinstance(rows, list):
+            raise ValueError(f'ES {self.config.name}/_cat/indices: 响应不是列表')
+        return sorted(r['index'] for r in rows if isinstance(r, dict) and not str(r.get('index', '.')).startswith('.'))
+
+    def _request(self, index, suffix, body=None):
+        if not re.fullmatch(INDEX_NAME, index):
+            raise ValueError('ES 索引名须为小写字母、数字、_、.、-')
+        result = self._send('/' + quote(index, safe='') + '/' + suffix, f'{self.config.name}/{index}/{suffix}', body)
         if not isinstance(result, dict) or result.get('error') or result.get('timed_out') or result.get('_shards', {}).get('failed', 0):
-            raise ValueError(f'ES {index}/{suffix}: 响应失败或不完整')
+            raise ValueError(f'ES {self.config.name}/{index}/{suffix}: 响应失败或不完整')
         return result
 
     def mapping(self, index):

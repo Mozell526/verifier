@@ -33,6 +33,9 @@ from .models import (
     BatchStartRequest,
     BatchStatusRequest,
     BusinessTraceCheckRequest,
+    KnowledgeSourceNameRequest,
+    KnowledgeSourceSaveRequest,
+    KnowledgeSourcesRequest,
     BusinessTraceProvidersRequest,
     CapabilityDeleteRequest,
     CapabilityListRequest,
@@ -232,6 +235,26 @@ def business_trace_providers(payload: BusinessTraceProvidersRequest) -> JSONResp
 @router.post("/api/business_trace/check")
 def business_trace_check(payload: BusinessTraceCheckRequest) -> JSONResponse:
     return route(service.business_trace_check, payload)
+
+
+@router.post("/api/knowledge_sources")
+def knowledge_sources(payload: KnowledgeSourcesRequest) -> JSONResponse:
+    return route(service.knowledge_sources, payload)
+
+
+@router.post("/api/knowledge_source/save")
+def knowledge_source_save(payload: KnowledgeSourceSaveRequest) -> JSONResponse:
+    return route(service.knowledge_source_save, payload)
+
+
+@router.post("/api/knowledge_source/delete")
+def knowledge_source_delete(payload: KnowledgeSourceNameRequest) -> JSONResponse:
+    return route(service.knowledge_source_delete, payload)
+
+
+@router.post("/api/knowledge_source/check")
+def knowledge_source_check(payload: KnowledgeSourceNameRequest) -> JSONResponse:
+    return route(service.knowledge_source_check, payload)
 
 
 @router.post("/api/judge")

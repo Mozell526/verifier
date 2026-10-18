@@ -221,13 +221,17 @@ class AxisSummary:
 
 @dataclass
 class RunOutcome:
-    """run() 的返回：方法专属 output + 解释 + 是否没跑成 + 实际消耗。"""
+    """run() 的返回：方法专属 output + 解释 + 是否没跑成 + 实际消耗。
+
+    not_applicable 非空：本样本没有该轴要评的对象（如被测系统没给答复），落 not_applicable，
+    不是评测器失败，output 不校验。"""
 
     output: dict[str, Any]
     summary: Optional[AxisSummary] = None
     failed: bool = False
     failure_reason: str = ""
     usage: dict[str, Any] = field(default_factory=dict)
+    not_applicable: str = ""
 
 
 RunFn = Callable[[Mapping[str, Any], ScenarioAxis, AxisRuntime], RunOutcome]
@@ -255,6 +259,8 @@ class AxisType:
     item_path: str = ""
     # 参与 implementation_fingerprint 的源码文件（相对仓库根）
     implementation_files: tuple[str, ...] = ()
+    # 需要知识依据的轴：(trace, runtime, usage) -> 待查项列表，交知识查证轴一起查（spec/alg/knowledge-evidence.md §3）
+    knowledge_items: Optional[Callable[[Any, Any, dict], list]] = None
 
     def __post_init__(self) -> None:
         if not TYPE_ID_PATTERN.fullmatch(self.type_id):

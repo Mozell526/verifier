@@ -10,7 +10,7 @@
   </style>
 </head>
 <body>
-<header><h1>资料管理</h1><p>可编辑：槽位 / 自由资料（内容哈希封口，手改派生资料会标记）· 只读：调查产物（机器对业务系统的调查，证据可逐份点开）· 系统资产（verifier 怎么评，折叠在底部）。</p></header>
+<header><h1>资料管理</h1><p>可编辑：槽位 / 自由资料（内容哈希封口，手改派生资料会标记）· 知识源（各业务系统的 ES / MCP 连接）· capability 预设（场景与扩展轴）· 只读：调查产物（机器对业务系统的调查，证据可逐份点开）· 系统资产（verifier 怎么评，折叠在底部）。</p></header>
 <main>
   <section class="panel">
     <label>Project</label>
@@ -94,6 +94,24 @@
       </div>
     </div>
 
+    <!-- 知识源登记（llm_probe）：各业务系统各自的 ES / MCP 连接，场景描述用 {es://名/索引} / {mcp://名} 引用 -->
+    <div class="card" id="ksEditor" style="display:none">
+      <h2 id="ksTitle">新建知识源</h2>
+      <div class="hint">每个业务系统登记自己的知识源连接，扩展轴描述里引用它。凭据写 <code>${ENV_NAME}</code>（值放 .env，变量需在 project.yaml 登记），不要直接写进配置。</div>
+      <label>知识源名（小写字母或数字开头，可含 _ / -）</label>
+      <input id="ksName" placeholder="如 biz-a-es" />
+      <label>类型</label>
+      <select id="ksType" onchange="fillKsTemplate()"><option value="es">es（Elasticsearch）</option><option value="mcp">mcp（业务系统 MCP 服务，stdio）</option></select>
+      <label>配置（JSON，不含 type）</label>
+      <textarea id="ksConfig" style="min-height:200px"></textarea>
+      <div class="row">
+        <button onclick="saveKs()">保存</button>
+        <button class="secondary" onclick="checkKs()">测试连接</button>
+        <button class="danger" id="ksDeleteBtn" onclick="deleteKs()" style="display:none">删除该知识源</button>
+      </div>
+      <div id="ksCheck" class="hint" style="margin-top:10px"></div>
+    </div>
+
     <!-- 只读查看器：调查产物 / 系统资产 -->
     <div class="card" id="assetViewer" style="display:none">
       <h2 id="avTitle">资产</h2>
@@ -130,6 +148,7 @@ function show(mode){
   document.getElementById('matEditor').style.display=(mode==='mat')?'block':'none';
   document.getElementById('capEditor').style.display=(mode==='cap')?'block':'none';
   document.getElementById('assetViewer').style.display=(mode==='asset')?'block':'none';
+  document.getElementById('ksEditor').style.display=(mode==='ks')?'block':'none';
   document.getElementById('placeholder').style.display=mode?'none':'block';
 }
 function sectionByKind(kind){return (overview.sections||[]).find(s=>s.kind===kind)}
@@ -160,6 +179,7 @@ async function loadAll(){
     document.getElementById('sections').innerHTML='<div class="empty">加载失败：'+escapeHtml(err.message)+'</div>';
     return;
   }
+  await loadKnowledgeSources();
   renderSections();
   refreshRefPicker();
   await Promise.all([loadAxisTypes(),loadBusinessTraceProviders()]);
@@ -172,11 +192,22 @@ function provenanceLabel(prov){
   return text;
 }
 const SECTION_ORDER={slots:0,free:1,capability_map:2,investigation:3,system_assets:4};
+function knowledgeSourceSection(){
+  // 预设的扩展轴引用这里登记的知识源，放在预设前面：先登记、再引用。
+  if(!knowledgeSources){return '';}
+  const names=Object.keys(knowledgeSources).sort();
+  return '<h3 class="sec">知识源（各业务系统）</h3><button class="small" onclick="newKs()">新建知识源</button>'+(names.length?names.map(name=>{
+    const entry=knowledgeSources[name]||{};
+    const active=(selected&&selected.type==='ks'&&selected.key===name)?' active':'';
+    return '<div class="entry'+active+'" onclick="selectKs(\''+escapeHtml(name)+'\')"><b>'+escapeHtml(name)+'</b><span class="badge">'+escapeHtml(entry.type||'?')+'</span><div class="preview">'+escapeHtml(entry.description||entry.url||entry.command||'')+'</div></div>';
+  }).join(''):'<div class="empty">还没有登记知识源。</div>');
+}
 function renderSections(){
   const parts=[];
   const ordered=[...(overview.sections||[])].sort((a,b)=>(SECTION_ORDER[a.kind]??9)-(SECTION_ORDER[b.kind]??9));
   for(const section of ordered){
     const ro=section.editable?'':' <span class="ro">只读</span>';
+    if(section.kind==='capability_map'){parts.push(knowledgeSourceSection());}
     if(section.kind!=='system_assets'){
       parts.push('<h3 class="sec">'+escapeHtml(section.title)+ro+'</h3>');
     }
@@ -437,6 +468,77 @@ async function openAssetFile(scope, path){
   }
 }
 
+/* ---------- 知识源登记（llm_probe） ---------- */
+let knowledgeSources=null;   // null = 本项目没有知识源登记（非 llm_probe），整节隐藏
+let ksIndices={};            // 测试连接拿到的 ES 索引，供「插入资料引用」列出真实引用
+const KS_TEMPLATES={
+  es:{description:'',url:'http://127.0.0.1:9200',api_key:'${BIZ_ES_API_KEY}'},
+  mcp:{description:'',command:'/abs/path/to/.venv/bin/python',args:['-m','your_mcp'],env:{},tools:['只读工具名（测试连接可列出全部）']},
+};
+async function loadKnowledgeSources(){
+  try{knowledgeSources=(await post('/api/knowledge_sources',{project:project()})).sources||{};}catch(_err){knowledgeSources=null;}
+  // ES 引用要带索引：后台把各 ES 的索引拉一遍，下拉里直接列真实引用；连不上的保留 <索引名> 模板，不挡页面加载。
+  for(const [name,entry] of Object.entries(knowledgeSources||{})){
+    if(entry.type!=='es'||ksIndices[name]){continue;}
+    post('/api/knowledge_source/check',{project:project(),name:name})
+      .then(data=>{ksIndices[name]=data.items;refreshRefPicker();})
+      .catch(()=>{});
+  }
+}
+function ksConfigOf(entry){const {type,...rest}=entry||{};return JSON.stringify(rest,null,2);}
+function fillKsTemplate(){
+  if(selected&&selected.type==='ks'&&selected.key){return;}
+  document.getElementById('ksConfig').value=JSON.stringify(KS_TEMPLATES[document.getElementById('ksType').value],null,2);
+}
+function newKs(){
+  selected={type:'ks',key:null};renderSections();show('ks');
+  document.getElementById('ksTitle').textContent='新建知识源';
+  document.getElementById('ksName').value='';document.getElementById('ksName').disabled=false;
+  document.getElementById('ksType').value='es';document.getElementById('ksType').disabled=false;
+  document.getElementById('ksDeleteBtn').style.display='none';
+  document.getElementById('ksCheck').textContent='';
+  fillKsTemplate();
+}
+function selectKs(name){
+  const entry=(knowledgeSources||{})[name]||{};
+  selected={type:'ks',key:name};renderSections();show('ks');
+  document.getElementById('ksTitle').textContent='知识源：'+name;
+  document.getElementById('ksName').value=name;document.getElementById('ksName').disabled=true;
+  document.getElementById('ksType').value=entry.type||'es';document.getElementById('ksType').disabled=true;
+  document.getElementById('ksConfig').value=ksConfigOf(entry);
+  document.getElementById('ksDeleteBtn').style.display='inline-block';
+  document.getElementById('ksCheck').textContent='';
+}
+async function saveKs(){
+  const name=document.getElementById('ksName').value.trim();
+  let config;
+  try{config=JSON.parse(document.getElementById('ksConfig').value||'{}');}catch(err){setStatus('配置不是合法 JSON：'+err.message,true);return;}
+  try{
+    const data=await post('/api/knowledge_source/save',{project:project(),name:name,entry:{type:document.getElementById('ksType').value,...config}});
+    knowledgeSources=data.sources||{};setStatus('已保存知识源 '+name);selectKs(name);refreshRefPicker();
+  }catch(err){setStatus('保存失败：'+err.message,true);}
+}
+async function deleteKs(){
+  const name=selected&&selected.key;
+  if(!name||!confirm('删除知识源 '+name+'？')){return;}
+  try{
+    const data=await post('/api/knowledge_source/delete',{project:project(),name:name});
+    knowledgeSources=data.sources||{};delete ksIndices[name];selected=null;renderSections();show(null);refreshRefPicker();setStatus('已删除知识源 '+name);
+  }catch(err){setStatus('删除失败：'+err.message,true);}
+}
+async function checkKs(){
+  const name=document.getElementById('ksName').value.trim();
+  const el=document.getElementById('ksCheck');
+  if(!(knowledgeSources||{})[name]){el.textContent='先保存再测试连接。';return;}
+  el.textContent='连接中…';
+  try{
+    const data=await post('/api/knowledge_source/check',{project:project(),name:name});
+    if(data.type==='es'){ksIndices[name]=data.items;refreshRefPicker();}
+    el.innerHTML='<b>连接正常</b>：'+(data.type==='es'?'可引用索引 ':'工具 ')+data.items.length+' 个<br>'+escapeHtml(data.items.join('、'))
+      +'<br>引用写法（复制到扩展轴描述，或在预设里用「插入资料引用」）：<br><code>'+data.refs.map(escapeHtml).join('</code><br><code>')+'</code>';
+  }catch(err){el.innerHTML='<span style="color:#dc2626">连接失败：'+escapeHtml(err.message)+'</span>';}
+}
+
 /* ---------- capability 预设（仅声明了 capability_map 的项目） ---------- */
 const REF_TOKEN_RE=/\{material:\/\/[A-Za-z][A-Za-z0-9_-]*\/[a-z][a-z0-9_-]*\}/g;
 const URI_LOOSE_RE=/material:\/\/[^\s，。；）\]\}\>"'`]+/g;
@@ -444,7 +546,8 @@ let lastCapFocus='capability';
 let refOptions=[];
 function toRefToken(uri){return '{'+uri+'}';}
 function collectReferences(){
-  if(overview.references&&overview.references.length){return overview.references;}
+  // 资料引用（后端总览给了就用后端的）+ 知识源引用，两类都进「插入资料引用」下拉。
+  if(overview.references&&overview.references.length){return overview.references.concat(knowledgeRefs());}
   const refs=[];
   for(const m of ((sectionByKind('free')||{}).items)||[]){
     refs.push({uri:'material://'+project()+'/'+m.id,id:m.id,title:m.title||m.id,kind:'free'});
@@ -453,6 +556,16 @@ function collectReferences(){
     if(slot.status==='filled'){
       refs.push({uri:'material://'+project()+'/'+slot.slot_id,id:slot.slot_id,title:slot.title||slot.slot_id,kind:'slot'});
     }
+  }
+  return refs.concat(knowledgeRefs());
+}
+function knowledgeRefs(){
+  // ES 引用要带索引：点过「测试连接」的列出真实索引，没点过的给模板，替换 <索引名>。
+  const refs=[];
+  for(const [name,entry] of Object.entries(knowledgeSources||{})){
+    if(entry.type==='mcp'){refs.push({uri:'mcp://'+name,id:name,title:'MCP 知识源',kind:'ks'});continue;}
+    const indices=ksIndices[name]||['<索引名>'];
+    for(const index of indices){refs.push({uri:'es://'+name+'/'+index,id:name+'/'+index,title:'ES 知识源',kind:'ks'});}
   }
   return refs;
 }
@@ -491,8 +604,9 @@ function insertRef(){
   const token=select.value;
   if(!token){setStatus('先选一条资料。', true);return;}
   const ta=document.getElementById(lastCapFocus)||document.getElementById('capability');
-  const start=ta.selectionStart||ta.value.length;
-  const end=ta.selectionEnd||start;
+  // 光标在开头时 selectionStart=0，不能当成"没有光标"。
+  const start=ta.selectionStart??ta.value.length;
+  const end=ta.selectionEnd??start;
   ta.value=ta.value.slice(0,start)+token+ta.value.slice(end);
   const cursor=start+token.length;
   ta.focus();ta.setSelectionRange(cursor,cursor);
@@ -606,7 +720,7 @@ function renderAxisBoxes(){
       '</div>'+
       '<div class="hint" style="margin:6px 0">'+escapeHtml(t?t.summary:'未知类型（未注册）')+'</div>'+
       (axisDescriptionField(box.type)
-        ?'<textarea id="axisDesc-'+i+'" class="uri-textarea" style="min-height:110px" placeholder="本场景下这个轴按什么口径评；可写 {material://项目/资料id}" oninput="syncAxisBoxesFromDom();validateRefs()">'+escapeHtml(box.description||'')+'</textarea>'
+        ?'<textarea id="axisDesc-'+i+'" class="uri-textarea" style="min-height:110px" placeholder="本场景下这个轴按什么口径评；可写 {material://项目/资料id}、{es://知识源名/索引}、{mcp://知识源名}" oninput="syncAxisBoxesFromDom();validateRefs()">'+escapeHtml(box.description||'')+'</textarea>'
         :'<div class="hint">本轴按统一协议与需求轴定格期望判定，不读场景描述。</div>')+
       '<div class="hint" style="margin-top:6px">'+escapeHtml(axisTypeInfo(t))+'</div>'+
     '</div>';

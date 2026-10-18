@@ -1,0 +1,32 @@
+{
+  "insurance-tools": {
+    "type": "mcp",
+    "description": "insurance-qa-agent 的 7 个只读查询工具（llmtracing integrations/insurance-tools-mcp），dev 后端；身份为授权测试工号 1050900009",
+    "command": "/Users/xiaozijian/WorkSpace/package/insurance_qa_agent/insurance-tools-mcp/.venv/bin/python",
+    "args": [
+      "-m",
+      "itools"
+    ],
+    "env": {
+      "ENV_TYPE": "dev",
+      "ITOOLS_AGENT_ID": "pi",
+      "ITOOLS_USER_ID": "1050900009",
+      "ITOOLS_EMPNO": "1050900009",
+      "ITOOLS_AGENTNO": "1050900009"
+    },
+    "tools": [
+      "product_knowledge",
+      "benefit_info",
+      "general_qa",
+      "policy_search",
+      "customer_search",
+      "policy_detail",
+      "customer_detail"
+    ]
+  },
+  "local-es": {
+    "type": "es",
+    "description": "本机测试 ES（docker.elastic.co 7.17.4，无鉴权）：clause_kb 条款测试库、hr_handbook 员工手册",
+    "url": "http://127.0.0.1:9200"
+  }
+}

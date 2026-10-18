@@ -22,16 +22,16 @@
 
 ### 1.1 引用与解析
 
-场景框的描述里写 `{es://<index>}`（可带多个）。解析规则与 `{material://}` 同一套：
+场景框的描述里写 `{es://<知识源名>/<index>}`（可带多个）。各业务系统的 ES 各自独立，知识源名指向 §1.4 登记的连接。解析规则与 `{material://}` 同一套：
 
-- 保存时（`capability_store.validate_entry`）校格式：`es://` 后是合法索引名（`^[a-z0-9][a-z0-9_.-]*$`）；**不连 ES**，保存不依赖服务在线。
-- 加载时（`eval_axes/validate.py`）：ES 数据源未配置却引用了 `{es://}` → 报错，跑之前拦。
+- 保存时（`capability_store.validate_entry`）校格式：`es://` 后是 `<知识源名>/<索引名>`（`^[a-z0-9][a-z0-9_-]*/[a-z0-9][a-z0-9_.-]*$`）；**不连 ES**，保存不依赖服务在线。
+- 加载时（`eval_axes/validate.py`）：引用的知识源未登记、或登记配置不合法（地址、凭据变量未设置等）→ 报错，跑之前拦。
 - 运行时：`{es://}` 不内联正文（ES 是活数据、无边界），一律转目录条目 + 工具，和 `{material://}` 超预算时的路径一致。目录条目形状：
 
 ```yaml
 source: es
-uri: es://kb_policy
-title: kb_policy            # 索引名
+uri: es://biz-a/kb_policy
+title: biz-a/kb_policy      # 知识源名/索引名，工具的 index 参数就填它
 description: <框描述里紧跟引用的一句话，可空>
 doc_count: 12873            # 加载时 _count 取一次
 snapshot_id: <index_uuid>@<查询时刻 ISO>   # ES 没有内容封口，只能记时刻
@@ -51,31 +51,45 @@ snapshot_id: <index_uuid>@<查询时刻 ISO>   # ES 没有内容封口，只能�
 
 ### 1.3 引用核验
 
-`citations[].source = es://<index>`，`ref = <_id>#<field>`，`note = 逐字引句`。核验 = `es_read` 回读该字段，`quote_in_text` 检查。回读失败（文档被删/字段不存在）→ 核验失败 → 打回重试，与文件资料同一节奏。
+`citations[].source = es://<知识源名>/<index>`，`ref = <_id>#<field>`，`note = 逐字引句`。核验 = `es_read` 回读该字段，`quote_in_text` 检查。回读失败（文档被删/字段不存在）→ 核验失败 → 打回重试，与文件资料同一节奏。
 
-### 1.4 配置
+### 1.4 配置：按业务系统登记知识源
 
-`config.yaml` 新增节（可缺省）与注册变量：
+（2026-10-13 改：原为 `config.yaml` 的 `eval_axes.es` 单节 + 4 个 `EVAL_AXES_ES_*` 变量，一个部署只能连一个 ES；多业务系统各有独立 ES，已删除，不留兼容。）
 
-```yaml
-eval_axes:
-  model_policy: any
-  es:
-    enabled: false
-    base_url: ""
-    timeout_seconds: 15
-    max_hits: 8
-    max_field_chars: 6000
+登记文件 `knowledge_sources.json`，与 `capability_map.json` 同一数据根（仓库 `impl/data/llm_probe/` 或实例数据目录），由资料管理页「知识源（各业务系统）」分区增删改、测试连接；被预设引用的知识源不能删。按名字登记：
+
+```json
+{
+  "biz-a": {"type": "es", "url": "http://es-a:9200", "api_key": "${BIZ_A_ES_API_KEY}"},
+  "biz-b": {"type": "es", "url": "https://es-b:9200", "basic_auth": "${BIZ_B_ES_AUTH}", "max_hits": 5}
+}
 ```
 
-| 变量 | 绑定 | 必填 |
+| 字段 | 必填 | 说明 |
 |---|---|---|
-| `EVAL_AXES_ES_ENABLED` | `eval_axes.es.enabled` | 否 |
-| `EVAL_AXES_ES_URL` | `eval_axes.es.base_url` | `required_when: eval_axes.es.enabled == true` |
-| `EVAL_AXES_ES_API_KEY` | `eval_axes.es.api_key`（secret） | 否；有则走 `Authorization: ApiKey` |
-| `EVAL_AXES_ES_BASIC_AUTH` | `eval_axes.es.basic_auth`（secret，`user:pass`） | 否 |
+| `type` | 是 | 目前只有 `es` |
+| `url` | 是 | 无凭据的 HTTP(S) 地址 |
+| `api_key` / `basic_auth` | 否，二选一 | 写 `${VAR}`，值取 .env + 进程环境（进程覆盖 .env）；变量须在 `project.yaml` 的 environment 里登记 |
+| `timeout_seconds` / `max_hits` / `max_field_chars` | 否 | 缺省 15 / 8 / 6000 |
+| `description` | 否 | 给人看的说明 |
 
-`enabled=false` 时：不读任何 ES 变量、不校验、`{es://}` 引用在加载期报"ES 数据源未启用"。这是"没启用就不用装、不用配"的落点。
+凭据写法与被测服务请求头的 `${VAR}` 同一套。读登记不连 ES。
+
+### 1.4.1 MCP 知识源（2026-10-14 加）
+
+业务系统把查询接口做成 MCP 服务时，登记 `type: mcp`（与 `.mcp.json` 的 `mcpServers` 条目同形，只支持 stdio）：
+
+```json
+{"insurance-tools": {"type": "mcp", "command": "/abs/.venv/bin/python", "args": ["-m", "itools"], "env": {"ENV_TYPE": "dev", "ITOOLS_AGENT_ID": "${ITOOLS_AGENT_ID}"}}}
+```
+
+场景描述写 `{mcp://<知识源名>}`。运行时：
+- 工具名、说明、入参 schema 全部取自 MCP `tools/list`，对模型暴露为 `<知识源名>__<工具名>`（非字母数字换成 `_`）；另加 `mcp_read(call_id, start)` 翻页。客户端用 fastmcp 2.2.0（不升级现有依赖能装的最高版本），每次调用拉起一次进程、用完即关。
+- 每次调用产生 `call_id = mcp://<知识源>#<序号>`，完整返回原文进回执；引用 `source=mcp://<知识源>`、`ref=call_id`、`note=逐字引句`，回读只核对本轮回执里的原文（返回体是 JSON 时也比对解出的字符串字段）。
+- MCP 是业务自己的检索：它没查到不等于知识库没有；评测侧借它查，会继承它的检索缺陷。
+
+真实性轴通用约束（同日加）：有知识源时判 `unverifiable` 前至少调用一次知识源工具，否则打回重做——"没查就说查不到"不收。
 
 ### 1.5 实现位置
 
@@ -83,7 +97,9 @@ eval_axes:
 impl/projects/llm_probe/eval_axes/
   sources/
     __init__.py       # 目录条目 → 工具集 的分发：source=material 走现有 material_tools，source=es 走 es_tools
-    es_client.py      # stdlib urllib：get_doc / search / mapping / count；错误映射；超时
+    registry.py       # 知识源登记：knowledge_sources.json（与 capability_map.json 同数据根）按名字取连接，展开 ${VAR} 凭据；增删由资料管理页「知识源」分区维护
+    mcp_tools.py      # MCP 知识源：tools/list 原样转工具、调用原文进回执、按 call_id 回读核验
+    es_client.py      # stdlib urllib：get_doc / search / mapping / count；错误映射；超时；一个知识源一个客户端
     es_tools.py       # es_outline / es_search / es_read + verify_quote，VerifiableTool 形状
 ```
 
@@ -204,13 +220,16 @@ inputs=(
 `build_context` 里：`inputs.get("truth")` 有值时，`user_prompt_extras["truthfulness"] = {claims: [...仅 claim_id/text/context/verdict/reason/citations...]}`，`system_prompt_extras` 追加：
 
 > ## 真实性核验结果
-> 上游已对回答中的事实断言逐条核验。`refuted` 的断言视为事实错误，据此判相关期望 not_fulfilled；`unverifiable` 不构成失败依据，也不构成通过依据：期望结果所依赖的断言被判 `unverifiable`、trace 里也没有业务自己核实过的记录时，该期望判 not_evaluable 并写明缺哪份证据。不要重复核验，也不要发明核验结果里没有的断言。
+> 上游已对回答中的事实断言逐条核验。`refuted` 的断言视为事实错误，据此判相关期望 not_fulfilled。
+> `unverifiable` 表示评测侧在知识源里没找到支持它的原文——可能是业务编造，也可能是评测侧没检索到，不能据此判对，也不能据此判错：结论依赖该断言的期望判 not_evaluable，不判 fulfilled，也不判 not_fulfilled；trace 里有业务自己核实过该事实的记录时除外。
+> 不要重复核验，也不要发明核验结果里没有的断言。
+
+（2026-10-14 改：原句"`unverifiable` 不构成失败依据"写死了放过，实测编造的现金价值比例在最高推理档 9/9 判 fulfilled；中间版本按能力描述判 not_fulfilled，会把评测侧漏检误判成业务没办成。定为 not_evaluable：不放过，也不冤枉。）
 
 没有 `truth` 时这两段都不出现，prompt 与生产逐字相同（现有的逐字相等测试继续钉住这条路径）。
 
-**2026-10-17 补（已实施：`adapters/fulfillment.py` 真实性核验段，测试 `test_fulfillment_truth_adds_exactly_two_prompt_extras`）**：上面那句"`unverifiable` 不构成失败依据"只说了不能据此判失败，没说能不能据此判通过。补为：
-结果所依赖的断言被判 `unverifiable`，且 trace 内没有业务自己核实过的记录（例如业务调了详情接口、返回里有能对上的字段）时，相关期望判 not_evaluable，并写明缺哪份证据；主轴不得把真实性轴的 `unverifiable` 自行升级为成立。只在场景启用了真实性轴时生效，没启用的场景不受影响。
-trace 路线主判提示词里的"需要的证据缺失时判 not_evaluable，即使答复可读也不能据此通过"（`impl/projects/llm_probe/judge.py` 的 system_prompt_extras）以本条为出处。
+**2026-10-17 补（与 10-14 口径合并于 integrate/langfuse-notrace）**：在 10-14 口径上补一个例外——trace 里有业务自己核实过该事实的记录（例如业务调了详情接口、返回里有能对上的字段）时，不因真实性轴 unverifiable 判 not_evaluable。主轴不得把真实性轴的 `unverifiable` 自行升级为成立。只在场景启用了真实性轴时生效。
+trace 路线主判提示词里的"需要的证据缺失时判 not_evaluable，即使答复可读也不能据此通过"（`impl/projects/llm_probe/judge.py`）早于本条、对所有 trace 场景生效，出处是 `spec/alg/fulfilled.md` §2.1，不是本条。
 背景：Langfuse 验收的单轮 case（`spec/implementation/business-trace-langfuse.md` 真实验收结果）。
 实测：`report/d18-validation-20261017/RESULT.md`（核心核实不了的 3 条由 F×9 变 NE×9，其余 13 条及注入的附带细节检查结论不变）。
 

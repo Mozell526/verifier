@@ -34,6 +34,8 @@ CALL_STATUSES = {"succeeded", "failed", "skipped"}
 TRACE_STATUSES = {"ok", "error", "skipped"}
 VERDICTS = {"correct", "incorrect", "uncertain", "not_evaluable"}
 FULFILLMENT_STATUSES = {"fulfilled", "not_fulfilled", "not_evaluable"}
+# 结果表的展示状态多一个 fail（被测系统报错，见 summary.DISPLAY_FAIL）；判定协议本身不收 fail。
+TABLE_FULFILLMENT_STATUSES = FULFILLMENT_STATUSES | {"fail"}
 INTERACTION_MODES = {"single_turn", "static_turns", "interactive_intent"}
 EVENT_STATUSES = {"succeeded", "failed", "skipped", "not_verified", "suspicious"}
 CHAIN_STATUSES = {"verified", "failed", "not_verified", "partial", "suspicious"}
@@ -221,7 +223,8 @@ def normalize_trace_table_row(value: Any) -> Optional[TraceTableRow]:
         execution_mode=str(data.get("execution_mode") or ""),
         output_source=str(data.get("output_source") or ""),
         score=data.get("score"),
-        fulfillment_status=_normalize_fulfillment_status(data.get("fulfillment_status")),
+        fulfillment_status=("fail" if data.get("fulfillment_status") in TABLE_FULFILLMENT_STATUSES - FULFILLMENT_STATUSES
+                            else _normalize_fulfillment_status(data.get("fulfillment_status"))),
         carrier_placement=str(data.get("carrier_placement") or ""),
         eval_axes_summary=[item for item in _as_list(data.get("eval_axes_summary")) if isinstance(item, dict)],
         judge_summary=data.get("judge_summary") if isinstance(data.get("judge_summary"), dict) else {},

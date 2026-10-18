@@ -5,8 +5,9 @@ import json
 from dataclasses import replace
 from typing import Any, Dict, Mapping
 
-from impl.core.judge import finalize_judge_result, judge_trace
+from impl.core.judge import business_call_failure_result, finalize_judge_result, judge_trace
 from impl.core.judge_protocol import execution_failure_markers, is_terminal_judge_failure
+from impl.core.live_protocol import business_call_failure
 from impl.core.live_transport import _redact_headers
 from impl.core.materials_store import expand_material_uris
 from impl.core.schema import JudgeResult, RunTrace, normalize_judge_result, to_dict, trace_application_boundary
@@ -78,7 +79,7 @@ def build_context(
         "## 能力描述\n"
         "只根据能力描述判断 output_text 是否兑现了该能力。没有 gold output，不要编造参考答案。\n",
         "## not_evaluable 的边界\n"
-        "not_evaluable 只在证据本身缺失时使用：output_text 为空、无法读取、或 HTTP 层失败。\n"
+        "not_evaluable 只在证据本身缺失时使用：output_text 为空或无法读取。\n"
         "只要 output_text 有内容且可读，就必须对照能力描述和本次输入判 fulfilled 或 not_fulfilled。\n"
         "不要因为「不知道被测系统支不支持这种查询」而判 not_evaluable——系统能力边界是判后承载性裁决（轴2）的职责，不是本判定的输入。\n"
         "## 期望派生\n"
@@ -137,9 +138,10 @@ def build_context(
         }
         context["system_prompt_extras"].append(
             "## 真实性核验结果\n"
-            "上游已对回答中的事实断言逐条核验。`refuted` 的断言视为事实错误，据此判相关期望 not_fulfilled；"
-            "`unverifiable` 不构成失败依据，也不构成通过依据：期望结果所依赖的断言被判 `unverifiable`、"
-            "trace 里也没有业务自己核实过的记录时，该期望判 not_evaluable 并写明缺哪份证据。"
+            "上游已对回答中的事实断言逐条核验。`refuted` 的断言视为事实错误，据此判相关期望 not_fulfilled。\n"
+            "`unverifiable` 表示评测侧在知识源里没找到支持它的原文——可能是业务编造，也可能是评测侧没检索到，"
+            "不能据此判对，也不能据此判错：结论依赖该断言的期望判 not_evaluable，不判 fulfilled，也不判 not_fulfilled；"
+            "trace 里有业务自己核实过该事实的记录时除外。\n"
             "不要重复核验，也不要发明核验结果里没有的断言。"
         )
     return context
@@ -209,6 +211,11 @@ def _summary(output: Mapping[str, Any]) -> AxisSummary:
 
 def run_fulfillment(inputs: Mapping[str, Any], axis: ScenarioAxis, runtime: AxisRuntime) -> RunOutcome:
     trace: RunTrace = inputs["trace"]
+    failure = business_call_failure(trace)
+    if failure:
+        # 与主判同一构造：没拿到答复就是没办成，程序直接判，不调模型。
+        output = _output(business_call_failure_result(trace, failure))
+        return RunOutcome(output=output, summary=_summary(output), usage={"llm_calls": 0, "tool_calls": 0})
     # 与 resolve_capability 同一条展开路径：prompt-load，超预算即拒。
     capability = expand_material_uris(axis.description)
     # LLM 调用记录挂到本次试验的 trace_id 下（axe-v4 D9），不污染生产 trace 的记录。
@@ -261,8 +268,8 @@ AXIS_TYPE = AxisType(
     verdict_scope=VERDICT_SCOPE_AXIS,
     verdict_enum=(
         Verdict(FULFILLED, "所有 blocking 期望都兑现"),
-        Verdict(NOT_FULFILLED, "至少一条 blocking 期望未兑现（含数据源没给数据、原因说错、数据源已给的信息没传达）"),
-        Verdict(NOT_EVALUABLE, "证据缺失（output_text 为空/不可读/HTTP 失败）或没有 blocking 期望，无法判"),
+        Verdict(NOT_FULFILLED, "至少一条 blocking 期望未兑现（含数据源没给数据、原因说错、数据源已给的信息没传达；被测系统返回非 2xx 时程序直接判此值）"),
+        Verdict(NOT_EVALUABLE, "证据缺失（output_text 为空/不可读）或没有 blocking 期望，无法判"),
     ),
     depend_on=(Dependency("truthfulness", optional=True),),
     trigger_when=None,

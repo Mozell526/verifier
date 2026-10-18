@@ -8,7 +8,7 @@ from .config import get_runtime_config
 from .project_loader import load_project_document
 from .schema import BusinessExpectation, FulfillmentAssessment, GapItem, JudgeLLMOutput, JudgeReferenceOutput, JudgeResult, ProjectSpec, RunTrace, _non_empty_reference, normalize_business_expectation, normalize_fulfillment_assessment, normalize_gap_item, normalize_judge_result, to_dict, trace_application_boundary, trace_conversation_summary, trace_conversation_transcript, trace_execution_trace, trace_extracted_output, trace_input, trace_normalized_request, trace_raw_response, trace_stop_reason, trace_turn_records
 from .structured_output import StructuredOutputSpec
-from .summary import summary_from_fulfillment
+from .summary import BUSINESS_CALL_FAILED, summary_from_fulfillment
 
 logger = logging.getLogger(__name__)
 
@@ -224,6 +224,26 @@ def finalize_judge_result(result: JudgeResult) -> JudgeResult:
     normalized.overall_fulfillment = overall
     normalized.summary = summary_from_fulfillment(to_dict(normalized))
     return normalized
+
+
+def business_call_failure_result(trace: RunTrace, reason: str) -> JudgeResult:
+    """被测系统已响应但以非 2xx 拒绝：用户拿不到答复就是没办成，程序直接判 not_fulfilled，不交给模型。
+
+    走同一条 blocking 期望派生，不另开整体状态的特例；失败原文进 actual_evidence，前端和导出直接可见。
+    """
+    expectation_id = "被测系统返回答复"
+    return finalize_judge_result(JudgeResult(
+        trace_id=trace.trace_id,
+        project_id=trace.project_id,
+        business_expectations=[BusinessExpectation(
+            expectation_id=expectation_id, blocking=True,
+            expected_outcome="被测系统对本次请求返回 2xx 响应并给出答复")],
+        fulfillment_assessments=[FulfillmentAssessment(
+            expectation_id=expectation_id, status="not_fulfilled",
+            actual_evidence=[reason[:2000]], downstream_impact="用户拿不到答复")],
+        reasoning_summary="被测系统调用失败：" + reason[:500],
+        evidence=[BUSINESS_CALL_FAILED],
+    ))
 
 
 def _dict_value(value: Any) -> Dict[str, Any]:

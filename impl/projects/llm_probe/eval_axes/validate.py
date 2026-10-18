@@ -66,6 +66,9 @@ def parse_axes(raw: Any, *, owner: str = "axes") -> list[ScenarioAxis]:
 def _expand_description(axis_type: AxisType, description: str) -> None:
     validate_source_refs(description)
     mode = next((f.expand for f in axis_type.scenario_fields if f.name == "description"), None)
+    if mode != EXPAND_CATALOG and ("{es://" in description or "{mcp://" in description):
+        # 只有按目录展开的框才会把知识源交给工具；写在别处等于没人查（如真实性改由知识查证轴取证）。
+        raise ValueError(f"{axis_type.type_id} 不使用知识源，{{es://}} / {{mcp://}} 引用请写到知识查证框")
     if mode == EXPAND_CATALOG:
         expand_material_uris_with_catalog(description)
     else:
@@ -99,7 +102,7 @@ def validate_scenario_axes(axes: Sequence[ScenarioAxis]) -> ValidationReport:
                 report.errors.append(f"{axis.type_id}.description 资料引用无效: {exc}")
         if not axis.enabled:
             continue
-        # 环境能力（ES 是否开启）只对会跑的框要求；未启用的框写了 {es://} 不拦别人。
+        # 环境能力（引用的知识源是否已登记）只对会跑的框要求；未启用的框写了 {es://} 不拦别人。
         try:
             validate_source_capability(axis.description)
         except ValueError as exc:

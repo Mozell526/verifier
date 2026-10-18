@@ -4,7 +4,7 @@
 2. depend_on 全部 succeeded?        否 → blocked（trigger_decision 记上游实际状态）
 3. trigger_when 命中?               否 → not_applicable
 4. 按 inputs 声明逐项取数           必填缺失 → failed
-5. run()                            → succeeded | failed；output 键集必须等于 output_fields，
+5. run()                            → succeeded | failed | not_applicable（样本里没有可评对象）；output 键集必须等于 output_fields，
                                        axis 级 verdict / item 级逐项值必须落在 verdict_enum 内
 """
 from __future__ import annotations
@@ -167,6 +167,12 @@ def _run_one(
         upstream_id = dependency.type_id
         upstream = results.get(upstream_id)
         upstream_status[upstream_id] = upstream.status if upstream is not None else "missing"
+    if required_ids and all(upstream_status[key] == STATUS_NOT_APPLICABLE for key in required_ids):
+        # 上游没有可评对象（如被测系统没给答复、场景没声明知识源），下游同样没有：不是阻断。
+        reasons = "；".join(f"{k}：{results[k].summary.get('text', '')}" for k in sorted(required_ids))
+        result = _base_result(axis, axis_type, runtime, STATUS_NOT_APPLICABLE, summary_text=f"上游不适用（{reasons}）")
+        result.trigger_decision = {"depend_on_satisfied": False, "upstream": upstream_status}
+        return result
     if any(upstream_status[key] != STATUS_SUCCEEDED for key in required_ids):
         # 阻断原因要一眼看到上游为什么没成：直接带上游的失败分类与原文。
         blocked_by = "，".join(
@@ -272,6 +278,14 @@ def _run_one(
     usage = dict(outcome.usage)
     usage["elapsed_ms"] = int((time.monotonic() - started) * 1000)
 
+    if outcome.not_applicable:
+        result = _base_result(axis, axis_type, runtime, STATUS_NOT_APPLICABLE, summary_text=outcome.not_applicable)
+        result.trigger_decision = trigger_decision
+        result.inputs_used = inputs_used
+        result.started_at = started_at
+        result.finished_at = finished_at
+        result.usage = usage
+        return result
     result = _base_result(axis, axis_type, runtime, STATUS_SUCCEEDED)
     result.trigger_decision = trigger_decision
     result.inputs_used = inputs_used

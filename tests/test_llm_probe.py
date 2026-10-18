@@ -6,7 +6,9 @@ import urllib.error
 
 import pytest
 
-from impl.core.live_protocol import LiveServiceUnavailableError, _is_service_unavailable
+from impl.core.live_protocol import (
+    LIVE_HTTP_ERROR, LIVE_PROTOCOL_ERROR, LIVE_SERVICE_UNAVAILABLE, LiveServiceUnavailableError, live_failure_type,
+)
 from impl.core.live_transport import LiveHTTPStatusError, LiveTransport
 from impl.core.mock_agent import load_live_schema
 from impl.core.project_loader import load_project
@@ -157,12 +159,12 @@ def test_http_status_error_raises_and_is_not_service_unavailable(monkeypatch):
 
 
 def test_http_status_error_is_classified_separately_from_unavailable():
-    assert _is_service_unavailable(LiveHTTPStatusError(500, {"error": "boom"})) is False
-    assert _is_service_unavailable(LiveHTTPStatusError(404, None)) is False
-    assert _is_service_unavailable(LiveServiceUnavailableError("target down")) is True
-    assert _is_service_unavailable(urllib.error.URLError("connection refused")) is True
-    assert _is_service_unavailable(TimeoutError("timed out")) is True
-    assert _is_service_unavailable(ValueError("schema error")) is False
+    assert live_failure_type(LiveHTTPStatusError(500, {"error": "boom"})) == LIVE_HTTP_ERROR
+    assert live_failure_type(LiveHTTPStatusError(404, None)) == LIVE_HTTP_ERROR
+    assert live_failure_type(LiveServiceUnavailableError("target down")) == LIVE_SERVICE_UNAVAILABLE
+    assert live_failure_type(urllib.error.URLError("connection refused")) == LIVE_SERVICE_UNAVAILABLE
+    assert live_failure_type(TimeoutError("timed out")) == LIVE_SERVICE_UNAVAILABLE
+    assert live_failure_type(ValueError("schema error")) == LIVE_PROTOCOL_ERROR
 
 
 def _probe_trace(request: dict, output_text: str = "ok") -> RunTrace:
