@@ -139,7 +139,12 @@ def _bound(config, request, response):
 
 
 def _pages(config, path, query):
-    rows, errors, seen = [], [], set()
+    """翻完全部页才算列全；唯一性按实际返回的行判断。
+
+    Langfuse v3.184.1 的 meta.totalItems 会把并不返回的行算进去（实测按 metadata 过滤：totalItems=3，
+    第 1 页 1 条、第 2–3 页为空）。翻到 totalPages 且无读取错误时以实际行为准，计数差异记为 notes，不当作未列全。
+    """
+    rows, errors, notes, seen = [], [], [], set()
     for page in range(1, config["max_pages"] + 1):
         try:
             data = _get_json(config, path, {**query, "page": page, "limit": config["page_size"]})
@@ -158,13 +163,13 @@ def _pages(config, path, query):
             if total is not None and page >= int(total):
                 expected = data.get("meta", {}).get("totalItems")
                 if expected is not None and len(rows) != int(expected):
-                    errors.append(path + ": total_items_mismatch")
-                return rows, errors
+                    notes.append(f"{path}: total_items_reported={int(expected)} returned={len(rows)}")
+                return rows, errors, notes
             if total is None and len(batch) < config["page_size"]:
-                return rows, errors
+                return rows, errors, notes
         except Exception as exc:
-            return rows, errors + [path + ": " + _error(exc)]
-    return rows, errors + [path + ": page_limit_reached"]
+            return rows, errors + [path + ": " + _error(exc)], notes
+    return rows, errors + [path + ": page_limit_reached"], notes
 
 
 def _matched(config, business_id):
@@ -173,11 +178,11 @@ def _matched(config, business_id):
             trace = _get_json(config, "/traces/" + quote(business_id, safe=""))
         except HTTPError as exc:
             if exc.code == 404:
-                return [], []
+                return [], [], []
             raise
         if trace.get("id") != business_id:
             raise ValueError("trace_id_mismatch")
-        return [trace], []
+        return [trace], [], []
     key = config["match_field"].split(".", 1)[1]
     return _pages(config, "/traces", {"filter": json.dumps([
         {"type": "stringObject", "column": "metadata", "key": key, "operator": "=", "value": business_id}])})
@@ -196,7 +201,7 @@ def _history(config, trace):
     current_time = _stamp(trace.get("timestamp"))
     if not session or current_time is None:
         return [], {"status": "not_collected", "reason": "缺少 sessionId 或带时区的本轮时间，不猜测历史"}
-    rows, errors = _pages(config, "/traces", {"sessionId": session,
+    rows, errors, notes = _pages(config, "/traces", {"sessionId": session,
         "toTimestamp": trace["timestamp"], "orderBy": "timestamp.asc"})
     history = []
     for row in rows:
@@ -216,7 +221,7 @@ def _history(config, trace):
         except Exception as exc:
             history.append(row)
             errors.append("history_detail:" + _error(exc))
-    return history, {"status": "partial" if errors else "available", "errors": errors,
+    return history, {"status": "partial" if errors else "available", "errors": errors, "listing_notes": notes,
                      "reason": "仅保存同 session、时间严格早于本轮的 trace；不采集历史 observation"}
 
 
@@ -240,7 +245,7 @@ def collect(config, *, request, response):
         polls += 1
         attempt = dict(clean, _deadline=deadline, timeout_seconds=min(clean["timeout_seconds"], max(.1, deadline - time.monotonic())))
         try:
-            matches, errors = _matched(attempt, business_id)
+            matches, errors, match_notes = _matched(attempt, business_id)
             if len(matches) > 1:
                 snapshot["errors"] = ["association_ambiguous"]
                 snapshot["association"]["matched_trace_count"] = len(matches)
@@ -256,7 +261,7 @@ def collect(config, *, request, response):
                 if trace.get("id") != ident or (clean["match_field"] != "id" and
                         (not isinstance(trace.get("metadata"), Mapping) or trace["metadata"].get(key) != business_id)):
                     raise ValueError("association_detail_mismatch")
-                observations, errors = _pages(attempt, "/observations", {"traceId": ident})
+                observations, errors, observation_notes = _pages(attempt, "/observations", {"traceId": ident})
                 details = []
                 prior = {row["id"]: row for row in snapshot["records"].get("observations", [])}
                 if snapshot["records"].get("trace", {}).get("id") != ident:
@@ -286,7 +291,8 @@ def collect(config, *, request, response):
                     details.extend(row for key, row in prior.items() if key not in listed_ids)
                 details.sort(key=lambda r: (_stamp(r.get("startTime")) or 0, r["id"]))
                 snapshot["records"] = {"trace": trace, "observations": details}
-                snapshot["association"].update(trace_id=ident, matched_trace_count=1)
+                snapshot["association"].update(trace_id=ident, matched_trace_count=1, listing_notes=match_notes)
+                snapshot["listing_notes"] = observation_notes
                 signature = hashlib.sha256(json.dumps(snapshot["records"], sort_keys=True, default=str).encode()).hexdigest()
                 unfinished = [r["id"] for r in details if r.get("type") != "EVENT" and not r.get("endTime")]
                 invalid_times = (["trace"] if _stamp(trace.get("timestamp")) is None else []) + [

@@ -149,3 +149,12 @@ Agno 5 份快照产出与 HEAD 逐字节一致（Agno 的限制没有 `items`）
 ## 请求标识占位符（2026-10-18）
 
 Insurance 场景按请求 `body.trace_id` 关联，写死的值重跑会在 Langfuse 里出现两条同 ID 的 trace，按规则判关联失败。改为场景模板与 case 里写 `"trace_id": "{request_id}"`：`capability.fresh_delivery_placeholders` 在每次投递发送前把它换成新的 `llm-probe-req-<uuid>`（生成 case 时不落定）。原 `fresh_session_placeholders` 改名并同时处理 `{session_id}` 与 `{request_id}`。这是 verifier 作为调用方自己给的请求标识，不改被测系统。
+
+## 列表计数不可信（2026-10-18）
+
+实测 v3.184.1 `GET /api/public/traces?filter=…metadata.request_trace_id…`：同一 ID `meta.totalItems=3`，第 1 页 1 条、第 2–3 页为空。
+原实现要求"取回条数 = totalItems"否则记 `total_items_mismatch` 并持续轮询，导致约半数采集超时判失败（Codex 验收第 1 轮的 partial、
+本次重复运行第 2 次的失败均为此）。改为：翻到 totalPages 且无读取错误即以实际行为准，唯一性按实际行的 ID 判断；
+计数差异记入 `association.listing_notes` / `listing_notes` / `history_coverage.listing_notes`，不当作未列全。
+真有多条同 ID trace 时它们会出现在返回行里，仍判 `association_ambiguous`。observation 完整性另由 trace 详情自带的 observation 清单核对。
+修复后两条真实 trace 重新采集均 succeeded（各 19 个 observation，约 4 秒）。

@@ -99,7 +99,7 @@ def test_unfinished_and_page_limit_are_partial(monkeypatch):
     assert any("unfinished_observations" in e for e in snap["errors"])
     assert snap["records"]["observations"]
     monkeypatch.setattr(langfuse, "_get_json", lambda *args: {"data": [observation()], "meta": {"totalPages": 2}})
-    rows, errors = langfuse._pages(config(max_pages=1), "/observations", {})
+    rows, errors, _ = langfuse._pages(config(max_pages=1), "/observations", {})
     assert len(rows) == 1 and any("page_limit" in e for e in errors)
 
 
@@ -210,11 +210,24 @@ def test_explicit_openinference_types_are_mapped_without_guessing_from_names():
     assert tools[0]["fields"]["arguments"]["status"] == "truncated"
 
 
-def test_pagination_total_mismatch_is_not_complete(monkeypatch):
-    monkeypatch.setattr(langfuse, "_get_json", lambda *args: {
-        "data": [observation()], "meta": {"totalPages": 1, "totalItems": 2}})
-    rows, errors = langfuse._pages(config(), "/observations", {})
-    assert len(rows) == 1 and errors == ["/observations: total_items_mismatch"]
+def test_inflated_total_items_after_all_pages_is_a_note_not_an_incomplete_listing(monkeypatch):
+    pages = {1: {"data": [observation()], "meta": {"totalPages": 3, "totalItems": 3}},
+             2: {"data": [], "meta": {"totalPages": 3, "totalItems": 3}},
+             3: {"data": [], "meta": {"totalPages": 3, "totalItems": 3}}}
+    monkeypatch.setattr(langfuse, "_get_json", lambda cfg, path, query=None: pages[query["page"]])
+    rows, errors, notes = langfuse._pages(config(), "/traces", {})
+    assert len(rows) == 1 and errors == []
+    assert notes == ["/traces: total_items_reported=3 returned=1"]
+
+
+def test_page_read_failure_is_still_an_incomplete_listing(monkeypatch):
+    def fail_second(cfg, path, query=None):
+        if query["page"] == 2:
+            raise RuntimeError("boom")
+        return {"data": [observation()], "meta": {"totalPages": 2, "totalItems": 2}}
+    monkeypatch.setattr(langfuse, "_get_json", fail_second)
+    rows, errors, notes = langfuse._pages(config(), "/traces", {})
+    assert len(rows) == 1 and errors and errors[0].startswith("/traces: ") and notes == []
 
 
 def test_overflow_timestamp_is_partial_and_never_used_for_history(monkeypatch):
@@ -260,3 +273,19 @@ def test_no_content_gap_items_when_everything_is_recorded():
     snap = {"provider": "langfuse", "status": "succeeded", "records": {"trace": trace(), "observations": [observation()]}}
     content = open_reader(snap).limitations["content"]
     assert content == {**content, "status": "unverified", "items": []}
+
+
+def test_collect_succeeds_when_trace_listing_reports_inflated_total(monkeypatch):
+    install_api(monkeypatch)
+    original = langfuse._get_json
+
+    def inflated(cfg, path, query=None):
+        data = original(cfg, path, query)
+        if path == "/traces" and isinstance(data, dict) and "meta" in data:
+            data = dict(data, meta={"totalPages": 1, "totalItems": 3})
+        return data
+    monkeypatch.setattr(langfuse, "_get_json", inflated)
+    snap = run()
+    assert snap["status"] == "succeeded", snap["errors"]
+    assert snap["association"]["matched_trace_count"] == 1
+    assert snap["association"]["listing_notes"] == ["/traces: total_items_reported=3 returned=1"]
