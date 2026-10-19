@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 import json
 import re
 from concurrent.futures import ThreadPoolExecutor
@@ -73,9 +74,28 @@ def _described(schema: dict[str, Any]) -> dict[str, Any]:
     return {**schema, "properties": properties}
 
 
+_REQUEST_FIELD = re.compile(r"\{request\.([A-Za-z0-9_]+)\}")
+
+
+def bind_request(source: McpSource, request) -> McpSource:
+    """登记 env 里的 {request.<字段>} 取自本样本的请求体（如工号）：业务按谁的身份答，评测就按谁的身份查。
+    样本里没有该字段就报错，不换成别的身份去查。"""
+    def value(text: str) -> str:
+        def replace(match):
+            key = match.group(1)
+            got = (request or {}).get(key)
+            if not isinstance(got, (str, int)) or str(got) == "":
+                raise ValueError(f"MCP 知识源 {source.name} 需要样本请求里的身份字段 {key}，本样本没有")
+            return str(got)
+        return _REQUEST_FIELD.sub(replace, text)
+    return dataclasses.replace(source, env=tuple((k, value(v)) for k, v in source.env))
+
+
+_FIND_CONTEXT = 400  # 命中处前后各带多少字原文
+
 class McpTools:
-    def __init__(self, catalog, recorder):
-        self.sources = {item["uri"][len("mcp://"):]: load_mcp_source(item["uri"][len("mcp://"):])
+    def __init__(self, catalog, recorder, request=None):
+        self.sources = {item["uri"][len("mcp://"):]: bind_request(load_mcp_source(item["uri"][len("mcp://"):]), request)
                         for item in catalog if item.get("source") == "mcp"}
         self.recorder = recorder
 
@@ -118,6 +138,39 @@ class McpTools:
         finally:
             self.recorder.append(receipt)
 
+    def mcp_find(self, page_id: str, keyword: str):
+        """在本轮某次 MCP 调用的完整返回里搜关键词，交回命中处前后的原文（返回很长、翻页找不现实时用）。"""
+        receipt: dict[str, Any] = {"tool": "mcp_find", "page_id": page_id, "keyword": keyword, "returned_locators": []}
+        try:
+            text = self._response(page_id)
+            if text is None:
+                raise ValueError("page_id 必须是本轮 MCP 调用返回的 page_id")
+            if not isinstance(keyword, str) or not keyword.strip():
+                raise ValueError("keyword 不能为空")
+            source = self.sources[page_id[len("mcp://"):].split("#", 1)[0]]
+            receipt["returned_locators"] = [page_id]
+            spans, at = [], text.find(keyword)
+            while at >= 0:
+                start, end = max(0, at - _FIND_CONTEXT), min(len(text), at + len(keyword) + _FIND_CONTEXT)
+                if spans and start <= spans[-1][1]:
+                    spans[-1][1] = end
+                else:
+                    spans.append([start, end])
+                at = text.find(keyword, at + len(keyword))
+            hits, used = [], 0
+            for start, end in spans:
+                if used + end - start > source.max_chars:
+                    break
+                hits.append({"start": start, "text": text[start:end]})
+                used += end - start
+            return {"page_id": page_id, "keyword": keyword, "matches": text.count(keyword), "hits": hits,
+                    "truncated": len(hits) < len(spans), "total_chars": len(text)}
+        except (ValueError, KeyError) as exc:
+            receipt["error"] = str(exc)
+            return {"error": str(exc)}
+        finally:
+            self.recorder.append(receipt)
+
     def tools(self):
         specs = []
         for source in self.sources.values():
@@ -131,7 +184,7 @@ class McpTools:
                 specs.append(VerifiableTool(
                     tool_id=tool_prefix(source.name) + _TOOL_NAME.sub("_", spec["name"]),
                     description=f"[MCP 知识源 {source.name}] " + spec["description"]
-                                + "\n返回原文（可能截断：带 page_id，用 mcp_read 翻页）。",
+                                + "\n返回原文（可能截断：带 page_id，用 mcp_read 翻页，或用 mcp_find 在全文里搜关键词）。",
                     execute_fn=execute, parameters=_described(spec["schema"])))
         if specs:
             specs.append(VerifiableTool(
@@ -139,8 +192,14 @@ class McpTools:
                 parameters={"type": "object", "properties": {
                     "page_id": {"type": "string", "description": "MCP 调用返回的 page_id"},
                     "start": {"type": "integer", "description": "起始字符偏移，缺省 0"}}, "required": ["page_id"]}))
+            specs.append(VerifiableTool(
+                tool_id="mcp_find", description="在本轮某次 MCP 调用的完整返回原文里搜关键词（字段名、中文名、数值等，原样匹配），"
+                                                "交回每处命中前后的原文和偏移；返回很长时用它找，不必逐页翻。", execute_fn=self.mcp_find,
+                parameters={"type": "object", "properties": {
+                    "page_id": {"type": "string", "description": "MCP 调用返回的 page_id"},
+                    "keyword": {"type": "string", "description": "要搜的关键词，原样匹配"}}, "required": ["page_id", "keyword"]}))
         return build_agno_tools(specs)
 
 
-def build_mcp_tools(catalog, recorder):
-    return McpTools(catalog, recorder).tools() if any(item.get("source") == "mcp" for item in catalog) else []
+def build_mcp_tools(catalog, recorder, request=None):
+    return McpTools(catalog, recorder, request).tools() if any(item.get("source") == "mcp" for item in catalog) else []

@@ -25,8 +25,12 @@ EXTRACT_SYSTEM = ('提取回答中可核验的事实断言。输出对象只有 
                   '什么算一条断言：一个能拿去和条款原文比对的具体值——数字、期限、比例、金额、年龄，或明确的有/无某项责任。'
                   '一句话里有几个这样的值就拆几条，每条 text 只含自己那个值及其事项；'
                   '没有具体值的套话、建议、评价（如“视情况而定”“建议另行确认”“适合大多数人”）不是断言，不要抽。'
-                  'context 是核验这条 text 所需的最少上下文片段列表：事实归属的对象（通常是产品名）、以及成立条件；'
-                  '只放定位所需，不放整句，不放别的断言里的值；不需要上下文就填 []。'
+                  '回答自己给内容编的序号、排列顺序、指代（如“方式一”“保单一”“第二张”“上面这张”）不是关于对象的事实，不单独抽成断言。'
+                  'text 加 context 合起来要能单独成立：离开这个回答单独读，意思和在回答里一样。'
+                  'context 是核验这条 text 所需的最少上下文片段列表，只放两种：事实归属对象的标识（姓名、保单号、产品名或产品代码、办理事项的名称），'
+                  '和成立条件（如“犹豫期内”“非0退保金时”）；不放任何被断言的数量和属性（张数、金额、状态、日期、“投保人：某某”这类，它们是断言本身）。'
+                  '回答自己编的序号、指代不放进 context，换成它所指对象的标识在回答里的原文写法（如“第二张”指哪张保单就放那张的保单号）；'
+                  '回答里找不到它所指对象的标识，这条就不抽。不需要上下文就填 []。'
                   '例如“甲产品投保年龄十八周岁，年交保费五千元”抽两条：text=“投保年龄十八周岁” context=[“甲产品”]；'
                   'text=“年交保费五千元” context=[“甲产品”]。'
                   '例如“乙产品在条件C下给付百分之八十”抽一条：text=“给付百分之八十” context=[“乙产品”,“条件C”]。')
@@ -35,9 +39,27 @@ EXTRACT_SYSTEM = ('提取回答中可核验的事实断言。输出对象只有 
 _FORMAT = re.compile(r'[\s*`]+')
 
 
+def _contains_value(segment: str, value: str) -> bool:
+    """segment 里有没有 value 这个值：出现在一串字母数字中间的不算（保单号里的“0”不是金额“0”）。"""
+    edge = re.compile(r'[A-Za-z0-9]')
+    start = segment.find(value)
+    while start >= 0:
+        end = start + len(value)
+        inside = (start > 0 and edge.match(segment[start - 1]) and edge.match(value[0])) or \
+                 (end < len(segment) and edge.match(segment[end]) and edge.match(value[-1]))
+        if not inside:
+            return True
+        start = segment.find(value, start + 1)
+    return False
+
+
+_QUOTES = str.maketrans({c: '"' for c in '“”„‟＂「」『』'} | {c: "'" for c in '‘’‚‛＇'})
+
+
 def _plain(text):
-    """逐字比对前去掉空白和 Markdown 强调符：回答常带 **加粗**，格式符不是内容，模型摘句不带它们。"""
-    return _FORMAT.sub('', text)
+    """逐字比对前去掉空白和 Markdown 强调符、统一引号：回答常带 **加粗**，格式符不是内容，模型摘句不带它们；
+    直引号和弯引号模型常互换（回答写 "交费有效"，摘句成 “交费有效”），引号形状不是内容。改字仍判不是原文。"""
+    return _FORMAT.sub('', text).translate(_QUOTES)
 
 
 def parse_claims(payload: Any, output_text: str) -> list[dict[str, Any]]:
@@ -66,7 +88,7 @@ def parse_claims(payload: Any, output_text: str) -> list[dict[str, Any]]:
         for other in result:
             if other is claim:
                 continue
-            leaked = [c for c in claim['context'] if other['text'] in c]
+            leaked = [c for c in claim['context'] if _contains_value(c, other['text'])]
             if leaked:
                 raise ValueError(f"断言 {claim['claim_id']} 的 context {leaked[0]!r} 含了断言 {other['claim_id']} 的值 {other['text']!r}，只放定位所需的上下文")
     return result

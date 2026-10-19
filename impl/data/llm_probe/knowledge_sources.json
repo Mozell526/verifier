@@ -1,7 +1,7 @@
 {
   "insurance-tools": {
     "type": "mcp",
-    "description": "insurance-qa-agent 的 7 个只读查询工具（llmtracing integrations/insurance-tools-mcp），dev 后端；身份为授权测试工号 1050900009",
+    "description": "insurance-qa-agent 的只读查询工具（保单、客户、产品条款、通用问答），按样本请求里的坐席工号授权查询。读法：① 保单/客户数据里的姓名多为密文，记录属于谁看查询条件（按谁查的）和客户号；② 一张保单可有多条险种记录（主险、附加险各一行），附加险行上的产品名字段是整张保单的主险名，险种归属看 main_subsidiary_risks_flag 和 plan_full_name；③ policy_search 的 total 是接口报告的条目数，可能按险种行计、不一定等于保单张数；本页读到的条数等于 total 时结果是全量，去重张数即全部保单数；policy_search 不能翻页；④ field_descriptions 是字段含义说明。",
     "command": "/Users/xiaozijian/WorkSpace/package/insurance_qa_agent/insurance-tools-mcp/.venv/bin/python",
     "args": [
       "-m",
@@ -10,9 +10,9 @@
     "env": {
       "ENV_TYPE": "dev",
       "ITOOLS_AGENT_ID": "pi",
-      "ITOOLS_USER_ID": "1050900009",
-      "ITOOLS_EMPNO": "1050900009",
-      "ITOOLS_AGENTNO": "1050900009"
+      "ITOOLS_USER_ID": "{request.user_id}",
+      "ITOOLS_EMPNO": "{request.empno}",
+      "ITOOLS_AGENTNO": "{request.agentno}"
     },
     "tools": [
       "product_knowledge",

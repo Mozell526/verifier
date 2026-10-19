@@ -26,19 +26,41 @@ class ClaimVerdict:
 
 
 _VERDICTS = ('verified', 'refuted', 'unverifiable')
-_JUDGE_SYSTEM = '''判定回答里的一条说法与知识库原文是否一致。原文是查证阶段从知识源取回的，你不需要也不能再检索。
+_JUDGE_SYSTEM = '''判定回答里的一条说法是否属实：拿它和知识源取回的原文比对。原文是查证阶段取回的，你不需要也不能再检索。
 
 输入：
 - claim：text 是事实本身，context 是它归属的对象与成立条件；判的是「context 之下的 text」。
-- citations：编号列表，每项 quote 是摘出的原文，window 是 quote 在原文里的前后上下文（适用条件、例外常在旁边）。
+- citations：编号列表。每项 tool/args 是取回这段原文的那次查询（查的哪个工具、按什么条件查的），
+  quote 是摘出的原文，window 是 quote 所在的整条记录或前后上下文。
+- search_note：查证人的检索说明（查了什么、结果全不全），不含结论。
+- source_notes：知识源登记方写的读法说明（字段含义、数据怎么读）。
 - guidance：场景补充的判定口径，可能为空。
 
+先拆说法：context 给出对象与成立条件，text 给出属性与值。合起来是「某对象（在某条件下）的某属性 = 某值」。
+说法若只是回答自己的编号、排序、指代，不是任何对象的属性，直接 unverifiable。
+
+原文里的话按作用分三种：
+① 关于对象的事实：某个对象的某个属性是什么值——数据记录里的字段值，条款与业务规定（如"犹豫期二十日""退保需提交申请书"）。
+② 数据怎么读：说明数据本身——字段是什么意思、属于谁、按什么口径、单位、结果全不全（数据里的总数与已读条数也是这一种）。
+③ 对使用者的要求：告诉回答者该怎么写、能不能怎么展示。
+只有 ① 能定对错；② 用来确定 ① 说的是哪个对象、哪个属性、什么口径；③ 与对错无关。
+
+用 ② 读 ①：
+- 对象：数据属于按哪个对象查回来的（看 args；姓名是密文时也按此归属）、属于哪条记录。
+  对象的组成部分（客户名下某张保单、保单里某一行险种）不是对象本身。
+- 属性：字段、术语的含义以 ② 为准；② 没说的含义不凭常识认定。
+- 算出来的值：原文写明了算法（字段说明、知识库文档），或说法自己写明了用哪些数怎么算，才照算法用 ① 的数算出这个值；
+  没有算法，就是 ① 没有给出这个值（不要凭常识假设"总额=名下全部相加"）。
+- 全不全：属性涉及"全部"（共几张、全部合计）时，按 ② 判断 ① 是否读全；总数与已读条数相等就是读全了。
+
 结论：
-- verified：有原文支持——同一对象、同一条件下，原文的值或规定与说法一致。
-- refuted：原文与说法矛盾——同一对象、同一条件下值不同；或说法把原文里有条件的规定说成了无条件（漏掉适用条件）。
-- unverifiable：给定原文定不了——对象或条件对不上、原文只谈相关话题没给值、原文不足以判断。
+- verified：① 里有同一对象、同一属性、同一条件下的值，与说法的值一致。
+- refuted：① 里有同一对象、同一属性、同一条件下的值，与说法的值不同。reason 里写出原文给的那个值。
+- unverifiable：① 里没有同一对象、同一属性、同一条件下的值——对象或口径对不上、没有算法、没读全，
+  或说法的值比原文多出原文没给的部分（多出的部分既不能确认也不冲突）。
+② 和 ③ 不给任何对象的属性赋值，不能作为 refuted 的依据。
+值一致的判断：阿拉伯数字与中文数字、%与百分之、天与日、万与万元互为等价写法。
 知识库对同一事项有互相矛盾的说法时，不替知识库裁定：说法与其中一种一致即 verified，reason 写明另有不同说法及其原文。
-数字写法可能不同：阿拉伯数字与中文数字、%与百分之、天与日、万与万元互为等价，等价写法视为一致。
 
 输出 reason/verdict/basis：先在 reason 写原文怎么说、与说法是否一致，再按 reason 的结论填 verdict，两者不得矛盾。
 basis 是作为依据的 citations 编号：verified 和 refuted 必须至少一个；unverifiable 时为 []。'''
@@ -60,9 +82,13 @@ def _judgement(payload: Any, count: int) -> dict[str, Any]:
     return {'verdict': verdict, 'reason': reason, 'basis': sorted(set(basis)) if verdict != 'unverifiable' else []}
 
 
-def _judge(item, guidance, runtime, usage):
-    citations = [{'id': i, 'quote': c['quote'], 'window': c['window']} for i, c in enumerate(item['citations'])]
+def _judge(item, guidance, notes, runtime, usage):
+    citations = [{'id': i, 'tool': c.get('tool'), 'args': c.get('args'), 'quote': c['quote'], 'window': c['window']}
+                 for i, c in enumerate(item['citations'])]
+    cited = {c['source'] for c in item['citations']}
     user = json.dumps({'claim': {'text': item['text'], 'context': item['context']}, 'citations': citations,
+                       'search_note': item.get('note', ''),
+                       'source_notes': {uri: text for uri, text in notes.items() if uri in cited and text},
                        'guidance': guidance}, ensure_ascii=False)
     spec = StructuredOutputSpec.from_dataclass(ClaimVerdict, required_nonempty=['verdict', 'reason'])
     client = axis_llm(runtime.spec, role='truthfulness', tools=[])
@@ -105,6 +131,7 @@ def run_truthfulness(inputs, axis, runtime):
     evidence = inputs['evidence']
     items = [item for item in evidence['items'] if item['origin'] == 'truthfulness']
     usage: dict[str, Any] = {'llm_calls': 0, 'tool_calls': 0}
+    notes = {s['uri']: s.get('notes', '') for s in evidence['sources']}
     claims, errors = [], []
     for item in items:
         if item['status'] != FOUND:
@@ -113,7 +140,7 @@ def run_truthfulness(inputs, axis, runtime):
             continue
         try:
             runtime.ensure_time_left(f"断言 {item['item_id']}")
-            claims.append(_claim(item, _judge(item, axis.description, runtime, usage)))
+            claims.append(_claim(item, _judge(item, axis.description, notes, runtime, usage)))
         except AxisTimeout as exc:
             usage['timed_out'] = True
             errors.append({'claim_id': item['item_id'], 'last_error': str(exc)})

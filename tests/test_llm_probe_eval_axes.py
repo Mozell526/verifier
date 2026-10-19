@@ -1483,7 +1483,7 @@ def test_mcp_source_exposes_only_allowlisted_read_tools(monkeypatch):
     monkeypatch.setattr(mcp_tools, 'load_mcp_source', lambda name: source)
     monkeypatch.setattr(mcp_tools, 'list_tools', lambda src: offered)
     names = [fn.name for fn in mcp_tools.build_mcp_tools([{'source': 'mcp', 'uri': 'mcp://biz'}], [])]
-    assert names == ['biz__general_qa', 'mcp_read']
+    assert names == ['biz__general_qa', 'mcp_read', 'mcp_find']
     missing = parse_mcp('biz', {'type': 'mcp', 'command': '/bin/python', 'tools': ['nope']})
     monkeypatch.setattr(mcp_tools, 'load_mcp_source', lambda name: missing)
     with pytest.raises(ValueError, match='不在服务提供的工具里'):

@@ -66,7 +66,7 @@ def _outcome(items, searches, catalog, usage):
     for item in items:
         by_origin[item['origin']] = by_origin.get(item['origin'], 0) + 1
     coverage = {'items': len(items), FOUND: found, NOT_FOUND: len(items) - found, 'by_origin': by_origin}
-    sources = [{'uri': c['uri'], 'snapshot_id': c.get('snapshot_id') or c.get('sha256', '')} for c in catalog]
+    sources = [{'uri': c['uri'], 'snapshot_id': c.get('snapshot_id') or c.get('sha256', ''), 'notes': c.get('notes', '')} for c in catalog]
     output = {'items': items, 'searches': searches, 'sources': sources, 'coverage': coverage, 'errors': []}
     text = (f"待查 {len(items)} 条：找到相关原文 {found}，没找到 {len(items) - found}；知识源调用 {len(searches)} 次"
             if items else '没有待查项')
@@ -97,8 +97,12 @@ def run(inputs: Mapping[str, Any], axis: ScenarioAxis, runtime: Any) -> RunOutco
         return _outcome([], [], catalog, usage)
     client = axis_llm(runtime.spec, role='truthfulness')
     client.reasoning_effort = 'low'
-    knowledge = KnowledgeLoop(items, catalog, _StepClient(client, runtime), seconds=SECONDS)
     question = (trace.normalized_request or {}).get('body') or {}
+    try:
+        knowledge = KnowledgeLoop(items, catalog, _StepClient(client, runtime), seconds=SECONDS, request=question)
+    except ValueError as exc:
+        # 缺身份字段、MCP 登记的工具不在服务里：查不了就明说，不换身份硬查。
+        return RunOutcome(output={}, failed=True, usage=usage, failure_reason=f'{FAILURE_AXIS} 知识源不可用：{exc}')
     result = knowledge.loop.run(render_input(description, catalog, _outline(catalog), items, question), LoopContext(runtime.trace_id))
     extract_calls = usage['llm_calls']
     usage.update(client.usage())

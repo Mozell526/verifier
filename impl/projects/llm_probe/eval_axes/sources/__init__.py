@@ -54,18 +54,20 @@ def expand_sources(description, *, material_catalog=False):
         # MCP 是业务系统的活查询接口：没有内容封口，快照只记查询时刻。
         catalog.append({'source': 'mcp', 'uri': uri, 'title': name,
                         'description': match.group(1).strip() if match else '',
+                        # 登记时写的读法说明（数据怎么读）：查证和判定都要看。
+                        'notes': str(load_registry().get(name, {}).get('description') or ''),
                         'snapshot_id': datetime.now(timezone.utc).isoformat()})
         text = text.replace('{' + uri + '}', f'（MCP 知识源 {name}，用 {tool_prefix(name)}* 工具查询，返回带 call_id）')
     return text, catalog
 
 
-def build_tools(catalog, recorder):
+def build_tools(catalog, recorder, request=None):
     material = [item for item in catalog if item.get('source', 'material') == 'material']
     es = [item for item in catalog if item.get('source') == 'es']
     unknown = [item.get('source') for item in catalog if item.get('source', 'material') not in ('material', 'es', 'mcp')]
     if unknown:
         raise ValueError(f'不支持的资料来源: {unknown}')
-    return build_material_tools(material, recorder) + build_es_tools(es, recorder) + build_mcp_tools(catalog, recorder)
+    return build_material_tools(material, recorder) + build_es_tools(es, recorder) + build_mcp_tools(catalog, recorder, request)
 
 
 def _referencing_presets(name):

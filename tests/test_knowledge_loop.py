@@ -25,7 +25,7 @@ ITEMS = [{'item_id': 'a', 'kind': 'claim', 'text': '可贷80%', 'context': ['保
 def fake_sources(monkeypatch):
     tool = VerifiableTool(tool_id=TOOL, description='通用问答', execute_fn=lambda query: dict(KB.get(query, {'text': ''})),
                           parameters={'type': 'object', 'properties': {'query': {'type': 'string', 'description': '查询'}}, 'required': ['query']})
-    monkeypatch.setattr(kl, 'build_tools', lambda catalog, recorder: build_agno_tools([tool]))
+    monkeypatch.setattr(kl, 'build_tools', lambda catalog, recorder, request=None: build_agno_tools([tool]))
 
 
 class Script:
@@ -159,13 +159,22 @@ def test_quote_matches_json_string_leaves_and_window():
 def test_window_ignores_whitespace_differences():
     from impl.core.tool_loop import Call
     call = Call(id=0, tool=TOOL, args={}, batch=0, result={'text': '前文。可贷 80 %\n的现金价值。后文'})
-    assert window(call, '可贷80%的现金价值', chars=3) == '前文。可贷 80 %\n的现金价值。后文'
+    # chars 是总预算（引句前后合计）
+    assert window(call, '可贷80%的现金价值', chars=19) == '前文。可贷 80 %\n的现金价值。后文'
 
 
 def test_tool_own_call_id_never_overrides_evidence_id(monkeypatch):
     """知识源工具自己的返回也带 call_id 类键（如 MCP 翻页句柄）时，模型看到的证据编号仍是 loop 的。"""
     tool = VerifiableTool(tool_id=TOOL, description='通用问答', execute_fn=lambda query: {'call_id': 'mcp://x#9', 'text': '可贷80%'},
                           parameters={'type': 'object', 'properties': {'query': {'type': 'string', 'description': '查询'}}, 'required': ['query']})
-    monkeypatch.setattr(kl, 'build_tools', lambda catalog, recorder: build_agno_tools([tool]))
+    monkeypatch.setattr(kl, 'build_tools', lambda catalog, recorder, request=None: build_agno_tools([tool]))
     result, _ = run([search('贷款')], [submit('a', 'found', [{'call_id': 'c0', 'quote': '可贷80%'}]), submit('b', 'not_found')])
     assert tool_results(result)[0]['call_id'] == 'c0' and result.status == 'complete'
+
+
+def test_context_leak_check_ignores_values_inside_identifiers():
+    from impl.projects.llm_probe.knowledge_loop.extract import _contains_value
+    assert not _contains_value('P260922000007857', '0')          # 保单号里的数字不是别条断言的值
+    assert _contains_value('安锦宁名下共有 6 张保单', '6 张')         # 前提里塞了张数：算泄露
+    assert _contains_value('**投保人**：任言琳', '**投保人**：任言琳')
+    assert _contains_value('保费0元', '0')

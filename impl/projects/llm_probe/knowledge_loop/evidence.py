@@ -67,17 +67,57 @@ def quote_ok(call: Call, quote: str) -> bool:
     return any(quote_in_text(quote, leaf) for leaf in _leaves(call.result))
 
 
-def window(call: Call, quote: str, chars: int = 500) -> str:
-    """引句所在字段里，前后各 chars 字的原文；给下游判定看上下文（条件、例外常在引句旁边）。"""
-    target = "".join(quote.split())
-    for leaf in _leaves(call.result):
+def _compact(text: str) -> str:
+    return "".join(text.split())
+
+
+def _dump(value: Any) -> str:
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+
+
+def _objects(value: Any):
+    """JSON 里所有对象（含嵌在字符串里的 JSON），由内到外都给。"""
+    if isinstance(value, str) and value[:1] in "[{":
+        try:
+            value = json.loads(value)
+        except ValueError:
+            return
+    if isinstance(value, Mapping):
+        yield value
+        for item in value.values():
+            yield from _objects(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from _objects(item)
+
+
+def window(call: Call, quote: str, chars: int = 3000, full_text: Optional[str] = None) -> str:
+    """引句的上下文，给下游判定看（归属、条件、例外常在引句旁边）。
+
+    结构化返回给包住引句、不超过 chars 的最大完整对象（整条记录），不把记录从中间切断；
+    同一引句出现在几条记录里时都给（最多 3 条），由判定按归属取舍。
+    full_text 是这次调用的完整返回（MCP 分页时模型只看到一页，记录要在整份返回里找）；引句核对仍只认模型看到的。
+    对象超过 chars 或返回是纯文本时，取引句前后共约 chars 字。"""
+    target = _compact(quote)
+    if not target:
+        return ""
+    leaves = ([full_text] if full_text else []) + _leaves(call.result)
+    for leaf in leaves:
+        if target not in _compact(leaf):
+            continue
+        fits = [text for text in map(_dump, _objects(leaf)) if target in _compact(text) and len(text) <= chars]
+        top = [t for t in fits if not any(t != o and t in o for o in fits)]
+        if top:
+            return "\n……\n".join(sorted(set(top), key=top.index)[:3])
+    for leaf in leaves:
         compact, index = [], []
         for i, ch in enumerate(leaf):
             if not ch.isspace():
                 compact.append(ch)
                 index.append(i)
         at = "".join(compact).find(target)
-        if target and at >= 0:
+        if at >= 0:
             start, end = index[at], index[at + len(target) - 1] + 1
-            return leaf[max(0, start - chars):end + chars]
+            pad = max(0, (chars - (end - start)) // 2)
+            return leaf[max(0, start - pad):end + pad]
     return ""

@@ -133,8 +133,24 @@ knowledge_loop/loop.py
 - 预设整表保存（`/api/capability/save`）被另一预设 `insurance-agno-e2e` 的既有问题挡住（`sqlite_path` 物理绝对路径），与本次无关，未动它；演示改用脚本给预设。
 - 方案没写 runner 的 `not_applicable` 传递，实施需要（§3.5），P5 后回补到方案。
 
+### 6.1 v8 落地（2026-10-18，合并工作区 verifier-integrate）
+
+起因：三场景对照批次（`report/integrate-verify-20261018/`）里 MCP 场景扩展兑现轴 3/10 与主判不一致，查原始数据：
+D16 业务直接引用客户详情字段 `annPremAmt`=4156.6，查证只读了客户详情 53,765 字的前 6,000，没找到便自算合计再判冲突（`information_sources.md` S4）；
+F01 判定把业务工具提示"不能跨险种汇总"当冲突依据（S8）。两处在 v8 实验里已有修法，按方案 §3 / §4.1 / §5 采用：
+
+- `variant-v8.patch` 原样合入（实验目录 `verifier-notrace/report/knowledge-evidence-20261014/`）：判定一条边界；拆说法；`mcp_find`；引用附查询工具与参数、整条记录窗口；登记 `description` 作 `notes` 给查证和判定；MCP 身份 `{request.<字段>}`；业务描述资料 `materials/insurance-business`。
+- 数据：仓库与实例两处 `knowledge_sources.json`、`materials/insurance-business` 同步；实例预设 `verify-insurance-mcp` 的知识查证框追加"业务说明见 {material://llm_probe/insurance-business}。"（实例备份 `capability_map.json.bak-before-v8`）。
+- 方案 §3、§4.1、§5 三处 ⟡ 改为采用；§4.3 / §4.6 补身份绑定、`mcp_find` 与判定上下文。
+- 实验补丁不删：Terminal1 的工作区尚未合入，等两条线合回主线时一并清理。
+- 验证（8031，`verify-insurance-mcp` 10 条；业务每次重跑，回答与上一批不同）：测试全量失败集合与未打补丁副本相同（100 条既有失败，无新增）。
+  - 客户号查人：核实不了 4 → 0；A02：3 → 0（`mcp_find` 找到原先漏看的字段）。B02 本次回答未再说"共 2 张"，无冲突判定。
+  - F01：合计不再判冲突；但回答给金额补了"元"，业务数据不带单位，7 条判核实不了，扩展兑现因此 not_evaluable（S7"金额单位"仍待定）。
+  - D16：4156.6 由冲突变为核实不了，但仍没找到客户详情里的 `annPremAmt`：查证在客户详情上搜的是 education，在保单上搜 sum_ins / year_pay_prem，没搜"年缴保费"。S4 只修了一半。另判出业务把两人手机号脱敏写错（199****2141，原文 19909221141），核对原文属实。
+  - dev 后端 17:16 起"查数据"一步连续超时（RemoteProtocolError / 后端服务暂时不可用），D16、F01、C08 首轮作废，恢复后重跑。
+
 ## 7. 未决
 
 - 长回答样本的标准答案由用户复核（P0.1）。首版标注漏查过一次，说明这个业务库对查询措辞很敏感，人工标注也会漏。
 - 预算和 effort 的最终值待 P7 实验后定。
-- 判定案卷要补调用参数、按结构取窗口、判定提示补 hint 规则；知识源身份改成从样本请求取（改登记协议）；险种行加总口径。都待用户确认（2026-10-14 e2e 对照发现）。
+- ~~判定案卷要补调用参数、按结构取窗口、判定提示补 hint 规则；知识源身份改成从样本请求取（改登记协议）~~：2026-10-18 随 v8 落地（§6.1）。险种行加总口径仍按方案 §5"算出来的值"处理，未另定。
