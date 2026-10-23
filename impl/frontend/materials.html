@@ -48,7 +48,7 @@
       <h2 id="editorTitle">新建预设</h2>
       <label>预设名（小写字母开头，可含数字 / _ / -；作为 case 里的 capability_ref）</label>
       <input id="name" placeholder="如 client_search" />
-      <label>能力描述（轴1：系统定位，回答三问——①用户拿它办什么事（用户视角，勿写实现视角）②交付物被谁怎么消费执行（judge 据此把输出放到消费方语义下推演）③什么算办成/没办成。可写 {material://项目/资料id} 引用自由资料）</label>
+      <label>能力描述（未启用扩展轴「能力兑现」框时轴1 使用；新建「能力兑现」框时预填为它的描述。系统定位，回答三问——①用户拿它办什么事（用户视角，勿写实现视角）②交付物被谁怎么消费执行（judge 据此把输出放到消费方语义下推演）③什么算办成/没办成。交付里有枚举值（意图标签、状态码、类型代码等）时，写清每个值是什么意思、各自要带哪些内容——评测不会替你猜，没写的只能按字面判。可写 {material://项目/资料id} 引用自由资料）</label>
       <textarea id="capability" class="uri-textarea" style="min-height:140px" placeholder="例：用户拿它办的事：从客户库（ES）检回正好符合描述的那群客户。交付物是给 ES 执行的查询谓词集（同从表多条件落同一记录），达成=执行后检回的集合恰好是意图人群。等价表达算办成；互斥/放大/缩小/编造/丢条件算没办成。支持范围写到下面的能力边界。"></textarea>
       <label>能力边界（选填，轴2：能做什么、不能做什么，写成陈述句清单，不写解析规则。填写后启用承载性判定：当调用未达预期时，判断是「接口确实做不到」还是「本该做到但没做对」。可写 {material://项目/资料id}；引用的大资料自动转检索式消费）</label>
       <textarea id="boundary" class="uri-textarea" style="min-height:120px" placeholder="陈述句清单，例如：支持按客户姓名等值检索完整姓名；仅对单姓输入做前缀匹配；不支持按年龄筛选。"></textarea>
@@ -57,9 +57,9 @@
         <button class="secondary small" style="margin-top:0" onclick="insertRef()">插入到光标处</button>
         <span class="hint" id="refStatus"></span>
       </div>
-      <!-- 扩展评估轴（试验）：新链路的框。与上面两栏（生产轴1/轴2）独立，互不影响。 -->
+      <!-- 扩展评估轴：无 trace 预设启用「能力兑现」框时，它就是主结论（spec/adapter/main-axis-switch-plan-20261018.md）。 -->
       <div id="axesSection" style="display:none;margin-top:14px;border-top:1px dashed #cbd5e1;padding-top:6px">
-        <label>扩展评估轴（试验）<span class="hint" style="font-weight:400"> · 新链路：每个框 = 选类型 + 写本场景描述 + 启用。不影响上面的能力描述/能力边界（生产轴1/轴2）；在 Live 页点「扩展轴试验」运行并与生产结果对照。</span></label>
+        <label>扩展评估轴<span class="hint" style="font-weight:400"> · 每个框 = 选类型 + 写本场景描述 + 启用。无业务 trace 的预设启用「能力兑现」框时，它就是主结论（替代轴1），知识查证 / 真实性框是它的依赖，任一失败整条判执行失败；新建预设默认带上「能力兑现」框。</span></label>
         <div id="axesList"></div>
         <div class="row">
           <button class="secondary small" style="margin-top:0" onclick="addAxisBox()">+ 添加轴</button>
@@ -76,6 +76,7 @@
           <option value="sse_last_frame">SSE 取最后一帧（仅限最后一帧是全量内容的伪流式；逐帧增量的接口不适用）</option>
         </select>
       </div>
+      <input id="serviceStartHint" placeholder="启动提示（选填）：端点连不上时附在报错里，如「先运行 python scripts/qa_target.py」" />
       <div id="businessTraceSection" style="display:none;margin-top:14px;border-top:1px dashed #cbd5e1;padding-top:6px">
         <label>业务 Trace（可选，与 service 并列）<span class="hint" style="font-weight:400"> · 配置后由 llm_probe 在业务调用完成时采集一次快照；需要业务 Trace 的扩展轴共享这份快照。</span></label>
         <select id="businessTraceProvider" onchange="changeBusinessTraceProvider()"><option value="">不采集业务 Trace</option></select>
@@ -630,7 +631,7 @@ document.addEventListener('focusin',ev=>{
 });
 document.getElementById('capability').addEventListener('input',validateRefs);
 document.getElementById('boundary').addEventListener('input',validateRefs);
-// ---- 扩展评估轴（试验）的框：{type, enabled, description}，存进预设条目的 axes[] ----
+// ---- 扩展评估轴的框：{type, enabled, description}，存进预设条目的 axes[] ----
 let axisTypes=[];      // /api/eval_axes/types 的类型声明；空 = 本项目没有扩展轴体系，整节隐藏
 let axisBoxes=[];      // 当前编辑器里的框
 let businessTraceProviders=[];
@@ -704,6 +705,12 @@ function legacyDescriptionFor(typeId){
   if(typeId==='carryability'){return document.getElementById('boundary').value;}
   return '';
 }
+function axisDescPlaceholder(typeId){
+  const refs='可写 {material://项目/资料id}、{es://知识源名/索引}、{mcp://知识源名}';
+  // 兑现轴自推期望时读它：交付里的枚举值没写清，评测只能按字面猜（如把话里每个词都当成必填槽位）。
+  if(typeId==='fulfillment'){return '用户拿它办什么事、交付物是什么、什么算办成。交付里有枚举值（意图标签、状态码等）时，写清每个值的含义和各自要带的内容（如某个标签需要哪些槽位、兜底类带不带槽位）。'+refs;}
+  return '本场景下这个轴按什么口径评；'+refs;
+}
 function renderAxisBoxes(){
   const list=document.getElementById('axesList');
   if(!axisTypes.length){list.innerHTML='';return;}
@@ -720,7 +727,7 @@ function renderAxisBoxes(){
       '</div>'+
       '<div class="hint" style="margin:6px 0">'+escapeHtml(t?t.summary:'未知类型（未注册）')+'</div>'+
       (axisDescriptionField(box.type)
-        ?'<textarea id="axisDesc-'+i+'" class="uri-textarea" style="min-height:110px" placeholder="本场景下这个轴按什么口径评；可写 {material://项目/资料id}、{es://知识源名/索引}、{mcp://知识源名}" oninput="syncAxisBoxesFromDom();validateRefs()">'+escapeHtml(box.description||'')+'</textarea>'
+        ?'<textarea id="axisDesc-'+i+'" class="uri-textarea" style="min-height:110px" placeholder="'+escapeHtml(axisDescPlaceholder(box.type))+'" oninput="syncAxisBoxesFromDom();validateRefs()">'+escapeHtml(box.description||'')+'</textarea>'
         :'<div class="hint">本轴按统一协议与需求轴定格期望判定，不读场景描述。</div>')+
       '<div class="hint" style="margin-top:6px">'+escapeHtml(axisTypeInfo(t))+'</div>'+
     '</div>';
@@ -759,6 +766,7 @@ function selectCap(name){
   document.getElementById('serviceMethod').value=(service.method||'POST').toUpperCase();
   document.getElementById('serviceTimeout').value=service.timeout_seconds||'';
   document.getElementById('serviceResponseMode').value=service.response_mode||'json';
+  document.getElementById('serviceStartHint').value=service.start_hint||'';
   const businessTrace=entry.business_trace||{};
   document.getElementById('businessTraceProvider').value=businessTrace.provider||'';
   document.getElementById('businessTraceConfig').value=businessTrace.config?JSON.stringify(businessTrace.config,null,2):'';
@@ -782,12 +790,14 @@ function newCap(){
   document.getElementById('serviceMethod').value='POST';
   document.getElementById('serviceTimeout').value='';
   document.getElementById('serviceResponseMode').value='json';
+  document.getElementById('serviceStartHint').value='';
   document.getElementById('businessTraceProvider').value='';
   document.getElementById('businessTraceConfig').value='';
   document.getElementById('businessTraceHint').textContent='';
   document.getElementById('mockBody').value='';
   document.getElementById('deleteBtn').style.display='none';
-  axisBoxes=[];
+  // 新建预设默认带一个已启用的主轴（能力兑现）框；描述留空时保存取能力描述。
+  axisBoxes=axisTypeById('fulfillment')?[{type:'fulfillment',enabled:true,description:''}]:[];
   renderAxisBoxes();
   validateRefs();
   setStatus('');
@@ -802,6 +812,8 @@ async function saveCap(){
   const boundary=document.getElementById('boundary').value.trim();
   if(boundary){entry.boundary=boundary;}
   syncAxisBoxesFromDom();
+  // 主轴框描述留空：取能力描述（与新建框预填同一口径）。
+  axisBoxes.forEach(b=>{if(b.type==='fulfillment'&&!b.description.trim()){b.description=legacyDescriptionFor('fulfillment');}});
   if(axisBoxes.length){
     const emptyBox=axisBoxes.findIndex(b=>{const f=axisDescriptionField(b.type);return f&&f.required&&!b.description.trim();});
     if(emptyBox>=0){setStatus('扩展评估轴 第 '+(emptyBox+1)+' 个框的描述不能为空', true);return;}
@@ -816,6 +828,8 @@ async function saveCap(){
     if(timeout){entry.service.timeout_seconds=Number(timeout);}
     const responseMode=document.getElementById('serviceResponseMode').value;
     if(responseMode&&responseMode!=='json'){entry.service.response_mode=responseMode;}
+    const startHint=document.getElementById('serviceStartHint').value.trim();
+    if(startHint){entry.service.start_hint=startHint;}
   }
   const mockText=document.getElementById('mockBody').value.trim();
   if(mockText){

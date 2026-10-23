@@ -6,7 +6,7 @@ import json
 import re
 
 from impl.core.capability_store import validate_es_refs, validate_mcp_refs
-from impl.core.materials_store import expand_material_uris_with_catalog
+from impl.core.materials_store import expand_material_uris_with_catalog, get_material
 from impl.projects.llm_probe.material_tools import build_material_tools
 from .es_client import EsClient
 from .es_tools import build_es_tools
@@ -15,9 +15,28 @@ from .registry import load_mcp_source, load_registry
 from . import registry
 
 
+# 业务方登记的责任范围资料（demand/information_sources.md §1.2）：{boundary://项目/资料id}，正文就是资料管理页里那份资料。
+_BOUNDARY_REF = re.compile(r"\{boundary://([A-Za-z][A-Za-z0-9_-]*)/([a-z][a-z0-9_-]*)\}")
+
+
+def expand_boundary(description):
+    """拆出责任范围登记：返回（去掉引用后的描述，[{uri, title, content}]）。引用的资料不存在直接抛。"""
+    registrations, seen = [], set()
+    for project, material_id in _BOUNDARY_REF.findall(description or ""):
+        uri = f"boundary://{project}/{material_id}"
+        if uri in seen:
+            continue
+        seen.add(uri)
+        material = get_material(project, material_id)
+        registrations.append({"uri": uri, "title": str(material.get("title") or material_id), "content": material["content"]})
+    text = _BOUNDARY_REF.sub(lambda m: f"（责任范围登记 boundary://{m.group(1)}/{m.group(2)}）", description or "")
+    return text, registrations
+
+
 def validate_source_refs(description):
-    """语法层：{es://} / {mcp://} 引用是否合法。所有框（含未启用）都查。"""
+    """语法层：{es://} / {mcp://} / {boundary://} 引用是否合法。所有框（含未启用）都查。"""
     validate_mcp_refs(description)
+    expand_boundary(description)
     return validate_es_refs(description)
 
 

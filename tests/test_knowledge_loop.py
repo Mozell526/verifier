@@ -47,9 +47,11 @@ def search(query):
     return (TOOL, {'query': query})
 
 
-def submit(item_id, status, citations=(), searches=('c0',), note='查了 general_qa'):
+def submit(item_id, status, citations=(), searches=('c0',), note='查了 general_qa', gap=None):
+    if gap is None:
+        gap = 'item_absent' if status == 'not_found' else ''
     return (kl.SUBMIT, {'item_id': item_id, 'status': status, 'citations': [dict(c) for c in citations],
-                        'search_calls': list(searches), 'note': note})
+                        'search_calls': list(searches), 'note': note, 'gap': gap})
 
 
 def run(*steps, items=ITEMS):
@@ -72,6 +74,7 @@ def test_happy_path_builds_dossier_and_ends_without_summary_step():
     assert len(script.seen) == 2  # 最后一条被接受即结束，不再请求收尾文本
     items = {i['item_id']: i for i in result.value['items']}
     assert items['a']['status'] == 'found' and items['b']['status'] == 'not_found'
+    assert items['a']['gap'] == '' and items['b']['gap'] == 'item_absent'
     cite = items['a']['citations'][0]
     assert cite['source'] == 'mcp://insurance-tools' and '短期险不能贷款' in cite['window']
     assert result.value['searches'][0]['call_id'] == 'c0'
@@ -96,6 +99,9 @@ def test_same_batch_result_cannot_be_cited():
     (submit('zz', 'not_found'), '不在待查清单'),
     (submit('a', 'not_found', searches=('c9',)), '不是此前回复里的知识源调用'),
     (submit('a', 'found', [{'call_id': 'c0', 'quote': '80%'}], searches=('c1',)), '没列在 search_calls'),
+    # 查不到要说出缺哪一格（demand/claims.md §3.3）。
+    (submit('a', 'not_found', gap=''), 'gap 必须是'),
+    (submit('a', 'found', [{'call_id': 'c0', 'quote': '80%'}], gap='item_absent'), 'found 时 gap 为空'),
 ])
 def test_submit_rules_are_enforced(bad, reason):
     result, _ = run(

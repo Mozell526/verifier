@@ -19,12 +19,15 @@ from .evidence import StampCallId, call_id, failed, find, quote_ok, window
 
 SUBMIT = 'submit_item'
 FOUND, NOT_FOUND = 'found', 'not_found'
+# not_found 缺的是哪一格（demand/claims.md §3.3）：对象整个不在，还是对象在、这一项不在。只有查证人知道，提交时就要。
+GAPS = ('object_absent', 'item_absent')
 
 SYSTEM = '''你在为一份被测回答做知识查证：针对待查清单里的每一条，到给定知识源里取证。你只取证，不判对错。
 
 每条交两种结果之一：
 - found：知识源里有讲同一对象、同一事项的原文。引用这些原文。
-- not_found：查过了，知识源里没有相关原文。note 写清检索了哪些知识源、用了什么词、为什么认为没有。
+- not_found：查过了，知识源里没有相关原文。note 写清检索了哪些知识源、用了什么词、为什么认为没有；
+  gap 写缺的是哪一格：object_absent = 这个对象在知识源里就找不到；item_absent = 对象找到了，只是没有这一项。
 
 取证规则：
 1. 对象要对：原文说的必须就是说法说的那个对象（谁、哪张单、哪款产品哪个版本）的那个事项、那个条件。
@@ -45,6 +48,8 @@ SYSTEM = '''你在为一份被测回答做知识查证：针对待查清单里�
    实在补不全，在 note 里写明"结果不全：总数多少、看到多少"。全不全以数据本身为准（总数与已读条数）。
    单次返回很长被截断时，没看到的部分不能当作"没有"：用 mcp_find 在全文里搜（字段名、中文名、数值），或翻页看完。
 9. 知识源目录里的 notes 是登记方写的读法说明（字段含义、数据怎么读），取证时照着读。
+10. 按说法的对象查过，返回明确表明这个对象本身不存在（结果为空、提示未查询到该对象）：这个返回就是关于该对象的原文，交 found 并引用它
+   （返回本身就是依据，demand/claims.md §3.3）；查回别的对象、没读全、工具报错都不算。
 
 提交：每查完一条就调用 submit_item 交这一条（可以一次回复里交多条）。search_calls 列出为这一条做过的检索调用的 call_id
 （同一次调用可以被多条共用）；found 时每个引用的 call_id 也要列在 search_calls 里。被拒就按原因改了再交。
@@ -60,7 +65,9 @@ _SUBMIT_PARAMETERS = {'type': 'object', 'properties': {
                       'required': ['call_id', 'quote'], 'additionalProperties': False}},
     'search_calls': {'type': 'array', 'items': {'type': 'string'}, 'description': '为这一条做过的检索调用的 call_id，至少一个'},
     'note': {'type': 'string', 'description': '检索思路与取舍；not_found 时写清查了什么、为什么认为没有。不写支持/矛盾的结论'},
-}, 'required': ['item_id', 'status', 'citations', 'search_calls', 'note'], 'additionalProperties': False}
+    'gap': {'type': 'string', 'enum': ['', *GAPS],
+            'description': 'not_found 时必填：object_absent=对象本身找不到；item_absent=对象在、没有这一项。found 时为空字符串'},
+}, 'required': ['item_id', 'status', 'citations', 'search_calls', 'note', 'gap'], 'additionalProperties': False}
 
 
 def knowledge_tools(catalog: Sequence[Mapping[str, Any]], recorder: list, request: Any = None) -> list[VerifiableTool]:
@@ -135,6 +142,11 @@ class Checklist(Hook):
             problems.append(f'status 只能是 {FOUND} 或 {NOT_FOUND}')
         if not isinstance(note, str) or not note.strip():
             problems.append('note 不能为空')
+        gap = args.get('gap') or ''
+        if status == NOT_FOUND and gap not in GAPS:
+            problems.append(f'not_found 时 gap 必须是 {GAPS[0]}（对象本身找不到）或 {GAPS[1]}（对象在、没有这一项）')
+        if status == FOUND and gap:
+            problems.append('found 时 gap 为空字符串')
         if not isinstance(searches, list) or not searches:
             problems.append('search_calls 至少列一个为这一条做过的检索调用的 call_id；一次都没查就不能交')
             searches = []
@@ -235,7 +247,7 @@ class KnowledgeLoop:
             args = accepted[key].args
             citations = [self._citation(calls[c['call_id']], c) for c in args['citations']]
             items.append({**item, 'status': args['status'], 'citations': citations,
-                          'search_calls': list(args['search_calls']), 'note': args['note']})
+                          'search_calls': list(args['search_calls']), 'note': args['note'], 'gap': args.get('gap') or ''})
         searches = [{'call_id': ref, 'tool': c.tool, 'args': c.args, 'source': source_of(c, self.catalog),
                      'batch': c.batch, 'error': failed(c), 'result': c.result} for ref, c in calls.items()]
         return {'items': items, 'searches': searches}

@@ -20,7 +20,9 @@ def _request_material(request: Any) -> tuple[Any, list[tuple[int, Mapping]]]:
     if not isinstance(request, Mapping):
         return _content(request), []
     body = request.get('body') if isinstance(request.get('body'), Mapping) else request
-    messages = body.get('messages') or []
+    # DashScope 形状在 input.messages，其余在 messages（与 knowledge_loop.extract.user_turns 同一口径）。
+    nested = body.get('input') if isinstance(body.get('input'), Mapping) else {}
+    messages = body.get('messages') or nested.get('messages') or []
     users = [i for i, m in enumerate(messages) if isinstance(m, Mapping) and m.get('role') == 'user']
     if users:
         current = users[-1]
@@ -28,11 +30,10 @@ def _request_material(request: Any) -> tuple[Any, list[tuple[int, Mapping]]]:
                    if isinstance(m, Mapping) and m.get('role') in {'user', 'assistant'}
                    and _content(m.get('content')) is not None and not m.get('tool_calls')]
         return _content(messages[current].get('content')), history
-    for key in ('message', 'query', 'input', 'content'):
-        value = _content(body.get(key))
-        if value is not None:
-            return value, []
-    return None, []
+    # 不是对话消息形状：整份请求体就是用户这一轮发来的东西，原样作为用户原话，不猜字段名
+    # （spec/alg/expectations.md §2.1）。空字段去掉，免得噪声。
+    payload = {k: v for k, v in body.items() if v not in (None, '', [], {})}
+    return (payload or None), []
 
 
 def project_requirements(trace: Any, scenario: Mapping[str, Any] | None = None) -> dict:

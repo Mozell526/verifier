@@ -35,7 +35,10 @@ def build_report(spec: Any, trace: Any, *, run_id: str = "") -> dict[str, Any]:
         from .types import ScenarioAxis
         from .adapters.process_common import PROCESS_SPECS
         configured = {a.type_id: a for a in axes}
-        axes = [ScenarioAxis("expectations", True, ""), ScenarioAxis("trace_analysis", True, "完整整理过程案卷")]
+        # 主轴的几部分（核事实、兑现、承载性）与过程六轴并列：同一份 E、同一份 K，结论与无 trace 路线一致（main_axis M3）。
+        main_parts = [a for a in configured.values() if a.enabled and a.type_id not in PROCESS_SPECS
+                      and a.type_id not in ("expectations", "trace_analysis")]
+        axes = [ScenarioAxis("expectations", True, ""), ScenarioAxis("trace_analysis", True, "完整整理过程案卷"), *main_parts]
         # Ordinary dossier execution is sequential: let downstream data/model
         # units cite already-recorded planning/tool/input problems.
         process_order = ('context_memory', 'intent_understanding', 'planning_routing',
@@ -44,7 +47,9 @@ def build_report(spec: Any, trace: Any, *, run_id: str = "") -> dict[str, Any]:
                  for key in process_order]
     run_id = str(run_id or "").strip() or new_run_id()
     results = [item.as_dict() for item in run_axes(spec, trace, axes, scenario_id=scenario_id, run_id=run_id)]
+    from .main_verdict import main_verdict
     return {
+        "main_verdict": main_verdict(results),
         "run_id": run_id,
         "scenario_id": scenario_id,
         "trace_id": str(trace.trace_id or ""),
@@ -53,6 +58,37 @@ def build_report(spec: Any, trace: Any, *, run_id: str = "") -> dict[str, Any]:
         "results": results,
         "warnings": list(report.warnings),
     }
+
+
+MAIN_AXIS = "fulfillment"
+
+
+def main_axis_enabled(spec: Any, trace: Any) -> bool:
+    """无 trace 预设启用了主轴框 → 主结论由扩展轴的主轴出（spec/adapter/main-axis-switch-plan-20261018.md §2）。"""
+    from .validate import parse_axes
+    from impl.projects.llm_probe.capability import capability_business_trace
+
+    scenario_id = _capability_ref(trace)
+    if not scenario_id or capability_business_trace(scenario_id):
+        return False
+    entry = load_capability_map(spec.project_id).get(scenario_id)
+    if not isinstance(entry, Mapping):
+        return False
+    return any(axis.enabled and axis.type_id == MAIN_AXIS for axis in parse_axes(entry.get("axes"), owner=f"{scenario_id}.axes"))
+
+
+def main_axis_upstream() -> set[str]:
+    """主轴的依赖链（含可选依赖）：真实性 ← 知识查证。启用了的上游没成功，主结论就不成立。"""
+    from .registry import AXIS_TYPES
+
+    seen: set[str] = set()
+    pending = [MAIN_AXIS]
+    while pending:
+        for dep in AXIS_TYPES[pending.pop()].depend_on:
+            if dep.type_id not in seen:
+                seen.add(dep.type_id)
+                pending.append(dep.type_id)
+    return seen
 
 
 def run_for_trace(spec: Any, trace: Any) -> Optional[dict[str, Any]]:
@@ -79,4 +115,4 @@ def run_for_trace(spec: Any, trace: Any) -> Optional[dict[str, Any]]:
     return build_report(spec, trace)
 
 
-__all__ = ["build_report", "run_for_trace"]
+__all__ = ["MAIN_AXIS", "build_report", "main_axis_enabled", "main_axis_upstream", "run_for_trace"]

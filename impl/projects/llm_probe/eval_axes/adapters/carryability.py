@@ -1,13 +1,12 @@
-"""轴类型 carryability：新版轴2（承载性归位）。
+"""轴类型 carryability：主轴的系统能力部分（承载性归位，spec/alg/capability_carrier.md）。
 
-实现方式（axe-v4 D7）：继承 ``TextCarrier``，只换两处入口——
-- ``_current_boundary``：边界文本来自框里的 description，走与 ``resolve_boundary`` 相同的
-  ``expand_material_uris_with_catalog``（小资料内联、大资料转目录 + 检索工具）；
-- ``_call_llm``：与父类同一套 prompt / 角色 / 工具 / 上限，只多传本次试验的 trace_id 并计数。
-门控、逐 blocking NF 期望循环、归位映射、引用核验、重试全部复用 ``place()``（协议锁定，不可覆盖）。
+继承 ``TextCarrier``：门控、逐 blocking NF 期望循环、归位映射、重试复用 ``place()``（协议锁定，不可覆盖）。
+边界输入分两路（§6.1 文本形态）：
+- 依据：业务方登记的责任范围（框里 ``{boundary://项目/资料id}``）、知识源查询回执——可作自认、可引用，程序回读核验；
+- 背景：框里其余文字（系统自己的能力描述等）——只帮助理解期望，不能作依据，引用它会被打回。
 
-输入只有 fulfillment 输出的三个字段，没有任何 sample 来源：轴2不看这次交付了什么
-（spec/alg/capability_carrier.md §5 第 6 条）。
+输入是 fulfillment 输出的几个字段，加本样本的请求体：请求体只交给 MCP 工具按信息源登记取身份去查，
+不进模型上下文；承载性不看这次交付了什么（capability_carrier.md §5 第 6 条）。
 """
 from __future__ import annotations
 
@@ -18,22 +17,24 @@ import hashlib
 
 from impl.core.judge import BUSINESS_CALL_FAILED
 from impl.core.capability_carrier import (
+    CARRY_NO,
+    CARRY_UNDECIDABLE,
     PLACEMENT_CANNOT,
     PLACEMENT_UNCLEAR,
     PLACEMENT_WRONG,
+    RECOG_RESPONSIBILITY,
+    RECOG_SOURCE_ABSENT,
     carrier_text,
     format_carrier_errors,
 )
-from ..sources import expand_sources, build_tools
+from ..sources import expand_boundary, expand_sources, build_tools
 from impl.projects.llm_probe.text_carrier import (
-    _CARRIER_SYSTEM,
     _CARRIER_TOOLS_GUIDE,
     TextCarrier,
     _TOOL_CALL_LIMIT,
     _catalog_prompt,
     _verdict_output_spec,
     _parse_verdict,
-    _verify_citations,
     CarrierError,
 )
 
@@ -56,13 +57,30 @@ from ..types import (
 _OUTPUT_FIELDS = ("applicable", "axis1_status", "placements", "errors", "snapshot_id")
 _INPUT_FIELDS = ("overall_fulfillment", "business_expectations", "fulfillment_assessments", "evidence")
 
+_SYSTEM = """你是承载性判定器。给你一条用户要的、这次没给到的期望。只判断：被测系统各部分（智能体、工具、数据、下游服务）都正常工作时，这条期望要的结果给得出还是给不出。
+
+依据只有两种，都可以引用：
+- 责任范围登记：业务方登记的事实（没有哪类数据、不接哪类系统、哪些要求不由本系统负责）。引用时 source 填它的 boundary:// uri，ref 填 boundary，note 逐字摘自登记原文。
+- 信息源查询回执：用工具查到的被测系统数据、知识库原文（格式见下）。
+背景是场景里对系统的描述（系统自己说能做什么、该怎么做），只帮助理解期望说的是什么，不能作依据，不能引用。
+
+carry 只能是 yes / no / undecidable：
+- no：依据表明给不出——责任范围登记写明这条落在系统之外，或信息源按该对象查过、读全了确实没有。self_recognition 逐字摘那段原文，并放进 citations。
+- yes：依据表明给得出——如信息源里查到了这条期望要的数据。citations 引用它。
+- undecidable：依据不足以判定；gap_kind 取「口径分歧」或「空间未受治理」，missing_material 写缺什么资料才能判。
+查询报错、查回别的对象、没读全都不算查实没有；数据在，就是给得出。不看这次交付，不看被测系统说了什么。
+"""
+
 
 class BoxBoundaryCarrier(TextCarrier):
-    """边界来自场景轴的描述；其余行为与生产 TextCarrier 一致。"""
+    """边界来自场景轴的描述：责任范围登记与知识源回执是依据，其余文字是背景。"""
 
-    def __init__(self, spec: Any, description: str, runtime: AxisRuntime) -> None:
+    def __init__(self, spec: Any, description: str, runtime: AxisRuntime, request_body: Any = None) -> None:
         super().__init__(spec=spec)
-        text, catalog = expand_sources(description)
+        # 只交给 MCP 工具按信息源登记的 {request.<字段>} 取身份，不进模型上下文（承载性不看交付，见 capability_carrier.md §1）。
+        self._request_body = request_body
+        background, self._registrations = expand_boundary(description)
+        text, catalog = expand_sources(background)
         self._box_text = str(text or "").strip()
         self._box_catalog = [dict(item) for item in catalog]
         self._runtime = runtime
@@ -73,16 +91,21 @@ class BoxBoundaryCarrier(TextCarrier):
         self.llm_usage: dict[str, Any] = {}
 
     def _current_boundary(self) -> dict[str, Any]:
-        return {"text": self._box_text, "catalog": [dict(item) for item in self._box_catalog]}
+        return {"text": self._box_text, "catalog": [dict(item) for item in self._box_catalog],
+                "registrations": [dict(item) for item in self._registrations]}
 
     def snapshot_revision(self) -> str:
         es_snapshots = [item['snapshot_id'] for item in self._box_catalog if item.get('source') == 'es']
+        registered = [hashlib.sha256(item['content'].encode()).hexdigest() for item in self._registrations]
         revision = super().snapshot_revision()
-        return hashlib.sha256((revision + '|'.join(es_snapshots)).encode()).hexdigest()[:16] if es_snapshots else revision
+        extra = es_snapshots + registered
+        return hashlib.sha256((revision + '|'.join(extra)).encode()).hexdigest()[:16] if extra else revision
 
     def _judge_with_retry(self, expectation_text, boundary):
         from ..sources.es_tools import EsTools
+        from impl.projects.llm_probe.material_tools import quote_in_text
         es_catalog = [item for item in boundary['catalog'] if item.get('source') == 'es']
+        registered = {item['uri']: item['content'] for item in boundary.get('registrations') or []}
         feedback = ""
         last_error = "承载性判定无效"
         for attempt in range(self._retries):
@@ -98,10 +121,27 @@ class BoxBoundaryCarrier(TextCarrier):
                 verdict = _parse_verdict(result)
                 if verdict is None:
                     raise ValueError("LLM 输出缺少必填字段或取值非法")
-                es_citations = [c for c in verdict.citations if c['source'].startswith('es://')]
-                ordinary = replace(verdict, citations=tuple(c for c in verdict.citations if not c['source'].startswith('es://')))
-                # 保留生产文件资料核验；ES 引用独立回读，不能当 boundary 文本放行。
-                failures = _verify_citations(ordinary, boundary['text']) if ordinary.citations or not es_citations else []
+                failures = []
+                if verdict.carry != CARRY_UNDECIDABLE and not verdict.citations:
+                    failures.append("carry=yes/no 必须引用责任范围登记或信息源查询回执")
+                es_citations = []
+                for citation in verdict.citations:
+                    source, note = citation['source'], citation['note']
+                    if source.startswith('boundary://'):
+                        if source not in registered or not quote_in_text(note, registered[source]):
+                            failures.append(f"责任范围登记引用回读核验失败：{source}")
+                    elif source.startswith('mcp://'):
+                        # 信息源查询回执：引句须逐字出自这次实际返回的原文（ref = 工具给的翻页句柄）。
+                        # 报错的返回不算：查询失败不能当"查实没有"的证据。
+                        returned = next((r.get('response_text') for r in receipts
+                                         if r.get('page_id') == citation['ref'] and not r.get('error')), None)
+                        if returned is None or not quote_in_text(note, returned):
+                            failures.append(f"MCP 引用回读核验失败：{citation['ref']}")
+                    elif source.startswith('es://'):
+                        es_citations.append(citation)
+                    else:
+                        failures.append(f"{source} 不是依据：只能引用责任范围登记（boundary://）或信息源查询回执；"
+                                        "场景描述里系统自己的说明是背景，不能作依据")
                 if es_citations:
                     verifier = EsTools(es_catalog, receipts)
                     for citation in es_citations:
@@ -109,6 +149,9 @@ class BoxBoundaryCarrier(TextCarrier):
                             failures.append("ES 引用回读核验失败")
                 if failures:
                     raise ValueError("；".join(failures))
+                if verdict.carry == CARRY_NO:
+                    by_registration = any(c['source'].startswith('boundary://') for c in verdict.citations)
+                    verdict = replace(verdict, recognition=RECOG_RESPONSIBILITY if by_registration else RECOG_SOURCE_ABSENT)
                 return replace(verdict, tool_trail=tuple(receipts))
             except Exception as exc:
                 last_error = str(exc)
@@ -125,24 +168,31 @@ class BoxBoundaryCarrier(TextCarrier):
         receipts: list[dict[str, Any]],
         feedback: str = "",
     ) -> Mapping[str, Any]:
-        # 与 TextCarrier._call_llm 逐行同构；差别只有 trace_id、记账与模型策略外壳（axe-v4 D9 / D12）。
         catalog = list(boundary.get("catalog") or [])
-        tools = build_tools(catalog, receipts)
+        tools = build_tools(catalog, receipts, self._request_body)
         client = axis_llm(
             self._spec,
             role="capability_carrier_mapper",
             tools=tools,
             tool_call_limit=_TOOL_CALL_LIMIT if tools else None,
         )
-        system = _CARRIER_SYSTEM + (_CARRIER_TOOLS_GUIDE if tools else "")
+        system = _SYSTEM + (_CARRIER_TOOLS_GUIDE if tools else "")
         es_catalog = [item for item in catalog if item.get('source') == 'es']
+        mcp_catalog = [item for item in catalog if item.get('source') == 'mcp']
         if es_catalog:
-            system += "\nES 资料同样可作原文证据：source=es://<知识源名>/<索引>，ref=文档ID#字段。使用 es_outline/es_search/es_read，note 逐字引用回读字段。"
+            system += "\nES 回执引用格式：source=es://<知识源名>/<索引>，ref=文档ID#字段，note 逐字引用回读字段。使用 es_outline/es_search/es_read。"
+        if mcp_catalog:
+            system += "\nMCP 回执引用格式：source=mcp://<知识源名>，ref=工具返回的翻页句柄（mcp://<知识源名>#序号，原样复制），note 逐字摘自该次返回原文。"
+        registrations = boundary.get("registrations") or []
         user = (
             f"未达成的期望：\n{expectation_text}\n\n"
-            f"能力边界描述：\n{boundary['text']}"
-            f"{_catalog_prompt([item for item in catalog if item.get('source') != 'es'])}"
+            "## 依据：责任范围登记\n"
+            + ("\n\n".join(f"### {item['uri']}（{item['title']}）\n{item['content']}" for item in registrations)
+               if registrations else "（本场景没有登记责任范围）")
+            + f"\n\n## 背景（不能作依据）\n{boundary['text']}"
+            + _catalog_prompt([item for item in catalog if item.get('source') not in ('es', 'mcp')])
             + ("\nES 目录：\n" + json.dumps(es_catalog, ensure_ascii=False) if es_catalog else "")
+            + ("\nMCP 信息源：\n" + json.dumps(mcp_catalog, ensure_ascii=False) if mcp_catalog else "")
         )
         if feedback:
             user += f"\n\n{feedback}"
@@ -196,7 +246,7 @@ def run_carryability(inputs: Mapping[str, Any], axis: ScenarioAxis, runtime: Axi
     payload = dict(inputs["fulfillment"])
     if BUSINESS_CALL_FAILED in (payload.get("evidence") or []):
         return RunOutcome(output={}, not_applicable="被测系统调用失败，没有答复，不判承载")
-    carrier = BoxBoundaryCarrier(runtime.spec, axis.description, runtime)
+    carrier = BoxBoundaryCarrier(runtime.spec, axis.description, runtime, inputs.get("request_body"))
     report = carrier.place(payload)
     usage = {"llm_calls": 0, **carrier.llm_usage, "tool_calls": carrier.tool_calls}
     if carrier.timed_out:
@@ -212,17 +262,18 @@ def run_carryability(inputs: Mapping[str, Any], axis: ScenarioAxis, runtime: Axi
 AXIS_TYPE = AxisType(
     type_id="carryability",
     title="承载性",
-    summary="对轴1未达成的 blocking 期望逐条判：受治理能力空间承载得了（做错了）还是承载不了（做不了）",
+    summary="对没给到的 blocking 期望逐条判：依据（责任范围登记、信息源回执）表明给得出（做错了）还是给不出（做不了）",
     verdict_scope=VERDICT_SCOPE_ITEM,
     verdict_enum=(
-        Verdict(PLACEMENT_CANNOT, "能力边界资料自认承载不了；≠ 职责外"),
-        Verdict(PLACEMENT_WRONG, "能力边界证实承载得了，但这次没做对"),
+        Verdict(PLACEMENT_CANNOT, "依据表明系统正常工作时也给不出：责任范围登记在系统之外，或信息源查实本来没有"),
+        Verdict(PLACEMENT_WRONG, "依据表明给得出，但这次没给到"),
         Verdict(PLACEMENT_UNCLEAR, "承载性判不了；必带差在哪儿（口径分歧 / 空间未受治理）和缺料"),
     ),
     item_path="placements[].placement",
     depend_on=("fulfillment",),
     trigger_when=When(axis="fulfillment", verdict_in=("not_fulfilled",)),
-    inputs=(Input("fulfillment", source="axis.fulfillment.output", fields=_INPUT_FIELDS),),
+    inputs=(Input("fulfillment", source="axis.fulfillment.output", fields=_INPUT_FIELDS),
+            Input("request_body", source="sample.request_body", required=False)),
     output_fields=_OUTPUT_FIELDS,
     scenario_fields=(Field("description", required=True, expand="catalog"),),
     # 每条期望 ≤3 次重试（TextCarrier 默认）；每次调用工具上限与生产 TextCarrier 相同；seconds 先放宽只兜失控。

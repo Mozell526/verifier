@@ -44,7 +44,7 @@ EXPAND_MODES = (EXPAND_PROMPT_LOAD, EXPAND_CATALOG)
 
 TYPE_ID_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
 
-_SAMPLE_SOURCE = re.compile(r"^sample\.(trace|business_trace|requirements)$")
+_SAMPLE_SOURCE = re.compile(r"^sample\.(trace|business_trace|requirements|request_body)$")
 _AXIS_SOURCE = re.compile(r"^axis\.([a-z][a-z0-9_]*)\.output$")
 
 
@@ -71,6 +71,7 @@ class Input:
     source 只有两种形态：
     - ``sample.trace``：整份 RunTrace；
     - ``sample.business_trace``：同一 RunTrace 中固化的业务 Trace 快照；
+    - ``sample.request_body``：本样本发给被测系统的请求体（只有输入、没有交付），供按样本身份查信息源；
     - ``axis.<type_id>.output``：上游轴 output 的**具名字段**（fields 必填），
       运行器只投影这些字段，不给整份结果，更不给 trace。
     """
@@ -92,7 +93,7 @@ class Input:
                 )
             return
         raise ValueError(
-            f"Input {self.name}: source 只能是 sample.trace、sample.business_trace、sample.requirements 或 axis.<type_id>.output，得到 {self.source!r}"
+            f"Input {self.name}: source 只能是 sample.trace、sample.business_trace、sample.requirements、sample.request_body 或 axis.<type_id>.output，得到 {self.source!r}"
         )
 
     @property

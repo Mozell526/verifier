@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 import json
 import os
 import subprocess
@@ -335,10 +336,8 @@ def save_capability(data: Dict[str, Any]) -> Any:
     project = project_from(data)
     name = str(data.get("name") or "")
     entry = capability_store.validate_entry(name, data.get("entry") or {})
-    if project == "llm_probe":
-        from ..projects.llm_probe.eval_axes.validate import validate_scenario_entry
-
-        validate_scenario_entry(entry, owner=name)
+    if project in EVAL_AXES_PROJECTS:
+        _project_module(project, "eval_axes.validate").validate_scenario_entry(entry, owner=name)
     return capability_store.save_capability(project, name, entry)
 
 
@@ -346,21 +345,23 @@ def delete_capability(data: Dict[str, Any]) -> Any:
     return capability_store.delete_capability(project_from(data), str(data.get("name") or ""))
 
 
-_EVAL_AXES_PROJECT = "llm_probe"
+# 扩展评估轴：llm_probe（工作流路线）与 llm_probe_loop（axis loop 路线，spec/alg/axis_loop.md §2）。
+EVAL_AXES_PROJECTS = ("llm_probe", "llm_probe_loop")
 
 
 def _require_eval_axes_project(project: str) -> str:
-    # 扩展评估轴试验体系目前只在 llm_probe 内（spec/adapter/axe-v4.md 范围）。
-    if project != _EVAL_AXES_PROJECT:
-        raise ValueError(f"扩展评估轴目前只支持项目 {_EVAL_AXES_PROJECT}，收到 {project!r}")
+    if project not in EVAL_AXES_PROJECTS:
+        raise ValueError(f"扩展评估轴目前只支持项目 {', '.join(EVAL_AXES_PROJECTS)}，收到 {project!r}")
     return project
+
+
+def _project_module(project: str, name: str):
+    return importlib.import_module(f"impl.projects.{project}.{name}")
 
 
 def eval_axes_types(data: Dict[str, Any]) -> Any:
     project = _require_eval_axes_project(project_from(data))
-    from ..projects.llm_probe.eval_axes.registry import describe_axis_types
-
-    return {"project_id": project, "types": describe_axis_types()}
+    return {"project_id": project, "types": _project_module(project, "eval_axes.registry").describe_axis_types()}
 
 
 def eval_axes_run(data: Dict[str, Any]) -> Any:
@@ -370,52 +371,39 @@ def eval_axes_run(data: Dict[str, Any]) -> Any:
     if trace is None:
         raise ValueError("缺 trace：先发一次 live 得到 RunTrace，再运行扩展轴试验")
     from ..core.project_loader import load_project
-    from ..projects.llm_probe.eval_axes import build_report
 
-    report = build_report(load_project(project), trace, run_id=str(data.get("run_id") or ""))
+    report = _project_module(project, "eval_axes").build_report(load_project(project), trace, run_id=str(data.get("run_id") or ""))
     return {"project_id": project, **report}
 
 
 def business_trace_providers(data: Dict[str, Any]) -> Any:
     project = _require_eval_axes_project(project_from(data))
-    from ..projects.llm_probe.business_trace import provider_descriptions
-
-    return {"project_id": project, "providers": provider_descriptions()}
+    return {"project_id": project, "providers": _project_module(project, "business_trace").provider_descriptions()}
 
 
 def business_trace_check(data: Dict[str, Any]) -> Any:
     project = _require_eval_axes_project(project_from(data))
-    from ..projects.llm_probe.business_trace import check_connection
-
-    return {"project_id": project, **check_connection(data.get("business_trace"))}
+    return {"project_id": project, **_project_module(project, "business_trace").check_connection(data.get("business_trace"))}
 
 
 def knowledge_sources(data: Dict[str, Any]) -> Any:
     project = _require_eval_axes_project(project_from(data))
-    from ..projects.llm_probe.eval_axes.sources import list_sources
-
-    return {"project_id": project, **list_sources()}
+    return {"project_id": project, **_project_module(project, "eval_axes.sources").list_sources()}
 
 
 def knowledge_source_save(data: Dict[str, Any]) -> Any:
     project = _require_eval_axes_project(project_from(data))
-    from ..projects.llm_probe.eval_axes.sources import save_source
-
-    return {"project_id": project, **save_source(str(data.get("name") or ""), data.get("entry"))}
+    return {"project_id": project, **_project_module(project, "eval_axes.sources").save_source(str(data.get("name") or ""), data.get("entry"))}
 
 
 def knowledge_source_delete(data: Dict[str, Any]) -> Any:
     project = _require_eval_axes_project(project_from(data))
-    from ..projects.llm_probe.eval_axes.sources import delete_source
-
-    return {"project_id": project, **delete_source(str(data.get("name") or ""))}
+    return {"project_id": project, **_project_module(project, "eval_axes.sources").delete_source(str(data.get("name") or ""))}
 
 
 def knowledge_source_check(data: Dict[str, Any]) -> Any:
     project = _require_eval_axes_project(project_from(data))
-    from ..projects.llm_probe.eval_axes.sources import check_source
-
-    return {"project_id": project, **check_source(str(data.get("name") or ""))}
+    return {"project_id": project, **_project_module(project, "eval_axes.sources").check_source(str(data.get("name") or ""))}
 
 
 def judge(data: Dict[str, Any]) -> Any:

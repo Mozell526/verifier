@@ -1,6 +1,7 @@
 # 知识查证方案
 
-> 状态：草案（2026-10-14），对着 `demand/knowledge_evidence.md` 打磨。需求与本文冲突时以需求为准，回来修本文。
+> 状态：草案（2026-10-14），对着 `demand/claims.md`（2026-10-20 起原 `demand/knowledge_evidence.md` 并入其中；知识源要求并入 `demand/information_sources.md` §4.12–4.13）打磨。需求与本文冲突时以需求为准，回来修本文。
+> 2026-10-20 补：found / not_found 是查与判分段的内部中间态，不是对外结论（§2）；unverifiable 必须带缺口类型（§5）。
 > 实施记录写在 `spec/implementation/knowledge-evidence.md`（本文确认后再写）。
 > 标 ⟡ 的条目待用户确认。
 
@@ -44,7 +45,7 @@
 
 代价：每条找到的事实多一次不带工具的模型调用，输入只有一两段原文，成本小。
 
-2026-10-14 用户同意，需求 §2.4 已改为两种结果。
+2026-10-14 用户同意。2026-10-20 起需求侧只认核事实的三值（`demand/claims.md` §3：有支持 / 有矛盾 / 查不到）；found / not_found 是本方案查与判分段产生的中间态，只在知识查证轴内部和它的 item 级展示里出现，不进主轴组成、不进任何对外汇总。
 
 ## 3. ①出清单
 
@@ -55,6 +56,7 @@
   - `origin`：提出这条的轴（第一版恒为 `truthfulness`）。
   - `text/context` 与现在 `claim_id/text/context` 同义。改名是因为它进了清单后叫"待查项"，不再只是真实性的断言。
 - 清单来源：每个用知识的轴类型可声明一个"待查项来源"函数 `(trace, axis) -> list[Item]`；知识查证轴按**本次启用**的轴收集各来源的项，合并成一份清单（与过程案卷按启用的下游轴整理同一做法）。第一版只有真实性一个来源（即上面的抽取）。
+- 抽取口径以 `demand/claims.md` §2 为准（2026-10-20）：事实 = 能单独为真或为假的主张，**不限于带数字的**（C9）；对象和条件可来自用户问题（C8，10-19 用户确认）；一个数的值与它的单位、币种、时点各是一条（C1，10-20 用户定），修饰的那几条带 `qualifies` = 数值那条的 claim_id，判定与 M 据此放过"值已核实、单位核实不了"（`demand/main_axis.md` §2.6）。落地见 `spec/adapter/claims-extraction-plan-20261019.md`。
 - **拆出的说法要能单独成立**（2026-10-17 实验，2026-10-18 采用）：`text + context` 离开回答单独读，意思和在回答里一样。
   - `context` 只放两种：事实归属对象的标识（姓名、保单号、产品名或代码、办理事项名称）和成立条件；不放任何被断言的数量和属性（它们是断言本身）。
   - 回答自己编的序号、指代（"方式一""第二张"）不进 `context`，换成所指对象的标识在回答里的原文写法；找不到所指对象就不抽这条。
@@ -95,8 +97,9 @@
 ### 4.2 工具
 
 - **知识源工具**：沿用 `sources.build_tools(catalog, recorder)` 的同一组 ES / 资料 / MCP 工具。现在它们返回 agno 形态，需要像 `process_loop/tools.dossier_tools` 那样还原成 `VerifiableTool`。
-- **`submit_item(item_id, status, citations, search_calls, note)`**：逐条提交。
+- **`submit_item(item_id, status, citations, search_calls, note, gap)`**：逐条提交。
   - `status`：`found` / `not_found`；
+  - `gap`：`not_found` 时必填，`object_absent`（按对象查过，对象整个不在）/ `item_absent`（对象在，这一项不在）；`found` 时为空。`demand/claims.md` §3.3 要求下游分得开这两种，程序只能从查证人这里拿到，所以在提交时就要；
   - `citations`：`[{call_id, quote}]`，`found` 必填、`not_found` 必须为空；
   - `search_calls`：为这一条做过的检索调用的 `call_id` 列表，至少一个；
   - `note`：检索思路与取舍，`not_found` 时写清查了什么、为什么认为没有。
@@ -150,7 +153,8 @@
 - `depend_on=(Dependency('knowledge_evidence'),)`（必需）；`inputs` 增加 `Input('evidence', source='axis.knowledge_evidence.output', fields=('items', 'sources'))`。
 - 场景字段：真实性框不再需要知识源引用。`description` 改为可选，只作判定口径补充。
 - 每条：
-  - `not_found` → `unverifiable`，程序直接给，reason 取查证的 note，不调模型；
+  - `not_found` → `unverifiable`，程序直接给，reason 取查证的 note，`gap` 原样带下（`object_absent` / `item_absent`），不调模型；
+  - `found` 但判定认为原文对象不符或说不清 → `unverifiable`，`gap=mismatch`；
   - `found` → 一次不带工具的模型调用。输入：
     - 待查项（text、context）；
     - 各引用的 quote；
@@ -163,7 +167,7 @@
   - 只有 ① 定对错：① 有同一对象、同一属性、同一条件下的值，一致为 verified、不同为 refuted；没有为 unverifiable。② 用来确定 ① 说的是哪个对象、哪个属性、什么口径；③ 与对错无关。② ③ 不能作为 refuted 的依据。
   - 算出来的值：原文写明算法或说法自己写明了用哪些数怎么算，才照算法算；没有算法就是 ① 没给这个值。
   - 依据：同一份证据只重判判官，判冲突里判错的 26 → 15 次，"不得当作保单合计"一类不再判冲突；同证据两次结论一致率未提高（约 90%），剩余波动另计（`report/knowledge-evidence-20261014/rejudge/`）。
-- `output` 键与形状不变：`claims[{claim_id, text, context, verdict, reason, citations}]`、`sources`、`coverage`、`errors`。能力兑现轴读它，不用改。引用在输出里由 `{call_id, quote}` 展开成 `{source, ref, note}`（source 由回执得出），前端不用改。
+- `output`：`claims[{claim_id, text, context, verdict, reason, citations, gap}]`、`sources`、`coverage`、`errors`；`gap` 是新增键，unverifiable 时非空。能力兑现轴读它，不用改。引用在输出里由 `{call_id, quote}` 展开成 `{source, ref, note}`（source 由回执得出），前端不用改。
 - 上游状态的传递：
   - 查证 `not_applicable`（被测系统调用失败、场景没声明知识源）→ 真实性也 `not_applicable`，原因照抄；
   - 查证 `failed` → 真实性 `blocked`（现有 runner 行为）；
@@ -222,6 +226,6 @@ impl/projects/llm_probe/eval_axes/sources/
 
 ## 10. 之后（不在本期）
 
-- **ES、资料迁到 MCP**（需求 ⟡3，验收后优先做）：写一个只读的通用知识库 MCP 服务，暴露 outline / search / read，评测器删掉 `es_tools`、资料工具在这条路径上的分支。§4.3 已统一引用格式，届时只换工具来源。
-- **查问题 + 核心要点漏说**（需求 ⟡6，排在 MCP 迁移之后）：加"查问题"来源（每个用户问题一条），查证取回相关原文，由判定轴（倾向能力兑现）对照回答判漏没漏、算不算错。查证部分不用改，只加一个来源和一个读者。
-- 承载性改读案卷；trace 场景对照；能力兑现直接读案卷（需求 ⟡4 ⟡5，暂缓）。
+- **ES、资料迁到 MCP**（原需求 ⟡3，2026-10-14 定验收后优先做；现归实施排期）：写一个只读的通用知识库 MCP 服务，暴露 outline / search / read，评测器删掉 `es_tools`、资料工具在这条路径上的分支。§4.3 已统一引用格式，届时只换工具来源。
+- **查问题 + 核心要点漏说**（`demand/claims.md` ⟡1，排在 MCP 迁移之后）：加"查问题"来源（每个用户问题一条），查证取回相关原文，由判定轴（倾向能力兑现）对照回答判漏没漏、算不算错。查证部分不用改，只加一个来源和一个读者。
+- 承载性改读案卷；trace 场景对照（`demand/information_sources.md` ⟡）；能力兑现直接读案卷（暂缓）。

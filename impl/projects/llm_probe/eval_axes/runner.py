@@ -214,6 +214,8 @@ def _run_one(
                 from ..business_trace.expectation_material import project_requirements
                 from .adapters.process_common import _scenario_entry
                 value = project_requirements(trace, _scenario_entry(runtime))
+            elif slot.sample_field == "request_body":
+                value = (trace.normalized_request or {}).get("body") if isinstance(trace.normalized_request, Mapping) else None
             elif slot.sample_field == "business_trace":
                 fields = trace.project_fields if isinstance(trace.project_fields, Mapping) else {}
                 value = fields.get("business_trace")

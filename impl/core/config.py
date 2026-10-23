@@ -17,6 +17,7 @@ from .config_schema import (
     ContextConfig,
     EmbeddingConfig,
     EnvironmentVariableSpec,
+    DEFAULT_AXIS_LOOP,
     EvalAxesConfig,
     ExecutionConfig,
     JudgeConfig,
@@ -216,6 +217,7 @@ def resolve_runtime_config(
         ),
         eval_axes=EvalAxesConfig(
             model_policy=str(values["eval_axes.model_policy"]),
+            **{key: values[f"eval_axes.{key}"] for key in DEFAULT_AXIS_LOOP},
         ),
         environment=parsed.environment,
         sources=MappingProxyType(dict(sources)),
@@ -314,6 +316,7 @@ def _base_values(parsed: ParsedRuntimeConfig) -> dict[str, Any]:
         "context.top_k_per_query": parsed.context.top_k_per_query,
         "judge.raw_response_max_chars": parsed.judge.raw_response_max_chars,
         "eval_axes.model_policy": parsed.eval_axes.model_policy,
+        **{f"eval_axes.{key}": getattr(parsed.eval_axes, key) for key in DEFAULT_AXIS_LOOP},
         "attribute.finalization_prompt_char_budget": parsed.attribute.finalization_prompt_char_budget,
         "attribute.review_prompt_char_budget": parsed.attribute.review_prompt_char_budget,
         "attribute.tool_call_limit": parsed.attribute.tool_call_limit,

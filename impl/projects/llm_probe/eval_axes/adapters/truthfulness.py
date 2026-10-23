@@ -23,13 +23,18 @@ class ClaimVerdict:
     reason: str = ''
     verdict: str = ''
     basis: list[int] = field(default_factory=list)
+    gap: str = field(default='', metadata={'allow_empty': True,
+                     'description': 'unverifiable 时必填：object_absent / item_absent / mismatch；其余为空字符串'})
 
 
 _VERDICTS = ('verified', 'refuted', 'unverifiable')
+# 查不到缺的是哪一格（demand/claims.md §3.3）：对象不在、对象在而这一项不在、原文对不上（对象或口径不符、没读全、没有算法）。
+_GAPS = ('object_absent', 'item_absent', 'mismatch')
 _JUDGE_SYSTEM = '''判定回答里的一条说法是否属实：拿它和知识源取回的原文比对。原文是查证阶段取回的，你不需要也不能再检索。
 
 输入：
-- claim：text 是事实本身，context 是它归属的对象与成立条件；判的是「context 之下的 text」。
+- claim：text 是这条说法的主张，context 是它归属的对象与成立条件；判的是「context 之下的 text」。
+  span 是这条主张在回答里的原文出处，只用来理解主张说的是什么；同一段 span 可能还对应别的主张，span 里主张没说到的内容不判。
 - citations：编号列表。每项 tool/args 是取回这段原文的那次查询（查的哪个工具、按什么条件查的），
   quote 是摘出的原文，window 是 quote 所在的整条记录或前后上下文。
 - search_note：查证人的检索说明（查了什么、结果全不全），不含结论。
@@ -59,11 +64,19 @@ _JUDGE_SYSTEM = '''判定回答里的一条说法是否属实：拿它和知识�
 - unverifiable：① 里没有同一对象、同一属性、同一条件下的值——对象或口径对不上、没有算法、没读全，
   或说法的值比原文多出原文没给的部分（多出的部分既不能确认也不冲突）。
 ② 和 ③ 不给任何对象的属性赋值，不能作为 refuted 的依据。
+说法断言某对象没有某项、或对象不存在时：
+- ① 里有同一对象的这一项（有值）→ refuted，reason 写出原文给的值；
+- ② 明确表明按这个对象查过、结果读全了，而对象不存在、或对象在但没有这一项 → verified；
+- 查回来的是别的对象、没读全、或没有按这个对象查 → unverifiable：没查到不等于不存在。
+反过来，说法断言某对象的某项是某值，而 ② 明确表明按这个对象查过、结果读全了、对象本身不存在 → refuted：
+对象都不存在，它的任何值都不成立，reason 写明查询结果为空（demand/claims.md §3：对象本身不存在也是有矛盾）。对象在、只是没有这一项时仍是 unverifiable。
 值一致的判断：阿拉伯数字与中文数字、%与百分之、天与日、万与万元互为等价写法。
 知识库对同一事项有互相矛盾的说法时，不替知识库裁定：说法与其中一种一致即 verified，reason 写明另有不同说法及其原文。
 
-输出 reason/verdict/basis：先在 reason 写原文怎么说、与说法是否一致，再按 reason 的结论填 verdict，两者不得矛盾。
-basis 是作为依据的 citations 编号：verified 和 refuted 必须至少一个；unverifiable 时为 []。'''
+输出 reason/verdict/basis/gap：先在 reason 写原文怎么说、与说法是否一致，再按 reason 的结论填 verdict，两者不得矛盾。
+basis 是作为依据的 citations 编号：verified 和 refuted 必须至少一个；unverifiable 时为 []。
+gap 只在 unverifiable 时填，写缺的是哪一格：object_absent = 原文里没有这个对象；item_absent = 对象在，没有这一项；
+mismatch = 原文对不上（对象或口径不符、没读全、没有算法）。其余结论 gap 为空字符串。'''
 
 
 def _judgement(payload: Any, count: int) -> dict[str, Any]:
@@ -72,21 +85,23 @@ def _judgement(payload: Any, count: int) -> dict[str, Any]:
     if payload.get('error'):
         detail = str(payload.get('raw_text') or '').strip()[:200]
         raise ValueError(f"判定模型调用失败（{payload['error']}）" + (f'：{detail}' if detail else ''))
-    verdict, reason, basis = payload.get('verdict'), payload.get('reason'), payload.get('basis')
+    verdict, reason, basis, gap = payload.get('verdict'), payload.get('reason'), payload.get('basis'), payload.get('gap') or ''
     if verdict not in _VERDICTS or not isinstance(reason, str) or not reason.strip() or not isinstance(basis, list):
         raise ValueError('判定结果缺少合法 verdict/reason/basis')
+    if (verdict == 'unverifiable') != (gap in _GAPS):
+        raise ValueError(f'unverifiable 时 gap 必须是 {"/".join(_GAPS)} 之一，其余结论 gap 为空字符串')
     if any(not isinstance(i, int) or isinstance(i, bool) or not 0 <= i < count for i in basis):
         raise ValueError(f'basis 只能是 citations 的编号 0..{count - 1}')
     if verdict != 'unverifiable' and not basis:
         raise ValueError('verified/refuted 必须在 basis 里给出依据的引用编号')
-    return {'verdict': verdict, 'reason': reason, 'basis': sorted(set(basis)) if verdict != 'unverifiable' else []}
+    return {'verdict': verdict, 'reason': reason, 'basis': sorted(set(basis)) if verdict != 'unverifiable' else [], 'gap': gap}
 
 
 def _judge(item, guidance, notes, runtime, usage):
     citations = [{'id': i, 'tool': c.get('tool'), 'args': c.get('args'), 'quote': c['quote'], 'window': c['window']}
                  for i, c in enumerate(item['citations'])]
     cited = {c['source'] for c in item['citations']}
-    user = json.dumps({'claim': {'text': item['text'], 'context': item['context']}, 'citations': citations,
+    user = json.dumps({'claim': {'text': item['text'], 'context': item['context'], 'span': item['span']}, 'citations': citations,
                        'search_note': item.get('note', ''),
                        'source_notes': {uri: text for uri, text in notes.items() if uri in cited and text},
                        'guidance': guidance}, ensure_ascii=False)
@@ -107,15 +122,17 @@ def _judge(item, guidance, notes, runtime, usage):
 
 def _claim(item, judged):
     cited = [item['citations'][i] for i in judged['basis']]
-    return {'claim_id': item['item_id'].split(':', 1)[1], 'text': item['text'], 'context': item['context'],
-            'verdict': judged['verdict'], 'reason': judged['reason'],
+    return {'claim_id': item['item_id'].split(':', 1)[1], 'text': item['text'], 'span': item['span'], 'context': item['context'],
+            'qualifies': item.get('qualifies') or '',
+            'verdict': judged['verdict'], 'reason': judged['reason'], 'gap': judged['gap'],
             'citations': [{'source': c['source'], 'ref': c['call_id'], 'note': c['quote']} for c in cited]}
 
 
 def _outcome(claims, extracted, sources, errors, usage):
     coverage = {'extracted': extracted, **{v: sum(c['verdict'] == v for c in claims) for v in _VERDICTS}}
     # key 放断言原文而不是 claim_id：表格和导出里读者要看的是"哪句话"，id 只对机器有意义。
-    items = [{'key': item_label(c), 'value': c['verdict'], 'reason': c['reason'], 'claim_id': c['claim_id'], 'citations': c['citations']} for c in claims]
+    items = [{'key': item_label(c), 'value': c['verdict'], 'reason': c['reason'], 'claim_id': c['claim_id'], 'citations': c['citations'],
+              'gap': c['gap']} for c in claims]
     groups = []
     for verdict in ('refuted', 'unverifiable', 'verified'):
         lines = [f"{c['claim_id']}（{c['reason']}）" for c in claims if c['verdict'] == verdict]
@@ -136,7 +153,8 @@ def run_truthfulness(inputs, axis, runtime):
     for item in items:
         if item['status'] != FOUND:
             # 没找到相关原文：程序直接给，不调模型。
-            claims.append(_claim(item, {'verdict': 'unverifiable', 'reason': '知识查证没找到相关原文：' + item['note'], 'basis': []}))
+            claims.append(_claim(item, {'verdict': 'unverifiable', 'reason': '知识查证没找到相关原文：' + item['note'], 'basis': [],
+                                        'gap': item['gap']}))
             continue
         try:
             runtime.ensure_time_left(f"断言 {item['item_id']}")

@@ -159,7 +159,7 @@ def test_expectations_are_analysis_and_not_clustering_dimensions():
     from impl.core.axes_clustering import build_material
     from impl.projects.llm_probe.eval_axes.registry import AXIS_TYPES
     _, e, _ = fixture()
-    rows = eval_axes_summary({'results': [{'type_id': 'expectations', 'status': 'succeeded', 'verdict': 'complete', 'output': e}]})
+    rows = eval_axes_summary({'results': [{'type_id': 'expectations', 'status': 'succeeded', 'verdict': 'complete', 'output': e}]}, 'llm_probe')
     assert rows[0]['role'] == 'analysis'
     data = build_material([{'pool_index': 0, 'request_key': 'case', 'axes': rows}], [AXIS_TYPES['expectations'].describe()])
     assert not data['axes'] and not data['refs']
@@ -188,8 +188,8 @@ def test_tool_absence_does_not_make_demand_material_partial(tools):
 def test_spec_gold_fixtures_obey_provider_contract(item):
     axis.validate(item['expected'], item['material'])
     assert all(s['side'] in {'want', 'history', 'background'} for s in item['material']['sources'])
-    wants = {s['id'] for s in item['material']['sources'] if s['side'] == 'want'}
-    assert all(wants.intersection(e['source_refs']) for e in item['expected']['expectations'])
+    users = {s['id'] for s in item['material']['sources'] if s['component'] == 'user'}
+    assert all(users.intersection(e['source_refs']) for e in item['expected']['expectations'])
 
 
 def test_dossier_order_provides_planning_issues_before_dependent_data(monkeypatch):
@@ -205,3 +205,24 @@ def test_dossier_order_provides_planning_issues_before_dependent_data(monkeypatc
     assert seen.index('context_memory') < seen.index('model_capability')
 
 
+
+
+def test_request_body_without_messages_is_the_user_source_as_is():
+    """请求体不是对话消息形状时，整份请求体就是用户这一轮发来的东西，不靠猜字段名（spec/alg/expectations.md §2.1）。"""
+    trace = SimpleNamespace(turn_records=None, project_fields={},
+                            normalized_request={'body': {'user_text': '五十岁以上的客户', 'session_id': 's1', 'extra': {}}})
+    material = project_requirements(trace)
+    user = [s for s in material['sources'] if s['component'] == 'user']
+    assert len(user) == 1 and user[0]['value'] == {'user_text': '五十岁以上的客户', 'session_id': 's1'}
+    assert material['missing'] == []
+
+
+def test_criterion_alone_cannot_produce_an_expectation():
+    material = {'sources': [{'id': 'c', 'side': 'want', 'turn': 'case', 'component': 'criterion', 'value': '交付查询条件',
+                             'scope': 'request', 'trace_refs': []},
+                            {'id': 'u', 'side': 'want', 'turn': 't1', 'component': 'user', 'value': '红色的鞋',
+                             'scope': 'request', 'trace_refs': []}], 'missing': [], 'sha256': 'x'}
+    only_criterion = {'expectations': [{'expectation_id': 'E1', 'source_refs': ['c'], 'about': '查询', 'statement': '交付查询条件',
+                                        'condition': '总是', 'ambiguity_group': ''}]}
+    with pytest.raises(ValueError, match='必须引用本轮用户原话'):
+        axis.validate(only_criterion, material)

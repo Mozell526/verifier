@@ -107,6 +107,10 @@ def validate_entry(name: str, entry: Any) -> Dict[str, Any]:
                 headers[name] = str(value)
             if headers:
                 clean["service"]["headers"] = headers
+        # 端点连不上时附在报错里的启动提示（如被测目标是只在实验时才开的本机进程）。
+        start_hint = str(service.get("start_hint") or "").strip()
+        if start_hint:
+            clean["service"]["start_hint"] = start_hint
     business_trace = entry.get("business_trace")
     if business_trace not in (None, "", {}):
         if not isinstance(business_trace, dict):
@@ -134,12 +138,38 @@ def validate_entry(name: str, entry: Any) -> Dict[str, Any]:
         if boundary:
             _require_material_refs(boundary, field="boundary")
             clean["boundary"] = boundary
+    raw_failure = entry.get("business_failure")
+    if raw_failure not in (None, "", {}):
+        clean["business_failure"] = _validate_business_failure(raw_failure)
     raw_axes = entry.get("axes")
     if raw_axes not in (None, "", []):
         clean["axes"] = _validate_axes(raw_axes)
     raw_obligations = entry.get("process_obligations")
     if raw_obligations not in (None, "", []):
         clean["process_obligations"] = _validate_process_obligations(raw_obligations)
+    return clean
+
+
+def _validate_business_failure(raw: Any) -> Dict[str, Any]:
+    """场景预先维护的"被测系统调用失败"错误码（demand/main_axis.md §3.6）：命中即这条 case 记运行失败。
+
+    {"http_status": [500, 503], "body": {"pointer": "/code", "values": ["E1001"]}}，两项都可省。
+    """
+    if not isinstance(raw, dict) or set(raw) - {"http_status", "body"}:
+        raise ValueError("business_failure 只认 http_status / body 两项")
+    clean: Dict[str, Any] = {}
+    statuses = raw.get("http_status")
+    if statuses not in (None, []):
+        if not isinstance(statuses, list) or any(isinstance(c, bool) or not isinstance(c, int) or not 100 <= c <= 599 for c in statuses):
+            raise ValueError("business_failure.http_status 必须是 100–599 的整数列表")
+        clean["http_status"] = sorted(set(statuses))
+    body = raw.get("body")
+    if body not in (None, {}):
+        pointer, values = (body or {}).get("pointer"), (body or {}).get("values")
+        if not isinstance(body, dict) or set(body) - {"pointer", "values"} or not isinstance(pointer, str) \
+                or not pointer.startswith("/") or not isinstance(values, list) or not values:
+            raise ValueError("business_failure.body 必须写成 {pointer: '/字段路径', values: [错误码…]}")
+        clean["body"] = {"pointer": pointer, "values": [str(v) for v in values]}
     return clean
 
 

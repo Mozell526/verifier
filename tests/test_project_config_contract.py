@@ -28,6 +28,7 @@ def test_all_projects_have_one_canonical_runtime_config_and_matching_knowledge_r
         "client_search",
         "deerflow",
         "llm_probe",
+        "llm_probe_loop",
         "marketting-planning",
         "marketting-planning-intent",
         "policy_search",

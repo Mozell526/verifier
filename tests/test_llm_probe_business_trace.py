@@ -118,16 +118,14 @@ def test_enabled_trace_axis_requires_valid_business_trace_config() -> None:
     assert report.ok and axes[0].type_id == "context_memory"
 
 
-def test_enabled_fulfillment_must_match_primary_standard_during_migration() -> None:
+def test_fulfillment_alone_does_not_pull_in_expectations_axis() -> None:
+    """需求轴只在除兑现轴外有别的轴需要它时才必须跑（demand/expectations.md §3）；只开兑现轴时兑现轴自推。"""
     entry = {
         "capability": "回答保险问题",
         "axes": [{"type": "fulfillment", "enabled": True, "description": "只回答保单问题"}],
     }
-    with pytest.raises(ValueError, match="有效标准完全一致"):
-        scenario_axes_from_entry(entry, owner="insurance")
-    entry["axes"][0]["description"] = "回答保险问题"
     axes, report = scenario_axes_from_entry(entry, owner="insurance")
-    assert report.ok and axes[0].type_id == "fulfillment"
+    assert report.ok and [a.type_id for a in axes] == ["fulfillment"]
 
 
 def test_capability_save_checks_trace_requirements_without_running_other_source_checks(monkeypatch) -> None:

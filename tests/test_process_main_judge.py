@@ -58,9 +58,76 @@ def test_trace_axes_run_before_main_and_report_consumed_once(monkeypatch):
 
 
 def test_trace_off_uses_original_execution(monkeypatch):
+    # 无 trace、未启用主轴框：沿用轴1
     monkeypatch.setattr('impl.projects.llm_probe.capability.capability_business_trace',lambda _:None)
+    monkeypatch.setattr(eval_axes,'main_axis_enabled',lambda *a:False)
     monkeypatch.setattr('impl.core.judge_execution.SinglePassJudgeExecution.run',lambda *a:'original')
-    assert ProcessJudgeExecution().run(None,trace(),None)=='original'
+    assert ProcessJudgeExecution().run(SimpleNamespace(spec=None),trace(),None)=='original'
+
+
+MAIN_OUTPUT = {
+    'business_expectations': [{'expectation_id': 'e1', 'blocking': True, 'user_intent': 'u', 'expected_outcome': 'o'}],
+    'fulfillment_assessments': [{'expectation_id': 'e1', 'status': 'fulfilled', 'actual_evidence': ['a']}],
+    'overall_fulfillment': {'status': 'fulfilled'}, 'expected': {}, 'actual': {}, 'missing': [], 'wrong': [], 'extra': [],
+    'evidence': [], 'reasoning_summary': '办成', 'summary': {}, 'expectations_source': 'self', 'claims_checked': True,
+}
+
+
+def main_report(**status):
+    return {'results': [{'type_id': t, 'title': t, 'status': status.get(t, 'succeeded'), 'error': '',
+                         'output': MAIN_OUTPUT if t == 'fulfillment' else {}}
+                        for t in ('knowledge_evidence', 'truthfulness', 'fulfillment')]}
+
+
+def test_main_axis_box_makes_fulfillment_the_main_result_and_report_reused(monkeypatch):
+    calls=[]; t=trace(); r=main_report()
+    monkeypatch.setattr('impl.projects.llm_probe.capability.capability_business_trace',lambda _:None)
+    monkeypatch.setattr(eval_axes,'main_axis_enabled',lambda *a:True)
+    monkeypatch.setattr(eval_axes,'build_report',lambda *a,**kw: calls.append('axes') or r)
+    monkeypatch.setattr('impl.core.judge_execution.SinglePassJudgeExecution.run',lambda *a: pytest.fail('轴1 不该再跑'))
+    result=ProcessJudgeExecution().run(SimpleNamespace(spec=None),t,None)
+    assert result.overall_fulfillment['status']=='fulfilled'
+    assert result.reasoning_summary=='办成'
+    assert {'kind':'main_axis_source','value':'eval_axes.fulfillment'} in result.evidence
+    # 判后 pass 直接拿走同一份报告，不重跑
+    assert eval_axes.run_for_trace(None,t) is r and calls==['axes']
+
+
+@pytest.mark.parametrize('failed', ['knowledge_evidence', 'truthfulness', 'fulfillment'])
+def test_main_axis_or_its_upstream_failed_blocks_whole_case(monkeypatch, failed):
+    monkeypatch.setattr('impl.projects.llm_probe.capability.capability_business_trace',lambda _:None)
+    monkeypatch.setattr(eval_axes,'main_axis_enabled',lambda *a:True)
+    monkeypatch.setattr(eval_axes,'build_report',lambda *a,**kw: main_report(**{failed:'failed'}))
+    result=ProcessJudgeExecution().run(SimpleNamespace(spec=None),trace(),None)
+    assert result.overall_fulfillment['status']=='not_evaluable'
+    assert 'evaluation_execution_failed' in result.evidence
+    assert failed in result.reasoning_summary
+
+
+def test_main_axis_not_applicable_is_not_a_result(monkeypatch):
+    monkeypatch.setattr('impl.projects.llm_probe.capability.capability_business_trace',lambda _:None)
+    monkeypatch.setattr(eval_axes,'main_axis_enabled',lambda *a:True)
+    monkeypatch.setattr(eval_axes,'build_report',lambda *a,**kw: main_report(fulfillment='not_applicable'))
+    result=ProcessJudgeExecution().run(SimpleNamespace(spec=None),trace(),None)
+    assert 'evaluation_execution_failed' in result.evidence
+
+
+def test_main_axis_upstream_is_truthfulness_chain():
+    assert eval_axes.main_axis_upstream()=={'expectations','truthfulness','knowledge_evidence'}
+
+
+def test_main_axis_enabled_only_without_trace_and_with_enabled_box(monkeypatch):
+    maps={'a':{'axes':[{'type':'fulfillment','enabled':True,'description':'d'}]},
+          'b':{'axes':[{'type':'fulfillment','enabled':False,'description':'d'}]},
+          'c':{'axes':[{'type':'fulfillment','enabled':True,'description':'d'}],'business_trace':{'provider':'agno'}}}
+    monkeypatch.setattr(eval_axes,'load_capability_map',lambda _:maps)
+    monkeypatch.setattr('impl.projects.llm_probe.capability.capability_business_trace',lambda ref:maps.get(ref,{}).get('business_trace'))
+    spec=SimpleNamespace(project_id='llm_probe')
+    def t(ref): return RunTrace(trace_id='x',project_id='llm_probe',case_id='x',normalized_request={'capability_ref':ref})
+    assert eval_axes.main_axis_enabled(spec,t('a')) is True
+    assert eval_axes.main_axis_enabled(spec,t('b')) is False
+    assert eval_axes.main_axis_enabled(spec,t('c')) is False
+    assert eval_axes.main_axis_enabled(spec,t('missing')) is False
 
 
 def test_collection_failed_never_calls_main(monkeypatch):

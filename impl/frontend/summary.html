@@ -498,6 +498,8 @@ function attributePanel(item){return item.frontend_view?.attribute_panel || item
 function fulfillmentPanel(item){return item.frontend_view?.fulfillment_panel || {}; }
 function judgeSummary(item){const row=tableRow(item);return row.judge_summary || (item.judge && item.judge.summary) || (item.judge_summary) || null;}
 function attributionSummary(item){const row=tableRow(item);return row.attribution_summary || (item.attribute && item.attribute.summary) || (item.attribution_summary) || null;}
+function mainAxisSource(evidence){return (evidence || []).some(e=>e && typeof e==='object' && e.kind==='main_axis_source');}
+function mainAxisTag(on){return on?' <span class="muted">（来源：扩展评估轴 · 能力兑现）</span>':'';}
 function judgeReason(item){const panel=judgePanel(item);return panel.display_reason || panel.reasoning_summary || '';}
 function _judgeSummaryFromNested(item){
   const panel=judgePanel(item), fulfillment=fulfillmentPanel(item);
@@ -515,7 +517,7 @@ function renderCaseJudge(item){
     const status=row.fulfillment_status || summary?.fulfillment_status || summary?.status || row.status || '-';
     const counts=summary?'assessments='+escapeHtml(summary.assessment_count ?? 0)+' · blocking='+escapeHtml(summary.blocking_count ?? 0) : '';
     const reason=summary?.reason?'<div>'+escapeHtml(shortText(summary.reason,900))+'</div>':'';
-    return '<div><b>Fulfillment：</b>'+escapeHtml(status)+'</div>'+(counts?'<div class="muted">'+counts+'</div>':'')+reason;
+    return '<div><b>Fulfillment：</b>'+escapeHtml(status)+mainAxisTag(mainAxisSource(item.judge?.evidence || judgePanel(item).evidence))+'</div>'+(counts?'<div class="muted">'+counts+'</div>':'')+reason;
   }
   return '<span class="muted">尚未评估</span>';
 }
@@ -595,7 +597,7 @@ function carrierPlacementText(item){
   const row=tableRow(item);
   return String(row.carrier_placement || row.carrierPlacement || '').trim();
 }
-// ---- 扩展评估轴（试验）列：数据来自 table_row.eval_axes_summary（每轴一条，逐格 items）----
+// ---- 扩展评估轴列：数据来自 table_row.eval_axes_summary（每轴一条，逐格 items）----
 function evalAxesRows(item){
   const row=tableRow(item);
   const rows=row.eval_axes_summary || item.eval_axes_summary || [];
@@ -607,9 +609,9 @@ function axisStatusPill(status){
 }
 function axisValueClass(value){
   const v=String(value||'');
-  if(v==='fulfilled'||v==='verified'||v==='sound'||v==='pass'||v==='consistent'){return 'ok';}
-  if(v==='not_fulfilled'||v==='refuted'||v==='做错了'||v==='归位失败'||v==='failed'||v==='problematic'||v==='fail'||v==='coverage_gap'){return 'bad';}
-  if(v==='untested'||v==='input_invalid'||v==='not_evaluable'||v==='unverifiable'||v==='说不清'||v==='做不了'||v==='blocked'||v==='not_applicable'||v==='insufficient_evidence'||v==='gap'){return 'warn';}
+  if(v==='fulfilled'||v==='verified'||v==='sound'||v==='pass'||v==='consistent'||v==='做成了'){return 'ok';}
+  if(v==='not_fulfilled'||v==='refuted'||v==='做错了'||v==='没做成'||v==='挡下结论的事实'||v==='归位失败'||v==='failed'||v==='problematic'||v==='fail'||v==='coverage_gap'){return 'bad';}
+  if(v==='untested'||v==='input_invalid'||v==='not_evaluable'||v==='unverifiable'||v==='说不清'||v==='做不了'||v==='不确定'||v==='blocked'||v==='not_applicable'||v==='insufficient_evidence'||v==='gap'){return 'warn';}
   return '';
 }
 function axisValuePill(value){
@@ -1105,7 +1107,7 @@ function renderAttributionFindings(panel, attributionPanel){
 function renderJudgeCard(panel, fulfillment){
   if(!panel || !Object.keys(panel).length){return '<div class="muted">尚未评估。</div>';}
   const status=fulfillment?.overall_fulfillment?.status || panel.display_status || panel.overall_fulfillment?.status || '-';
-  return '<div><b>Overall Fulfillment：</b>'+escapeHtml(status)+'</div>'+
+  return '<div><b>Overall Fulfillment：</b>'+escapeHtml(status)+mainAxisTag(mainAxisSource(panel.evidence))+'</div>'+
     '<div><b>评估：</b>'+escapeHtml(panel.display_status || '-')+'</div>'+renderFulfillmentMatrix(panel, fulfillment)+
     '<div><b>原因：</b>'+escapeHtml(panel.display_reason || panel.reasoning_summary || '')+'</div>'+collapsedJson('缺失/错误/多余', panel.wrong_missing_extra || {missing:panel.missing || [], wrong:panel.wrong || [], extra:panel.extra || []})+
     '<details class="accordion"><summary>Raw JudgeResult</summary><div class="accordion-body"><pre>'+escapeHtml(JSON.stringify(panel,null,2))+'</pre></div></details>';

@@ -22,9 +22,9 @@
       <button class="secondary" onclick="runJudge()">请求 Judge</button>
       <button class="secondary" onclick="runAttribute()">请求 Attribute</button>
       <button class="secondary" onclick="runChain()">统一全链路</button>
-      <button class="secondary" id="evalAxesBtn" onclick="runEvalAxes()" style="display:none">扩展轴试验</button>
+      <button class="secondary" id="evalAxesBtn" onclick="runEvalAxes()" style="display:none">扩展评估轴</button>
     </div>
-    <div class="hint">按顺序执行单步按钮会复用当前页面保存的 lastTrace / lastJudge。「扩展轴试验」对同一个 lastTrace 跑新链路（资料页预设里配置的扩展评估轴），结果独立展示，不进生产 Judge。</div>
+    <div class="hint">按顺序执行单步按钮会复用当前页面保存的 lastTrace / lastJudge。「扩展评估轴」对同一个 lastTrace 单独再跑一遍资料页预设里配置的框。无 trace 预设启用了「能力兑现」框时，请求 Judge / 全链路的主结论就是它的结论。</div>
     <div id="status" class="muted" style="margin-top:12px">等待请求。</div>
   </section>
 
@@ -59,10 +59,10 @@
       </div>
     </details>
     <details id="evalAxesStep" class="card step" style="display:none">
-      <summary><h2 id="evalAxesTitle">扩展评估轴（试验）</h2><span id="evalAxesBadgeInPanel" class="badge">未运行</span></summary>
+      <summary><h2 id="evalAxesTitle">扩展评估轴</h2><span id="evalAxesBadgeInPanel" class="badge">未运行</span></summary>
       <div class="step-body">
         <div class="hint" style="margin-bottom:8px">新链路：按资料页该预设「扩展评估轴」里启用的框，对上面同一个 trace 各判一遍。与左侧 Judge 面板（生产轴1/轴2）并排对照，互不影响。</div>
-        <div id="evalAxesHuman" class="empty">尚未运行扩展轴试验。</div>
+        <div id="evalAxesHuman" class="empty">尚未运行扩展评估轴。</div>
         <div class="raw-title">Raw JSON</div>
         <pre id="evalAxesRaw">{}</pre>
       </div>
@@ -84,7 +84,7 @@ let currentAttribute = null;
 let currentCluster = null;
 let currentView = null;
 let currentEvalAxes = null;   // 扩展评估轴试验结果（新链路），与 judge/attribute 独立
-const EVAL_AXES_PROJECT = 'llm_probe';
+const EVAL_AXES_PROJECTS = ['llm_probe', 'llm_probe_loop'];
 function readSession(key){
   const text=sessionStorage.getItem(key);
   return text ? JSON.parse(text) : null;
@@ -107,7 +107,7 @@ function loadScopedState(){currentTrace=readSession(scopedKey('lastTrace'));curr
 function switchProject(){
   const savedInput=sessionStorage.getItem(scopedKey('input'));
   document.getElementById('input').value=savedInput || JSON.stringify(defaultInputs[project()] || {}, null, 2);
-  const evalAxesOn=project()===EVAL_AXES_PROJECT;
+  const evalAxesOn=EVAL_AXES_PROJECTS.includes(project());
   document.getElementById('evalAxesBtn').style.display=evalAxesOn?'inline-block':'none';
   document.getElementById('evalAxesStep').style.display=evalAxesOn?'block':'none';
   loadScopedState();renderAll();
@@ -233,7 +233,7 @@ function renderFulfillment(judge){
   const byId={};
   assessments.forEach(item=>{byId[item.expectation_id || '']=item;});
   const rows=expectations.map(exp=>{const assessment=byId[exp.expectation_id || ''] || {};return '<tr><td>'+escapeHtml(exp.expectation_id || '')+'</td><td>'+escapeHtml(exp.expected_outcome || '')+'</td><td>'+escapeHtml((exp.required_capabilities || []).join(', '))+'</td><td>'+escapeHtml(assessment.status || '-')+'</td><td>'+escapeHtml(exp.blocking?'是':'否')+'</td></tr>';}).join('');
-  return '<details class="inline-details" open><summary>业务预期达成矩阵（'+expectations.length+'项）</summary>'+
+  return '<details class="inline-details" open><summary>业务预期达成矩阵（'+expectations.length+'项）</summary>'+mainAxisSourceLine(judge)+
     '<div class="kv"><b>Overall Fulfillment：</b>'+escapeHtml(JSON.stringify(judge.overall_fulfillment || {}))+'</div>'+
     '<table style="width:100%;border-collapse:collapse"><thead><tr><th>Expectation</th><th>Expected Outcome</th><th>Capabilities</th><th>Status</th><th>Blocking</th></tr></thead><tbody>'+(rows || '<tr><td colspan="5" class="muted">无 fulfillment assessments</td></tr>')+'</tbody></table></details>';
 }
@@ -243,6 +243,7 @@ function renderAttributionFindings(attribute){
   return '<details class="inline-details" open><summary>已确认归因（'+findings.length+'项）</summary>'+
     '<table style="width:100%;border-collapse:collapse"><thead><tr><th>Finding</th><th>影响的 Expectations</th><th>结论</th><th>证据数</th></tr></thead><tbody>'+(rows || '<tr><td colspan="4" class="muted">尚无通过证据审查的 finding</td></tr>')+'</tbody></table></details>';
 }
+function mainAxisSourceLine(judge){const src=(judge.evidence || []).find(e=>e && typeof e==='object' && e.kind==='main_axis_source');return src?'<div class="kv"><b>来源：</b>扩展评估轴 · 能力兑现（主轴）</div>':'';}
 function fulfillmentStatusFromJudge(judge){const fulfillment=fulfillmentPanel();return fulfillment.overall_fulfillment?.status || judge?.display_status || judge?.overall_fulfillment?.status || '';}
 function fulfillmentBadgeState(status){
   if(status==='fulfilled'||status==='sound'||status==='consistent'||status==='pass'){return 'ok';}
@@ -356,19 +357,31 @@ function renderEvalAxes(data){
   showRaw('evalAxesRaw', data);
   const human=document.getElementById('evalAxesHuman');
   const title=document.getElementById('evalAxesTitle');
-  if(!data){setBadge('evalAxesBadgeInPanel','未运行','');if(title){title.textContent='扩展评估轴（试验）';}human.innerHTML='<div class="empty">尚未运行扩展轴试验。</div>';return;}
+  if(!data){setBadge('evalAxesBadgeInPanel','未运行','');if(title){title.textContent='扩展评估轴';}human.innerHTML='<div class="empty">尚未运行扩展评估轴。</div>';return;}
   const results=data.results || [];
   const types={};(data.types || []).forEach(t=>{types[t.type_id]=t;});
   const traceEval=results.some(r=>r.type_id==='trace_analysis');
-  if(title){title.textContent=traceEval?'过程证据（支撑主裁决）':'扩展评估轴（试验）';}
+  const mainAxis=!traceEval&&results.some(r=>r.type_id==='fulfillment'&&r.status!=='disabled');
+  if(title){title.textContent=traceEval?'过程证据（支撑主裁决）':(mainAxis?'评估轴（能力兑现即主结论）':'扩展评估轴');}
   const failed=results.filter(r=>r.status==='failed').length;
   const ran=results.filter(r=>r.status==='succeeded').length;
   setBadge('evalAxesBadgeInPanel', ran+' 轴完成'+(failed?'，'+failed+' 失败':''), failed?'bad':(ran?'ok':'warn'));
   const warnings=(data.warnings || []).map(w=>'<div class="kv" style="color:#92400e">⚠ '+escapeHtml(w)+'</div>').join('');
   const header='<div class="kv"><b>场景：</b>'+escapeHtml(data.scenario_id || '-')+' · <b>run：</b>'+escapeHtml(data.run_id || '')+'</div>';
-  const guide=traceEval?'<div class="hint">开关打开时，过程链在主 Judge 之前执行；页面主状态只以主裁决为准，以下是它的证据与逐轴结论。</div>':'';
-  if(!results.length){human.innerHTML=header+warnings+'<div class="kv muted">该预设没有配置扩展评估轴。到资料页 → capability 预设 → 「扩展评估轴（试验）」添加。</div>';return;}
-  human.innerHTML=header+guide+warnings+results.map(r=>renderAxisResult(r, types[r.type_id])).join('');
+  const guide=traceEval?'<div class="hint">开关打开时，过程链在主 Judge 之前执行；页面主状态只以主裁决为准，以下是它的证据与逐轴结论。</div>':(mainAxis?'<div class="hint">「能力兑现」是本预设的主轴，主结论取它；知识查证 / 真实性是它的依赖，任一失败整条判执行失败。</div>':'');
+  if(!results.length){human.innerHTML=header+warnings+'<div class="kv muted">该预设没有配置扩展评估轴。到资料页 → capability 预设 → 「扩展评估轴」添加。</div>';return;}
+  human.innerHTML=header+renderMainVerdict(data.main_verdict)+guide+warnings+results.map(r=>renderAxisResult(r, types[r.type_id])).join('');
+}
+// 主轴最终结论（后端 M 函数已合成）：结论 + 组成，哪几样给到、哪些被事实挡下、能不能做分没分清（demand/main_axis.md §4.3）。
+function renderMainVerdict(main){
+  if(!main||!main.verdict){return '';}
+  const state={'做成了':'ok','没做成':'bad','做不了':'warn','不确定':'warn'}[main.verdict]||'';
+  const c=main.composition||{};
+  const items=(c.items||[]).map(i=>'<tr><td>'+escapeHtml(i.expectation_id||'')+'</td><td>'+escapeHtml(i.status||'')+(i.placement?' · '+escapeHtml(i.placement):'')+'</td><td>'+(i.blocking?'blocking':'')+'</td><td>'+escapeHtml((i.claim_refs||[]).join('、'))+'</td></tr>').join('');
+  const flags=[(c.blocked_by_claims||[]).length?'挡下结论的事实：'+c.blocked_by_claims.join('、'):'', c.capability_undetermined?'能不能做没区分':'', c.claims_checked===false?'事实属实未核':''].filter(Boolean);
+  return '<div class="kv"><b>主轴结论：</b><span class="badge '+state+'">'+escapeHtml(main.verdict)+'</span> <span class="muted">'+escapeHtml(main.basis||'')+'</span></div>'+
+    (flags.length?'<div class="kv muted">'+escapeHtml(flags.join(' · '))+'</div>':'')+
+    (items?'<table class="axes-items"><thead><tr><th>期望</th><th>给到没有 · 能不能做</th><th></th><th>依据事实</th></tr></thead><tbody>'+items+'</tbody></table>':'');
 }
 let evalAxesTypesCache=null;
 async function evalAxesTypes(){

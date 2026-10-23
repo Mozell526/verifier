@@ -180,7 +180,8 @@ class LlmProbeLive(RealServiceLive):
         except LiveForbiddenContentTypeError as exc:
             raise RuntimeError(f"llm_probe 拒绝流式响应 {exc.content_type}") from exc
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
-            raise LiveServiceUnavailableError(f"llm_probe target unavailable: {exc}") from exc
+            hint = str(capability_service(ref).get("start_hint") or "").strip() if ref else ""
+            raise LiveServiceUnavailableError(f"llm_probe target unavailable: {exc}" + (f"；{hint}" if hint else "")) from exc
         if not last_frame:
             _reject_streaming(transport)
         return transport

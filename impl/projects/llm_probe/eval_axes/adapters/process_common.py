@@ -90,7 +90,7 @@ def axis_type(type_id: str, title: str, summary: str, spec: AxisSpec) -> Any:
         verdict_enum=(Verdict("sound", "已核实范围内没问题；须同时查看组成与未覆盖范围"),
                       Verdict("problematic", "有归到本轴的问题"),
                       Verdict("not_evaluable", "有无法核的条目，或问题归因未定位"),
-                      Verdict("untested", "本应用到，但每次输入都已被上游弄坏；须修上游"),
+                      Verdict("untested", "输入全坏：本应用到，但每次输入都已被上游弄坏；须修上游"),
                       Verdict("not_applicable", "本次不需要这项能力")),
         depend_on=(Dependency("expectations"), Dependency("trace_analysis"),),
         trigger_when=None,

@@ -113,7 +113,7 @@ def parse_mcp(name: str, entry: dict, *, expand: bool = True) -> McpSource:
     if not isinstance(env, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in env.items()):
         raise ValueError(f"{label}.env 必须是字符串到字符串的映射")
     tools = entry.get("tools")
-    # 评测只读：登记时逐个声明放开哪些工具，带身份或有副作用的不放（demand/knowledge_evidence.md §2.7）。
+    # 评测只读：登记时逐个声明放开哪些工具，带身份或有副作用的不放（demand/information_sources.md §4.3）。
     if not isinstance(tools, list) or not tools or not all(isinstance(t, str) and t.strip() for t in tools) or len(set(tools)) != len(tools):
         raise ValueError(f"{label}.tools 必须是非空、不重复的工具名列表：只列允许评测使用的只读工具（「测试连接」可列出全部工具）")
     return McpSource(

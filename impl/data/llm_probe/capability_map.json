@@ -45,14 +45,12 @@
       }
     },
     "service": {
-      "headers": {
-        "Authorization": "Bearer ${BAILIAN_API_KEY}",
-        "X-DashScope-SSE": "enable"
-      },
+      "headers": {},
       "method": "POST",
-      "response_mode": "sse_last_frame",
+      "response_mode": "json",
       "timeout_seconds": 180.0,
-      "url": "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"
+      "url": "http://127.0.0.1:18090/api/v1/services/aigc/text-generation/generation",
+      "start_hint": "被测目标是本机转发服务（只在实验时开）：先在 verifier 目录运行 python scripts/qa_target.py（默认 pi + agentrouter/deepseek-v4-flash；--backend dashscope 切回百炼）"
     }
   },
   "hr-handbook-qa": {
@@ -90,14 +88,12 @@
       }
     },
     "service": {
-      "headers": {
-        "Authorization": "Bearer ${BAILIAN_API_KEY}",
-        "X-DashScope-SSE": "enable"
-      },
+      "headers": {},
       "method": "POST",
-      "response_mode": "sse_last_frame",
+      "response_mode": "json",
       "timeout_seconds": 180.0,
-      "url": "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"
+      "url": "http://127.0.0.1:18090/api/v1/services/aigc/text-generation/generation",
+      "start_hint": "被测目标是本机转发服务（只在实验时开）：先在 verifier 目录运行 python scripts/qa_target.py（默认 pi + agentrouter/deepseek-v4-flash；--backend dashscope 切回百炼）"
     }
   },
   "insurance-agno-e2e": {
@@ -258,7 +254,7 @@
   },
   "marketting-planning-intent": {
     "boundary": "支持：单轮营销规划问句的意图识别与必要槽位抽取。意图标签空间：1001=客户画像、1002=队伍画像、1003=达成路径规划、4001=其他。\n不支持：多轮规划过程；生成 SSE 卡片。",
-    "capability": "用户拿它办的事：说一句营销规划请求，被分发到正确的处理流程。\n交付物是意图标签+必要槽位，下游按标签路由、按槽位执行；判断达成必须按「照此标签和槽位分发能否正确承接这句请求」推演。\n标签选对且必要槽位完整准确才算办成；标签错路由、槽位缺失或值错都算没办成。",
+    "capability": "用户拿它办的事：说一句营销规划请求，被分发到正确的处理流程。\n交付物是意图标签+必要槽位，下游按标签路由、按槽位执行；判断达成必须按「照此标签和槽位分发能否正确承接这句请求」推演。\n意图标签：1001=客户画像、1002=队伍画像、1003=达成路径规划、4001=其他（不属于以上流程的请求，如闲聊、天气等域外问题）。\n标签选对且必要槽位完整准确才算办成；标签错路由、槽位缺失或值错都算没办成。",
     "mock_body": {
       "extra_input_params": {
         "agent_args": {
@@ -319,14 +315,12 @@
       }
     },
     "service": {
-      "headers": {
-        "Authorization": "Bearer ${BAILIAN_API_KEY}",
-        "X-DashScope-SSE": "enable"
-      },
+      "headers": {},
       "method": "POST",
-      "response_mode": "sse_last_frame",
+      "response_mode": "json",
       "timeout_seconds": 180.0,
-      "url": "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"
+      "url": "http://127.0.0.1:18090/api/v1/services/aigc/text-generation/generation",
+      "start_hint": "被测目标是本机转发服务（只在实验时开）：先在 verifier 目录运行 python scripts/qa_target.py（默认 pi + agentrouter/deepseek-v4-flash；--backend dashscope 切回百炼）"
     }
   },
   "policy_search": {

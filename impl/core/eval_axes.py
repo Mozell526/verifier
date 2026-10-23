@@ -6,6 +6,8 @@
 
 隔离合同：扩展轴的任何失败只记在 ``run["eval_axes"]["error"]`` 里，
 不碰 run_status、JudgeResult 或 capability_carrier；一个试验轴挂了不能把 case 标成失败。
+例外（项目侧决定，core 不感知）：llm_probe 无 trace 且启用主轴框的预设，主结论就是扩展轴主轴的结论，
+主轴及其依赖失败即主判失败；那时报告已在主判阶段跑过，这里只是取回（spec/adapter/main-axis-switch-plan-20261018.md）。
 """
 from __future__ import annotations
 

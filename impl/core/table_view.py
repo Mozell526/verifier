@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import json
 import importlib
+import json
 from collections import Counter
 from typing import Any, Dict, Iterable, List, Optional
 
@@ -168,7 +168,7 @@ def _status(trace: RunTrace, judge: Optional[JudgeResult], judge_summary: Dict[s
     return str(trace.status or ("error" if trace.error or case_context.get("error") else ""))
 
 
-def eval_axes_summary(report: Any) -> List[Dict[str, Any]]:
+def eval_axes_summary(report: Any, project_id: str) -> List[Dict[str, Any]]:
     """扩展评估轴（试验）报告 → 表格列：每轴一条 {axis_id, title, status, verdict, text, items}。
 
     与 carrier_text 之于"裁决"列同一角色：只搬运运行器已经算好的 summary，不重新判断。
@@ -206,10 +206,9 @@ def eval_axes_summary(report: Any) -> List[Dict[str, Any]]:
         assessment = output.get('assessment') or {}
         issues = output.get('issues', [])
         cited = {ref for issue in issues for key in ('source_refs', 'input_refs', 'output_refs') for ref in issue[key]}
-        from impl.projects.llm_probe.business_trace.dossier import render_value
+        render_value = importlib.import_module(f"impl.projects.{project_id}.business_trace.dossier").render_value
         evidence = {ref: render_value(dossier, records[ref]) for ref in cited if ref in records}
-        from impl.projects.llm_probe.eval_axes.registry import AXIS_TYPES
-        kind = AXIS_TYPES.get(type_id)
+        kind = importlib.import_module(f"impl.projects.{project_id}.eval_axes.registry").AXIS_TYPES.get(type_id)
         rows.append({
             "role": kind.role if kind else "evaluation",
             "composition": assessment.get('composition'),
@@ -231,7 +230,29 @@ def eval_axes_summary(report: Any) -> List[Dict[str, Any]]:
             "elapsed_ms": int(usage.get("elapsed_ms") or 0),
             "timed_out": bool(usage.get("timed_out")),
         })
+    main = report.get("main_verdict")
+    if isinstance(main, dict) and main.get("verdict"):
+        rows.insert(0, _main_verdict_row(main))
     return rows
+
+
+def _main_verdict_row(main: Dict[str, Any]) -> Dict[str, Any]:
+    """主轴最终结论（M 函数已算好）折成表格一行：结论令牌 + 组成逐格（demand/main_axis.md §4.3）。"""
+    composition = main.get("composition") if isinstance(main.get("composition"), dict) else {}
+    items = [{"key": str(entry.get("expectation_id") or ""),
+              "value": str(entry.get("status") or "") + (f"·{entry['placement']}" if entry.get("placement") else ""),
+              "reason": "；".join(x for x in ("blocking" if entry.get("blocking") else "非 blocking",
+                                             "依据事实 " + "、".join(entry.get("claim_refs") or []) if entry.get("claim_refs") else "") if x)}
+             for entry in composition.get("items") or [] if isinstance(entry, dict)]
+    items += [{"key": str(claim_id), "value": "挡下结论的事实", "reason": ""} for claim_id in composition.get("blocked_by_claims") or []]
+    flags = ["能不能做没区分" if composition.get("capability_undetermined") else "",
+             "事实属实未核" if composition.get("claims_checked") is False else ""]
+    verdict = str(main["verdict"])
+    return {"role": "evaluation", "composition": None, "issues": None, "evidence_records": {}, "execution_trace_ref": "",
+            "axis_id": "", "type_id": "main_verdict", "title": "主轴结论", "status": "succeeded", "verdict": verdict,
+            "text": "；".join(x for x in (str(main.get("basis") or ""), *flags) if x), "items": items,
+            "tokens": [f"main_verdict:{verdict}"], "llm_model": "", "llm_calls": 0, "tool_calls": 0, "elapsed_ms": 0,
+            "timed_out": False}
 
 
 def eval_axis_tokens(type_id: str, status: str, verdict: Any, items: List[Dict[str, Any]]) -> List[str]:
@@ -413,7 +434,7 @@ def build_trace_table_row(
         score=judge_summary.get("score"),
         fulfillment_status=fulfillment_status,
         carrier_placement=placement,
-        eval_axes_summary=eval_axes_summary(case_context.get("eval_axes")),
+        eval_axes_summary=eval_axes_summary(case_context.get("eval_axes"), str(trace.project_id or "")),
         stage_timings={k: int(v) for k, v in (case_context.get("stage_timings") or {}).items() if isinstance(v, (int, float))},
         judge_summary=judge_summary,
         attribution_summary=attribution_summary,

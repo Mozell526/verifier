@@ -149,34 +149,9 @@ def validate_business_trace_requirements(entry: Mapping[str, Any], *, owner: str
         validate_business_trace(trace_config)
 
 
-def validate_fulfillment_migration(entry: Mapping[str, Any], *, owner: str = "") -> None:
-    """迁移期契约：启用的 fulfillment 必须与当前主轴读取同一份有效标准。
-
-    长期以扩展轴 description 为准，不要求两者同源；这里只比较展开
-    ``material://`` 后的正文，防止迁移期间因标准漂移制造伪回归。
-    """
-    axes = parse_axes(entry.get("axes"), owner=f"{owner}.axes" if owner else "axes")
-    fulfillment = next(
-        (axis for axis in axes if axis.type_id == "fulfillment" and axis.enabled),
-        None,
-    )
-    if fulfillment is None:
-        return
-    capability = str(entry.get("capability") or "").strip()
-    if not capability:
-        raise ValueError("启用 fulfillment 需要 capability 主轴标准")
-    expanded_capability = expand_material_uris(capability).strip()
-    expanded_axis = expand_material_uris(fulfillment.description).strip()
-    if expanded_capability != expanded_axis:
-        raise ValueError(
-            "迁移期 fulfillment.description 必须与 capability 展开后的有效标准完全一致"
-        )
-
-
 def validate_scenario_entry(entry: Mapping[str, Any], *, owner: str = "") -> None:
     """保存期验证一条 llm_probe 场景配置。"""
     validate_business_trace_requirements(entry, owner=owner)
-    validate_fulfillment_migration(entry, owner=owner)
 
 
 def _auto_include_analysis_axes(axes: list[ScenarioAxis], entry: Any) -> list[ScenarioAxis]:
@@ -231,7 +206,6 @@ __all__ = [
     "parse_axes",
     "scenario_axes_from_entry",
     "validate_business_trace_requirements",
-    "validate_fulfillment_migration",
     "validate_scenario_entry",
     "validate_scenario_axes",
 ]
