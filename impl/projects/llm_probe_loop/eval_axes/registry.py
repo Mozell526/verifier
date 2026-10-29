@@ -4,13 +4,13 @@
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Any, Mapping
 
 from impl.core.axis_loop.definitions import AxisDef, Definitions, load
 
 PROJECT = "llm_probe_loop"
-TRACE = "trace"  # 需要业务 trace 的轴声明这一类信息源（spec/alg/axis_loop.md §8）
 
 
 @dataclass(frozen=True)
@@ -22,14 +22,23 @@ class AxisInfo:
 
     @property
     def requires_business_trace(self) -> bool:
-        return any(c.category == TRACE and c.required for c in self.axis.tool_categories)
+        """白名单读 trace 存档（case.trace）的轴。"""
+        return any(m == "case.trace" or m.startswith("case.trace.") for m in self.axis.materials)
 
     def describe(self) -> dict[str, Any]:
+        """与 llm_probe 的类型声明同形（资料页 / live 页按 type_id 取）：说明正文第一句当 summary；
+        场景描述框：模型执行的轴都有（本轴描述槽位，spec/alg/axis_loop.md §2.5），程序执行的没有。"""
         a = self.axis
-        return {"type": self.type_id, "title": self.title, "role": self.role, "executor": a.executor, "run_mode": a.run_mode,
+        summary = re.split(r"(?<=[。！？])", a.instruction.strip(), maxsplit=1)[0].strip()
+        return {"type_id": self.type_id, "title": self.title, "summary": summary, "role": self.role,
+                "executor": a.executor, "loop": a.loop,
+                "verdict_scope": "item" if a.submit == "per_item" else "case",
+                "verdict_enum": [{"value": v} for v in a.verdict_values],
                 "depend_on": [{"type_id": d.axis, "optional": not d.hard} for d in a.depends],
                 "trigger_when": {"axis": a.trigger.axis, "verdict_in": list(a.trigger.verdict_in)} if a.trigger else None,
-                "verdict_enum": [{"value": v} for v in a.verdict_values], "materials": list(a.materials)}
+                "inputs": [{"source": m} for m in a.materials],
+                "scenario_fields": [{"name": "description", "required": False}] if not a.automatic else [],
+                "requires_business_trace": self.requires_business_trace}
 
 
 def definitions() -> Definitions:

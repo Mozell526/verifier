@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import re
 import urllib.error
-from contextvars import ContextVar
 from typing import Any, Dict
 from urllib.parse import urlsplit
 
@@ -21,9 +20,6 @@ from impl.projects.llm_probe_loop.capability import (
 )
 
 _ENV_PLACEHOLDER = re.compile(r"\$\{([A-Z][A-Z0-9_]*)\}")
-# 本次 execute_live 的 case_id：live 实例跨 case 共享且不持有 ctx，用 ContextVar 避免并发 case 串号。
-_CASE_ID: ContextVar[str] = ContextVar("llm_probe_case_id", default="")
-_ASSOCIATION_KEY = "business_trace_association"
 
 
 def _expand_header_value(value: str) -> str:
@@ -96,10 +92,10 @@ def resolve_http(request: Dict[str, Any], spec: ProjectSpec) -> tuple[str, str, 
             response_mode = str(service.get("response_mode") or "").strip().lower()
         trace_config = capability_business_trace(ref)
         if trace_config:
-            # 配置错误必须在发业务请求前失败；运行期关联/采集错误则固化进快照，由相关轴判证据不足。
-            from impl.projects.llm_probe_loop.business_trace import validate_business_trace
+            # 配置错误必须在发业务请求前失败；运行期关联 / 采集错误则固化进快照（评测时取不到即运行失败）。
+            from impl.projects.llm_probe_loop.business_trace import validate_selection
 
-            validate_business_trace(trace_config)
+            validate_selection(trace_config)
     response_mode = response_mode or "json"
     if response_mode not in ALLOWED_RESPONSE_MODES:
         raise ValueError(f"llm_probe response_mode 只支持 {'/'.join(ALLOWED_RESPONSE_MODES)}，收到 {response_mode}")
@@ -131,13 +127,6 @@ def _reject_streaming(transport: LiveTransport) -> None:
 class LlmProbeLive(RealServiceLive):
     """按 case 信封发 HTTP，响应收成字符串；sse_last_frame 模式取流的最后一帧。"""
 
-    def _execute_via_session(self, initial_request, ctx, intent):
-        token = _CASE_ID.set(str(getattr(ctx, "case_id", "") or ""))
-        try:
-            return super()._execute_via_session(initial_request, ctx, intent)
-        finally:
-            _CASE_ID.reset(token)
-
     def deliver_real(self, request: Any, transport: LiveTransport) -> LiveTransport:
         payload = request if isinstance(request, dict) else {}
         if isinstance(payload.get("body"), (dict, list)):
@@ -145,18 +134,6 @@ class LlmProbeLive(RealServiceLive):
             # 多轮走 Session 路径时翻译函数已填具体会话身份，这里不会再碰到占位符。
             payload["body"] = fresh_delivery_placeholders(payload["body"])
         url, method, headers, body, timeout, response_mode = resolve_http(payload, self.spec)
-        ref = str(payload.get("capability_ref") or "").strip()
-        trace_config = capability_business_trace(ref) if ref else None
-        payload.pop(_ASSOCIATION_KEY, None)
-        if trace_config:
-            from impl.projects.llm_probe_loop.business_trace import prepare
-
-            # 每次投递重新生成关联；关联头覆盖场景配置里的同名头，否则切片会拿到别次投递的调用。
-            prepared = prepare(trace_config, case_id=_CASE_ID.get())
-            if prepared:
-                overridden = {key.lower() for key in prepared["headers"]}
-                headers = {k: v for k, v in headers.items() if k.lower() not in overridden} | prepared["headers"]
-                payload[_ASSOCIATION_KEY] = prepared["association"]
         if isinstance(request, dict):
             # 回写解析结果，让 execution trace 和 judge 拿到真实 URL/method/响应模式。
             request["url"] = url
@@ -180,6 +157,7 @@ class LlmProbeLive(RealServiceLive):
         except LiveForbiddenContentTypeError as exc:
             raise RuntimeError(f"llm_probe 拒绝流式响应 {exc.content_type}") from exc
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            ref = str(payload.get("capability_ref") or "").strip()
             hint = str(capability_service(ref).get("start_hint") or "").strip() if ref else ""
             raise LiveServiceUnavailableError(f"llm_probe target unavailable: {exc}" + (f"；{hint}" if hint else "")) from exc
         if not last_frame:
@@ -209,8 +187,7 @@ class LlmProbeLive(RealServiceLive):
             from impl.projects.llm_probe_loop.business_trace import collect
 
             response = raw_response[0] if isinstance(raw_response, list) and raw_response else raw_response
-            fields["business_trace"] = collect(trace_config, request=payload, response=response,
-                                               association=payload.get(_ASSOCIATION_KEY))
+            fields["business_trace"] = collect(trace_config, request=payload, response=response)
         return fields
 
     def build_execution_trace(self, raw_response: Any, extracted_output: Dict[str, Any], request: LiveRequest) -> list:
@@ -233,10 +210,3 @@ class LlmProbeLive(RealServiceLive):
                 evidence={"output_chars": len(str((extracted_output or {}).get("output_text") or ""))},
             ),
         ]
-
-
-def capability_provider(spec: ProjectSpec):
-    """轴2 g-provider：TextCarrier 从本次 live request 取本 case 的 boundary。"""
-    from impl.projects.llm_probe_loop.text_carrier import TextCarrier
-
-    return TextCarrier(spec=spec)

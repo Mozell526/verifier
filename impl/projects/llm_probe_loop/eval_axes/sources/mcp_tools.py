@@ -3,6 +3,7 @@
 - 连接用 fastmcp Client + stdio（与 .mcp.json 的 command/args/env 同形），每次调用拉起一次、用完即关：
   不持有跨调用的会话，评测侧没有生命周期要管；拉起约 1 秒，相对模型一轮可忽略。
 - 只暴露登记里 tools 白名单列出的工具（评测只读）；工具名、说明、入参 schema 全部取自 MCP 的 tools/list，不二次推导；对模型暴露为 ``<知识源名>__<工具名>``（非字母数字一律换成 _，工具名协议只收这些字符）。
+- 只读、等外部 I/O，工具都标 concurrent：模型一次回复里的几次查询同时执行；翻页句柄加锁发号，并发也不重号。
 - 每次调用产生一个翻页句柄（``mcp://<知识源>#<序号>``），完整返回原文存进回执；模型看到的是截断视图，
   用 mcp_read 按偏移翻页。引用核对由 axis loop 统一做（impl/core/axis_loop/checks.py）：只认模型实际看到的返回。
 """
@@ -12,6 +13,7 @@ import asyncio
 import dataclasses
 import json
 import re
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
@@ -97,9 +99,16 @@ class McpTools:
     def __init__(self, sources: dict[str, McpSource], recorder):
         self.sources = sources
         self.recorder = recorder
+        self._seq = sum(r.get('tool', '').startswith('mcp') for r in recorder)
+        self._lock = threading.Lock()
+
+    def _page_id(self, source: McpSource) -> str:
+        with self._lock:
+            self._seq += 1
+            return f"mcp://{source.name}#{self._seq}"
 
     def _call(self, source: McpSource, tool: str, arguments: dict[str, Any]):
-        page_id = f"mcp://{source.name}#{sum(r.get('tool', '').startswith('mcp') for r in self.recorder) + 1}"
+        page_id = self._page_id(source)
         receipt: dict[str, Any] = {"tool": "mcp_call", "source": source.name, "mcp_tool": tool, "arguments": arguments,
                                    "page_id": page_id, "returned_locators": []}
         try:
@@ -186,16 +195,16 @@ class McpTools:
                     tool_id=tool_prefix(source.name) + _TOOL_NAME.sub("_", spec["name"]),
                     description=f"[MCP 知识源 {source.name}] " + spec["description"]
                                 + "\n返回原文（可能截断：带 page_id，用 mcp_read 翻页，或用 mcp_find 在全文里搜关键词）。",
-                    execute_fn=execute, parameters=_described(spec["schema"])))
+                    execute_fn=execute, parameters=_described(spec["schema"]), concurrent=True))
         if specs:
             specs.append(VerifiableTool(
-                tool_id="mcp_read", description="按偏移翻看本轮某次 MCP 调用的完整返回原文（page_id 取自那次调用的返回）。", execute_fn=self.mcp_read,
+                tool_id="mcp_read", description="按偏移翻看本轮某次 MCP 调用的完整返回原文（page_id 取自那次调用的返回）。", execute_fn=self.mcp_read, concurrent=True,
                 parameters={"type": "object", "properties": {
                     "page_id": {"type": "string", "description": "MCP 调用返回的 page_id"},
                     "start": {"type": "integer", "description": "起始字符偏移，缺省 0"}}, "required": ["page_id"]}))
             specs.append(VerifiableTool(
                 tool_id="mcp_find", description="在本轮某次 MCP 调用的完整返回原文里搜关键词（字段名、中文名、数值等，原样匹配），"
-                                                "交回每处命中前后的原文和偏移；返回很长时用它找，不必逐页翻。", execute_fn=self.mcp_find,
+                                                "交回每处命中前后的原文和偏移；返回很长时用它找，不必逐页翻。", execute_fn=self.mcp_find, concurrent=True,
                 parameters={"type": "object", "properties": {
                     "page_id": {"type": "string", "description": "MCP 调用返回的 page_id"},
                     "keyword": {"type": "string", "description": "要搜的关键词，原样匹配"}}, "required": ["page_id", "keyword"]}))

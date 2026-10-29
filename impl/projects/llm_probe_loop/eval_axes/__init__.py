@@ -11,6 +11,7 @@ import uuid
 from collections.abc import Mapping
 from typing import Any, Optional
 
+from impl.core.axis_loop.definitions import AxisDef
 from impl.core.axis_loop.loop import AxisLoop, LoopReport, Settings
 from impl.core.axis_loop.materials import MaterialTable
 from impl.core.capability_store import load_capability_map
@@ -33,7 +34,8 @@ def settings() -> Settings:
     """全局预算与上下文上限，取自运行配置 eval_axes.loop_*（spec/alg/axis_loop.md §9、§10）。"""
     c = get_runtime_config().eval_axes
     return Settings(llm_calls=c.loop_llm_calls, tool_calls=c.loop_tool_calls, seconds=c.loop_seconds,
-                    context_limit_tokens=c.loop_context_limit_tokens, archive_ratio=c.loop_archive_ratio)
+                    context_limit_tokens=c.loop_context_limit_tokens, archive_ratio=c.loop_archive_ratio,
+                    material_inline_chars=c.loop_material_inline_chars)
 
 
 def new_run_id() -> str:
@@ -45,10 +47,10 @@ def _capability_ref(trace: Any) -> str:
     return str((request or {}).get("capability_ref") or "").strip()
 
 
-def _result(key: str, title: str, status: str, output: Optional[Mapping[str, Any]], *, error: str = "") -> dict[str, Any]:
+def _result(axis: AxisDef, status: str, output: Optional[Mapping[str, Any]], *, error: str = "") -> dict[str, Any]:
     output = dict(output or {})
     text = str(output.get("reason") or output.get("verdict") or error or "")
-    return {"type_id": key, "axis_id": key, "title": title, "status": status, "verdict": output.get("verdict"),
+    return {"type_id": axis.id, "axis_id": axis.id, "title": axis.title, "display": axis.display, "status": status, "verdict": output.get("verdict"),
             "output": output, "summary": {"text": text, "items": []}, "error": error, "usage": {}}
 
 
@@ -60,17 +62,17 @@ def _report_main(results: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
     return {"verdict": out["verdict"], "basis": out["reason"], "composition": out["composition"]}
 
 
-def _loop_results(report: LoopReport, enabled: list[str], titles: Mapping[str, str]) -> list[dict[str, Any]]:
+def _loop_results(report: LoopReport, enabled: list[str], axes: Mapping[str, AxisDef]) -> list[dict[str, Any]]:
     results = []
     for key in enabled:
         state = report.states.get(key)
         if report.status != "complete":
             # 不出部分结论：没跑成时各轴都不带输出，过程只留在 loop 记录里（spec/alg/axis_loop.md §5.5）。
-            results.append(_result(key, titles[key], STATUS_FAILED, None, error=f"{FAILURE_AXIS} axis loop 没跑成：{report.reason}"))
+            results.append(_result(axes[key], STATUS_FAILED, None, error=f"{FAILURE_AXIS} axis loop 没跑成：{report.reason}"))
         elif state == "absent":
-            results.append(_result(key, titles[key], STATUS_NOT_APPLICABLE, None, error="触发条件未满足"))
+            results.append(_result(axes[key], STATUS_NOT_APPLICABLE, None, error="触发条件未满足"))
         else:
-            results.append(_result(key, titles[key], STATUS_SUCCEEDED, report.results.get(key)))
+            results.append(_result(axes[key], STATUS_SUCCEEDED, report.results.get(key)))
     return results
 
 
@@ -82,18 +84,17 @@ def build_report(spec: Any, trace: Any, *, run_id: str = "", scenario_id: str = 
         raise ValueError(f"场景预设 {scenario_id!r} 没有启用的评测轴")
     entry = load_capability_map(PROJECT)[scenario_id]
     defs = definitions()
-    titles = {k: defs.axes[k].title for k in axes.enabled}
     run_id = str(run_id or "").strip() or new_run_id()
     case = Case(trace, scenario_id, entry, axes.notes)
     started = time.monotonic()
     report: dict[str, Any] = {"run_id": run_id, "scenario_id": scenario_id, "trace_id": str(trace.trace_id or ""),
                               "case_id": str(trace.case_id or ""), "route": "loop",
                               "axes": [{"type": k, "enabled": True, "description": axes.notes.get(k, "")} for k in axes.enabled],
-                              "warnings": []}
+                              "warnings": list(axes.warnings)}
     failure = business_failure.matched(trace, entry)
     if failure:
         # 命中场景登记的错误码：运行失败，不出结论、不启动 loop（demand/main_axis.md §3.6）。
-        results = [_result(k, titles[k], STATUS_FAILED, None, error=f"被测系统调用失败：{failure}") for k in axes.enabled]
+        results = [_result(defs.axes[k], STATUS_FAILED, None, error=f"被测系统调用失败：{failure}") for k in axes.enabled]
         report.update(results=results, main_verdict=None, business_failure=failure,
                       loop={"status": "skipped", "reason": failure, "seconds": 0})
         return report
@@ -104,13 +105,15 @@ def build_report(spec: Any, trace: Any, *, run_id: str = "", scenario_id: str = 
     loop = AxisLoop(defs, axes.enabled, MaterialTable(material_registry(), case), sources, client, settings(),
                     axis_sources=sources.axis_instances())
     turns = len(getattr(trace, "turn_records", None) or []) or 1
-    header = f"case {case.trace.case_id or ''}，场景 {scenario_id}，共 {turns} 轮。下面是第一批任务。"
+    # 不给用例名：用例名常带预期（如 neg-unknown-policy），会把答案透给评测
+    header = f"场景 {scenario_id}，共 {turns} 轮。下面是第一批任务。"
     outcome = loop.run(header, LoopContext(trace_id=run_id, stage="axis_loop"))
-    results = _loop_results(outcome, axes.enabled, titles)
+    results = _loop_results(outcome, axes.enabled, defs.axes)
     report.update(results=results, main_verdict=_report_main(results), loop={
         "status": outcome.status, "reason": outcome.reason, "llm_calls": outcome.llm_calls, "tool_calls": outcome.tool_calls,
         "seconds": round(time.monotonic() - started, 1), "archived": outcome.archived, "states": dict(outcome.states),
-        "events": [e.__dict__ for e in outcome.events], "messages": outcome.messages, "usage": client.usage()})
+        "events": [e.__dict__ for e in outcome.events], "messages": outcome.messages, "usage": client.usage()},
+        loops=outcome.loops)
     return report
 
 

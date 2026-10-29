@@ -17,6 +17,8 @@ def check(view):
             problems.append(f"期望 {e['expectation_id']} 必须引用本轮用户原话（component=user）；场景判准、历史、业务描述不能独立产生期望")
         if e["ambiguity_group"]:
             groups[e["ambiguity_group"]] += 1
+        if any(len(set(g)) != len(g) for g in e["needs"]) or len({tuple(sorted(g)) for g in e["needs"]}) != len(e["needs"]):
+            problems.append(f"期望 {e['expectation_id']} 的 needs 有重复：组内不重复写同一类，组之间不重复")
     if any(n < 2 for n in groups.values()):
         problems.append("歧义组至少两条互斥读法")
     if any(s["side"] == "want" for s in sources.values()) and not view.own["expectations"]:

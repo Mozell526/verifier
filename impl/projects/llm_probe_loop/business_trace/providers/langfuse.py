@@ -26,19 +26,34 @@ def describe():
             "reader": {"operations": ["overview", "list_records", "read"],
                        "record_kinds": list(KINDS), "source": "frozen_snapshot",
                        "exact_model_request": "SDK 记录的输入，不保证等于模型实际收到的完整请求"},
-            "default_config": {"base_url": "http://127.0.0.1:3300",
+            # 连接写在全局登记，绑定写在场景（spec/alg/axis_loop.md §8.2）
+            "default_connection": {"base_url": "http://127.0.0.1:3300",
                 "public_key": "${LANGFUSE_PUBLIC_KEY}", "secret_key": "${LANGFUSE_SECRET_KEY}",
                 "match_field": "metadata.business_trace_id",
-                "bindings": {"business_trace_id": {"source": "response", "pointer": "/trace_id"}},
                 "timeout_seconds": 15, "poll_timeout_seconds": 60,
                 "poll_interval_seconds": 1, "quiet_seconds": 3,
-                "max_pages": 20, "page_size": 50, "content_char_limit": None}}
+                "max_pages": 20, "page_size": 50, "content_char_limit": None},
+            "default_bindings": {"business_trace_id": {"source": "response", "pointer": "/trace_id"}}}
 
 
 def validate_config(value):
+    """登记的连接 + 场景的绑定。"""
     if not isinstance(value, Mapping):
         raise ValueError("business_trace.config 必须是对象")
-    clean = dict(describe()["default_config"])
+    bindings = value.get("bindings")
+    binding = bindings.get("business_trace_id") if isinstance(bindings, Mapping) else None
+    if (not isinstance(binding, Mapping) or binding.get("source") not in {"request", "response"}
+            or not isinstance(binding.get("pointer"), str) or not binding["pointer"].startswith("/")
+            or re.search(r"~(?![01])", binding["pointer"])):
+        raise ValueError("bindings.business_trace_id 必须有 request/response source 和有效 JSON Pointer")
+    return {**validate_connection(value), "bindings": {"business_trace_id": dict(binding)}}
+
+
+def validate_connection(value):
+    """只校连接（登记页保存、测试连接用），不含绑定。"""
+    if not isinstance(value, Mapping):
+        raise ValueError("business_trace.config 必须是对象")
+    clean = dict(describe()["default_connection"])
     clean.update({key: value[key] for key in clean if key in value})
     url = urlsplit(str(clean["base_url"]))
     if (url.scheme not in {"http", "https"} or not url.hostname or url.username or url.password
@@ -51,13 +66,6 @@ def validate_config(value):
     match = clean["match_field"]
     if not isinstance(match, str) or (match != "id" and not re.fullmatch(r"metadata\.[A-Za-z0-9_-]+", match)):
         raise ValueError("match_field 只支持 id 或 metadata.<key>")
-    bindings = clean.get("bindings")
-    binding = bindings.get("business_trace_id") if isinstance(bindings, Mapping) else None
-    if (not isinstance(binding, Mapping) or binding.get("source") not in {"request", "response"}
-            or not isinstance(binding.get("pointer"), str) or not binding["pointer"].startswith("/")
-            or re.search(r"~(?![01])", binding["pointer"])):
-        raise ValueError("bindings.business_trace_id 必须有 request/response source 和有效 JSON Pointer")
-    clean["bindings"] = {"business_trace_id": dict(binding)}
     limits = {"timeout_seconds": (.1, 60), "poll_timeout_seconds": (.1, 300),
               "poll_interval_seconds": (.01, 10), "quiet_seconds": (0, 60),
               "max_pages": (1, 100), "page_size": (1, 100), "content_char_limit": (1, 1000000)}
@@ -116,7 +124,7 @@ def _error(exc):
 
 
 def check_connection(config):
-    clean = validate_config(config)
+    clean = validate_connection(config)
     try:
         data = _get_json(clean, "/projects")
         return {"ok": True, "provider": "langfuse", "project_count": len(data.get("data", []))}

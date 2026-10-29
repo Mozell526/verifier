@@ -46,7 +46,14 @@ def _record_paths_for_project(project_id: str) -> List[Path]:
     dir_path = _store_dir() / project_id
     if not dir_path.exists():
         return []
-    return sorted(dir_path.rglob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+    # 并发落档时别的线程可能刚把某个文件裁掉：列出后、取 mtime 前消失的直接跳过
+    stamped = []
+    for p in dir_path.rglob("*.json"):
+        try:
+            stamped.append((p.stat().st_mtime, p))
+        except FileNotFoundError:
+            continue
+    return [p for _, p in sorted(stamped, key=lambda x: x[0], reverse=True)]
 
 
 def _normalize_record(data: Dict[str, Any]) -> ContextRecord:

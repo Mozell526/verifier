@@ -336,9 +336,11 @@ def save_capability(data: Dict[str, Any]) -> Any:
     project = project_from(data)
     name = str(data.get("name") or "")
     entry = capability_store.validate_entry(name, data.get("entry") or {})
+    checked = None
     if project in EVAL_AXES_PROJECTS:
-        _project_module(project, "eval_axes.validate").validate_scenario_entry(entry, owner=name)
-    return capability_store.save_capability(project, name, entry)
+        # llm_probe 只校验（返回 None）；llm_probe_loop 另返回不挡保存的警告，页面显示在保存结果里
+        checked = _project_module(project, "eval_axes.validate").validate_scenario_entry(entry, owner=name)
+    return {**capability_store.save_capability(project, name, entry), "warnings": list(checked.warnings) if checked else []}
 
 
 def delete_capability(data: Dict[str, Any]) -> Any:

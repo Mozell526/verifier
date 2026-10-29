@@ -377,7 +377,7 @@ function renderMainVerdict(main){
   if(!main||!main.verdict){return '';}
   const state={'做成了':'ok','没做成':'bad','做不了':'warn','不确定':'warn'}[main.verdict]||'';
   const c=main.composition||{};
-  const items=(c.items||[]).map(i=>'<tr><td>'+escapeHtml(i.expectation_id||'')+'</td><td>'+escapeHtml(i.status||'')+(i.placement?' · '+escapeHtml(i.placement):'')+'</td><td>'+(i.blocking?'blocking':'')+'</td><td>'+escapeHtml((i.claim_refs||[]).join('、'))+'</td></tr>').join('');
+  const items=(c.items||[]).map(i=>'<tr><td>'+escapeHtml(i.expectation_id||'')+'</td><td>'+escapeHtml(i.status||'')+(i.placement?' · '+escapeHtml(i.placement):'')+'</td><td>'+(i.blocking===null?'待定':i.blocking?'blocking':'')+'</td><td>'+escapeHtml((i.claim_refs||[]).join('、'))+'</td></tr>').join('');
   const flags=[(c.blocked_by_claims||[]).length?'挡下结论的事实：'+c.blocked_by_claims.join('、'):'', c.capability_undetermined?'能不能做没区分':'', c.claims_checked===false?'事实属实未核':''].filter(Boolean);
   return '<div class="kv"><b>主轴结论：</b><span class="badge '+state+'">'+escapeHtml(main.verdict)+'</span> <span class="muted">'+escapeHtml(main.basis||'')+'</span></div>'+
     (flags.length?'<div class="kv muted">'+escapeHtml(flags.join(' · '))+'</div>':'')+

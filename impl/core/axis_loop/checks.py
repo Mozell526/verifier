@@ -73,10 +73,18 @@ def quote_in_material(view: TaskView, scope: Mapping[str, Any], *, field: str, m
     return [f"{field} 的引文没有逐字出现在 {material} 里：{[str(q)[:40] for q in bad]}"] if bad else []
 
 
-def _usable(call: Optional[CallView], category: str, tool: str = "") -> str:
-    """这次调用能不能当依据；能为空串，否则为原因。"""
+def usable(view: TaskView, ref: str, category: str = "", tool: str = "") -> str:
+    """ref 指的调用能不能当依据；能为空串，否则为原因，并列出能过同一判断的 call_id。"""
+    why = _unusable(view.call(ref), category, tool)
+    if not why:
+        return ""
+    ok = [c.call_id for c in view.calls if not _unusable(c, category, tool)]
+    return f"{why}；现在可引的 call_id 是 {ok}"
+
+
+def _unusable(call: Optional[CallView], category: str, tool: str) -> str:
     if call is None:
-        return "不是此前批次里的调用（同一次回复里拿到的要到下一次回复才能用）"
+        return "不是此前回复里拿到的调用的 call_id（同一次回复里刚发起的要到下一次回复才能引）"
     if call.is_error:
         return "是报错的调用，不算查过"
     if category and call.category != category:
@@ -94,8 +102,8 @@ def quote_in_call(view: TaskView, scope: Mapping[str, Any], *, field: str, categ
         if not isinstance(ref, str) or not isinstance(quote, str) or not quote.strip():
             problems.append(f"{field} 每条引用要有 ref 和非空 quote")
             continue
+        why = usable(view, ref, category)
         call = view.call(ref)
-        why = _usable(call, category)
         if why:
             problems.append(f"引用的 {ref} {why}")
         elif not any(quote_in_text(quote, t) for t in [call.text, *leaves(call.structured)]):
@@ -107,14 +115,14 @@ def searched(view: TaskView, scope: Mapping[str, Any], *, field: str, category: 
     refs = _field(scope, field)
     if not refs:
         return [f"{field} 至少列一个检索调用；一次都没查不能交"]
-    return [f"{field} 里的 {r} {why}" for r in refs if (why := _usable(view.call(str(r)), category))]
+    return [f"{field} 里的 {r} {why}" for r in refs if (why := usable(view, str(r), category))]
 
 
 def from_call(view: TaskView, scope: Mapping[str, Any], *, field: str, tool: str) -> list[str]:
     refs = _field(scope, field)
     if not refs:
         return [f"{field} 必须指向一次 {tool} 调用"]
-    return [f"{field} 里的 {r} {why}" for r in refs if (why := _usable(view.call(str(r)), SUBLOOP_CATEGORY, tool))]
+    return [f"{field} 里的 {r} {why}" for r in refs if (why := usable(view, str(r), SUBLOOP_CATEGORY, tool))]
 
 
 @dataclass(frozen=True)

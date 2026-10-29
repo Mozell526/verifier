@@ -1,4 +1,4 @@
-"""取证案卷：每条引文补上判定要的上下文——查询用的工具与参数、引句所在的整条记录（同 llm_probe knowledge_loop 的 _citation/window）。"""
+"""取证案卷：每条引文补上判定要的上下文——查询用的工具与参数、引句所在的整条记录（window 同 llm_probe knowledge_loop）。"""
 import json
 from collections.abc import Mapping
 
@@ -56,12 +56,16 @@ def window(text, quote, chars=WINDOW_CHARS):
 
 
 def synthesize(view):
-    evidence = []
+    """唯一性原则：同一条整条记录、同一次调用的工具与参数只给一份；cite_records 按条给出每条引文的记录编号（与 citations 一一对应）。"""
+    records, calls, cite_records, ids = {}, {}, {}, {}
     for item in view.own["items"]:
-        citations = []
+        keys = []
         for cite in item["citations"]:
             call = view.call(cite["ref"])
-            citations.append({"ref": cite["ref"], "quote": cite["quote"], "tool": call.tool, "args": dict(call.args),
-                              "window": window(call.text, cite["quote"])})
-        evidence.append({"item_id": item["item_id"], "citations": citations})
-    return {"evidence": evidence}
+            calls.setdefault(cite["ref"], {"tool": call.tool, "args": dict(call.args)})
+            text = window(call.text, cite["quote"])
+            key = ids.setdefault((cite["ref"], text), f"r{len(ids) + 1}")
+            records[key] = text
+            keys.append(key)
+        cite_records[item["item_id"]] = keys
+    return {"records": records, "calls": calls, "cite_records": cite_records}

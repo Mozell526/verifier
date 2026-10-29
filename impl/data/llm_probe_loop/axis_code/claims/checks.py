@@ -1,6 +1,7 @@
 """说法抽取的逐字与隔离规则（同 llm_probe knowledge_loop/extract.parse_claims，口径不变）。
 
-span 逐字出自回答，可几条共用；claim 自由写；context 逐字出自回答或用户问题；qualifies 指向另一条说法；
+spans 每段 {turn, text}：turn 是材料里给了的轮，text 逐字出自那一轮的回答，可几条共用；claim 自由写；
+context 逐字出自任一轮回答或用户问题；qualifies 指向另一条说法；
 context 不夹带别条说法的片段。逐字比对前去掉空白与 Markdown 强调符、统一引号；回答是 JSON 时也比对解码后的字段。
 """
 import json
@@ -50,7 +51,8 @@ def _contains_value(segment, value):
 
 
 def check(view):
-    answer = _answer_texts(view.materials["case.final_output"])
+    turns = {d["turn"]: _answer_texts(d["output_text"]) for d in view.materials["case.deliveries"]}
+    answer = tuple(t for texts in turns.values() for t in texts)
     asked = (_plain("\n".join(view.materials["case.user_turns"])),)
     claims, problems, seen = view.own["claims"], [], set()
     for claim in claims:
@@ -60,20 +62,25 @@ def check(view):
         seen.add(key)
         if not claim["claim"].strip():
             problems.append(f"说法 {key} 的 claim 不能为空")
-        if not claim["span"].strip() or not _in(claim["span"], answer):
-            problems.append(f"说法 {key} 的 span {claim['span']!r} 不是 output_text 的逐字连续原文")
+        for span in claim["spans"]:
+            if span["turn"] not in turns:
+                problems.append(f"说法 {key} 的 spans 段 turn={span['turn']!r} 不是材料里给了的轮（{sorted(turns)}）")
+            elif not span["text"].strip() or not _in(span["text"], turns[span["turn"]]):
+                problems.append(f"说法 {key} 的 spans 段 {span['text']!r} 不是第 {span['turn']} 轮 output_text 的逐字连续原文")
         bad = [c for c in claim["context"] if not c.strip() or not (_in(c, answer) or _in(c, asked))]
         if bad:
-            problems.append(f"说法 {key} 的 context 段 {bad[0]!r} 既不是 output_text 也不是用户问题的逐字连续原文")
+            problems.append(f"说法 {key} 的 context 段 {bad[0]!r} 既不是任一轮回答也不是用户问题的逐字连续原文")
     for claim in claims:
         q = claim["qualifies"].strip()
         if q and (q == claim["claim_id"] or q not in seen):
             problems.append(f"说法 {claim['claim_id']} 的 qualifies {q!r} 不是另一条说法的 claim_id")
     for claim in claims:
+        own = {s["text"] for s in claim["spans"]}
         for other in claims:
-            if other["span"] == claim["span"]:
-                continue
-            leaked = [c for c in claim["context"] if _plain(c) != _plain(other["span"]) and _contains_value(c, other["span"])]
-            if leaked:
-                problems.append(f"说法 {claim['claim_id']} 的 context {leaked[0]!r} 含了说法 {other['claim_id']} 的片段 {other['span']!r}，只放定位所需的上下文")
+            for span in {s["text"] for s in other["spans"]}:
+                if span in own:
+                    continue
+                leaked = [c for c in claim["context"] if _plain(c) != _plain(span) and _contains_value(c, span)]
+                if leaked:
+                    problems.append(f"说法 {claim['claim_id']} 的 context {leaked[0]!r} 含了说法 {other['claim_id']} 的片段 {span!r}，只放定位所需的上下文")
     return problems

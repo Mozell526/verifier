@@ -5,9 +5,13 @@
 
 分条交（per_item）：分项单独交、单独验收；同一分项再交就替换前一次（改错只重交那一条）。
 收尾交 verdict / reason 等模型填的部分，own 里带上全部已接受分项，再跑收尾的校验与合成。
+
+说明回合（§5.3 第 6 步）：合成出的 x-explain 字段和上一次回给模型的不同，就先不收，回给模型看；
+相同（模型看过这份结论后再交）才收下。
 """
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 from typing import Any, Callable, Optional
@@ -31,10 +35,12 @@ class Submissions:
 
     items: dict[str, Mapping[str, Any]] = field(default_factory=dict)  # item_id → 分项（含 item_key）
     result: Optional[Mapping[str, Any]] = None                         # 被接受的完整结果
+    explained: Optional[Mapping[str, Any]] = None                      # 上一次回给模型看的程序结论
 
     def reset(self) -> None:
         self.items.clear()
         self.result = None
+        self.explained = None
 
 
 @dataclass(frozen=True)
@@ -42,6 +48,7 @@ class Outcome:
     accepted: bool
     reasons: tuple[str, ...] = ()
     result: Optional[Mapping[str, Any]] = None  # 收尾被接受时的完整结果
+    explain: Optional[Mapping[str, Any]] = None  # 说明回合：先不收，回给模型看的程序结论
 
 
 def schema_errors(schema: Mapping[str, Any], payload: Any) -> list[str]:
@@ -55,10 +62,29 @@ def schema_errors(schema: Mapping[str, Any], payload: Any) -> list[str]:
 
 def _strip_fill(schema: Any) -> Any:
     if isinstance(schema, Mapping):
-        return {k: _strip_fill(v) for k, v in schema.items() if k != "x-fill"}
+        return {k: _strip_fill(v) for k, v in schema.items() if k not in ("x-fill", "x-explain")}
     if isinstance(schema, list):
         return [_strip_fill(v) for v in schema]
     return schema
+
+
+def _pick(value: Any, keys: Any) -> Any:
+    """x-explain 为键列表时只回这些键：对象取键，对象列表逐个取。"""
+    if keys is True:
+        return value
+    if isinstance(value, Mapping):
+        return {k: value[k] for k in keys if k in value}
+    if isinstance(value, list):
+        return [_pick(v, keys) for v in value]
+    return value
+
+
+def explain_text(task: str, shown: Mapping[str, Any]) -> str:
+    """说明回合回给模型的话（§5.3 第 6 步）。"""
+    body = json.dumps(shown, ensure_ascii=False, indent=1)
+    return (f"submit（{task}）先不收：程序按你交的内容算出了下面的结论。\n{body}\n"
+            "reason 写最终结论为什么是这样，包括程序算出的部分；认为程序结果、或它依据的上游结论不对，"
+            "在 reason 里写明依据挑战（结论不会因此改）。改好再交一次。")
 
 
 def part_work(work: Work) -> Work:
@@ -133,5 +159,9 @@ def submit(work: Work, state: Submissions, payload: Any, item_id: Optional[str],
     full = schema_errors(work.output, result)
     if full:
         raise SynthesisError(f"{work.id}: 完整结果不合输出 schema：" + "；".join(full[:5]))
+    shown = {name: _pick(result[name], keys) for name, keys in work.explained_fields.items()}
+    if shown and shown != state.explained:
+        state.explained = shown
+        return Outcome(False, explain=shown)
     state.result = result
     return Outcome(True, result=result)

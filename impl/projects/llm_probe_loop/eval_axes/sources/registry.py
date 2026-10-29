@@ -24,7 +24,7 @@ SOURCE_NAME = r"[a-z0-9][a-z0-9_-]*"
 _ENV_PLACEHOLDER = re.compile(r"\$\{([A-Z][A-Z0-9_]*)\}")
 _ES_KEYS = {"type", "description", "url", "api_key", "basic_auth", "timeout_seconds", "max_hits", "max_field_chars"}
 # 与 .mcp.json 的 mcpServers 条目同形（command/args/env），只支持 stdio：由评测侧按需拉起进程。
-_MCP_KEYS = {"type", "description", "command", "args", "env", "tools", "timeout_seconds", "max_chars"}
+_MCP_KEYS = {"type", "description", "command", "args", "env", "tools", "check_tool", "timeout_seconds", "max_chars"}
 
 
 @dataclass(frozen=True)
@@ -69,6 +69,7 @@ class McpSource:
     tools: tuple[str, ...] = ()  # 允许评测使用的工具（只读白名单）；MCP 里其余工具不暴露
     timeout_seconds: float = 60
     max_chars: int = 6000
+    check_tool: str = ""  # "这个 case 能不能用"的检查工具：loop 起前由框架调，不交给模型（spec/alg/axis_loop.md §8.1）
 
 
 def _check_name(name: str) -> None:
@@ -116,16 +117,45 @@ def parse_mcp(name: str, entry: dict, *, expand: bool = True) -> McpSource:
     # 评测只读：登记时逐个声明放开哪些工具，带身份或有副作用的不放（demand/information_sources.md §4.3）。
     if not isinstance(tools, list) or not tools or not all(isinstance(t, str) and t.strip() for t in tools) or len(set(tools)) != len(tools):
         raise ValueError(f"{label}.tools 必须是非空、不重复的工具名列表：只列允许评测使用的只读工具（「测试连接」可列出全部工具）")
+    check_tool = entry.get("check_tool", "")
+    if not isinstance(check_tool, str) or check_tool in tools:
+        raise ValueError(f"{label}.check_tool 必须是工具名字符串，且不能列在 tools 里（检查工具不交给模型）")
     return McpSource(
         name=name, command=command, args=tuple(args),
         env=tuple((k, _expand(v, f"{label}.env.{k}", expand)) for k, v in env.items()),
-        tools=tuple(tools),
+        tools=tuple(tools), check_tool=check_tool.strip(),
         timeout_seconds=_number(entry, "timeout_seconds", 60, float, label),
         max_chars=_number(entry, "max_chars", 6000, int, label),
     )
 
 
-_PARSERS = {"es": parse_es, "mcp": parse_mcp}
+TRACE_TYPES = ("agno", "langfuse")
+_TRACE_KEYS = {"type", "description", "config"}
+
+
+@dataclass(frozen=True)
+class TraceSource:
+    """trace 源登记（spec/alg/axis_loop.md §8.2）：连接配置；字段绑定在场景里。凭据写 ${VAR}，由 provider 运行时取。"""
+    name: str
+    type: str
+    config: dict
+
+
+def parse_trace(name: str, entry: dict, expand: bool = True) -> TraceSource:
+    label = f"knowledge_sources.{name}"
+    _check_keys(entry, _TRACE_KEYS, label)
+    config = entry.get("config")
+    if not isinstance(config, dict) or "bindings" in config:
+        raise ValueError(f"{label}.config 必须是对象，且不含 bindings（字段绑定写在场景里）")
+    from impl.projects.llm_probe_loop.business_trace.providers import agno, langfuse
+    try:
+        {"agno": agno, "langfuse": langfuse}[entry["type"]].validate_connection(config)
+    except ValueError as exc:
+        raise ValueError(f"{label}.config：{exc}") from exc
+    return TraceSource(name=name, type=str(entry["type"]), config=dict(config))
+
+
+_PARSERS = {"es": parse_es, "mcp": parse_mcp, "agno": parse_trace, "langfuse": parse_trace}
 
 
 def load_registry() -> dict:
@@ -146,6 +176,14 @@ def _load(name: str, kind: str):
     if entry.get("type") != kind:
         raise ValueError(f"knowledge_sources.{name}.type 是 {entry.get('type')!r}，{{{kind}://}} 引用只能指向 type={kind} 的知识源")
     return _PARSERS[kind](name, entry)
+
+
+def load_trace_source(name: str) -> TraceSource:
+    _check_name(name)
+    entry = load_registry().get(name)
+    if not isinstance(entry, dict) or entry.get("type") not in TRACE_TYPES:
+        raise ValueError(f"trace 源 {name} 未登记，或类型不是 {TRACE_TYPES}（{registry_path()}）")
+    return parse_trace(name, entry)
 
 
 def load_es_source(name: str) -> EsSource:

@@ -8,7 +8,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from impl.core.axis_loop.validate import check_definitions, check_scenario
+from impl.core.axis_loop.validate import check_definitions, check_scenario, scenario_warnings
 from impl.core.capability_store import load_capability_map
 
 from .materials import registry as material_registry
@@ -22,6 +22,7 @@ MAX_DESCRIPTION_CHARS = 20000
 class ScenarioAxes:
     enabled: list[str]            # 按场景框顺序
     notes: dict[str, str]         # 轴 id → 框描述（原文）
+    warnings: tuple[str, ...] = ()
 
 
 def parse_axes(raw: Any, *, owner: str = "axes") -> list[dict[str, Any]]:
@@ -52,7 +53,11 @@ def scenario_axes(entry: Mapping[str, Any], *, owner: str) -> ScenarioAxes:
 
 
 def validate_scenario_entry(entry: Mapping[str, Any], *, owner: str) -> ScenarioAxes:
-    """保存场景时：启用的轴已定义、依赖齐、知识源引用合法且已登记。"""
+    """保存场景时：启用的轴已定义、依赖齐、知识源引用合法且已登记；选了 trace 源的，登记在、绑定合法。"""
+    if "process_obligations" in entry:
+        raise ValueError(f"{owner}: 过程职责写进对应本应轴的描述框，不另设 process_obligations（spec/alg/axis_loop.md §2.5）")
+    if "boundary" in entry:
+        raise ValueError(f"{owner}: 责任范围写进承载性的描述框，不另设 boundary（spec/alg/axis_loop.md §12.3）")
     axes = scenario_axes(entry, owner=owner)
     defs = definitions()
     errors = check_definitions(defs, material_registry())
@@ -68,9 +73,19 @@ def validate_scenario_entry(entry: Mapping[str, Any], *, owner: str) -> Scenario
         errors.append(f"信息源引用解析失败：{exc}")
         categories = set()
     errors += check_scenario(defs, axes.enabled, categories)
+    if entry.get("business_trace"):
+        from impl.projects.llm_probe_loop.business_trace import validate_selection
+        try:
+            validate_selection(entry["business_trace"])
+        except ValueError as exc:
+            errors.append(f"business_trace: {exc}")
     if errors:
         raise ValueError(f"{owner}: 评测轴配置无效：" + "；".join(errors))
-    return axes
+    try:  # 选用看全部框（含没启用的）：选了信息源却没开用它的轴，要提醒
+        selected = selected_categories(axes.notes.values())
+    except (ValueError, KeyError):
+        selected = categories
+    return ScenarioAxes(axes.enabled, axes.notes, tuple(scenario_warnings(defs, axes.enabled, selected)))
 
 
 def load_scenario_axes(scenario_id: str) -> ScenarioAxes:

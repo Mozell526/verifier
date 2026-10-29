@@ -743,7 +743,7 @@ def test_table_row_carries_eval_axes_summary_through_compact_run() -> None:
     assert compact["table_row"]["stage_timings"] == {"live_ms": 6200, "judge_ms": 40100, "eval_axes_ms": 105000}
     # 整体失败折成一条伪轴
     failed = build_trace_table_row_from_run({"trace": _trace(), "judge": judge, "eval_axes": {"error": "RuntimeError: boom"}})
-    assert failed.eval_axes_summary == [{"axis_id": "", "title": "扩展评估轴", "status": "failed", "verdict": None, "text": "RuntimeError: boom", "items": []}]
+    assert failed.eval_axes_summary == [{"axis_id": "", "title": "扩展评估轴", "display": "", "status": "failed", "verdict": None, "text": "RuntimeError: boom", "items": []}]
     # 没有 eval_axes 的 run：字段为空列表，其他字段不受影响
     plain = build_trace_table_row_from_run({"trace": _trace(), "judge": judge})
     assert plain.eval_axes_summary == [] and plain.stage_timings == {}

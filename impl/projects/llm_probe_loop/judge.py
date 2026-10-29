@@ -82,15 +82,17 @@ def _main_axis_result(judge, trace: RunTrace) -> JudgeResult:
 
 
 class ProcessJudgeExecution:
-    """启用兑现框的场景：主结论由 axis loop 出；其余沿用轴1 单次判定。
-    业务 trace 场景（过程六轴）是第二期（spec/alg/axis_loop.md §12.2），这里不接。"""
+    """主结论只由 axis loop 出（spec/alg/axis_loop.md §12.2.2）：场景没开兑现就记运行失败，不退回单次判官
+    ——退回去只看最终回答、不读 trace，页面上却和正常结论一样。"""
 
     def run(self, judge, trace, user_intent):
-        from impl.core.judge_execution import SinglePassJudgeExecution
         from impl.projects.llm_probe_loop.eval_axes import main_axis_enabled
         if main_axis_enabled(judge.spec, trace):
             return _main_axis_result(judge, trace)
-        return SinglePassJudgeExecution().run(judge, trace, user_intent)
+        return JudgeResult(
+            trace_id=trace.trace_id, project_id=trace.project_id, overall_fulfillment={"status": "not_evaluable"},
+            reasoning_summary="场景没有启用兑现（fulfillment），llm_probe_loop 不出主结论；请在场景里开兑现及其依赖的轴。",
+            evidence=["evaluation_execution_failed", {"kind": MAIN_AXIS_SOURCE, "value": "eval_axes." + MAIN_AXIS}])
 
 
 class LlmProbeJudge(ProjectJudge):

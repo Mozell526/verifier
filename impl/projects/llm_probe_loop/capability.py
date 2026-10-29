@@ -20,39 +20,11 @@ def capability_text(entry: Any) -> str:
     return ""
 
 
-def boundary_text(entry: Any) -> str:
-    """轴2能力边界描述：可选，空字符串表示未填写。"""
-    if not isinstance(entry, dict):
-        return ""
-    return str(entry.get("boundary") or "").strip()
-
-
 def _expand_material_reference(text: str) -> str:
-    """capability / boundary 文本里的 material:// 引用展开为资料正文。"""
+    """capability 文本里的 material:// 引用展开为资料正文。"""
     from impl.core.materials_store import expand_material_uris
 
     return expand_material_uris(text).strip()
-
-
-def resolve_boundary(request: dict[str, Any]) -> dict[str, Any]:
-    """从请求或 capability 预设中取 boundary，展开 {material://} 引用。
-
-    返回 {"text": str, "catalog": list}：装得下预算的资料内联进 text；
-    装不下的转 catalog 条目（正文由 TextCarrier 的检索工具按需查）。
-    未填 boundary 时 text 为空、catalog 为空。
-    """
-    from impl.core.materials_store import expand_material_uris_with_catalog
-
-    explicit = str(request.get("boundary") or "").strip()
-    raw = explicit
-    if not raw:
-        ref = str(request.get("capability_ref") or "").strip()
-        if ref:
-            raw = boundary_text(load_capability_map().get(ref))
-    if not raw:
-        return {"text": "", "catalog": []}
-    expanded, catalog = expand_material_uris_with_catalog(raw)
-    return {"text": expanded.strip(), "catalog": catalog}
 
 
 def resolve_capability(request: dict[str, Any]) -> str:
@@ -77,22 +49,23 @@ def capability_service(ref: str) -> dict[str, Any]:
     return service
 
 
+TRACE_MATERIAL = "case.trace"
+
+
 def capability_business_trace(ref: str) -> dict[str, Any] | None:
-    """仅在场景启用了需要业务 Trace 的过程轴时返回 provider 信封。"""
+    """场景选了 trace 源，且启用的轴里有轴的白名单选了 case.trace：返回场景的选用 {source, bindings}，跑业务时据此采集
+    （spec/alg/axis_loop.md §8.2）。否则不采集。"""
     entry = load_capability_map().get(ref)
     value = entry.get("business_trace") if isinstance(entry, dict) else None
-    if not isinstance(value, dict):
+    if not isinstance(value, dict) or "source" not in value:
         return None
-    from impl.projects.llm_probe_loop.eval_axes.registry import AXIS_TYPES
+    from impl.projects.llm_probe_loop.eval_axes.registry import definitions
 
-    axes = entry.get("axes") if isinstance(entry.get("axes"), list) else []
-    enabled = any(
-        isinstance(axis, dict)
-        and axis.get("enabled") is True
-        and getattr(AXIS_TYPES.get(str(axis.get("type") or "")), "requires_business_trace", False)
-        for axis in axes
-    )
-    return dict(value) if enabled else None
+    defs = definitions()
+    enabled = [str(a.get("type") or "") for a in entry.get("axes") or [] if isinstance(a, dict) and a.get("enabled") is True]
+    reads = any(m == TRACE_MATERIAL or m.startswith(TRACE_MATERIAL + ".")
+                for key in enabled if key in defs.axes for m in defs.axes[key].materials)
+    return dict(value) if reads else None
 
 
 def default_capability_ref() -> str:

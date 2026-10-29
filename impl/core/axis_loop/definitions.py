@@ -2,11 +2,15 @@
 
 存储 `axis_definitions.json`（与场景预设 capability_map.json 同目录、同一种存法，页面读写）：
 
-    {"axes": {<id>: {...}}, "shared_tools": {<id>: {...}}}
+    {"axes": {<id>: {...}}, "loops": {<id>: {...}}}
 
+轴属于一个 loop（字段 `loop`，缺省是 start=case 的那个）；loop 写怎么启动：case 开始 / 它等的任务齐了（ready）/
+被模型当工具调用（tool，原公共 loop 工具，§3.3）。
 输出写成 JSON Schema（type=object），顶层每个属性用 `x-fill: model | program` 标谁填，缺省 model。
-代码只有三个固定插口（axis_code/<轴>/，公共 loop 工具在 axis_code/shared/<工具>/）：
-checks.py 的 check(view)、synth.py 的 synthesize(view)、dispatch.py 的 dispatch(view)。
+程序填的字段若是模型没直接给出、由规则推出的结论，再标 `x-explain`：true 回给整个值，
+字符串列表只回元素（或对象）里的这些键；收下前先回给模型看（spec/alg/axis_loop.md §5.3 第 6 步）。
+代码只有三个固定插口：axis_code/<轴>/ 下 checks.py 的 check(view)、synth.py 的 synthesize(view)；
+axis_code/loops/<loop>/ 下 dispatch.py 的 dispatch(view)（tool loop 的 checks.py、synth.py 也在这里）。
 本模块只管解析与自洽；名字、路径、校验参数是否对得上注册表与场景，见 validate.py。
 """
 from __future__ import annotations
@@ -24,12 +28,14 @@ from impl.core import capability_store
 
 FILL_MODEL, FILL_PROGRAM = "model", "program"
 EXECUTOR_MODEL, EXECUTOR_PROGRAM = "model", "program"
-RUN_MAIN, RUN_ISOLATED = "main", "isolated"
+START_CASE, START_READY, START_TOOL = "case", "ready", "tool"
 ROLE_ANALYSIS, ROLE_EVALUATION = "analysis", "evaluation"
+DISPLAY_EXPANDED, DISPLAY_COLLAPSED = "expanded", "collapsed"
 SUBMIT_ONCE, SUBMIT_PER_ITEM = "once", "per_item"
 STORE_NAME = "axis_definitions.json"
 CODE_DIR = "axis_code"
 _PLUGS = {"check": "checks.py", "synthesize": "synth.py", "dispatch": "dispatch.py"}
+LOOPS_DIR = "loops"
 
 
 @dataclass(frozen=True)
@@ -87,6 +93,11 @@ class Work:
     def program_fields(self) -> tuple[str, ...]:
         return tuple(n for n in self.output.get("properties") or {} if self.fill(n) == FILL_PROGRAM)
 
+    @property
+    def explained_fields(self) -> dict[str, Any]:
+        """标了 x-explain 的程序字段 → 它的标注（true 或要回的键）。"""
+        return {n: p["x-explain"] for n, p in (self.output.get("properties") or {}).items() if p.get("x-explain")}
+
     def model_schema(self) -> dict[str, Any]:
         """模型交的那部分：去掉程序填的字段；分条交时再去掉分项列表（分项单独交）。"""
         drop = set(self.program_fields) | ({self.items_field} if self.submit == SUBMIT_PER_ITEM else set())
@@ -101,7 +112,7 @@ class Work:
 
 @dataclass(frozen=True)
 class SharedToolDef(Work):
-    """公共 loop 工具：调用方的模型按 params 调用，内部是一个独立子 loop（§6.3）。"""
+    """被调用启动的 loop（start=tool，原公共 loop 工具）：调用方的模型按 params 调用，每次一个新 loop（§6.3）。"""
 
     description: str = ""
     params: Mapping[str, Any] = field(default_factory=dict)  # JSON Schema（type=object）
@@ -111,11 +122,13 @@ class SharedToolDef(Work):
 class AxisDef(Work):
     title: str = ""
     executor: str = EXECUTOR_MODEL
-    run_mode: str = RUN_MAIN
+    loop: str = ""
     role: str = ROLE_EVALUATION
+    display: str = DISPLAY_EXPANDED  # 结果页明细里默认展开还是收起；不写按 role：评测轴展开、分析轴收起
     depends: tuple[Dependency, ...] = ()
     trigger: Optional[Trigger] = None
-    tools: tuple[str, ...] = ()  # 选用的公共 loop 工具
+    tools: tuple[str, ...] = ()  # 选用的被调用启动的 loop
+    optional_tools: tuple[str, ...] = ()  # tools 里可选的：它要的信息源场景没选时不提供，不报错（spec/alg/axis_loop.md §6.3）
 
     @property
     def verdict_values(self) -> tuple[str, ...]:
@@ -124,14 +137,39 @@ class AxisDef(Work):
 
     @property
     def automatic(self) -> bool:
-        """由程序推进、不推送给主 loop 模型的轴：程序任务与独立运行的轴。"""
-        return self.executor == EXECUTOR_PROGRAM or self.run_mode == RUN_ISOLATED
+        """程序任务：不推送给模型，依赖满足就由程序合成。"""
+        return self.executor == EXECUTOR_PROGRAM
+
+
+@dataclass(frozen=True)
+class LoopDef:
+    """一个 loop（spec/alg/axis_loop.md §3.3）：start=case 恰好一个；ready 由台账在它等的任务齐了时起；
+    tool 被模型当工具调用（work 是它的说明、材料、参数、输出）。"""
+
+    id: str
+    title: str
+    start: str
+    dispatch: Optional[Callable[[Any], list]] = None
+    work: Optional[SharedToolDef] = None
 
 
 @dataclass(frozen=True)
 class Definitions:
     axes: Mapping[str, AxisDef]
-    shared_tools: Mapping[str, SharedToolDef]
+    loops: Mapping[str, LoopDef]
+
+    @property
+    def shared_tools(self) -> dict[str, SharedToolDef]:
+        """start=tool 的 loop，按名字。"""
+        return {k: l.work for k, l in self.loops.items() if l.start == START_TOOL and l.work is not None}
+
+    @property
+    def case_loop(self) -> str:
+        return next((k for k, l in self.loops.items() if l.start == START_CASE), "")
+
+    def members(self, loop: str, enabled) -> list[str]:
+        """这个 loop 里、场景启用了的轴（按启用顺序）。"""
+        return [k for k in enabled if k in self.axes and self.axes[k].loop == loop]
 
 
 # ---- 读取 -------------------------------------------------------------------------------
@@ -219,28 +257,50 @@ def parse_axis(raw: Mapping[str, Any], *, code: Code) -> AxisDef:
         if not isinstance(trigger, Mapping) or not trigger.get("axis") or not trigger.get("verdict_in"):
             raise ValueError(f"{label}.trigger 必须写成 {{axis, verdict_in}}")
         trigger = Trigger(str(trigger["axis"]), _strings(trigger["verdict_in"], f"{label}.trigger.verdict_in"))
+    role = _choice(raw.get("role"), ROLE_EVALUATION, (ROLE_ANALYSIS, ROLE_EVALUATION), f"{label}.role")
+    display = _choice(raw.get("display"), DISPLAY_EXPANDED if role == ROLE_EVALUATION else DISPLAY_COLLAPSED,
+                      (DISPLAY_EXPANDED, DISPLAY_COLLAPSED), f"{label}.display")
     return AxisDef(**_work(raw, label, code), title=str(raw.get("title") or raw.get("id") or ""),
                    executor=_choice(raw.get("executor"), EXECUTOR_MODEL, (EXECUTOR_MODEL, EXECUTOR_PROGRAM), f"{label}.executor"),
-                   run_mode=_choice(raw.get("run_mode"), RUN_MAIN, (RUN_MAIN, RUN_ISOLATED), f"{label}.run_mode"),
-                   role=_choice(raw.get("role"), ROLE_EVALUATION, (ROLE_ANALYSIS, ROLE_EVALUATION), f"{label}.role"),
-                   depends=tuple(depends), trigger=trigger, tools=_strings(raw.get("tools"), f"{label}.tools"))
+                   loop=str(raw.get("loop") or ""),
+                   role=role, display=display,
+                   depends=tuple(depends), trigger=trigger, tools=_strings(raw.get("tools"), f"{label}.tools"),
+                   optional_tools=_strings(raw.get("optional_tools"), f"{label}.optional_tools"))
+
+
+def parse_loop(raw: Mapping[str, Any], *, code: Code) -> LoopDef:
+    label = f"loop {raw.get('id')}"
+    start = _choice(raw.get("start"), START_READY, (START_CASE, START_READY, START_TOOL), f"{label}.start")
+    if start == START_TOOL:
+        return LoopDef(id=str(raw["id"]), title=str(raw.get("title") or raw["id"]), start=start,
+                       work=parse_shared_tool(raw, code=Code(check=code.check, synthesize=code.synthesize)))
+    if code.check or code.synthesize:
+        raise ValueError(f"{label}: start={start} 的 loop 只能上传 dispatch.py（校验、合成写在各轴下）")
+    return LoopDef(id=str(raw["id"]), title=str(raw.get("title") or raw["id"]), start=start, dispatch=code.dispatch)
 
 
 def parse(raw: Mapping[str, Any], code_root: Optional[Path] = None) -> Definitions:
     """存储内容 → Definitions。code_root 下按 §3.1 的目录找上传的代码；None = 没有代码。"""
     if not isinstance(raw, Mapping):
         raise ValueError("轴定义存储必须是对象")
-    unknown = set(raw) - {"axes", "shared_tools"}
+    unknown = set(raw) - {"axes", "loops"}
     if unknown:
-        raise ValueError(f"轴定义存储只认 axes / shared_tools，多了 {sorted(unknown)}")
+        raise ValueError(f"轴定义存储只认 axes / loops，多了 {sorted(unknown)}")
 
     def code_at(*parts: str) -> Code:
         return _load_code(code_root.joinpath(*parts), "/".join(parts)) if code_root else Code()
 
-    axes = {key: parse_axis({**item, "id": key}, code=code_at(key)) for key, item in (raw.get("axes") or {}).items()}
-    shared = {key: parse_shared_tool({**item, "id": key}, code=code_at("shared", key))
-              for key, item in (raw.get("shared_tools") or {}).items()}
-    return Definitions(axes=axes, shared_tools=shared)
+    loops = {key: parse_loop({**item, "id": key}, code=code_at(LOOPS_DIR, key)) for key, item in (raw.get("loops") or {}).items()}
+    cases = [k for k, l in loops.items() if l.start == START_CASE]
+    if len(cases) != 1:
+        raise ValueError(f"start=case 的 loop 必须恰好一个，现在是 {cases}")
+    axes = {}
+    for key, item in (raw.get("axes") or {}).items():
+        code = code_at(key)
+        if code.dispatch:
+            raise ValueError(f"axis {key}: dispatch.py 挂在 loop 上（axis_code/{LOOPS_DIR}/<loop>/），不在轴下")
+        axes[key] = parse_axis({**item, "id": key, "loop": item.get("loop") or cases[0]}, code=code)
+    return Definitions(axes=axes, loops=loops)
 
 
 def load(project_id: str) -> Definitions:

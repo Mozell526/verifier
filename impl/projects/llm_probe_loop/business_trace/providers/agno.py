@@ -43,17 +43,18 @@ def describe() -> dict[str, Any]:
             "source": "frozen_snapshot",
             "exact_model_request": "span input.value 未隐藏时可用，否则 unverified",
         },
-        "default_config": {
+        # 连接写在全局登记，绑定写在场景（spec/alg/axis_loop.md §8.2）：页面分别拿它们当模板
+        "default_connection": {
             "base_url": "http://127.0.0.1:7777",
             "headers": {},
             "timeout_seconds": 15,
             "poll_attempts": 3,
             "poll_interval_seconds": 0.2,
-            "bindings": {
-                "session_id": {"source": "request", "pointer": "/body/session_id"},
-                "user_id": {"source": "request", "pointer": "/body/user_id"},
-                "business_trace_id": {"source": "response", "pointer": "/trace_id"},
-            },
+        },
+        "default_bindings": {
+            "session_id": {"source": "request", "pointer": "/body/session_id"},
+            "user_id": {"source": "request", "pointer": "/body/user_id"},
+            "business_trace_id": {"source": "response", "pointer": "/trace_id"},
         },
     }
 
@@ -83,21 +84,13 @@ def _binding(value: Any, name: str, *, required: bool) -> dict[str, str] | None:
 
 
 def validate_config(value: Any) -> dict[str, Any]:
+    """登记的连接 + 场景的绑定。"""
     if not isinstance(value, Mapping):
         raise ValueError("business_trace.config 必须是对象")
-    base_url = str(value.get("base_url") or "").strip().rstrip("/")
-    if urlsplit(base_url).scheme.lower() not in {"http", "https"} or not urlsplit(base_url).netloc:
-        raise ValueError("business_trace.config.base_url 必须是 http/https 地址")
-    raw_headers = value.get("headers") or {}
-    if not isinstance(raw_headers, Mapping):
-        raise ValueError("business_trace.config.headers 必须是对象")
-    headers: dict[str, str] = {}
-    for key, item in raw_headers.items():
-        header = str(key).strip()
-        if not header:
-            raise ValueError("business_trace.config.headers 的键不能为空")
-        headers[header] = str(item)
-    raw_bindings = value.get("bindings")
+    return {**validate_connection(value), "bindings": _bindings(value.get("bindings"))}
+
+
+def _bindings(raw_bindings: Any) -> dict[str, Any]:
     if not isinstance(raw_bindings, Mapping):
         raise ValueError("business_trace.config.bindings 必须是对象")
     bindings: dict[str, Any] = {
@@ -112,6 +105,25 @@ def validate_config(value: Any) -> dict[str, Any]:
         binding = bindings.get(name)
         if binding is not None and binding["source"] != source:
             raise ValueError(f"business_trace.config.bindings.{name}.source 必须是 {source}")
+    return bindings
+
+
+def validate_connection(value: Any) -> dict[str, Any]:
+    """只校连接（登记页保存、测试连接用），不含绑定。"""
+    if not isinstance(value, Mapping):
+        raise ValueError("business_trace.config 必须是对象")
+    base_url = str(value.get("base_url") or "").strip().rstrip("/")
+    if urlsplit(base_url).scheme.lower() not in {"http", "https"} or not urlsplit(base_url).netloc:
+        raise ValueError("business_trace.config.base_url 必须是 http/https 地址")
+    raw_headers = value.get("headers") or {}
+    if not isinstance(raw_headers, Mapping):
+        raise ValueError("business_trace.config.headers 必须是对象")
+    headers: dict[str, str] = {}
+    for key, item in raw_headers.items():
+        header = str(key).strip()
+        if not header:
+            raise ValueError("business_trace.config.headers 的键不能为空")
+        headers[header] = str(item)
     timeout = _number(value.get("timeout_seconds", 15), "timeout_seconds", minimum=0.1, maximum=300)
     attempts = int(_number(value.get("poll_attempts", 3), "poll_attempts", minimum=1, maximum=10))
     interval = _number(value.get("poll_interval_seconds", 0.2), "poll_interval_seconds", minimum=0, maximum=10)
@@ -121,7 +133,6 @@ def validate_config(value: Any) -> dict[str, Any]:
         "timeout_seconds": timeout,
         "poll_attempts": attempts,
         "poll_interval_seconds": interval,
-        "bindings": bindings,
     }
     sqlite_path = value.get("sqlite_path")
     if sqlite_path is not None:
@@ -358,7 +369,7 @@ def _trace_pages(config: Mapping[str, Any], run_id: str, first: Mapping[str, Any
 
 
 def check_connection(config: Mapping[str, Any]) -> dict[str, Any]:
-    clean = validate_config(config)
+    clean = validate_connection(config)
     payload = _get_json(clean, "/traces", {"limit": 1})
     return {
         "ok": True,

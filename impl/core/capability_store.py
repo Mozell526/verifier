@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 NAME_PATTERN = re.compile(r"^[a-z][a-z0-9_-]*$")
 AXIS_TYPE_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
 TRACE_PROVIDER_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
+TRACE_SOURCE_PATTERN = re.compile(r"[a-z0-9][a-z0-9_-]*")
 # 项目 id 允许大写（如 QA）；此校验的目的只是防路径穿越，不是命名政策。
 PROJECT_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_-]*$")
 MAX_CAPABILITY_CHARS = 20000
@@ -112,7 +113,14 @@ def validate_entry(name: str, entry: Any) -> Dict[str, Any]:
         if start_hint:
             clean["service"]["start_hint"] = start_hint
     business_trace = entry.get("business_trace")
-    if business_trace not in (None, "", {}):
+    if business_trace not in (None, "", {}) and isinstance(business_trace, dict) and "source" in business_trace:
+        # llm_probe_loop 的写法（spec/alg/axis_loop.md §8.2）：连接在全局登记，场景只写选哪个 trace 源与字段绑定。
+        source, bindings = str(business_trace.get("source") or "").strip(), business_trace.get("bindings")
+        if not TRACE_SOURCE_PATTERN.fullmatch(source) or not isinstance(bindings, dict) \
+                or set(business_trace) - {"source", "bindings"}:
+            raise ValueError("business_trace 写成 {source: 登记名, bindings: {...}}")
+        clean["business_trace"] = {"source": source, "bindings": dict(bindings)}
+    elif business_trace not in (None, "", {}):
         if not isinstance(business_trace, dict):
             raise ValueError("business_trace 必须是对象")
         provider = str(business_trace.get("provider") or "").strip().lower()

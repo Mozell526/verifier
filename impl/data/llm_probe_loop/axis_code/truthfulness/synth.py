@@ -7,7 +7,7 @@ def synthesize(view):
     claims = []
     for c in view.materials["result.claims"]["claims"]:
         j = judged[c["claim_id"]]
-        claims.append({"claim_id": c["claim_id"], "text": c["claim"], "span": c["span"], "context": c["context"],
+        claims.append({"claim_id": c["claim_id"], "text": c["claim"], "spans": c["spans"], "context": c["context"],
                        "qualifies": c["qualifies"], "verdict": j["verdict"], "reason": j["reason"], "gap": j["gap"],
                        "citations": [{"ref": b["ref"], "note": b["quote"]} for b in j["basis"]]})
     coverage = {"extracted": len(claims), **{v: sum(c["verdict"] == v for c in claims) for v in VERDICTS}}

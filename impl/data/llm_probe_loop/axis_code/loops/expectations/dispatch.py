@@ -1,5 +1,5 @@
-"""需求按轮写：每轮一份，只选本轮的原话与历史、业务背景；场景判准只放最后一轮（同 llm_probe 需求轴 turn_materials）。
-本轮用户原话没记录的轮次不分发（没有可写的需求，不拿判准凑）。"""
+"""需求按轮写：每轮一份，只选本轮的原话与历史；场景对需求轴的描述由框架按本轴描述槽位放进每一份。
+本轮用户原话没记录的轮次不分发（没有可写的需求）。"""
 from impl.projects.llm_probe_loop.eval_axes.requirements import turn_materials
 
 

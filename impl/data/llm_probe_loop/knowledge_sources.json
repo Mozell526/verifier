@@ -28,5 +28,34 @@
     "type": "es",
     "description": "本机测试 ES（docker.elastic.co 7.17.4，无鉴权）：clause_kb 条款测试库、hr_handbook 员工手册",
     "url": "http://127.0.0.1:9200"
+  },
+  "agno-insurance": {
+    "type": "agno",
+    "description": "verify-insurance-agno 的 trace 源（agno）",
+    "config": {
+      "base_url": "http://127.0.0.1:18066",
+      "headers": {},
+      "poll_attempts": 5,
+      "poll_interval_seconds": 0.3,
+      "timeout_seconds": 30,
+      "sqlite_path": "/private/tmp/langfuse-handoff/real-validation/runtime.db"
+    }
+  },
+  "langfuse-local": {
+    "type": "langfuse",
+    "description": "verify-insurance-langfuse 的 trace 源（langfuse）",
+    "config": {
+      "base_url": "http://127.0.0.1:3300",
+      "public_key": "${LANGFUSE_PUBLIC_KEY}",
+      "secret_key": "${LANGFUSE_SECRET_KEY}",
+      "match_field": "metadata.request_trace_id",
+      "timeout_seconds": 15,
+      "poll_timeout_seconds": 60,
+      "poll_interval_seconds": 1,
+      "quiet_seconds": 3,
+      "max_pages": 20,
+      "page_size": 50,
+      "content_char_limit": 20000
+    }
   }
 }

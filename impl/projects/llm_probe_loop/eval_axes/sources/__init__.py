@@ -11,7 +11,7 @@ from impl.core.materials_store import expand_material_uris_with_catalog, get_mat
 from impl.projects.llm_probe_loop.material_tools import build_material_tools
 from .es_client import EsClient
 from .mcp_tools import McpTools, catalog_sources, tool_prefix
-from .registry import McpSource, load_es_source, load_mcp_source, load_registry
+from .registry import _PARSERS, TRACE_TYPES, McpSource, load_es_source, load_mcp_source, load_registry
 from . import registry
 
 
@@ -120,7 +120,8 @@ def _referencing_presets(name):
 
 
 def list_sources():
-    return {'sources': load_registry()}
+    """types：本项目登记能用的类型（页面类型下拉按它列）；trace 类型的登记由场景的 business_trace 选用。"""
+    return {'sources': load_registry(), 'types': list(_PARSERS)}
 
 
 def save_source(name, entry):
@@ -136,6 +137,10 @@ def check_source(name):
     entry = load_registry().get(name)
     if not isinstance(entry, dict):
         raise ValueError(f'知识源 {name} 未登记')
+    if entry.get('type') in TRACE_TYPES:
+        from impl.projects.llm_probe_loop.business_trace import check_source as check_trace
+        result = check_trace(name)
+        return {'name': name, 'type': entry['type'], 'items': [f'{k}: {v}' for k, v in result.items()], 'refs': []}
     if entry.get('type') == 'es':
         indices = EsClient(name).indices()
         return {'name': name, 'type': 'es', 'items': indices, 'refs': ['{es://' + name + '/' + i + '}' for i in indices]}

@@ -14,7 +14,7 @@ from impl.core.tool_loop import Call
 from impl.tools.protocol import VerifiableTool
 
 from . import expand_sources, es_mcp_source, knowledge_tools
-from .mcp_tools import call_tool, tool_prefix
+from .mcp_tools import call_tool, catalog_sources, tool_prefix
 from .registry import load_registry
 from impl.core.capability_store import validate_es_refs, validate_mcp_refs
 
@@ -80,6 +80,19 @@ class ProbeSources:
         self.tools: list[VerifiableTool] = knowledge_tools(self.catalog, self.receipts, request) if self.catalog else []
         self._mcp_names = {c["uri"][len("mcp://"):]: c["uri"] for c in self.catalog if c.get("source") == "mcp"}
         self._es_names = {c["uri"][len("es://"):].split("/", 1)[0] for c in self.catalog if c.get("source") == "es"}
+        self._sources = catalog_sources(self.catalog, request) if self._mcp_names else {}
+
+    def check(self, instance: str) -> str:
+        """登记了检查工具的 MCP 实例：调一次，报错就返回说明（框架据此记运行失败）；没登记就不查。"""
+        name = instance[len("mcp://"):] if instance.startswith("mcp://") else ""
+        source = self._sources.get(name)
+        if source is None or not source.check_tool:
+            return ""
+        try:
+            text, is_error = call_tool(source, source.check_tool, {})
+        except Exception as exc:
+            return f"{instance} 检查工具 {source.check_tool} 调用失败（{type(exc).__name__}）：{str(exc)[:300]}"
+        return f"{instance} 检查工具 {source.check_tool} 报错：{text[:300]}" if is_error else ""
 
     def axis_instances(self) -> dict[str, list[str]]:
         """场景里各轴框挑的实例（AxisLoop 的 axis_sources）；框里没引用的轴不限制。"""

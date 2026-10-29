@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import socket
 import uuid
 
@@ -85,10 +86,23 @@ def resolve_instance(port, *, repository_root=None, relay_start=None):
                 raise ValueError('No three available relay ports')
             bindings['ports'][key] = identity
             bindings['instances'][identity] = {'relay_ports': ports}
+            _seed(root, identity)
             _atomic_json(registry, bindings)
         identity = bindings['ports'][key]
         instance_root(identity, root)  # validate before use
         return {'id': identity, 'port': port, **bindings['instances'][identity]}
+
+
+def _seed(root, identity):
+    """新实例的出厂数据：仓库 impl/data/ 下各项目目录（场景、登记、轴定义与代码、资料）拷一份，之后各自维护。
+    运行期产物（context_store、sqlite、case_pools 等不在项目目录里的）不拷。"""
+    source = root / 'impl/data'
+    projects = {p.name for p in (root / 'impl/projects').iterdir() if p.is_dir()} if (root / 'impl/projects').is_dir() else set()
+    target = instance_root(identity, root) / 'data'
+    for item in sorted(source.iterdir()) if source.is_dir() else ():
+        if item.is_dir() and item.name in projects:
+            shutil.copytree(item, target / item.name,
+                            ignore=shutil.ignore_patterns('__pycache__', '.DS_Store', '*.bak*', '*.tmp'))
 
 
 @contextmanager

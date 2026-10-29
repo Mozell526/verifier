@@ -24,7 +24,8 @@ SUPPORTED_EVAL_AXES_MODEL_POLICIES = frozenset({"any", "same_model"})
 DEFAULT_EVAL_AXES_MODEL_POLICY = "any"
 # axis loop 的全局预算与上下文上限（spec/alg/axis_loop.md §9、§10）：主 loop 与各子 loop 共用一份计数。
 DEFAULT_AXIS_LOOP = {"loop_llm_calls": 160, "loop_tool_calls": 400, "loop_seconds": 1500,
-                     "loop_context_limit_tokens": 200_000, "loop_archive_ratio": 0.8}
+                     "loop_context_limit_tokens": 200_000, "loop_archive_ratio": 0.8,
+                     "loop_material_inline_chars": 20_000}
 
 
 class ConfigError(ValueError):
@@ -325,6 +326,7 @@ class EvalAxesConfig:
     loop_seconds: int = DEFAULT_AXIS_LOOP["loop_seconds"]
     loop_context_limit_tokens: int = DEFAULT_AXIS_LOOP["loop_context_limit_tokens"]
     loop_archive_ratio: float = DEFAULT_AXIS_LOOP["loop_archive_ratio"]
+    loop_material_inline_chars: int = DEFAULT_AXIS_LOOP["loop_material_inline_chars"]
 
 
 @dataclass(frozen=True)

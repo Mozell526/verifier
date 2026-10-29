@@ -97,7 +97,8 @@ def _referencing_presets(name):
 
 
 def list_sources():
-    return {'sources': load_registry()}
+    """types：本项目登记能用的类型（页面类型下拉按它列）。"""
+    return {'sources': load_registry(), 'types': list(registry._PARSERS)}
 
 
 def save_source(name, entry):

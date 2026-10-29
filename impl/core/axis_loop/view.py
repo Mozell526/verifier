@@ -28,7 +28,7 @@ class TaskView:
     task_id: str
     own: Mapping[str, Any]                       # 本次提交里模型填的部分；分条交收尾时含全部已接受分项
     materials: Mapping[str, Any]                 # {标准名: 完整值}，只含白名单里出现的名字
-    params: Mapping[str, Any] = field(default_factory=dict)   # 仅公共 loop 工具：本次调用参数
+    params: Mapping[str, Any] = field(default_factory=dict)   # 被调用的 loop：本次调用参数；分发：{tasks: 这个 loop 启用的任务}
     calls: Sequence[CallView] = ()               # 此前批次的调用
     stage: str = "final"                         # item：校验一个分项；final：收尾
     parts: Sequence[Mapping[str, Any]] = ()      # 仅有分发的轴的合成：[{id, result}]，各份被接受的结果

@@ -17,6 +17,10 @@ BUILTIN_SPACES = ("case", "scenario", "axis")
 RESULT_SPACE = "result"
 
 
+class MaterialUnavailable(RuntimeError):
+    """内置材料这个 case 取不到（例：trace 存档是采集失败）：整个 case 记运行失败（spec/alg/axis_loop.md §4.1）。"""
+
+
 @dataclass(frozen=True)
 class Material:
     """load(case, context) -> 值，一个 case 一个值（不带参数）。context 只有 axis：读这份材料的轴（axis.* 用）。"""

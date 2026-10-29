@@ -5,6 +5,7 @@
 
 - 循环由 ToolLoop 自己驱动：每一步恰好一次模型请求（StepClient.complete_step），模型给出的
   一批工具调用由这里逐个过 pre_tool → 执行 → post_tool，批尾过 post_batch，结果回放后再请求；
+  标了 concurrent 的工具（只读、不调模型、等外部 I/O）同批里同时执行，pre_tool / post_tool / 回放仍按原顺序；
 - 模型不再调工具即申请结束：调用必填的 completion_hook 与辅助 stop hooks；没做完就反馈 reason 再跑一段；
 - 所有约束（依赖、必做清单、预算）都是 hook，基础层不认识这些词；
 - ToolLoop.as_tool() 把整个 loop 暴露成一个普通 VerifiableTool，可以放进另一个 loop。
@@ -18,7 +19,8 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping
-from contextvars import ContextVar
+from concurrent.futures import ThreadPoolExecutor
+from contextvars import ContextVar, copy_context
 from typing import Any, Callable, Optional, Sequence
 
 from impl.tools.protocol import VerifiableTool, _serialize_tool_result, build_agno_tools, runtime_tool_name
@@ -80,6 +82,7 @@ class ToolLoop:
         self.end = end
         self.max_blocked = max_blocked
         self._execute = {tool.tool_id: tool.execute_fn for tool in self.tools}
+        self._concurrent = {tool.tool_id for tool in self.tools if tool.concurrent}
         self._by_runtime = {runtime_tool_name(tool.tool_id): tool.tool_id for tool in self.tools}
 
     def run(self, input: str, ctx: LoopContext) -> LoopResult:
@@ -145,33 +148,46 @@ class ToolLoop:
     def _run_batch(self, history: History, tool_calls: list[dict], batch: int) -> str:
         """执行模型一次回复里的全部调用，结果按原顺序回放成 tool 消息；返回 Abort 原因（没有则空串）。
 
+        pre_tool 按原顺序逐个过；放行的调用里 concurrent 的同时执行，其余按顺序执行；post_tool 与回放按原顺序。
         Abort 之后同批剩下的调用不执行，但仍各回一条 aborted 结果（每个 tool_call 都要有配对的 tool 消息）。
         """
         calls: list[Call] = []
+        views: list[Any] = []
+        run: set[int] = set()   # 放行执行了的调用（按 call.id）
         aborted = ""
-        for raw in tool_calls:
-            call, invalid = self._parse(raw, len(history.calls) + len(calls), batch)
-            calls.append(call)
-            if aborted:
-                call.denied = aborted
-                view: Any = {"status": "aborted", "reason": aborted}
-            else:
-                # 不合法的调用不认识任何 hook 的语义，只过预算（否则一直乱调也停不下来）
-                before = [self.budget] if invalid else [self.budget, *self.hooks['pre_tool']]
-                decision = self._pre_tool(history, call, before)
-                if isinstance(decision, Abort):
-                    call.denied = aborted = decision.reason
+        with ThreadPoolExecutor(max_workers=max(1, len(tool_calls))) as pool:
+            for raw in tool_calls:
+                call, invalid = self._parse(raw, len(history.calls) + len(calls), batch)
+                calls.append(call)
+                view: Any = None
+                if aborted:
+                    call.denied = aborted
                     view = {"status": "aborted", "reason": aborted}
-                elif isinstance(decision, Deny):
-                    call.denied = decision.reason
-                    view = {"status": "denied", "reason": decision.reason}
-                elif invalid:
-                    call.error = invalid
-                    view = call.result = {"status": "error", "error": invalid}
                 else:
-                    view = self._execute_call(history, call)
-            history.messages.append({"role": "tool", "tool_call_id": raw.get("id"),
-                                     "content": _serialize_tool_result(view)})
+                    # 不合法的调用不认识任何 hook 的语义，只过预算（否则一直乱调也停不下来）
+                    before = [self.budget] if invalid else [self.budget, *self.hooks['pre_tool']]
+                    decision = self._pre_tool(history, call, before)
+                    if isinstance(decision, Abort):
+                        call.denied = aborted = decision.reason
+                        view = {"status": "aborted", "reason": aborted}
+                    elif isinstance(decision, Deny):
+                        call.denied = decision.reason
+                        view = {"status": "denied", "reason": decision.reason}
+                    elif invalid:
+                        call.error = invalid
+                        view = call.result = {"status": "error", "error": invalid}
+                    elif call.tool in self._concurrent:
+                        run.add(call.id)
+                        pool.submit(copy_context().run, self._invoke, call)  # 出 with 时等齐
+                    else:
+                        run.add(call.id)
+                        self._invoke(call)
+                views.append(view)
+        for i, call in enumerate(calls):
+            if call.id in run:
+                views[i] = self._post_tool(history, call)
+            history.messages.append({"role": "tool", "tool_call_id": tool_calls[i].get("id"),
+                                     "content": _serialize_tool_result(views[i])})
         history.calls.extend(calls)
         if aborted:
             return aborted
@@ -197,12 +213,14 @@ class ToolLoop:
             problem = f"没有名为 {name!r} 的工具；可用：{', '.join(sorted(self._by_runtime))}"
         return Call(id=id, tool=tool or name, args=dict(args), batch=batch), problem
 
-    def _execute_call(self, history: History, call: Call) -> Any:
+    def _invoke(self, call: Call) -> None:
         try:
             call.result = self._execute[call.tool](**call.args)
         except Exception as exc:  # tool 失败交给模型看，不中断 loop
             call.error = f"{type(exc).__name__}: {exc}"
             call.result = {"status": "error", "error": call.error}
+
+    def _post_tool(self, history: History, call: Call) -> Any:
         for hook in self.hooks['post_tool']:
             call.result = hook.post_tool(history, call)
         return call.result

@@ -6,8 +6,10 @@
 - done       已完成，结果在材料表 result.<id>
 - absent     不出现：触发条件判为不满足；对下游算已完成、结果为空
 
-程序任务与独立运行的轴（axis.automatic）不进 open：依赖满足就由 run_auto 当场跑完（合成 / 起子 loop）。
+程序任务（axis.automatic）不进 open：依赖满足就由 run_auto 当场合成。
 
+一个 loop 一本台账，只管属于它的轴（own）；状态表 state 整个 case 共用一份，依赖别的 loop 的任务时直接读它。
+作废沿依赖传递，跨 loop 一样算（downstream 由调用方给出全 case 的依赖图）；别的 loop 里被波及的轴由 case 运行器处理。
 全部由程序算：每批结束后 `settle(changed)` 一次，返回要推送给模型的变化与事件。
 """
 from __future__ import annotations
@@ -17,7 +19,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Optional, Sequence
 
 from .acceptance import Submissions, SynthesisError
-from .definitions import EXECUTOR_PROGRAM, AxisDef, Definitions
+from .definitions import AxisDef
 
 HIDDEN, OPEN, DONE, ABSENT = "hidden", "open", "done", "absent"
 
@@ -25,11 +27,12 @@ HIDDEN, OPEN, DONE, ABSENT = "hidden", "open", "done", "absent"
 @dataclass(frozen=True)
 class Event:
     batch: int
-    kind: str          # appear | invalidate | withdraw | absent | program | accept | reject | submit | subloop | archive
+    kind: str          # appear | invalidate | withdraw | absent | program | accept | reject | loop_start | loop_end | shared_tool
     task_id: str
     item_id: str = ""
     call_id: str = ""
     reasons: tuple[str, ...] = ()
+    loop: str = ""
 
 
 @dataclass
@@ -40,24 +43,33 @@ class Change:
 
 
 class Ledger:
-    def __init__(self, defs: Definitions, enabled: Sequence[str], results: dict[str, Optional[Mapping[str, Any]]],
-                 run_auto: Callable[[AxisDef, Submissions], None]) -> None:
-        """results 是材料表的 result.* 字典（共享同一个对象）；run_auto 跑程序任务 / 独立运行的轴并写 state.result。"""
-        self.defs = defs
-        self.enabled = [a for a in enabled]
-        self.on = set(enabled)
+    def __init__(self, axes: Mapping[str, AxisDef], own: Sequence[str], results: dict[str, Optional[Mapping[str, Any]]],
+                 run_auto: Callable[[AxisDef, Submissions], None], *, state: Optional[dict[str, str]] = None,
+                 case_enabled: Sequence[str] = (), dependents: Optional[Callable[[str], list[str]]] = None,
+                 events: Optional[list[Event]] = None, loop: str = "") -> None:
+        """axes：本台账用的轴定义（分发出去的一份是只交模型填字段的版本）；own：属于本 loop、场景启用的轴；
+        results 是材料表的 result.* 字典、state 是全 case 共用的状态表（都共享同一个对象）；
+        case_enabled：全 case 启用的轴（判断依赖开没开）；dependents：全 case 的传递下游（缺省只看本台账）；
+        run_auto 合成程序任务并写 state.result。"""
+        self.defs = axes
+        self.enabled = list(own)
+        self.on = set(case_enabled or own)
         self.results = results
         self.run_auto = run_auto
-        self.state: dict[str, str] = {a: HIDDEN for a in self.enabled}
+        self.loop = loop
+        self.state: dict[str, str] = state if state is not None else {}
+        for a in self.enabled:
+            self.state[a] = HIDDEN
         self.subs: dict[str, Submissions] = {a: Submissions() for a in self.enabled}
-        self.events: list[Event] = []
+        self.events: list[Event] = events if events is not None else []
+        self._dependents = dependents
         for axis in self.enabled:
             results[axis] = None
 
     # ---- 查询 ----
 
     def axis(self, key: str) -> AxisDef:
-        return self.defs.axes[key]
+        return self.defs[key]
 
     def open_tasks(self) -> list[str]:
         return [a for a in self.enabled if self.state[a] == OPEN]
@@ -70,6 +82,9 @@ class Ledger:
         return all(self.state[a] in (DONE, ABSENT) for a in self.enabled)
 
     def downstream(self, key: str) -> list[str]:
+        """传递下游；有全 case 依赖图时跨 loop 算，本台账只处理属于自己的那些。"""
+        if self._dependents is not None:
+            return self._dependents(key)
         out, pending = [], [key]
         while pending:
             current = pending.pop()
@@ -91,7 +106,7 @@ class Ledger:
     def _deps_ready(self, axis: AxisDef) -> bool:
         for dep in axis.depends:
             if dep.axis in self.on:
-                if self.state[dep.axis] not in (DONE, ABSENT):
+                if self.state.get(dep.axis, HIDDEN) not in (DONE, ABSENT):
                     return False
             elif dep.hard:
                 return False  # 加载期已拦；这里不让它出现
@@ -117,6 +132,8 @@ class Ledger:
         change = Change()
         for key in changed:
             for down in self.downstream(key):
+                if down not in self.subs:
+                    continue  # 别的 loop 的轴：由 case 运行器整个作废那个 loop
                 before = self.state[down]
                 if before == HIDDEN:
                     continue
@@ -125,7 +142,7 @@ class Ledger:
                 self.state[down] = HIDDEN
                 if before in (OPEN, DONE) and not self.axis(down).automatic and down not in change.invalidated:
                     change.invalidated.append(down)
-                self.events.append(Event(batch, "invalidate", down, reasons=(f"{key} 被修改",)))
+                self.events.append(Event(batch, "invalidate", down, reasons=(f"{key} 被修改",), loop=self.loop))
         progressed = True
         while progressed:
             progressed = False
@@ -135,7 +152,7 @@ class Ledger:
                     self._clear(key)
                     self.state[key] = ABSENT
                     change.withdrawn.append(key)
-                    self.events.append(Event(batch, "withdraw", key, reasons=("触发条件不再满足",)))
+                    self.events.append(Event(batch, "withdraw", key, reasons=("触发条件不再满足",), loop=self.loop))
                     progressed = True
                     continue
                 if current != HIDDEN or not self._deps_ready(axis):
@@ -145,16 +162,16 @@ class Ledger:
                     continue
                 if not triggered:
                     self.state[key] = ABSENT
-                    self.events.append(Event(batch, "absent", key, reasons=("触发条件未满足",)))
+                    self.events.append(Event(batch, "absent", key, reasons=("触发条件未满足",), loop=self.loop))
                 elif axis.automatic:
-                    self.run_auto(axis, self.subs[key])  # SynthesisError / 子 loop 失败交给调用方中止
+                    self.run_auto(axis, self.subs[key])  # SynthesisError 交给调用方中止
                     self.accept(key, self.subs[key].result)
-                    self.events.append(Event(batch, "program" if axis.executor == EXECUTOR_PROGRAM else "isolated", key))
+                    self.events.append(Event(batch, "program", key, loop=self.loop))
                 else:
                     self.state[key] = OPEN
                     if key not in change.invalidated:
                         change.appeared.append(key)
-                    self.events.append(Event(batch, "appear", key))
+                    self.events.append(Event(batch, "appear", key, loop=self.loop))
                 progressed = True
         return change
 

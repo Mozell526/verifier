@@ -36,7 +36,7 @@ def _request_material(request: Any) -> tuple[Any, list[tuple[int, Mapping]]]:
     return (payload or None), []
 
 
-def project_requirements(trace: Any, scenario: Mapping[str, Any] | None = None) -> dict:
+def project_requirements(trace: Any) -> dict:
     sources, missing = [], []
 
     def add(ref, side, turn, component, value, *, trace_refs=()):
@@ -90,15 +90,6 @@ def project_requirements(trace: Any, scenario: Mapping[str, Any] | None = None) 
                     if isinstance(message, Mapping) and message.get('role') == 'user'
                     and message.get('content') == value and not message.get('tool_calls')]
         add(f'{tid}.user', 'want', tid, 'user', value, trace_refs=[source_ref, *matching])
-    # Description is context, never an independent requirement source.
-    for key, side in [('description', 'background'), ('criterion', 'want')]:
-        value = (scenario or {}).get(key)
-        if isinstance(value, str) and value.strip():
-            add(f'scenario.{key}', side, 'case', key, value)
-    # The mixed legacy field must be split by its maintainer, not by the model.
-    if (scenario or {}).get('capability'):
-        missing.append(dict(turn='case', component='capability', reason='capability 未拆分'))
-    # downstream is deliberately not read while its implementation is deferred.
     body = {'sources': sources, 'missing': missing}
     body['sha256'] = hashlib.sha256(json.dumps(body, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
     return body
