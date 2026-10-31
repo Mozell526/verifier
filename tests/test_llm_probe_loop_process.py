@@ -354,6 +354,41 @@ def test_detective_named_record_reaches_that_axis_material():
     assert views["model_capability"]["links"] == []
     assert [r["id"] for r in views["model_capability"]["full"]["records"]] == ["gate"]
     assert views["model_capability"]["input"]["records"] == []
+    assert views["model_capability"]["leads"] == ["gate"]
+    assert views["planning_routing"]["links"][0]["leads"] == ["gate"] and views["planning_routing"]["leads"] == []
+
+
+def test_detective_refs_for_a_link_ride_on_that_link_not_the_flat_list():
+    """侦探给本轴环节指的记录写进那个环节（外层只记结构、内容在子记录上）；views.leads 只留指向别轴环节的，不重复。"""
+    from impl.projects.llm_probe_loop.process_axes import analysis_result
+
+    rec = lambda i, text: {"id": i, "kind": "observations", "turn": "turn1", "fields": {"output": {"status": "available", "value": text}}}
+    trace = {"dossier": {"records": [rec("wrap", ""), rec("child", "返回客户何承琪"), rec("path", "规划")], "contents": {}, "sources": []},
+             "links": [{"link_id": "tool_execution:wrap", "link_type": "tool_execution", "turn": "turn1",
+                        "input": [{"ref": "wrap", "field": "output"}], "output": [{"ref": "wrap", "field": "output"}]},
+                       {"link_id": "planning_routing:path", "link_type": "planning_routing", "turn": "turn1",
+                        "input": [{"ref": "path", "field": "output"}], "output": [{"ref": "path", "field": "output"}]}],
+             "program_suspects": [], "coverage": []}
+    own = {"existing_link_suspects": [
+        {"link_id": "tool_execution:wrap", "why": "外层无正文", "source_refs": ["wrap", "child"], "axes": ["tool_execution"]},
+        {"link_id": "planning_routing:path", "why": "路径", "source_refs": ["path"], "axes": ["tool_execution"]}],
+        "new_link_suspects": [{"link_type": "tool_execution", "axes": ["tool_execution"], "input_refs": ["child"],
+                               "output_refs": ["child"], "why": "后端", "source_refs": ["child"]}]}
+    view = {v["axis"]: v for v in analysis_result(trace, own)["views"]}["tool_execution"]
+    by_id = {link["link_id"]: link for link in view["links"]}
+    assert by_id["tool_execution:wrap"]["leads"] == ["child", "wrap"]
+    assert by_id["new:2"]["leads"] == ["child"]
+    assert view["leads"] == ["path"]
+
+
+def test_trace_analysis_result_with_link_leads_fits_its_schema():
+    from impl.core.axis_loop.acceptance import schema_errors
+
+    defs = json.load(open("impl/data/llm_probe_loop/axis_definitions.json", encoding="utf-8"))
+    link_schema = defs["axes"]["trace_analysis"]["output"]["properties"]["views"]["items"]["properties"]["links"]
+    assert schema_errors(link_schema, [{"link_id": "x", "link_type": "tool_execution", "leads": ["r1"]}]) == []
+    assert schema_errors(link_schema, [{"link_id": "x", "link_type": "tool_execution", "leads": "r1"}])
+
 
 def test_not_applicable_needs_evidence_and_leaves_results():
     """不适用：这一步这次没发生、换了路办成——要引原文说明实际的路；移出逐条结果，不进兑现；全都不适用轴级落 not_applicable。"""

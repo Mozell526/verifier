@@ -153,11 +153,17 @@ def analysis_result(trace: Mapping[str, Any], own: Mapping[str, Any]) -> dict[st
     for axis in PROCESS_AXES:
         links = axis_links(axis, table, suspects)
         mine = [s for s in suspects if axis in s["axes"]]
-        leads = sorted({ref for s in mine for ref in s["source_refs"]})
+        # 侦探给本轴某环节指的记录写进那个环节：核它时也要看（内容可能不在它自己的端点上）
+        pointed: dict[str, set[str]] = {}
+        for s in mine:
+            pointed.setdefault(s["link_id"], set()).update(s["source_refs"])
+        for link in links:
+            if pointed.get(link["link_id"]):
+                link["leads"] = sorted(pointed[link["link_id"]])
         # 侦探点名给本轴、但挂在别轴环节上的记录：本轴环节不带它，要单独放进实际材料
         own_ids = {link["link_id"] for link in links}
         borrowed = sorted({ref for s in mine if s["link_id"] not in own_ids for ref in s["source_refs"]})
-        views.append({"axis": axis, "links": links, "leads": leads,
+        views.append({"axis": axis, "links": links, "leads": borrowed,
                       "input": to_store(input_view(dossier, links)),
                       "full": to_store(model_material(material_view(dossier, links, mine, extra_refs=borrowed)))})
     failed = [c for c in trace["coverage"] if c.get("status") not in ("succeeded",)]
