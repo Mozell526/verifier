@@ -466,3 +466,14 @@ def test_main_verdict_basis_tells_wrong_from_missing():
                         {"type_id": "carryability", "status": "succeeded", "output": carry}])
     assert out["verdict"] == "没做成"
     assert out["basis"] == "给错了：t1.A（knowledge 组不过：c7（有矛盾：保单状态为无效））；没给到：t1.B；系统本可以给出"
+
+
+
+def test_uniqueness_principle_is_defined_once_and_cited_where_lists_are_made():
+    """唯一性原则的定义只写在主 loop 的系统提示里，列清单的轴只点名（demand/axis_loop.md §3.8，2026-11-01）。"""
+    from impl.core.axis_loop.loop import SYSTEM
+    assert SYSTEM.count("唯一性原则") == 1 and "一份只装一件事" in SYSTEM
+    axes = definitions().axes
+    assert not [k for k, a in axes.items() if "一份只装一件事" in a.instruction or "看实质" in a.instruction]
+    listing = ["claims", "expectations", *(f"{axis}_expected" for axis in PROCESS_AXES)]
+    assert all("遵循唯一性原则（系统规则 10）" in axes[k].instruction for k in listing)

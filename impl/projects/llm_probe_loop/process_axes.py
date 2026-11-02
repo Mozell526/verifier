@@ -26,10 +26,6 @@ UPSTREAM, UNRESOLVED = "上游:", "未定位:"
 TRACE = "case.trace"
 ANALYSIS = "result.trace_analysis"
 
-# spec/alg/process-axes.md §3.4：每个 case 都带的固定条目（需求 §5 ⟡ 待补）；编号 D1… 写在 context_memory 的说明里。
-STANDING_DUTIES = {"context_memory": 2}
-
-
 # ---- 侦探：合并可疑环节、按轴整理材料 --------------------------------------------------------
 
 def merge_suspects(program: list[dict[str, Any]], existing: list[dict[str, Any]], discovered: list[dict[str, Any]],
@@ -223,20 +219,11 @@ def link_turns(links: list[Mapping[str, Any]]) -> set[str]:
     return found or {"t1"}
 
 
-def duty_of(item: Mapping[str, Any], duties: int) -> str:
-    found = re.search(r"通用职责\s*(D\d+)", item.get("basis") or "")
-    return found.group(1) if found and 1 <= int(found.group(1)[1:]) <= duties else ""
-
-
-def check_expected(axis: str, own: Mapping[str, Any], links: list[Mapping[str, Any]], expectation_ids: set[str]) -> list[str]:
+def check_expected(own: Mapping[str, Any], links: list[Mapping[str, Any]], expectation_ids: set[str]) -> list[str]:
     problems = []
     ids = [item["id"] for item in own["expected"]]
     if len(set(ids)) != len(ids):
         problems.append(f"本应清单的 id 不能重复：{ids}")
-    duties = STANDING_DUTIES.get(axis, 0)
-    unnumbered = [item["id"] for item in own["expected"] if duties and "通用职责" in item["basis"] and not duty_of(item, duties)]
-    if unnumbered:
-        problems.append(f"这些条目的 basis 写了通用职责但没写给定的编号（如「通用职责 D1」）：{unnumbered}")
     turns = link_turns(links)
     stray = [item["id"] for item in own["expected"] if item["turn"] not in turns]
     if stray:
@@ -334,7 +321,6 @@ def actual_result(axis: str, own: Mapping[str, Any], expected: Mapping[str, Any]
     """程序填：轴级五值与组成、问题记录（同现方案 aggregate + issues_of）。模型交的逐条判断原样照搬：
     不能成立的（坏引文、必须独立查证却判没达到）已在 check_actual 打回（demand/axis_loop.md §3.3.7）。"""
     items = {item["id"]: item for item in expected["expected"]}
-    duties = STANDING_DUTIES.get(axis, 0)
     rows = [dict(row) for row in own["actual"]]
     # 不适用：这一步这次没发生、也不需要（换了路办成）——移出逐条结果，不计入轴级与兑现（spec/alg/process-axes.md §3.2）
     skipped = [r for r in rows if r["verdict"] == NOT_APPLICABLE]
@@ -344,15 +330,7 @@ def actual_result(axis: str, own: Mapping[str, Any], expected: Mapping[str, Any]
     problems = [p for p in problems if p["items"]]
     for k, p in enumerate(problems, 1):
         p["problem_id"] = f"{axis}-P{k}"
-    # 通用职责按轮取值：同一轮同一条职责，没达到优先、再达到、都无法核才无法核（spec §3.4）
-    duty_rows: dict[str, set[str]] = {}
-    for r in rows:
-        duty = duty_of(items[r["id"]], duties)
-        if duty:
-            duty_rows.setdefault(f"{items[r['id']]['turn']} {duty}", set()).add(r["verdict"])
-    standing = {k: next(v for v in (NOT_MET, MET, UNCHECKABLE) if v in vs) for k, vs in duty_rows.items()}
-    plain = [r["verdict"] for r in rows if not duty_of(items[r["id"]], duties)]
-    verdicts = plain + list(standing.values())
+    verdicts = [r["verdict"] for r in rows]
     kinds = [_kind(p["attribution"]) for p in problems]
     counts = {MET: verdicts.count(MET), NOT_MET: verdicts.count(NOT_MET), UNCHECKABLE: verdicts.count(UNCHECKABLE),
               "意外": len(own["unexpected"]), "问题·本轴": kinds.count("local"), "问题·上游": kinds.count("upstream"),
@@ -384,9 +362,8 @@ def actual_result(axis: str, own: Mapping[str, Any], expected: Mapping[str, Any]
                        "subcapability": sorted({e["subcapability"] for e in from_expected}),
                        "links": sorted({l for row in found for l in row.get("links") or []}),
                        "quotes": quotes, "output_refs": sorted({q["ref"] for q in quotes})})
-    results = [{**items[r["id"]], **{k: v for k, v in r.items() if k != "id"}, "id": r["id"],
-                "standing_duty": duty_of(items[r["id"]], duties)} for r in rows]
-    return {"verdict": verdict, "composition": {"counts": counts, "standing_duties": standing,
+    results = [{**items[r["id"]], **{k: v for k, v in r.items() if k != "id"}, "id": r["id"]} for r in rows]
+    return {"verdict": verdict, "composition": {"counts": counts,
                                                 "not_covered": list(expected.get("not_covered") or []),
                                                 "not_applicable": [{**items[r["id"]], **{k: v for k, v in r.items() if k != "id"}, "id": r["id"]}
                                                                    for r in skipped]},

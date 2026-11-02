@@ -109,7 +109,7 @@ def test_selected_rows_match_detail():
 
 @pytest.mark.parametrize("kwargs", [
     {"total": 0}, {"alpha": -1}, {"tail_bins": (3, 1)}, {"tail_bins": (1, 1)}, {"rounding": "x"},
-    {"cluster_cap": 0}, {"single_max_size": -1}, {"id_column": "a", "cluster_column": "a"}, {"cluster_column": "new_cluster_id"},
+    {"cluster_cap": 0}, {"single_max_size": -1}, {"id_column": "a", "cluster_column": "a"}, {"cluster_column": "new_cluster_id"}, {"cluster_column": "segment"},
 ])
 def test_invalid_config_rejected(kwargs):
     with pytest.raises(ValueError):
@@ -142,10 +142,15 @@ def test_cli_defaults_and_report(tmp_path):
     _write_csv(src, ["id", "cluster_id"], [(k, c) for k, c in enumerate(_clusters({"a": 30, "b": 5, "c": 1, "d": 1}))])
     assert cs.main(["--input", str(src), "--output", str(out), "--total", "10", "--report", str(report)]) == 0
     header, rows = _read_csv(out)
-    assert header == ["id", "cluster_id", "new_cluster_id"] and len(rows) == 10
+    assert header == ["id", "cluster_id", "new_cluster_id", "segment", "cluster_size"] and len(rows) == 10
+    assert {(r["cluster_id"], r["segment"], r["cluster_size"]) for r in rows} >= {("a", "normal:>=6", "30"), ("b", "small:4-5", "5")}
     data = json.loads(report.read_text())
     assert data["config"]["tail_bins"] == [1, 3]
     assert set(data["clusters"]) == {"a", "b", "tail:1"} and data["clusters"]["tail:1"]["size"] == 2
+    segs = data["segments"]
+    assert {k: (v["clusters"], v["size"]) for k, v in segs.items()} == {
+        "normal:>=6": (1, 30), "small:4-5": (1, 5), "tail:1": (1, 2)}
+    assert segs["small:4-5"]["sampled"] == 1 and sum(v["sampled"] for v in segs.values()) == 10
 
 
 def test_cli_empty_tail_bins_disables_merge(tmp_path):
@@ -176,7 +181,7 @@ def test_cli_custom_columns_keep_other_fields_and_allow_duplicate_ids(tmp_path):
     assert cs.main(["--input", str(src), "--output", str(out), "--id-column", "query",
                     "--cluster-column", "topic", "--total", "25", "--tail-bins", "1", "--single-max-size", "0"]) == 0
     header, rows = _read_csv(out)
-    assert header == ["query", "topic", "raw_text", "row", "new_cluster_id"]
+    assert header == ["query", "topic", "raw_text", "row", "new_cluster_id", "segment", "cluster_size"]
     assert [tuple(r[k] for k in header[:4]) for r in rows] == original  # 全部抽中时与输入逐行一致
     assert [r["new_cluster_id"] for r in rows] == [("tail:1" if t == "z" else t) for t in topics]
 
@@ -190,5 +195,66 @@ def test_cli_jsonl_keeps_nested_fields(tmp_path):
     rows = [json.loads(line) for line in out.read_text().splitlines()]
     assert len(rows) == 6
     for r in rows:
-        assert {k: v for k, v in r.items() if k != "new_cluster_id"} == records[r["uid"]]
+        assert {k: v for k, v in r.items() if k not in cs.OUTPUT_COLUMNS} == records[r["uid"]]
         assert r["new_cluster_id"] == str(r["cid"])
+
+
+def test_cli_xlsx_roundtrip(tmp_path):
+    from openpyxl import Workbook, load_workbook
+    src, out = tmp_path / "batch.xlsx", tmp_path / "out.xlsx"
+    book = Workbook()
+    book.active.append(["id", "cluster_id", "turns"])
+    for k, c in enumerate(_clusters({"a": 20, "b": 1})):
+        book.active.append([f"q{k}", c, '["x"]'])
+    book.save(src)
+    assert cs.main(["--input", str(src), "--output", str(out), "--total", "5", "--tail-bins", ""]) == 0
+    rows = list(load_workbook(out).active.values)
+    assert rows[0] == ("id", "cluster_id", "turns", "new_cluster_id", "segment", "cluster_size")
+    assert len(rows) == 6 and all(r[2] == '["x"]' for r in rows[1:])
+
+
+@pytest.mark.parametrize("bins, single, expected", [
+    ((1, 3), 5, ("small:4-5", "normal:>=6")),
+    ((1, 3, 5), 8, ("small:6-8", "normal:>=9")),
+    ((1, 3), 4, ("small:4", "normal:>=5")),
+    ((1, 3), 3, (None, "normal:>=4")),
+    ((), 0, (None, "normal:>=1")),
+    ((), 2, ("small:1-2", "normal:>=3")),
+])
+def test_segment_names_follow_config(bins, single, expected):
+    assert cs.segment_names(cs.SampleConfig(tail_bins=bins, single_max_size=single)) == expected
+
+
+def test_segments_follow_custom_bins():
+    clusters = _clusters({"a": 1, "b": 2, "c": 4, "d": 5, "e": 7, "f": 9, "g": 30})
+    _, detail = cs.sample(clusters, cs.SampleConfig(total=20, tail_bins=(1, 3, 5), single_max_size=8))
+    assert {c: d["segment"] for c, d in detail.items()} == {
+        "tail:1": "tail:1", "tail:2-3": "tail:2-3", "tail:4-5": "tail:4-5",
+        "e": "small:6-8", "f": "normal:>=9", "g": "normal:>=9"}
+
+
+def test_fine_column_splits_only_big_clusters():
+    # big 30 条拆成 big.0(20)/big.1(9)/big.2(1)，每个细簇 1 条；mid 5 条照旧 1 条；剩余名额给 tail
+    clusters = _clusters({"big": 30, "mid": 5, "t1": 1, "t2": 1, "t3": 1})
+    fine = ["big.0"] * 20 + ["big.1"] * 9 + ["big.2"] + ["mid.0"] * 3 + ["mid.1"] * 2 + ["t1.0", "t2.0", "t3.0"]
+    config = cs.SampleConfig(total=6, tail_bins=(1,), single_max_size=20)
+    selected, detail = cs.sample(clusters, config, fine)
+    assert _counts(selected) == {"big.0": 1, "big.1": 1, "big.2": 1, "mid": 1, "tail:1": 2}
+    assert {c: d["segment"] for c, d in detail.items()} == {
+        "big.0": "split:>=21", "big.1": "split:>=21", "big.2": "split:>=21", "mid": "small:2-20", "tail:1": "tail:1"}
+
+
+def test_fine_column_must_nest():
+    with pytest.raises(ValueError, match="嵌套"):
+        cs.sample(["a", "a", "b"], cs.SampleConfig(total=2, tail_bins=(), single_max_size=0), ["x", "y", "x"])
+
+
+def test_cli_fine_column(tmp_path):
+    src, out = tmp_path / "batch.csv", tmp_path / "out.csv"
+    rows = [[f"q{k}", c, f"{c}.{k % 3}"] for k, c in enumerate(_clusters({"a": 9, "b": 1}))]
+    _write_csv(src, ["id", "cluster_id", "fine_cluster_id"], rows)
+    assert cs.main(["--input", str(src), "--output", str(out), "--total", "4", "--tail-bins", "1",
+                    "--single-max-size", "5", "--fine-column", "fine_cluster_id"]) == 0
+    _, got = _read_csv(out)
+    assert sorted(r["new_cluster_id"] for r in got) == ["a.0", "a.1", "a.2", "tail:1"]
+    assert {r["cluster_size"] for r in got if r["new_cluster_id"] != "tail:1"} == {"9"}

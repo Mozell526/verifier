@@ -7,6 +7,7 @@
 > 2026-10-25 第二期 grill 修订（需求 `demand/axis_loop.md` 同日修订，记录 `demand/draft-20261025/README.md`）：loop 定义取代"主 loop / 独立运行的轴 / 公共 loop 工具"（§3.3、§6）；大材料先目录后按需读（§4.4、§9）；信息源检查工具与 trace 采集（§8）；第二期展开（§12.2）。
 > 2026-10-29 补（需求 `demand/axis_loop.md` §3.8 唯一性原则、§5.3）：§9 第 2 条归档补"同一批里有几份返回"的情况。
 > 2026-10-29（二）补（§12.2）：侦探指的记录按环节给。侦探可疑环节的 `source_refs` 写全核这个环节要看的记录；侦探给本轴环节指的记录写进那个环节（`links[].leads`），保留"哪些记录是给哪个环节看的"；指向别轴环节、侦探点名本轴也用得上的，照旧放进 `views.leads`；实际的说明讲清 leads 的用意。侦探仍只指路、不给理由（`demand/draft-20261025/README.md` Q6/Q7/Q9 不变），本应仍看不到 leads。
+> 2026-11-01 补（需求 `demand/axis_loop.md` §3.8 补"一份只装一件事"、L11）：§5.1 系统提示加唯一性原则全文（两半都写），各轴说明里不再各抄一份、也不再各写拆分句（说法、需求、本应三轴原有的拆分句删掉，只留各轴自己的细则）。
 > 标 ⟡ 的条目待用户确认，或者需要试运行后再定。
 
 # 第一章：方案
@@ -227,7 +228,8 @@ case ─► 加载：场景启用的轴 → 依赖、白名单、工具类别、
 
 ```text
 system   通用评测协议（固定）：你会陆续收到任务；按说明做；用 submit 交；被拒就按原因改了再交；
-         引用写成 {ref, quote}；工具返回要到下一次回复才能引用……
+         引用写成 {ref, quote}；工具返回要到下一次回复才能引用……；
+         唯一性原则（需求 §3.8 全文：一件事只给一份，一份只装一件事）
 user     case 头 + 初始就出现的任务（没有依赖的），每个任务一段：
          【任务 expectations】说明 + 它的材料（按白名单）+ 可用工具（含子 loop）及其用法 + 提交格式（模型填的那部分 schema）
 assistant / tool …
@@ -477,13 +479,13 @@ loop process（ready，等 6 个 <轴>_expected）                              
 | 轴 | 执行者 / 角色 | loop | 依赖 | 材料 | 代码 | verdict |
 |---|---|---|---|---|---|---|
 | `trace_analysis` 侦探 | 模型 / 分析 | `trace_analysis` | — | `case.trace`（全部）、`axis.note` | `checks.py`：引用的记录编号必须是此前 `read_material` 读回过的（`searched` / `quote_in_call`）；`link_id` 在 `case.trace.links` 里；新环节至少一端有已读的记录。`synth.py`：现有 `merge_suspects`，再整理出 `links[]`（程序枚举 + 补的漏列环节，每个标 `axes`：环节类型对应的轴，并上侦探点名"可能用得上"的轴——侦探偏召回，一条记录常是几个环节的证据，每条发现都交 `axes` 多选，10-25 定）、`links[].leads` 与 `leads[]`（2026-10-29（二）由每轴一份 `{axes, refs}` 改：侦探在本轴某环节上交的 `source_refs`，写进那个环节的 `leads`；侦探补的新环节写它自己的 `source_refs`；`views.leads` 只留指向别轴环节、侦探点名本轴用得上的记录（即 `borrowed`），已写进本轴环节的不重复。原因：按轴拉平后丢了"哪条记录是给哪个环节看的"，langfuse 的工具调用外层只记结构、参数与返回记在它的子记录上，实际偶尔把外层单独判成无法核、结论被卡成不确定，9 条里 2 条；指向别轴环节的线索本应不会为它写行，不会出这个问题，照旧平铺）、`views[]`（`{axis, input, full}`：`input` = 本轴环节的输入端字段，即现有 `input_view`；`full` = 本轴环节两端 + 指的记录，即现有 `material_view`）、`feeds`（`[{from, to}]`：from 轴的输出端出现在 to 轴的本应材料里，给本应分发排先后，10-26 定）、`why`（怀疑理由，只给页面）。现方案的"行动路线""覆盖说明"不再要。侦探说明里，可疑环节一条补：`source_refs` 写全核这个环节要看的记录——环节端点之外，这个环节实际发生的内容还记在哪些记录上（如工具调用只记了结构，参数和返回记在它的子记录或别的记录里），一并写进来（2026-10-29（二）；只写编号，不写理由） | 程序（complete / partial，按缺口） |
-| `<轴>_expected` × 6 本应 | 模型 / 分析 | `process_expected` | expectations（硬）、trace_analysis（硬） | `result.expectations.expectations[]`、`result.trace_analysis.links[axes=<轴>].{link_id, link_type, turn, input}`（小，全量推）、`result.trace_analysis.views[axis=<轴>].input`（大材料）、`axis.note`（含过程职责，§2.5）、`result.trace_analysis.feeds`（分发排先后用，10-26） | `checks.py`：id 不重复、turn 在环节所属轮里、通用职责带编号、来源是需求的条目 `expectations` 非空且在 E 里（`process-axes.md` §4）。不加覆盖校验：说明里写清"该看的环节都要看、依据要充分"，环节表全量给、侦探补漏指重点（10-25 定）。`synth.py`：各轴只在一份里，取那一份的 `expected`、`not_covered`（10-26 起本应走分发） | 程序（ready） |
+| `<轴>_expected` × 6 本应 | 模型 / 分析 | `process_expected` | expectations（硬）、trace_analysis（硬） | `result.expectations.expectations[]`、`result.trace_analysis.links[axes=<轴>].{link_id, link_type, turn, input}`（小，全量推）、`result.trace_analysis.views[axis=<轴>].input`（大材料）、`axis.note`（含过程职责，§2.5）、`result.trace_analysis.feeds`（分发排先后用，10-26） | `checks.py`：id 不重复、turn 在环节所属轮里、来源是需求的条目 `expectations` 非空且在 E 里（`process-axes.md` §4）。不加覆盖校验：说明里写清"该看的环节都要看、依据要充分"，环节表全量给、侦探补漏指重点（10-25 定）。`synth.py`：各轴只在一份里，取那一份的 `expected`、`not_covered`（10-26 起本应走分发） | 程序（ready） |
 | `<轴>` × 6 实际与轴结论 | 模型 / 评测 | `process` | `<轴>_expected`（硬）、trace_analysis（硬） | `result.<轴>_expected`、`result.trace_analysis.links[axes=<轴>]`、`result.trace_analysis.views[axis=<轴>].full`（大材料）、`result.trace_analysis.views[axis=<轴>].leads`。说明里讲清 leads：一个环节的内容可能不只记在它自己的端点上，`links[].leads` 是侦探给这个环节指的记录，也是它的证据，端点没有正文、但这些记录里有，就按这些记录核，不判无法核；`views.leads` 是侦探指出本轴也要看的其他记录（2026-10-29（二）） | `checks.py`：现有 `check_actual`（与本应一一对应、problem 只引没达到 / 意外、没达到和意外必须有引文、引文逐字在所引记录里）。`synth.py`：现有 `settle`（锁"必须独立查证"）+ `aggregate`（五值与组成）+ `issues_of`（问题记录，不再有跨批 `same_as`） | 程序（五值） |
 | `expectations` | 模型 | 不变 | — | 不变 | `checks.py` 加：每条 `needs` 合法（`spec/alg/expectations.md` §2.2） | 不变 |
 | `fulfillment` | 模型 | `main` | 加：6 个 `<轴>`（软） | 加：`result.<轴>.results[].{id, expectations, statement, verdict, observed, attribution}`；场景配了哪些证据（程序填进视图） | `checks.py` 加：`process_refs` 在 P 里；本应 `expectations` 含本条的过程条目都在 `process_refs` 里。`synth.py`：按 `spec/alg/fulfilled.md` §2.1 派生每条 status、档位、缺的组 | 程序 |
 
 - **不分批**：一个轴一个本应任务、一个实际任务；材料大用目录 + 按需读。现有分批（`axis_batches`）与跨批合并不迁。
-- 六轴的子能力、"本轴不判"、通用职责（现在在各轴 adapter 与 `STANDING_DUTIES`）写进各轴定义的 `instruction`；过程职责从本应轴的 `axis.note` 读（§2.5）。
+- 六轴的子能力、"本轴不判"写进各轴定义的 `instruction`；只对某个被测系统成立的职责写在场景的过程职责里，从本应轴的 `axis.note` 读（§2.5），轴定义里不放（2026-11-01）。
 - 旧路线里"主判官读 E + 案卷 + 六轴再判一次"（`need_judge`）不迁；主结论由 `main_verdict` 按程序合成（§12.1）。
 - llm_probe_loop 的判官：场景没开 `fulfillment` 时记运行失败、写明原因，不再退回单次判官。
 
