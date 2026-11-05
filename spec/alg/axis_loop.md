@@ -8,6 +8,7 @@
 > 2026-10-29 补（需求 `demand/axis_loop.md` §3.8 唯一性原则、§5.3）：§9 第 2 条归档补"同一批里有几份返回"的情况。
 > 2026-10-29（二）补（§12.2）：侦探指的记录按环节给。侦探可疑环节的 `source_refs` 写全核这个环节要看的记录；侦探给本轴环节指的记录写进那个环节（`links[].leads`），保留"哪些记录是给哪个环节看的"；指向别轴环节、侦探点名本轴也用得上的，照旧放进 `views.leads`；实际的说明讲清 leads 的用意。侦探仍只指路、不给理由（`demand/draft-20261025/README.md` Q6/Q7/Q9 不变），本应仍看不到 leads。
 > 2026-11-01 补（需求 `demand/axis_loop.md` §3.8 补"一份只装一件事"、L11）：§5.1 系统提示加唯一性原则全文（两半都写），各轴说明里不再各抄一份、也不再各写拆分句（说法、需求、本应三轴原有的拆分句删掉，只留各轴自己的细则）。
+> 2026-11-04 补（需求 `demand/axis_loop.md` §3.3.6 改为按任务配置，记录 `demand/draft-20261104/README.md`）：§3.2 `x-explain` 标不标按任务需要；§12.4 过程六轴实际轴不再标。
 > 标 ⟡ 的条目待用户确认，或者需要试运行后再定。
 
 # 第一章：方案
@@ -126,7 +127,7 @@ case ─► 加载：场景启用的轴 → 依赖、白名单、工具类别、
 | `tool_categories` | 信息源类别 `[{category, required}]` | `[{category: knowledge, required: true}]` |
 | `tools` | 选用的被调用启动的 loop（§3.3），按名字 | `["search_knowledge"]` |
 | `submit` | `once` 或 `per_item`；`per_item` 时写 `items_field` 与 `item_key` | `per_item` |
-| `output` | 输出 JSON Schema，顶层字段用 `x-fill: model \| program` 标谁填；程序填的字段里，是模型没直接给出、由规则推出的结论，再标 `x-explain: true`（§5.3 说明回合，10-27 定） | 见 §12.1 |
+| `output` | 输出 JSON Schema，顶层字段用 `x-fill: model \| program` 标谁填；程序填的字段里，是模型没直接给出、由规则推出的结论，可以再标 `x-explain: true`（§5.3 说明回合，10-27 定）；标不标按任务需要，不标就不走说明回合（需求 §3.3.6，11-04） | 见 §12.1 |
 | `checks` | 选用的标准校验，带参数（§7），可加 `on: item \| final` | `[{quote_in_call: {field: "basis[]", category: "subloop", on: "item"}}]` |
 
 - `output` 必须包含 `verdict`、`reason` 两个字段，它们同样可以标程序填（需求 §3.3）。
@@ -507,12 +508,12 @@ loop process（ready，等 6 个 <轴>_expected）                              
 | 轴 | 标 x-explain 的程序字段 | 程序依据 | 其他 |
 |---|---|---|---|
 | `fulfillment` | `fulfillment_assessments`（只回 `expectation_id`、`status`、`status_basis`）、`verdict`（即整体状态） | 每条加 `status_basis`：程序为什么得出这个 status，如"knowledge 组不过：c7 有矛盾（保单状态为无效）""trace 组判不了：tool_execution.E2 无法核" | 说明改为：对不对由程序按证据组算，但你要读懂所引 claim 和过程条目的结论，每条 reason 写清为什么是最终那个结果；觉得某条 claim 或过程结论判得不对，在 reason 里写明依据挑战，不凭自己的业务知识、不改引用。`reasoning_summary` 照模型最终 reason |
-| 过程六轴实际（6 个） | `verdict`（轴级五值）、`composition`（只回 `counts`） | 已有 `composition` 计数 | "必须独立查证"锁从 `actual_result` 移到 `check_actual`：needs_external=是 的条目判没达到 → 打回，"trace 证明不了没做是错的，看得到做到了判达到，看不出判无法核"。删掉丢坏引文后降级（同一份原文先在 check 打回，合成里永远走不到） |
+| 过程六轴实际（6 个） | —（10-27 曾标 `verdict`、`composition`；11-04 去掉：两者都由模型自己交的条目推出，看过后 reason 只多出结论和计数的复述，而本轴说明要求不复述计数） | 已有 `composition` 计数 | "必须独立查证"锁从 `actual_result` 移到 `check_actual`：needs_external=是 的条目判没达到 → 打回，"trace 证明不了没做是错的，看得到做到了判达到，看不出判无法核"。删掉丢坏引文后降级（同一份原文先在 check 打回，合成里永远走不到） |
 | `main_verdict` | —（程序轴，没有模型） | `basis` 把给错和没给分开：没兑现的期望里 delivered=给了 → "给错了：<id>（<status_basis>）"，没给 → "没给到：<id>" | — |
 
 其他轴的程序字段是改名、计数或照搬（blocking、claims、truthfulness、carryability 的 verdict），不标 x-explain。
 
-- 成本：兑现与六轴各多一轮模型调用（输入是前缀加一条短消息，前缀缓存命中）。验收时报每 case 的调用数、token 变化。
+- 成本：标了的轴各多一轮模型调用（输入是前缀加一条短消息，前缀缓存命中），而且模型会把整份结果重交一遍。11-04 起只有兑现标。验收时报每 case 的调用数、token 变化。
 - 验收：C08 的兑现 reason 写出 c7 及原因；造一条 needs_external 没达到的用例，提交被打回、模型改判；复跑 10-27 那组用例，看兑现 reason 与 status 不再说两件事、主结论依据分得开给错与没给。
 
 ### 12.3 承载性（2026-10-27 定，待确认；需求 `main_axis.md` §3.3、`axis_loop.md` §3.7）
