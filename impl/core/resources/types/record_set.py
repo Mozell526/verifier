@@ -4,17 +4,16 @@
 trace 信息源（langfuse、agno）建成案卷后的记录都是这个长相。
 
 两种资源：
-- 直接资源：一条记录，信息源挂载时登记，地址由信息源定（如 ``trace://turn1/records/observations/14``）。
+- 直接资源：一条记录，挂载时登记，地址由提供它的组织方式定（如 ``trace://turn1/records/observations/14``）。
 - 模板资源：``<记录地址>/fields/<字段名>``，读时从这条记录的规范文本里切出该字段那一段（一字不差）。
 
-挂载时 ``_meta`` 可带（键名不含前缀，见 ``Block.meta``）：
-- ``roles``：``{视角: {字段名: ["input" | "output", ...]}}``，这一块的哪些字段在该视角下是环节的输入端 / 输出端。
+只报结构位置（整块 / 记录属性 / 哪个字段）；字段是不是某个环节的输入端、输出端由使用方判（resources.md §10.5）。
 """
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any
 
 from mcp.types import ResourceTemplate, TextResourceContents
 
@@ -22,7 +21,6 @@ from ..spec import Block, pointer_join, pointer_tokens
 from ..text import Span, find_all, render, smallest
 
 FIELDS = "fields"
-ROLES = "roles"
 _FIELD_URI = re.compile(rf"^(?P<record>.+)/{FIELDS}/(?P<field>[^/]+)$")   # 记录编号本身带 /，以最后一个 /fields/ 为界
 
 
@@ -34,10 +32,9 @@ class Hit:
 
 
 @dataclass(frozen=True, order=True)
-class Role:
+class Place:
     part: str                   # block 整块 / attribute 记录属性 / field 字段
     field: str = ""             # part=field 时的字段名；"" = 整个 fields
-    ends: tuple[str, ...] = ()  # 给定视角下这个字段是哪类端点：input / output；空 = 不是端点
 
 
 class RecordSet:
@@ -70,10 +67,9 @@ class RecordSet:
         span = _value_span(spans, node)
         return None if span is None else text[span.start:span.end]
 
-    def locate(self, block: Block, quote: str, seen: Any = None, node: str = "") -> list[Hit] | None:
-        """在资源里找摘句：``node`` 为空是整条记录，否则只在该节点里；给了 ``seen``（模型实际看到的这一块）就在看到的那份里找。
-        这份文本里没有该节点返回 None。"""
-        text, spans = render(block.body if seen is None else seen)
+    def locate(self, block: Block, quote: str, node: str = "") -> list[Hit] | None:
+        """在资源的规范文本里找摘句：``node`` 为空是整条记录，否则只在该节点里；没有该节点返回 None。"""
+        text, spans = render(block.body)
         lo, hi = 0, len(text)
         if node:
             span = _value_span(spans, node)
@@ -86,18 +82,13 @@ class RecordSet:
     def extract(self, block: Block, start: int, end: int) -> str:
         return self.text(block.body)[start:end]
 
-    def role(self, block: Block, node: str, view: str | None = None) -> Role:
+    def place(self, block: Block, node: str) -> Place:
         tokens = pointer_tokens(node)
         if not tokens:
-            return Role("block")
+            return Place("block")
         if tokens[0] != FIELDS:
-            return Role("attribute")
-        if len(tokens) == 1:
-            return Role("field")
-        field = tokens[1]
-        roles: Mapping[str, Mapping[str, list[str]]] = block.meta(ROLES) or {}
-        views = [view] if view else list(roles)
-        return Role("field", field, tuple(sorted({end for v in views for end in (roles.get(v) or {}).get(field, [])})))
+            return Place("attribute")
+        return Place("field", tokens[1] if len(tokens) > 1 else "")
 
 
 def _value_span(spans: list[Span], node: str) -> Span | None:

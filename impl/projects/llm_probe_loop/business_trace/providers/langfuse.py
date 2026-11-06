@@ -443,32 +443,3 @@ def from_trace(config, trace_id):
 def open_reader(snapshot):
     from .langfuse_reader import LangfuseReader
     return LangfuseReader(snapshot)
-
-
-def mount(dossier, table):
-    """把 Langfuse 采回的那几轮记录按记录集挂成 ``trace://<记录编号>``（spec/alg/resources.md §4）。
-
-    dossier 是与内置材料 case.trace 同一份按 case 建的案卷（build_dossier）：正文同 record_body；
-    目录标签取自正文（标题 = 步骤名，说明 = 类型 · 观测类型 · 结果）；输入端 / 输出端取自同一份环节表，按环节所属轴分开记。
-    """
-    from impl.core.resources import META_PREFIX
-
-    from ..dossier import record_body
-    from ..links import TYPE_AXES, build_links
-    from .langfuse_reader import LangfuseReader
-
-    turns = {s["id"] for s in dossier.get("sources") or [] if s.get("recorder") == LangfuseReader.recorder}
-    ends: dict[str, dict[str, dict[str, set[str]]]] = {}
-    for link in build_links(dossier)["links"]:
-        for axis in TYPE_AXES[link["link_type"]]:
-            for side in ("input", "output"):
-                for end in link[side]:
-                    ends.setdefault(end["ref"], {}).setdefault(axis, {}).setdefault(end["field"], set()).add(side)
-    for row in dossier.get("records") or []:
-        if row.get("turn") not in turns:
-            continue
-        body = record_body(dossier, row)
-        roles = {axis: {name: sorted(sides) for name, sides in fields.items()} for axis, fields in ends.get(row["id"], {}).items()}
-        table.mount(f"trace://{row['id']}", "record_set", body, name=row["id"], title=body.get("name"),
-                    description=" · ".join(str(body[k]) for k in ("kind", "observation_type", "outcome") if body.get(k)),
-                    meta={META_PREFIX + "roles": roles})

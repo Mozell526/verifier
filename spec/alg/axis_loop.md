@@ -183,6 +183,7 @@ case ─► 加载：场景启用的轴 → 依赖、白名单、工具类别、
 
 - `case.*`、`scenario.*`、`axis.*` 由项目接入登记取值函数；`result.*` 根据轴定义自动生成。
 - 内置材料的取值函数取不到（例：`case.trace` 的存档是采集失败，或缺了整轮）→ 这个 case 记运行失败，原因写取值函数给的说明（需求 `information_sources.md` 要求 1，10-25 定）。规则对所有内置材料一样。
+- 材料可以声明它提供的资源：`Material.resources`（材料的值 → 一组 MCP 资源，`spec/alg/resources.md` §10.2）。启动检查取这份材料时，框架把声明的资源挂进本 case 的资源表 `MaterialTable.resources`（一 case 一张，所有任务共用）；挂载出错（地址或 `name` 重复）同取值失败，整个 case 运行失败。目前只有 `case.trace` 声明（登记的类型 `case_trace`）。（11-05 定）
 
 ### 4.2 白名单写法
 
@@ -341,9 +342,11 @@ class TaskView:
     calls: Sequence[CallView]  # 此前批次的调用：call_id, tool, category, args, batch, text, structured, is_error
     stage: str              # item（校验一个分项）/ final（收尾）
     parts: Sequence[Mapping]   # 仅有分发的轴的 synth：[{id, result}]，各份被接受的结果（10-22 定）
+    resources: Visible      # 本任务可见的资源：address(ref) 把记录编号（或 编号/fields/字段名）换成资源地址，cite(ref, quote) 核引文（11-05 定）
 ```
 
 - 视图只包含白名单里的材料，代码拿不到白名单以外的东西（需求 §3.4.3）。
+- 资源的存在与可见分开：资源表是 case 的全部资源；`resources` 只放本任务可见的——按白名单裁剪后给模型的材料（`MaterialTable.view`，含投影）里出现的记录 `id` 等于资源 `name` 的可见，记录可见则其字段可见。不按代码拿到的完整值算（会多算）。（11-05 定，`spec/alg/resources.md` §10.4）
 - 自定义代码的确定性靠测试保证：同一个视图连续跑两次，结果必须相同，不做沙箱（10-21 定）。
 
 ### 7.2 标准校验库

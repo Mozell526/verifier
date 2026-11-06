@@ -13,7 +13,8 @@ from typing import Any, Mapping
 
 from .spec import pointer_join
 
-QUOTES = str.maketrans({c: '"' for c in '“”„‟＂「」『』'} | {c: "'" for c in '‘’‚‛＇'})
+# 只抹掉不改变意思的写法差异（resources.md §10.5）：引号（中英文各式）与 markdown 强调符号两边都去掉；内容一个字不抹
+IGNORED = frozenset('"“”„‟＂「」『』' + "'‘’‚‛＇" + "*`")
 
 
 @dataclass(frozen=True)
@@ -63,7 +64,8 @@ def render(value: Any) -> tuple[str, list[Span]]:
 
 
 def normalize_map(text: str) -> tuple[str, list[int]]:
-    """同 ``axis_loop.text._normalize``（转义写法的 \\n \\t \\r 当空白，再去空白与反斜杠）再归一引号；返回规范化文本与每个字符的原下标。"""
+    """宽容比对的规范化：转义写法的 \\n \\t \\r 当空白，去空白与反斜杠，去引号与 markdown 强调符号（``IGNORED``）；
+    返回规范化文本与每个字符的原下标。"""
     out: list[str] = []
     index: list[int] = []
     i, n = 0, len(text)
@@ -75,10 +77,10 @@ def normalize_map(text: str) -> tuple[str, list[int]]:
                 j += 1
             i = j + 1 if j < n and text[j] in "ntr" else j
             continue
-        if ch.isspace():
+        if ch.isspace() or ch in IGNORED:
             i += 1
             continue
-        out.append(ch.translate(QUOTES))
+        out.append(ch)
         index.append(i)
         i += 1
     return "".join(out), index
