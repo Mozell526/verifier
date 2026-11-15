@@ -9,6 +9,12 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1] / "scripts/verifier-jevcls"
 
 
+def choice_answer(label, confidence=0.43):
+    labels = json.loads((ROOT / "templates/answer-classification.json").read_text())["questions"]["classification"]["criteria"]
+    return {"type": "choice", "choice": label, "confidence": confidence,
+            "probabilities": {k: 1.0 if k == label else 0.0 for k in labels}}
+
+
 @pytest.fixture
 def pipeline(monkeypatch):
     monkeypatch.syspath_prepend(str(ROOT))
@@ -399,7 +405,7 @@ def test_curl_sends_manifest_cases_and_stops_after_failure(pipeline, builder, tm
     builder.build(source, ROOT / 'templates/answer-classification.json', tmp_path / 'requests')
     calls = []
     success = {'model': 'jev-model', 'answers': {
-        'classification': {'type': 'choice', 'choice': 'T:回答正确', 'confidence': 0.43},
+        'classification': choice_answer('T:回答正确'),
         'needs_review': {'type': 'noul', 'noul': 0.8}},
         'usage': {'input_tokens': 10, 'output_tokens': 4}}
 
@@ -490,7 +496,7 @@ def test_successful_batch_exports_labels_and_review(pipeline, workbook, tmp_path
     manifest = json.loads((target / 'requests/manifest.json').read_text())
     def fake_curl(args, **kwargs):
         response = {'model': 'm', 'answers': {
-            'classification': {'type': 'choice', 'choice': 'F4:知识缺失'},
+            'classification': choice_answer('F4:知识缺失'),
             'needs_review': {'type': 'noul', 'noul': 0.8}},
             'usage': {'input_tokens': 1, 'output_tokens': 1}}
         Path(args[args.index('--output') + 1]).write_text(json.dumps(response))
@@ -498,8 +504,9 @@ def test_successful_batch_exports_labels_and_review(pipeline, workbook, tmp_path
     monkeypatch.setattr(pipeline.subprocess, 'run', fake_curl)
     assert pipeline.send_requests(target, 'https://example.test/v1/decisions', 'test-key', 120, 'curl') == 2
     book = load_workbook(target / 'classification-results.xlsx')
-    assert list(book.active.values) == [('traceid', '标签', '待复核分数')] + [(r['id'], 'F4:知识缺失', 0.8) for r in manifest['requests']]
-    assert book.active.max_column == 3
+    assert list(book.active.values) == [('traceid', '标签', '待复核分数', 'T:回答正确概率')] + [(r['id'], 'F4:知识缺失', 0.8, 0) for r in manifest['requests']]
+    assert book.active.max_column == 4
+    assert book.sheetnames == ["分类结果", "分类概率明细"]
     book.close()
 
 
@@ -533,7 +540,7 @@ def test_pipeline_without_evaluations_uses_material_ids(pipeline, tmp_path, monk
         assert set(body['state']['materials']) == {'question', 'answer'}
         label = 'T:回答正确' if body['state']['materials']['answer']['value'] == '2' else 'F3:回答内容错误'
         response = {'model': 'test-model', 'answers': {
-            'classification': {'type': 'choice', 'choice': label},
+            'classification': choice_answer(label),
             'needs_review': {'type': 'noul', 'noul': 0.2}},
             'usage': {'input_tokens': 1, 'output_tokens': 1}}
         Path(args[args.index('--output') + 1]).write_text(json.dumps(response))
@@ -544,7 +551,7 @@ def test_pipeline_without_evaluations_uses_material_ids(pipeline, tmp_path, monk
     assert [r['id'] for r in rows] == ['trace-z', 'trace-a']
     assert rows[0]['source']['file'] == str(tmp_path / 'materials.json')
     book = load_workbook(tmp_path / 'output/classification-results.xlsx')
-    assert list(book.active.values) == [('traceid', '标签', '待复核分数'), ('trace-z', 'T:回答正确', 0.2), ('trace-a', 'F3:回答内容错误', 0.2)]
+    assert list(book.active.values) == [('traceid', '标签', '待复核分数', 'T:回答正确概率'), ('trace-z', 'T:回答正确', 0.2, 1), ('trace-a', 'F3:回答内容错误', 0.2, 0)]
     book.close()
 
 
@@ -564,7 +571,7 @@ def test_missing_sources_or_configured_missing_excel_preserves_output(pipeline, 
 def test_review_noul_preserves_original_score(pipeline, score):
     request = json.loads((ROOT / 'templates/answer-classification.json').read_text())
     response = {'model': 'm', 'answers': {
-        'classification': {'type': 'choice', 'choice': 'T:回答正确'},
+        'classification': choice_answer('T:回答正确'),
         'needs_review': {'type': 'noul', 'noul': score}},
         'usage': {'input_tokens': 1, 'output_tokens': 1}}
     result = pipeline.classification_result(response, request)
@@ -577,8 +584,89 @@ def test_review_noul_preserves_original_score(pipeline, score):
 def test_invalid_review_score_rejected(pipeline, score):
     request = json.loads((ROOT / 'templates/answer-classification.json').read_text())
     response = {'model': 'm', 'answers': {
-        'classification': {'type': 'choice', 'choice': 'T:回答正确'},
+        'classification': choice_answer('T:回答正确'),
         'needs_review': {'type': 'noul', 'noul': score}},
         'usage': {'input_tokens': 1, 'output_tokens': 1}}
     with pytest.raises(ValueError, match='needs_review.noul'):
         pipeline.classification_result(response, request)
+
+
+@pytest.mark.parametrize('field,value', [
+    ('probabilities', None), ('probabilities', {}),
+    ('confidence', None), ('confidence', True), ('confidence', '0.5'),
+    ('confidence', float('nan')), ('confidence', float('inf')),
+    ('confidence', -0.1), ('confidence', 1.1),
+    ('T:回答正确', None), ('T:回答正确', True), ('T:回答正确', '0.5'),
+    ('T:回答正确', float('nan')), ('T:回答正确', float('inf')),
+    ('T:回答正确', -0.1), ('T:回答正确', 1.1),
+])
+def test_invalid_classification_numbers_rejected(pipeline, field, value):
+    request = json.loads((ROOT / 'templates/answer-classification.json').read_text())
+    answer = choice_answer('F4:知识缺失')
+    if field == 'T:回答正确':
+        answer['probabilities'][field] = value
+    else:
+        answer[field] = value
+    response = {'model': 'm', 'answers': {'classification': answer,
+        'needs_review': {'type': 'noul', 'noul': .3}},
+        'usage': {'input_tokens': 1, 'output_tokens': 1}}
+    with pytest.raises(ValueError, match=r'classification\.'):
+        pipeline.classification_result(response, request)
+
+
+@pytest.mark.parametrize('change', ['missing_t', 'missing_f', 'extra', 'bad_f'])
+def test_probability_options_must_match_template(pipeline, change):
+    request = json.loads((ROOT / 'templates/answer-classification.json').read_text())
+    answer = choice_answer('F4:知识缺失')
+    probabilities = answer['probabilities']
+    if change == 'missing_t':
+        probabilities.pop('T:回答正确')
+    elif change == 'missing_f':
+        probabilities.pop('F8:其他bad原因')
+    elif change == 'extra':
+        probabilities['unknown'] = 0
+    else:
+        probabilities['F8:其他bad原因'] = True
+    response = {'model': 'm', 'answers': {'classification': answer,
+        'needs_review': {'type': 'noul', 'noul': .3}},
+        'usage': {'input_tokens': 1, 'output_tokens': 1}}
+    with pytest.raises(ValueError, match='classification.probabilities'):
+        pipeline.classification_result(response, request)
+
+
+def test_export_preserves_probabilities_template_order_and_distinct_scores(pipeline, tmp_path):
+    from openpyxl import load_workbook
+    labels = ['F4:知识缺失', 'T:回答正确', 'F1:大模型无法回答']
+    probabilities = {'T:回答正确': .123456, 'F1:大模型无法回答': 0, 'F4:知识缺失': .876544}
+    record = {'id': '=trace-id', 'classification': 'F4:知识缺失', 'needs_review_score': .72,
+        'answers': {'classification': {'probabilities': probabilities, 'confidence': .61}}}
+    pipeline.write_classification_table(tmp_path, [record], labels)
+    book = load_workbook(tmp_path / 'classification-results.xlsx')
+    assert book.sheetnames == ['分类结果', '分类概率明细']
+    main, detail = book.worksheets
+    assert list(main.values) == [('traceid', '标签', '待复核分数', 'T:回答正确概率'),
+        ('=trace-id', 'F4:知识缺失', .72, .123456)]
+    assert list(detail.values) == [('traceid', '最终标签', 'confidence', *labels),
+        ('=trace-id', 'F4:知识缺失', .61, .876544, .123456, 0)]
+    assert main['D2'].value == detail['E2'].value
+    for sheet in (main, detail):
+        assert sheet['A2'].data_type == 's'
+        assert sheet['D2'].data_type == 'n' and sheet['D2'].number_format == '0.00'
+        assert sheet.freeze_panes == 'C2'
+        assert sheet.auto_filter.ref == sheet.dimensions
+    book.close()
+
+
+def test_template_without_t_fails_before_output_replacement(pipeline, tmp_path):
+    template = json.loads((ROOT / 'templates/answer-classification.json').read_text())
+    del template['questions']['classification']['criteria']['T:回答正确']
+    (tmp_path / 'template.json').write_text(json.dumps(template))
+    (tmp_path / 'materials.json').write_text('[{"traceid":"id","text":"hello"}]')
+    (tmp_path / 'map.json').write_text(json.dumps({'case_id_path': '/traceid',
+        'fields': {'text': {'path': '/text', 'description': 'input'}}}))
+    output = tmp_path / 'output'
+    output.mkdir()
+    (output / 'keep').write_text('previous')
+    with pytest.raises(ValueError, match='T:回答正确'):
+        pipeline.run(None, output, tmp_path / 'template.json', tmp_path / 'materials.json', tmp_path / 'map.json')
+    assert (output / 'keep').read_text() == 'previous'

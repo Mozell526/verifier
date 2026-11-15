@@ -205,7 +205,7 @@ output/
 ├── processed.jsonl
 ├── materials-mapping.json   # 配置了字段字典时生成
 ├── classification-results.json
-├── classification-results.xlsx  # 最终三列表格：traceid、标签、待复核分数
+├── classification-results.xlsx  # 主表 + 分类概率明细表
 ├── responses/              # 每条 HTTP 原始响应；错误响应也保留
 │   ├── 000001.json
 │   └── 000002.json
@@ -219,7 +219,7 @@ output/
 
 requests 下每个数字命名文件都是直接 POST 到 `JEV_API_URL` 的 JSON body。`manifest.json` 记录 ID → 请求文件及内容哈希，消费程序必须按该清单读取，不能将整个目录的 JSON 都发送。`template.json` 是应用模型配置后的有效模板快照，空 state 不可直接发送。manifest 记录加工输入和原模板文件的 SHA-256，以及实际请求的 model，便于核对来源。独立使用通用组装器时可用 `--model` 覆盖模板模型；不传则使用模板值。
 
-整批请求成功后，最终输出 `classification-results.xlsx`，包含 `traceid`、`标签`、`待复核分数` 三列。traceid 为原始 Langfuse trace ID，以文本保存；标签是模板返回的完整文字（例如 `T:回答正确`、`F4:知识缺失`）。复核列直接保存独立的 `needs_review.noul` 原始分数（0–1 数值），显示两位小数，不按阈值转成“是/否”。分数不是经人工校准的准确率。调用失败时仅保留 JSON 和原始响应，不生成不完整的最终表格。重跑会覆盖固定输出目录中的表格。
+整批请求成功后，最终输出 `classification-results.xlsx`，包含两个工作表：「分类结果」含 `traceid`、`标签`、`待复核分数`、`T:回答正确概率` 四列；「分类概率明细」含 `traceid`、`最终标签`、`confidence`，并按本次有效模板选项顺序逐列展开全部分类概率。无论最终选中哪个标签，主表 T 概率都取 `answers.classification.probabilities["T:回答正确"]`，与明细表 T 列完全一致；它不等于 confidence 或待复核分数。所有数值保留原值，仅显示两位小数；两表均启用筛选并冻结表头和前两列。traceid 为原始 Langfuse trace ID，以文本保存；标签是模板返回的完整文字（例如 `T:回答正确`、`F4:知识缺失`）。复核列直接保存独立的 `needs_review.noul` 原始分数（0–1 数值），显示两位小数，不按阈值转成“是/否”。分数不是经人工校准的准确率。调用失败时仅保留 JSON 和原始响应，不生成不完整的最终表格。重跑会覆盖固定输出目录中的表格。
 
 ## 协议与分类边界
 
@@ -234,7 +234,7 @@ requests 下每个数字命名文件都是直接 POST 到 `JEV_API_URL` 的 JSON
 
 JEV 的问题彼此独立，不能把另一个问题的答案作为本问题输入。最终是否采纳候选由后续消费者处理。工作流已接入模型网络调用和结果整理，不回填 Excel。
 
-`classification-results.json` 是按发送顺序保存的结果数组，`id` 仍为 Langfuse trace ID。每条包含 `success`、HTTP 状态、请求哈希、响应文件路径和耗时。成功项另含 `classification`、`needs_review_score`（原始分数）、实际 `model`、完整 `answers`（保留 confidence/probabilities）及 `usage`。`success=true` 表示调用成功且分类选项有效，不代表分类已确认；复核倾向看 `needs_review_score`，不自动二值化。失败项仅记录错误，不填分类值；数组后未出现的 case 尚未发送。HTTP 200 但缺少合法分类答案或 0–1 范围内的复核分数也算失败。当前分类工作流要求模板含 `classification`（Choice）和 `needs_review`（Noul）；其他场景的模板组装使用通用组装器。
+`classification-results.json` 是按发送顺序保存的结果数组，`id` 仍为 Langfuse trace ID。每条包含 `success`、HTTP 状态、请求哈希、响应文件路径和耗时。成功项另含 `classification`、`needs_review_score`（原始分数）、实际 `model`、完整 `answers`（保留 confidence/probabilities）及 `usage`。`success=true` 表示调用成功且分类选项有效，不代表分类已确认；复核倾向看 `needs_review_score`，不自动二值化。失败项仅记录错误，不填分类值；数组后未出现的 case 尚未发送。HTTP 200 但缺少合法分类答案、完整匹配模板的分类概率、confidence 或复核分数也算失败；三种数值均须为 0–1 有限数值，不接受布尔值，不补零或归一化。当前分类工作流要求模板含 `classification`（Choice，必须包含 `T:回答正确` 选项）和 `needs_review`（Noul）；其他场景的模板组装使用通用组装器。
 
 复制本工作流到其他位置时，需要保留 `../jev_build_requests.py` 的相对关系。通用组装器只依赖 Pydantic，可单独复制使用；Excel 转化脚本只依赖标准库和 openpyxl，不导入组装器。
 
