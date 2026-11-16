@@ -696,3 +696,27 @@ fallback2 修复后对同一冻结样本完整重跑（primary 地区不支持�
 ### 17.3 验证记录
 - `definitions()` 加载与 `check_definitions` 校验通过（20 条轴 schema、依赖与材料路径一致）。
 - `pytest tests/test_llm_probe_loop_*.py tests/test_axis_loop*.py tests/test_axes_experiment.py tests/test_process_axes_p1_p7.py tests/test_axes_clustering*.py`：**239 passed**（含 Playwright 前端渲染回归）。
+
+### 17.4 11 题实测（2026-11-15，8038，按 trace 复评）
+- 跑法：`dataset-building/backups/run_process_axes_8038.sh <提交> <目录> 2`，样本 `dataset-building/backups/fix-11-20261111/batch11.json`，并发 2。脚本同步实例的 `axis_definitions.json`、`axis_code/`（实例各有一份，只同步 JSON 会跑旧代码）和场景描述，经 tracing 启动后提交批次。
+- 对照：`04fe9d3e`（`20261113` 在 `llm_probe_loop` 上的直接祖先）、`0a903c07`（exp-b）。比较前，切过备用端点的题须重跑，只用纯主模型结果。
+
+| 模型 | 批次 | 与 gold 一致 | 每题秒 | LLM 请求 | Total tok | 六轴实况 LLM 秒 | 兑现 LLM 秒 |
+|---|---|---|---|---|---|---|---|
+| gemini-3.8-flash-medium | `04fe9d3e` | 9/11 | 513 | 192 | 5.45M | 1575 | 1008 |
+| gemini-3.8-flash-medium | `d7f32a8d` | 9/11 | 350 | 185 | 4.74M | 789 | 256 |
+| gpt-6.1-terra | `04fe9d3e` | 4/11 | 391 | 196 | 7.47M | 1818 | 496 |
+| gpt-6.1-terra | `d7f32a8d`（纯 terra） | 4/11 | 329 | 190 | 6.94M | 1478 | 246 |
+
+- 效率：两模型每题耗时 -32% / -16%，省下的全在本次改的两段（六轴不再重抄 problems、兑现不再挑 `process_refs`）；未改的前四段持平。整批墙钟不可与 `04fe9d3e` 直接比（基线并发 4，现为 2；备用端点超时会拖尾）。
+- 效果：P9 连坐止住。gemini C08 没做成✗ → 做成了✓，B02 "是否已购"不再被姓名笔误连坐，A02 捏造只挂 `implicit_correct`；terra 39 条没达到不再把正例错杀成没做成（基线 4 道）。一致率未变：gemini F01 没做成✓ → 做成了✗；terra 6 道正例停在不确定。
+- 遗留（不在本次范围）：
+  1. F01：期望把同句两个问题合成一条；`knowledge_data_expected` 自写"未收录则空结果符合期望"的退路。新规则下未标受损的没达到不再挡结论，"答一半"更易被放过。
+  2. terra 把 trace 里常规 `[REDACTED]` 脱敏与同工具已返回的值判无法核（49 条，gemini 5 条），经"无法核 → not_evaluable"卡住正例。此现象 `04fe9d3e` 已有，原被没达到连坐盖住。
+  3. 现耗时 85% 以上在侦探、六轴本应、六轴实况；再提速需动本应条目数量与粒度。
+- 每配置只跑一轮；单题结论会翻，翻题先重跑再定论。
+
+### 17.5 新基线：`20261115`（`228ff007`）
+- `228ff007` 在 `d7f32a8d` 之上只在 `impl/` 加了未被引用的 `mock_cases-120.json`，运行代码与 `d7f32a8d` 一致，17.4 成绩即本基线成绩。该提交误把 `demand/`、`spec/` 回退到 `20261113` 版本，已从 `d7f32a8d` 恢复。
+- 基线结果（本地，`dataset-building/backups/` 不入库）：gemini `process-axes-20261115/gemini-1`；terra `process-axes-20261115/terra-merged`（`terra-1` 中切 grok 的 fuyunping、A02 已重跑替换）。
+- 测试：`llm_probe_loop` 相关 239 passed。JEV 两组测试 110 个因 `agno` 环境缺 `jsonpointer` 报错，`20261113` 同样，与本基线无关。

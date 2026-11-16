@@ -5,6 +5,7 @@ import argparse
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -67,32 +68,25 @@ def classification_result(data, request):
     confidence = answer.get("confidence")
     if type(confidence) not in (int, float) or not math.isfinite(confidence) or not 0 <= confidence <= 1:
         raise ValueError("classification.confidence 必须是 0–1 的有限数值")
-    review = answers.get("needs_review")
-    if not isinstance(review, dict) or review.get("type") != "noul":
-        raise ValueError("JEV 响应缺少 Noul 判断 needs_review")
-    score = review.get("noul")
-    if type(score) not in (int, float) or not math.isfinite(score) or not 0 <= score <= 1:
-        raise ValueError("needs_review.noul 必须是 0 到 1 的有限数值")
     usage = data.get("usage")
     if not isinstance(usage, dict) or any(type(usage.get(k)) is not int or usage[k] < 0
                                          for k in ("input_tokens", "output_tokens")):
         raise ValueError("JEV 响应缺少有效 usage")
     return {"model": data["model"], "answers": answers, "usage": usage,
-            "classification": answers["classification"]["choice"],
-            "needs_review_score": score}
+            "classification": answers["classification"]["choice"]}
 
 
 def write_classification_table(output_dir, results, labels):
     workbook = Workbook()
     sheet = workbook.active
     sheet.title = "分类结果"
-    sheet.append(["traceid", "标签", "待复核分数", "T:回答正确概率"])
+    sheet.append(["traceid", "标签", "T:回答正确概率"])
     detail = workbook.create_sheet("分类概率明细")
     detail.append(["traceid", "最终标签", "confidence", *labels])
     for record in results:
         answer = record["answers"]["classification"]
         probabilities = answer["probabilities"]
-        sheet.append([record["id"], record["classification"], record["needs_review_score"],
+        sheet.append([record["id"], record["classification"],
                       probabilities["T:回答正确"]])
         detail.append([record["id"], record["classification"], answer["confidence"],
                        *(probabilities[label] for label in labels)])
@@ -167,7 +161,7 @@ def send_requests(output_dir, api_url, api_key, timeout, curl):
             json.dumps(results, ensure_ascii=False, indent=2, allow_nan=False) + "\n", encoding="utf-8")
         if not record["success"]:
             raise ValueError(f"{entry['id']} 调用失败：{record['error']}；已保存结果，后续请求未发送")
-        print(f"  {record['classification']} / 待复核分数：{record['needs_review_score']:.2f} ({record['elapsed_seconds']}s)", flush=True)
+        print(f"  {record['classification']} ({record['elapsed_seconds']}s)", flush=True)
     labels = list(prepared[0][2]["questions"]["classification"]["criteria"])
     write_classification_table(output_dir, results, labels)
     return len(results)
@@ -195,14 +189,15 @@ def run(input_path, output_dir, template, materials=None, mapping=None, *, model
             command += ["--model", model]
         result = subprocess.run(
             command,
+            # Match the pipe decoder even on Windows with a GBK locale.
+            env={**os.environ, "PYTHONIOENCODING": "utf-8"},
             capture_output=True, text=True, encoding="utf-8", check=False,
         )
         if result.returncode:
             raise ValueError(f"JEV 请求组装失败：{result.stderr.strip() or result.stdout.strip()}")
         effective_template = json.loads((stage / "requests/template.json").read_text(encoding="utf-8"))
-        for name, kind in {"classification": "choice", "needs_review": "noul"}.items():
-            if effective_template["questions"].get(name, {}).get("type") != kind:
-                raise ValueError(f"分类模板必须包含 {kind} 问题 {name}")
+        if effective_template["questions"].get("classification", {}).get("type") != "choice":
+            raise ValueError("分类模板必须包含 choice 问题 classification")
         if "T:回答正确" not in effective_template["questions"]["classification"]["criteria"]:
             raise ValueError("分类模板必须包含 T:回答正确 选项，以导出回答正确概率")
         previous = Path(temp) / "previous"

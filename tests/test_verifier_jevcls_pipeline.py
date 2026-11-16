@@ -373,6 +373,26 @@ def test_failed_rebuild_preserves_previous_output(pipeline, workbook, tmp_path):
     assert before == {p.relative_to(target): p.read_bytes() for p in target.rglob('*') if p.is_file()}
 
 
+@pytest.mark.parametrize("invalid_template", [False, True])
+def test_builder_logs_use_utf8_under_gbk_environment(pipeline, workbook, tmp_path, monkeypatch, invalid_template):
+    monkeypatch.setenv("PYTHONIOENCODING", "gbk")
+    target = tmp_path / "中文输出"
+    target.mkdir()
+    (target / "keep.txt").write_text("previous", encoding="utf-8")
+    template = ROOT / "templates/answer-classification.json"
+    if invalid_template:
+        template = tmp_path / "invalid.json"
+        template.write_text('{"model":"a","model":"b"}', encoding="utf-8")
+        with pytest.raises(ValueError, match="JEV 请求组装失败：错误：重复 JSON 字段：model"):
+            pipeline.run(tmp_path / "input.xlsx", target, template)
+        assert (target / "keep.txt").read_text(encoding="utf-8") == "previous"
+    else:
+        assert pipeline.run(tmp_path / "input.xlsx", target, template) == 2
+        manifest = json.loads((target / "requests/manifest.json").read_text(encoding="utf-8"))
+        assert manifest["count"] == 2
+        assert not (target / "keep.txt").exists()
+
+
 def test_output_cannot_contain_input(pipeline, tmp_path):
     target = tmp_path / "output"; target.mkdir()
     source = target / "input.xlsx"; source.write_text("keep")
@@ -405,8 +425,7 @@ def test_curl_sends_manifest_cases_and_stops_after_failure(pipeline, builder, tm
     builder.build(source, ROOT / 'templates/answer-classification.json', tmp_path / 'requests')
     calls = []
     success = {'model': 'jev-model', 'answers': {
-        'classification': choice_answer('T:回答正确'),
-        'needs_review': {'type': 'noul', 'noul': 0.8}},
+        'classification': choice_answer('T:回答正确')},
         'usage': {'input_tokens': 10, 'output_tokens': 4}}
 
     def fake_curl(args, **kwargs):
@@ -427,7 +446,7 @@ def test_curl_sends_manifest_cases_and_stops_after_failure(pipeline, builder, tm
     results = json.loads((tmp_path / 'classification-results.json').read_text())
     assert len(calls) == len(results) == 2
     assert results[0]['id'] == 'trace1'
-    assert results[0]['classification'] == 'T:回答正确' and results[0]['needs_review_score'] == 0.8
+    assert results[0]['classification'] == 'T:回答正确'
     assert results[0]['answers'] == success['answers']
     assert results[1]['success'] is False and results[1]['http_status'] == 403
     assert 'classification' not in results[1]
@@ -444,8 +463,7 @@ def test_sender_never_reports_failed_response_as_classification(pipeline, builde
         if failure == 'timeout':
             raise pipeline.subprocess.TimeoutExpired(args, 10)
         data = {'model': 'm', 'answers': {
-            'classification': {'type': 'choice', 'choice': 'invalid'},
-            'needs_review': {'type': 'noul', 'noul': 0.2}},
+            'classification': {'type': 'choice', 'choice': 'invalid'}},
             'usage': {'input_tokens': 1, 'output_tokens': 1}}
         raw = {'invalid_json': 'not json', 'nan': '{"model":NaN}'}.get(failure, json.dumps(data))
         Path(args[args.index('--output') + 1]).write_text(raw)
@@ -488,7 +506,7 @@ def test_classification_template_checked_before_replacing_output(pipeline, workb
     assert (target / 'keep').read_text() == 'old'
 
 
-def test_successful_batch_exports_labels_and_review(pipeline, workbook, tmp_path, monkeypatch):
+def test_successful_batch_exports_labels_and_probabilities(pipeline, workbook, tmp_path, monkeypatch):
     from types import SimpleNamespace
     from openpyxl import load_workbook
     target = tmp_path / 'output'
@@ -496,16 +514,15 @@ def test_successful_batch_exports_labels_and_review(pipeline, workbook, tmp_path
     manifest = json.loads((target / 'requests/manifest.json').read_text())
     def fake_curl(args, **kwargs):
         response = {'model': 'm', 'answers': {
-            'classification': choice_answer('F4:知识缺失'),
-            'needs_review': {'type': 'noul', 'noul': 0.8}},
+            'classification': choice_answer('F4:知识缺失')},
             'usage': {'input_tokens': 1, 'output_tokens': 1}}
         Path(args[args.index('--output') + 1]).write_text(json.dumps(response))
         return SimpleNamespace(returncode=0, stdout='200', stderr='')
     monkeypatch.setattr(pipeline.subprocess, 'run', fake_curl)
     assert pipeline.send_requests(target, 'https://example.test/v1/decisions', 'test-key', 120, 'curl') == 2
     book = load_workbook(target / 'classification-results.xlsx')
-    assert list(book.active.values) == [('traceid', '标签', '待复核分数', 'T:回答正确概率')] + [(r['id'], 'F4:知识缺失', 0.8, 0) for r in manifest['requests']]
-    assert book.active.max_column == 4
+    assert list(book.active.values) == [('traceid', '标签', 'T:回答正确概率')] + [(r['id'], 'F4:知识缺失', 0) for r in manifest['requests']]
+    assert book.active.max_column == 3
     assert book.sheetnames == ["分类结果", "分类概率明细"]
     book.close()
 
@@ -537,11 +554,11 @@ def test_pipeline_without_evaluations_uses_material_ids(pipeline, tmp_path, monk
             return real_run(args, **kwargs)
         body = json.loads(Path(args[args.index('--data-binary') + 1][1:]).read_text())
         assert 'evaluations' not in body['state']
+        assert set(body['questions']) == {'classification'}
         assert set(body['state']['materials']) == {'question', 'answer'}
         label = 'T:回答正确' if body['state']['materials']['answer']['value'] == '2' else 'F3:回答内容错误'
         response = {'model': 'test-model', 'answers': {
-            'classification': choice_answer(label),
-            'needs_review': {'type': 'noul', 'noul': 0.2}},
+            'classification': choice_answer(label)},
             'usage': {'input_tokens': 1, 'output_tokens': 1}}
         Path(args[args.index('--output') + 1]).write_text(json.dumps(response))
         return SimpleNamespace(returncode=0, stdout='200', stderr='')
@@ -551,7 +568,7 @@ def test_pipeline_without_evaluations_uses_material_ids(pipeline, tmp_path, monk
     assert [r['id'] for r in rows] == ['trace-z', 'trace-a']
     assert rows[0]['source']['file'] == str(tmp_path / 'materials.json')
     book = load_workbook(tmp_path / 'output/classification-results.xlsx')
-    assert list(book.active.values) == [('traceid', '标签', '待复核分数', 'T:回答正确概率'), ('trace-z', 'T:回答正确', 0.2, 1), ('trace-a', 'F3:回答内容错误', 0.2, 0)]
+    assert list(book.active.values) == [('traceid', '标签', 'T:回答正确概率'), ('trace-z', 'T:回答正确', 1), ('trace-a', 'F3:回答内容错误', 0)]
     book.close()
 
 
@@ -565,30 +582,6 @@ def test_missing_sources_or_configured_missing_excel_preserves_output(pipeline, 
         pipeline.main([])
     assert exc.value.code == 1
     assert (target / 'keep').read_text() == 'previous'
-
-
-@pytest.mark.parametrize('score', [0, 0.49, 0.5, 1])
-def test_review_noul_preserves_original_score(pipeline, score):
-    request = json.loads((ROOT / 'templates/answer-classification.json').read_text())
-    response = {'model': 'm', 'answers': {
-        'classification': choice_answer('T:回答正确'),
-        'needs_review': {'type': 'noul', 'noul': score}},
-        'usage': {'input_tokens': 1, 'output_tokens': 1}}
-    result = pipeline.classification_result(response, request)
-    assert 'needs_review' not in result
-    assert result['needs_review_score'] == score
-    assert result['classification'] == 'T:回答正确'
-
-
-@pytest.mark.parametrize('score', [None, True, '0.9', -0.1, 1.1, float('nan'), float('inf')])
-def test_invalid_review_score_rejected(pipeline, score):
-    request = json.loads((ROOT / 'templates/answer-classification.json').read_text())
-    response = {'model': 'm', 'answers': {
-        'classification': choice_answer('T:回答正确'),
-        'needs_review': {'type': 'noul', 'noul': score}},
-        'usage': {'input_tokens': 1, 'output_tokens': 1}}
-    with pytest.raises(ValueError, match='needs_review.noul'):
-        pipeline.classification_result(response, request)
 
 
 @pytest.mark.parametrize('field,value', [
@@ -607,8 +600,7 @@ def test_invalid_classification_numbers_rejected(pipeline, field, value):
         answer['probabilities'][field] = value
     else:
         answer[field] = value
-    response = {'model': 'm', 'answers': {'classification': answer,
-        'needs_review': {'type': 'noul', 'noul': .3}},
+    response = {'model': 'm', 'answers': {'classification': answer},
         'usage': {'input_tokens': 1, 'output_tokens': 1}}
     with pytest.raises(ValueError, match=r'classification\.'):
         pipeline.classification_result(response, request)
@@ -627,8 +619,7 @@ def test_probability_options_must_match_template(pipeline, change):
         probabilities['unknown'] = 0
     else:
         probabilities['F8:其他bad原因'] = True
-    response = {'model': 'm', 'answers': {'classification': answer,
-        'needs_review': {'type': 'noul', 'noul': .3}},
+    response = {'model': 'm', 'answers': {'classification': answer},
         'usage': {'input_tokens': 1, 'output_tokens': 1}}
     with pytest.raises(ValueError, match='classification.probabilities'):
         pipeline.classification_result(response, request)
@@ -638,20 +629,20 @@ def test_export_preserves_probabilities_template_order_and_distinct_scores(pipel
     from openpyxl import load_workbook
     labels = ['F4:知识缺失', 'T:回答正确', 'F1:大模型无法回答']
     probabilities = {'T:回答正确': .123456, 'F1:大模型无法回答': 0, 'F4:知识缺失': .876544}
-    record = {'id': '=trace-id', 'classification': 'F4:知识缺失', 'needs_review_score': .72,
+    record = {'id': '=trace-id', 'classification': 'F4:知识缺失',
         'answers': {'classification': {'probabilities': probabilities, 'confidence': .61}}}
     pipeline.write_classification_table(tmp_path, [record], labels)
     book = load_workbook(tmp_path / 'classification-results.xlsx')
     assert book.sheetnames == ['分类结果', '分类概率明细']
     main, detail = book.worksheets
-    assert list(main.values) == [('traceid', '标签', '待复核分数', 'T:回答正确概率'),
-        ('=trace-id', 'F4:知识缺失', .72, .123456)]
+    assert list(main.values) == [('traceid', '标签', 'T:回答正确概率'),
+        ('=trace-id', 'F4:知识缺失', .123456)]
     assert list(detail.values) == [('traceid', '最终标签', 'confidence', *labels),
         ('=trace-id', 'F4:知识缺失', .61, .876544, .123456, 0)]
-    assert main['D2'].value == detail['E2'].value
+    assert main['C2'].value == detail['E2'].value
     for sheet in (main, detail):
         assert sheet['A2'].data_type == 's'
-        assert sheet['D2'].data_type == 'n' and sheet['D2'].number_format == '0.00'
+        assert sheet['C2'].data_type == 'n' and sheet['C2'].number_format == '0.00'
         assert sheet.freeze_panes == 'C2'
         assert sheet.auto_filter.ref == sheet.dimensions
     book.close()
