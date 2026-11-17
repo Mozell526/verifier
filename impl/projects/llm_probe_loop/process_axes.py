@@ -114,33 +114,54 @@ def _is_output_only(ref: str, links: list[Mapping[str, Any]]) -> bool:
     return ref in outs and ref not in ins
 
 
-def _unshare(value: Any, shared: Mapping[str, Any]) -> Any:
-    if isinstance(value, dict):
-        if set(value) == {"shared_ref"}:
-            return _unshare(shared.get(value["shared_ref"]), shared)
-        return {k: _unshare(v, shared) for k, v in value.items()}
-    if isinstance(value, list):
-        return [_unshare(v, shared) for v in value]
-    return value
-
-
-def to_store(view: Mapping[str, Any]) -> dict[str, Any]:
-    """材料视图 → 记录库（目录 + 按编号读的记录，共享正文还原进记录），给 read_material 用。"""
-    shared = view.get("shared_contents") or {}
-    records = []
+def _input_uris(dossier: Mapping[str, Any], view: Mapping[str, Any]) -> list[str]:
+    """本应阶段开放的 MCP 资源 URI：按 input_view 保留下来的记录与字段拼模板 URI（防污染）。"""
+    rows = {r["id"]: r for r in dossier.get("records") or []}
+    sources = {s["id"] for s in dossier.get("sources") or []}
+    uris: list[str] = []
     for rec in view.get("records") or []:
-        records.append({**{k: v for k, v in rec.items() if k != "fields"},
-                        "fields": {name: _unshare(info, shared) for name, info in (rec.get("fields") or {}).items()}})
-    for ref, value in (view.get("contents") or {}).items():
-        records.append({"id": ref, "kind": "content", "fields": {"value": {"status": "available", "value": _unshare(value, shared)}}})
-    catalog = [{"id": r["id"], "kind": r.get("kind"), "turn": r.get("turn"), "fields": sorted(r["fields"]),
-                "chars": len(json.dumps(r["fields"], ensure_ascii=False))} for r in records]
-    meta = {k: view[k] for k in ("missing_endpoints", "input_limitations", "reading_guide") if k in view}
-    return {"catalog": catalog, "records": records, **meta}
+        rid = rec["id"]
+        raw_fields = (rows.get(rid) or {}).get("fields") or {}
+        fnames = [f for f in sorted(rec.get("fields") or {}) if f in raw_fields]
+        if fnames:
+            uris.extend(f"trace://{rid}/fields/{f}" for f in fnames)
+        elif rid in rows and not raw_fields:
+            uris.append(f"trace://{rid}")
+    for ref in sorted(view.get("contents") or {}):
+        if ref in sources:
+            uris.append(f"trace://{ref}")
+    return list(dict.fromkeys(uris))
+
+
+def _full_uris(dossier: Mapping[str, Any], view: Mapping[str, Any]) -> list[str]:
+    """实际阶段开放的 MCP 资源 URI：按 material_view 选中的字段出模板 URI，全字段或无字段记录出整块 URI（不带无关重字段）。"""
+    rows = {r["id"]: r for r in dossier.get("records") or []}
+    sources = {s["id"] for s in dossier.get("sources") or []}
+    uris: list[str] = []
+    for rec in view.get("records") or []:
+        rid = rec["id"]
+        row = rows.get(rid)
+        if row is None:
+            continue
+        raw_fields = row.get("fields") or {}
+        fnames = [f for f in sorted(rec.get("fields") or {}) if f in raw_fields]
+        if not raw_fields or set(fnames) == set(raw_fields):
+            uris.append(f"trace://{rid}")
+        elif fnames:
+            uris.extend(f"trace://{rid}/fields/{f}" for f in fnames)
+    for ref in sorted(view.get("contents") or {}):
+        if ref in sources:
+            uris.append(f"trace://{ref}")
+    return list(dict.fromkeys(uris))
+
+
+def _view_meta(view: Mapping[str, Any], *, keep_guide: bool = False) -> dict[str, Any]:
+    keys = ("missing_endpoints", "input_limitations", *(["reading_guide"] if keep_guide else []))
+    return {k: view[k] for k in keys if view.get(k)}
 
 
 def analysis_result(trace: Mapping[str, Any], own: Mapping[str, Any]) -> dict[str, Any]:
-    """侦探的程序填字段：合并后的可疑环节、全部环节（含表外）、每轴的 input / full 两份材料与指的记录。"""
+    """侦探的程序填字段：合并可疑环节、全部环节（含表外）、每轴的 input_uris / full_uris 与缺口元信息（不拷正文副本）。"""
     dossier, table = trace["dossier"], trace["links"]
     by_id = {link["link_id"]: link for link in table}
     suspects = merge_suspects(trace["program_suspects"], own["existing_link_suspects"], own["new_link_suspects"], by_id)
@@ -155,27 +176,41 @@ def analysis_result(trace: Mapping[str, Any], own: Mapping[str, Any]) -> dict[st
         for link in links:
             if pointed.get(link["link_id"]):
                 link["leads"] = sorted(pointed[link["link_id"]])
-        # 侦探点名给本轴、但挂在别轴环节上的记录：本轴环节不带它，要单独放进实际材料
+        # 侦探点名给本轴、但挂在别轴环节上的记录：本轴环节不带它，单独记进 leads 并加入实际资源
         own_ids = {link["link_id"] for link in links}
         borrowed = sorted({ref for s in mine if s["link_id"] not in own_ids for ref in s["source_refs"]})
-        views.append({"axis": axis, "links": links, "leads": borrowed,
-                      "input": to_store(input_view(dossier, links)),
-                      "full": to_store(model_material(material_view(dossier, links, mine, extra_refs=borrowed)))})
+        in_v = input_view(dossier, links)
+        full_v = model_material(material_view(dossier, links, mine, extra_refs=borrowed))
+        views.append({
+            "axis": axis, "links": links, "leads": borrowed,
+            "input_uris": _input_uris(dossier, in_v),
+            "full_uris": _full_uris(dossier, full_v),
+            "input_meta": _view_meta(in_v, keep_guide=True),
+            "full_meta": _view_meta(full_v, keep_guide=False),
+        })
     failed = [c for c in trace["coverage"] if c.get("status") not in ("succeeded",)]
     return {"verdict": "partial" if failed else "complete",
             "reason": f"{len(table)} 个程序环节、{sum(s['off_map'] for s in suspects)} 个表外环节、可疑 {len(suspects)} 个",
             "suspects": suspects, "views": views, "feeds": feeds(views)}
 
 
+def _uri_pair(uri: str) -> tuple[str, str]:
+    raw = uri.removeprefix("trace://")
+    rec, sep, field = raw.rpartition("/fields/")
+    return (rec, field) if sep else (raw, "")
+
+
 def feeds(views: list[Mapping[str, Any]]) -> list[dict[str, str]]:
-    """from 轴的输出端出现在 to 轴的本应材料里：写 to 的本应时会看到 from 的实际产出，本应分发据此排先后（axis_loop §12.2.2）。"""
+    """from 轴的输出端出现在 to 轴的本应资源里：写 to 的本应时会看到 from 的实际产出，本应分发据此排先后（axis_loop §12.2.2）。"""
     outs = {v["axis"]: {(e["ref"], e.get("field", "")) for link in v["links"] for e in link.get("output") or []} for v in views}
     out = []
     for to in views:
-        seen = {(rec["id"], name) for rec in to["input"]["records"] for name in rec.get("fields") or {}}
+        seen = {_uri_pair(u) for u in to.get("input_uris") or []}
         for frm in views:
-            if frm is not to and any((ref, field) in seen or (not field and any(r == ref for r, _ in seen))
-                                     for ref, field in outs[frm["axis"]]):
+            if frm is not to and any(
+                (ref, field) in seen or (ref, "") in seen or (not field and any(r == ref for r, _ in seen))
+                for ref, field in outs[frm["axis"]]
+            ):
                 out.append({"from": frm["axis"], "to": to["axis"]})
     return out
 
@@ -184,7 +219,9 @@ def check_analysis(trace: Mapping[str, Any], own: Mapping[str, Any], read_ids: s
     """侦探交的：link_id 在环节表里；新环节类型合法、至少一端有已知记录；source_refs 不空且都读过。"""
     problems = []
     links = {link["link_id"] for link in trace["links"]}
-    known = {r["id"] for r in trace["records"]}
+    dossier = trace.get("dossier") or {}
+    known = ({r["id"] for r in (dossier.get("records") or trace.get("records") or [])}
+             | {s["id"] for s in (dossier.get("sources") or [])})
     for item in own["existing_link_suspects"]:
         if item["link_id"] not in links:
             problems.append(f"existing_link_suspects：{item['link_id']} 不在环节表里")
@@ -198,7 +235,7 @@ def check_analysis(trace: Mapping[str, Any], own: Mapping[str, Any], read_ids: s
         for item in own[name]:
             unread = [ref for ref in item["source_refs"] if ref not in read_ids]
             if not item["source_refs"] or unread:
-                problems.append(f"{name}：source_refs 不能空，且必须是此前用 read_material 读回过的编号（没读过：{unread}）")
+                problems.append(f"{name}：source_refs 不能空，且必须是此前已读过的编号（没读过：{unread}）")
     return problems
 
 

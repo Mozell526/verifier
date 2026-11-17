@@ -110,15 +110,25 @@ def resources(texts):
     table = ResourceTable()
     for ref, parts in texts.items():
         table.mount(f"trace://{ref}", "record_set", {"fields": {"v": {"status": "available", "value": parts}}}, name=ref)
-    return Visible(table, {"m": {"records": [{"id": ref} for ref in texts]}})
+    return Visible(table, [f"trace://{ref}" for ref in texts])
 
 
 def actual(axis):
-    """达到也要引原文：从侦探给这个轴的记录里摘一段（运行到实际阶段时才有）。"""
+    """达到也要引原文：从侦探给这个轴的 full_uris 所指的 ResourceTable 记录里摘一段。"""
     from impl.core.axis_loop.text import leaves
     view = next(v for v in CURRENT["table"].results["trace_analysis"]["views"] if v["axis"] == axis)
-    found = next(((r["id"], s) for r in view["full"]["records"] for s in leaves(r["fields"])
-                  if len(s.strip()) >= 4 and "\\" not in s), None)
+    res_table = CURRENT["table"].resources
+    found = None
+    for uri in view["full_uris"]:
+        block = res_table.get(uri)
+        if block is None:
+            continue
+        for s in leaves(block.body.get("fields") or {}):
+            if len(s.strip()) >= 4 and "\\" not in s:
+                found = (block.descriptor.name, s)
+                break
+        if found:
+            break
     if not found:   # 侦探没给这个轴任何记录：看不到就引不出，只能无法核
         return {**ACTUAL, "actual": [{**ACTUAL["actual"][0], "verdict": "无法核"}]}
     return {**ACTUAL, "actual": [{**ACTUAL["actual"][0], "quotes": [{"ref": found[0], "quote": found[1][:30]}]}]}
@@ -153,14 +163,23 @@ def before_submit(script, task):
 
 
 def _output_only_texts(table, axis):
-    """这个轴 full 里有、input 里没有的字段正文（够长、能认出来的那些）。"""
+    """这个轴 full_uris 里有、input_uris 里没有的字段正文（够长、能认出来的那些）。"""
+    from impl.projects.llm_probe_loop.process_axes import _uri_pair
     out = set()
     view = next(v for v in table.results["trace_analysis"]["views"] if v["axis"] == axis)
-    seen_input = {(r["id"], f) for r in view["input"]["records"] for f in r["fields"]}
-    for r in view["full"]["records"]:
-        for name, info in r["fields"].items():
+    seen_input = {_uri_pair(u) for u in view["input_uris"]}
+    for uri in view["full_uris"]:
+        part = table.resources.part(uri)
+        if part is None:
+            continue
+        block, node = part
+        rid = block.descriptor.name
+        raw_fields = block.body.get("fields") or {}
+        _, target_field = _uri_pair(uri)
+        cand = [(target_field, raw_fields.get(target_field))] if (node and target_field) else list(raw_fields.items())
+        for name, info in cand:
             value = info.get("value") if isinstance(info, dict) else None
-            if (r["id"], name) not in seen_input and isinstance(value, str) and len(value) >= 30:
+            if (rid, name) not in seen_input and (rid, "") not in seen_input and isinstance(value, str) and len(value) >= 30:
                 out.add(value[:60])
     return out
 
@@ -171,6 +190,10 @@ def test_process_axes_run_and_expected_loop_never_sees_output_side():
     assert [l["id"] for l in report.loops] == ["trace_analysis", "process_expected", "process"]
     groups = sorted({r for r in script.seen if r.startswith("process_expected[")})
     assert 1 <= len(groups) < len(PROCESS_AXES)
+    # 公共资源区段落头在 process 首条消息里只出现一次，且被多轴共用的同一记录正文只嵌一份（不再按轴复印多份）
+    first_process_msg = "\n".join(str(m.get("content")) for m in script.seen["process"][0])
+    assert ("\n" + first_process_msg).count("\n【resources】\n") == 1
+    assert first_process_msg.count('"id": "turn1/records/run"') == 1
     # 样本这一轮没调大模型、程序环节表也没列出后端调用（脚本侦探不补环节），这两个轴拿不到记录：引不出原文，只能无法核
     blind = {"tool_execution", "model_capability"}
     assert {a: report.results[a]["verdict"] for a in PROCESS_AXES} == {a: "not_evaluable" if a in blind else "sound" for a in PROCESS_AXES}
@@ -433,8 +456,8 @@ def test_detective_named_record_reaches_that_axis_material():
                                        "source_refs": ["gate"], "axes": ["model_capability"]}], "new_link_suspects": []}
     views = {v["axis"]: v for v in analysis_result(trace, own)["views"]}
     assert views["model_capability"]["links"] == []
-    assert [r["id"] for r in views["model_capability"]["full"]["records"]] == ["gate"]
-    assert views["model_capability"]["input"]["records"] == []
+    assert views["model_capability"]["full_uris"] == ["trace://gate"]
+    assert views["model_capability"]["input_uris"] == []
     assert views["model_capability"]["leads"] == ["gate"]
     assert views["planning_routing"]["links"][0]["leads"] == ["gate"] and views["planning_routing"]["leads"] == []
 
