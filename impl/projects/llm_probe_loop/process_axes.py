@@ -110,15 +110,22 @@ def _expand_ends(
 
 
 def input_view(dossier: Mapping[str, Any], links: list[Mapping[str, Any]]) -> dict[str, Any]:
-    """本应只看的材料：本轴环节的记录，摘掉每条 link 声明的输出端字段（同现方案 process_expected.input_view）。"""
+    """本应只看的材料：除静态定义（definitions）外，只保留本轴环节显式声明在输入端的字段；空记录整条删掉。"""
     rows = {r["id"]: r for r in dossier.get("records") or []}
-    drop = _expand_ends(rows, [end for link in links for end in link.get("output") or []], aliases=True)
     keep = _expand_ends(rows, [end for link in links for end in link.get("input") or []], aliases=False)
     view = copy.deepcopy(material_view(dossier, links, []))
-    emptied = set()
+    kept_records = []
     for rec in view.get("records") or []:
+        rid = rec.get("id")
+        if rec.get("kind") == "definitions":
+            kept_records.append(rec)
+            continue
         fields = rec.get("fields") or {}
-        gone = [n for n in fields if (rec.get("id"), n) in drop and (rec.get("id"), n) not in keep]
+        if not fields:
+            if (rid, "") in keep:
+                kept_records.append(rec)
+            continue
+        gone = [n for n in fields if (rid, n) not in keep]
         if gone:
             gone_set = set(gone)
             for name, info in list(fields.items()):
@@ -127,9 +134,9 @@ def input_view(dossier: Mapping[str, Any], links: list[Mapping[str, Any]]) -> di
                     fields[name] = dict(fields[target])
             for name in gone:
                 fields.pop(name)
-        if gone and not fields:
-            emptied.add(rec.get("id"))
-    view["records"] = [r for r in view.get("records") or [] if r.get("id") not in emptied]
+        if fields:
+            kept_records.append(rec)
+    view["records"] = kept_records
     view["missing_endpoints"] = [m for m in view.get("missing_endpoints", []) if m.get("side") != "output"]
     view["reading_guide"] = "本应阶段只给输入端：记录里只有本轴读到的输入字段，输出端（返回、报错、模型产出、交付）没有给。"
     # 只留输入端记录里还引用到的共享正文与独立正文（输出端的正文不带过来）

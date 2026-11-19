@@ -138,12 +138,6 @@ def material_view(dossier: Mapping[str, Any], links: list[Mapping[str, Any]],
         fields.setdefault(rec, set()).add(field)
     for ref in _supporting_definitions(rows, links):
         fields.setdefault(ref, set()).add("")
-    # Planning and knowledge judge against rules the model actually received that turn:
-    # collection-time definitions alone can never be confirmed as this run's version.
-    turns = {(l.get("turn") or "").replace("turn", "t", 1) for l in links if l["link_type"] in {"planning_routing", "knowledge_data"}}
-    for row in rows.values():
-        if turns and row.get("kind") == "model_calls" and (row.get("turn") or "").replace("turn", "t", 1) in turns:
-            fields.setdefault(row["id"], set()).add("exact_request")
     details = {"tool_description", "metrics", "start_time", "end_time", "duration_ms", "error", "status", "status_code", "status_message"}
     for ref in list(fields):
         row = rows.get(ref)

@@ -922,3 +922,110 @@ def test_input_view_strips_same_ref_output_aliases_and_preserves_kept_alias_body
     assert set(rec_fields) == {"input", "result"}
     assert "value" in rec_fields["result"] and "same_as" not in rec_fields["result"]
 
+
+def test_project_requirements_and_user_turns_keep_multi_turn_history_despite_mock_message():
+    """Bug1: 有 mock_message 时仍从 request 拆出多轮历史；单条 trace 回放多轮时 user_turns 也不被单句 transcript 短路。"""
+    from types import SimpleNamespace
+    from impl.projects.llm_probe_loop.business_trace.expectation_material import project_requirements
+    from impl.projects.llm_probe_loop.eval_axes.requirements import user_turns
+
+    msgs = [
+        {"role": "user", "content": "查伏云平名下保单的累计已交保费"},
+        {"role": "assistant", "content": "未查到伏云平"},
+        {"role": "user", "content": "名字说错了，是余昕雅，问题不变。"},
+    ]
+    trace = SimpleNamespace(
+        turn_records=[{"mock_message": "名字说错了，是余昕雅，问题不变。", "request": {"body": {"messages": msgs}}, "project_fields": {}}],
+        normalized_request={"body": {"messages": msgs}},
+        conversation_transcript=[{"role": "user", "query": "名字说错了，是余昕雅，问题不变。"}],
+    )
+    req = project_requirements(trace)
+    sides = [(s["side"], s["value"]) for s in req["sources"]]
+    assert ("history", {"role": "user", "content": "查伏云平名下保单的累计已交保费"}) in sides
+    assert ("history", {"role": "assistant", "content": "未查到伏云平"}) in sides
+    assert ("want", "名字说错了，是余昕雅，问题不变。") in sides
+    assert user_turns(trace) == ["查伏云平名下保单的累计已交保费", "名字说错了，是余昕雅，问题不变。"]
+
+    # 在线多轮 stateful session：transcript 有两轮，最新 request 只有本轮一句时，仍保留 transcript 的两轮
+    live_trace = SimpleNamespace(
+        turn_records=[{"request": {"body": {"messages": [{"role": "user", "content": "追问一句"}]}}}],
+        normalized_request={"body": {"messages": [{"role": "user", "content": "第一问"}]}},
+        conversation_transcript=[{"role": "user", "query": "第一问"}, {"role": "user", "query": "追问一句"}],
+    )
+    assert user_turns(live_trace) == ["第一问", "追问一句"]
+
+
+def test_materials_does_not_inject_same_turn_model_exact_request():
+    """Bug2: planning_routing / knowledge_data 不再硬塞同轮未引用的 model_calls.exact_request。"""
+    from impl.projects.llm_probe_loop.business_trace.materials import material_view
+
+    dossier = {
+        "sources": [],
+        "contents": {},
+        "records": [
+            {"id": "trace", "kind": "runs", "turn": "turn1", "fields": {"input": {"status": "available", "value": "问题"}}},
+            {"id": "llm/1", "kind": "model_calls", "turn": "turn1",
+             "fields": {"exact_request": {"status": "available", "value": {"messages": ["LEAK"]}}}},
+        ],
+    }
+    link = {"link_id": "planning_routing:path:turn1", "link_type": "planning_routing", "turn": "turn1",
+            "input": [{"ref": "trace", "field": "input"}], "output": []}
+    view = material_view(dossier, [link], [])
+    assert [r["id"] for r in view["records"]] == ["trace"]
+
+
+def test_input_view_whitelists_input_fields_and_definitions_dropping_tool_shells():
+    """Bug3: input_view 除 definitions 外只留 input 声明的字段；纯输出端工具调用整条剔除，输入输出共用工具调用不漏执行态字段。"""
+    from impl.projects.llm_probe_loop.business_trace.materials import material_view
+    from impl.projects.llm_probe_loop.process_axes import input_view
+
+    dossier = {
+        "sources": [],
+        "contents": {},
+        "records": [
+            {"id": "trace", "kind": "runs", "turn": "turn1", "fields": {"input": {"status": "available", "value": "查保单"}}},
+            {
+                "id": "obs/13",
+                "kind": "tool_calls",
+                "name": "policy_detail",
+                "turn": "turn1",
+                "fields": {
+                    "arguments": {"status": "available", "value": {"policy_no": "1"}},
+                    "result": {"status": "available", "value": {"ok": True}},
+                    "start_time": {"status": "available", "value": "2026-11-15T16:25:41Z"},
+                    "end_time": {"status": "available", "value": "2026-11-15T16:25:46Z"},
+                    "status_message": {"status": "available", "value": "OK"},
+                },
+            },
+            {
+                "id": "def/1",
+                "kind": "definitions",
+                "name": "policy_detail",
+                "definition_type": "tool",
+                "turn": "turn1",
+                "fields": {"description": {"status": "available", "value": "查保单详情"}},
+            },
+        ],
+    }
+    # 1) planning_routing: obs/13 只在输出端，input_view 整条删掉 obs/13，保留 trace 与 definitions
+    pr_link = {"link_id": "planning_routing:path:turn1", "link_type": "planning_routing", "turn": "turn1",
+               "input": [{"ref": "trace", "field": "input"}],
+               "output": [{"ref": "obs/13", "field": "arguments"}, {"ref": "obs/13", "field": "result"}]}
+    pr_in = input_view(dossier, [pr_link])
+    pr_ids = {r["id"] for r in pr_in["records"]}
+    assert pr_ids == {"trace", "def/1"}
+
+    # 2) tool_execution: obs/13 的 arguments 在输入端、result 在输出端；本应只留 arguments，实际保留全部执行态字段
+    te_link = {"link_id": "tool_execution:obs/13", "link_type": "tool_execution", "turn": "turn1",
+               "input": [{"ref": "obs/13", "field": "arguments"}],
+               "output": [{"ref": "obs/13", "field": "result"}]}
+    te_in = input_view(dossier, [te_link])
+    te_in_map = {r["id"]: r["fields"] for r in te_in["records"]}
+    assert set(te_in_map) == {"obs/13", "def/1"}
+    assert set(te_in_map["obs/13"]) == {"arguments"}
+
+    te_full = material_view(dossier, [te_link], [])
+    te_full_map = {r["id"]: r["fields"] for r in te_full["records"]}
+    assert {"arguments", "result", "start_time", "end_time", "status_message"} <= set(te_full_map["obs/13"])
+
+
