@@ -429,18 +429,19 @@ def test_met_needs_a_quote_that_is_in_the_record():
 
 
 def test_detective_routes_a_record_to_every_axis_it_names():
-    """侦探偏召回：点名的轴都拿到这个环节（加上环节类型本身对应的轴）。"""
+    """侦探偏召回：点名的轴都拿到这个环节的线索（加上环节类型本身对应的轴）；环节本身只归它的类型对应的轴。"""
     from impl.projects.llm_probe_loop.process_axes import axis_links, merge_suspects
 
     table = {"tool_execution:x": {"link_id": "tool_execution:x", "link_type": "tool_execution",
                                   "input": [{"ref": "r1"}], "output": [{"ref": "r1"}]}}
     suspects = merge_suspects(
         [], [{"link_id": "tool_execution:x", "why": "w", "source_refs": ["r1"], "axes": ["model_capability"]}],
-        [{"link_type": "tool_execution", "axes": ["knowledge_data"], "input_refs": ["r2"], "output_refs": ["r3"],
-          "why": "后端返回", "source_refs": ["r3"]}], table)
+        [{"link_type": "tool_execution", "axes": ["knowledge_data"], "input_refs": ["r2/fields/input"], "output_refs": ["r3/fields/output"],
+          "why": "后端返回", "source_refs": ["r3/fields/output"]}], table)
     assert suspects[0]["axes"] == ["tool_execution", "model_capability"]
     assert suspects[1]["axes"] == ["tool_execution", "knowledge_data"]
-    assert [l["link_id"] for l in axis_links("knowledge_data", [], suspects)] == [suspects[1]["link_id"]]
+    assert axis_links("knowledge_data", [], suspects) == []
+    assert [l["link_id"] for l in axis_links("tool_execution", [], suspects)] == [suspects[1]["link_id"]]
 
 
 def test_detective_named_record_reaches_that_axis_material():
@@ -761,4 +762,163 @@ def test_detective_field_refs_open_only_named_fields_and_isolate_expected_output
     assert "trace://turn1/records/observations/28/fields/output" not in by_axis["intent_understanding"]["full_uris"]
     assert "trace://turn1/records/observations/28/fields/input" in by_axis["knowledge_data"]["full_uris"]
     assert "trace://turn1/records/observations/28" not in by_axis["knowledge_data"]["full_uris"]
+
+
+def test_off_map_link_belongs_only_to_its_link_type_axis_not_named_axes():
+    """表外环节按 link_type 归轴：侦探在 context_memory 表外环节多选 knowledge_data 时，不把内层输出端带进 knowledge_data 本应阶段，只走 leads 进实际阶段。"""
+    from impl.projects.llm_probe_loop.process_axes import analysis_result
+
+    field = lambda v, ref="": {"status": "available", "value": v, **({"ref": ref} if ref else {})}
+    dossier = {
+        "sources": [{"id": "turn1", "request_and_response": {"q": "按业务流水号查保单"}}],
+        "contents": {},
+        "records": [
+            {
+                "id": "obs/14",
+                "kind": "tool_calls",
+                "turn": "turn1",
+                "name": "tool.policy_search",
+                "fields": {
+                    "arguments": field({"bizno": "B1"}, "obs/14/in"),
+                    "input": field({"bizno": "B1"}, "obs/14/in"),
+                    "result": field({"notes": "未提供 clientno"}, "obs/14/out"),
+                    "output": field({"notes": "未提供 clientno"}, "obs/14/out"),
+                },
+            },
+            {
+                "id": "obs/15",
+                "kind": "steps",
+                "turn": "turn1",
+                "name": "backend.policy.search",
+                "fields": {
+                    "input": field({"bizno": "B1"}),
+                    "output": field({"rows": [{"policy_no": "P1"}]}),
+                    "metadata": field({"trace": "t"}),
+                },
+            },
+        ],
+    }
+    links = [{
+        "link_id": "knowledge_data:turn1",
+        "link_type": "knowledge_data",
+        "turn": "turn1",
+        "input": [{"ref": "obs/14", "field": "arguments"}],
+        "output": [{"ref": "obs/14", "field": "result"}],
+        "facts": {},
+    }]
+    trace = {"dossier": dossier, "links": links, "program_suspects": [], "coverage": [{"status": "succeeded"}]}
+    own = {
+        "existing_link_suspects": [],
+        "new_link_suspects": [
+            {
+                "link_type": "knowledge_data",
+                "axes": ["knowledge_data", "tool_execution"],
+                "input_refs": ["obs/15/fields/input"],
+                "output_refs": ["obs/15/fields/output"],
+                "why": "内层后端返回",
+                "source_refs": ["obs/15/fields/output"],
+            },
+            {
+                "link_type": "context_memory",
+                "axes": ["context_memory", "knowledge_data", "tool_execution"],
+                "input_refs": ["obs/15/fields/output"],
+                "output_refs": ["obs/14/fields/output"],
+                "why": "内层返回封装为工具输出",
+                "source_refs": ["obs/15/fields/output", "obs/14/fields/output"],
+            },
+        ],
+    }
+    res = analysis_result(trace, own)
+    views = {v["axis"]: v for v in res["views"]}
+    assert [l["link_type"] for l in views["knowledge_data"]["links"]] == ["knowledge_data", "knowledge_data"]
+    assert views["tool_execution"]["links"] == []
+    # knowledge_data 本应阶段绝不出现 obs/15/output、obs/14/result、obs/14/output
+    kd_in = set(views["knowledge_data"]["input_uris"])
+    assert "trace://obs/15/fields/output" not in kd_in
+    assert "trace://obs/14/fields/result" not in kd_in
+    assert "trace://obs/14/fields/output" not in kd_in
+    # 侦探点名的线索走 leads 进实际阶段 full_uris
+    assert "obs/14/fields/output" in views["knowledge_data"]["leads"]
+    assert "trace://obs/14/fields/output" in views["knowledge_data"]["full_uris"]
+    assert "trace://obs/15/fields/output" in views["knowledge_data"]["full_uris"]
+    assert set(views["tool_execution"]["leads"]) == {"obs/14/fields/output", "obs/15/fields/output"}
+
+
+def test_check_analysis_rejects_same_endpoint_or_alias_on_both_sides():
+    """单条表外环节的 input_refs 与 output_refs 不能写同一位置或同记录同一底层 ref 的别名。"""
+    from impl.projects.llm_probe_loop.process_axes import check_analysis
+
+    trace = {
+        "links": [],
+        "dossier": {
+            "sources": [],
+            "contents": {},
+            "records": [{
+                "id": "obs/20",
+                "kind": "tool_calls",
+                "fields": {
+                    "arguments": {"status": "available", "ref": "obs/20/in", "value": {}},
+                    "result": {"status": "available", "ref": "obs/20/out", "value": {}},
+                    "output": {"status": "available", "ref": "obs/20/out", "value": {}},
+                    "metadata": {"status": "available", "ref": "obs/20/meta", "value": {}},
+                },
+            }],
+        },
+    }
+    mk = lambda ins, outs: {
+        "existing_link_suspects": [],
+        "new_link_suspects": [{
+            "link_type": "knowledge_data", "axes": ["knowledge_data"],
+            "input_refs": ins, "output_refs": outs, "why": "w", "source_refs": ["obs/20/fields/metadata"],
+        }],
+    }
+    read_all = {("obs/20", "")}
+    assert check_analysis(trace, mk(["obs/20/fields/arguments"], ["obs/20/fields/output"]), read_all) == []
+    errs_same = "\n".join(check_analysis(trace, mk(["obs/20/fields/metadata"], ["obs/20/fields/metadata"]), read_all))
+    assert "同一个位置不能既是输入端又是输出端" in errs_same
+    errs_alias = "\n".join(check_analysis(trace, mk(["obs/20/fields/result"], ["obs/20/fields/output"]), read_all))
+    assert "同一个位置不能既是输入端又是输出端" in errs_alias
+
+
+def test_input_view_strips_same_ref_output_aliases_and_preserves_kept_alias_body():
+    """同记录同底层 ref 的 result 与 output：只摘一个时另一个一并摘除；下游显式把其中一个作输入时保留正文不悬空 same_as。"""
+    from impl.projects.llm_probe_loop.process_axes import input_view
+
+    dossier = {
+        "sources": [],
+        "contents": {},
+        "records": [
+            {
+                "id": "msg/1",
+                "kind": "messages",
+                "turn": "turn1",
+                "fields": {
+                    "input": {"status": "available", "ref": "msg/1/in", "value": "问题"},
+                    "output": {"status": "available", "ref": "msg/1/out", "value": "SECRET_OUT"},
+                    "result": {"status": "available", "ref": "msg/1/out", "value": "SECRET_OUT"},
+                },
+            },
+            {
+                "id": "step/2",
+                "kind": "steps",
+                "turn": "turn1",
+                "fields": {"output": {"status": "available", "ref": "step/2/out", "value": "NEXT"}},
+            },
+        ],
+    }
+    # 1) messages 会展开整条记录字段：link 只声明摘 result 时，同底层 ref 的 output 也一起摘掉
+    l1 = {"link_id": "L1", "link_type": "tool_execution", "turn": "turn1",
+          "input": [{"ref": "msg/1", "field": "input"}], "output": [{"ref": "msg/1", "field": "result"}]}
+    v1 = input_view(dossier, [l1])
+    assert set(v1["records"][0]["fields"]) == {"input"}
+
+    # 2) 上游摘 output、同轴下游显式把 result 当输入（keep 胜出）：只留 result 且正文不丢（不留悬空 same_as）
+    l2 = {"link_id": "L2", "link_type": "tool_execution", "turn": "turn1",
+          "input": [{"ref": "msg/1", "field": "input"}], "output": [{"ref": "msg/1", "field": "output"}]}
+    l3 = {"link_id": "L3", "link_type": "tool_execution", "turn": "turn1",
+          "input": [{"ref": "msg/1", "field": "result"}], "output": [{"ref": "step/2", "field": "output"}]}
+    v2 = input_view(dossier, [l2, l3])
+    rec_fields = {r["id"]: r["fields"] for r in v2["records"]}["msg/1"]
+    assert set(rec_fields) == {"input", "result"}
+    assert "value" in rec_fields["result"] and "same_as" not in rec_fields["result"]
 

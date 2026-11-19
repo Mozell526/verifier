@@ -65,18 +65,23 @@ def merge_suspects(program: list[dict[str, Any]], existing: list[dict[str, Any]]
                     "input_refs": _clean_refs(item["input_refs"]), "output_refs": _clean_refs(item["output_refs"]), "off_map": True,
                     "named": list(item["axes"])})
     for entry in out:
-        own = PROCESS_AXES if entry["link_type"] == UNCLASSIFIED else TYPE_AXES[entry["link_type"]]
+        own = type_axes(entry["link_type"])
         named = set(entry.pop("named"))
         entry["axes"] = [a for a in PROCESS_AXES if a in own or a in named]
     return out
 
 
+def type_axes(link_type: str) -> tuple[str, ...]:
+    """环节类型对应的轴；归不了类的属于每个轴。"""
+    return PROCESS_AXES if link_type == UNCLASSIFIED else TYPE_AXES[link_type]
+
+
 def axis_links(axis: str, links: list[Mapping[str, Any]], suspects: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
-    """程序环节 + 侦探补出的本轴表外环节（同现方案 process_common._axis_links）。"""
-    types = AXIS_LINK_TYPES[axis]
-    out = [dict(link) for link in links if link["link_type"] in types]
+    """本轴的环节：程序环节与侦探补出的表外环节同一规则，按环节类型归轴（demand/process_axes.md §1.1：
+    一个事件属于几类部件就是几条环节）。侦探点名的 axes 是"用得上"，只决定判定材料，不让环节进别的轴。"""
+    out = [dict(link) for link in links if link["link_type"] in AXIS_LINK_TYPES[axis]]
     for item in suspects:
-        if item.get("off_map") and axis in item["axes"]:
+        if item.get("off_map") and axis in type_axes(item["link_type"]):
             out.append({"link_id": item["link_id"], "link_type": item["link_type"], "turn": "",
                         "input": [{"ref": rec, "field": field} for r in item["input_refs"] for rec, field in (_uri_pair(r),)],
                         "output": [{"ref": rec, "field": field} for r in item["output_refs"] for rec, field in (_uri_pair(r),)],
@@ -85,19 +90,43 @@ def axis_links(axis: str, links: list[Mapping[str, Any]], suspects: list[Mapping
     return out
 
 
+def _expand_ends(
+    rows: Mapping[str, Mapping[str, Any]], ends: list[Mapping[str, Any]], *, aliases: bool = True
+) -> set[tuple[str, str]]:
+    """端点展开到 (rid, field)：不写字段展开成该记录全部字段；aliases=True 时同记录同一底层 ref 的别名字段（如 result 与 output）一并算上。"""
+    out: set[tuple[str, str]] = set()
+    for end in ends:
+        rid, field = end["ref"], end.get("field", "")
+        row_fields = (rows.get(rid) or {}).get("fields") or {}
+        if not field:
+            out.add((rid, ""))
+            out.update((rid, name) for name in row_fields)
+            continue
+        out.add((rid, field))
+        src = (row_fields.get(field) or {}).get("ref") if aliases else None
+        if src:
+            out.update((rid, name) for name, info in row_fields.items() if info.get("ref") == src)
+    return out
+
+
 def input_view(dossier: Mapping[str, Any], links: list[Mapping[str, Any]]) -> dict[str, Any]:
     """本应只看的材料：本轴环节的记录，摘掉每条 link 声明的输出端字段（同现方案 process_expected.input_view）。"""
-    drop = {(end["ref"], end.get("field", "")) for link in links for end in link.get("output") or []}
-    keep = {(end["ref"], end.get("field", "")) for link in links for end in link.get("input") or []}
+    rows = {r["id"]: r for r in dossier.get("records") or []}
+    drop = _expand_ends(rows, [end for link in links for end in link.get("output") or []], aliases=True)
+    keep = _expand_ends(rows, [end for link in links for end in link.get("input") or []], aliases=False)
     view = copy.deepcopy(material_view(dossier, links, []))
-    # 端点不写字段（侦探补的表外环节）指整条记录：输出端整条摘掉，除非它也是本轴的输入端
-    hit = lambda ends, rid, name: (rid, name) in ends or (rid, "") in ends
     emptied = set()
     for rec in view.get("records") or []:
         fields = rec.get("fields") or {}
-        gone = [n for n in fields if hit(drop, rec.get("id"), n) and not hit(keep, rec.get("id"), n)]
-        for name in gone:
-            fields.pop(name)
+        gone = [n for n in fields if (rec.get("id"), n) in drop and (rec.get("id"), n) not in keep]
+        if gone:
+            gone_set = set(gone)
+            for name, info in list(fields.items()):
+                target = info.get("same_as") if isinstance(info, Mapping) else None
+                if name not in gone_set and target in gone_set and target in fields:
+                    fields[name] = dict(fields[target])
+            for name in gone:
+                fields.pop(name)
         if gone and not fields:
             emptied.add(rec.get("id"))
     view["records"] = [r for r in view.get("records") or [] if r.get("id") not in emptied]
@@ -221,16 +250,16 @@ def feeds(views: list[Mapping[str, Any]]) -> list[dict[str, str]]:
 
 
 def check_analysis(trace: Mapping[str, Any], own: Mapping[str, Any], read_targets: set[tuple[str, str]]) -> list[str]:
-    """侦探交的：link_id 在环节表里；新环节类型合法、至少一端有合法且已读的位置；source_refs 不空、地址存在且都读过。"""
+    """侦探交的：link_id 在环节表里；新环节类型合法、至少一端有合法且已读的位置、两端不重叠；source_refs 不空、地址存在且都读过。"""
     problems: list[str] = []
     links = {link["link_id"] for link in trace["links"]}
     dossier = trace.get("dossier") or {}
-    rec_fields: dict[str, set[str]] = {
-        r["id"]: set((r.get("fields") or {}).keys())
-        for r in (dossier.get("records") or trace.get("records") or [])
+    rows_by_id: dict[str, Mapping[str, Any]] = {
+        r["id"]: r for r in (dossier.get("records") or trace.get("records") or [])
     }
     for s in dossier.get("sources") or []:
-        rec_fields[s["id"]] = {"request_and_response"}
+        rows_by_id.setdefault(s["id"], {"id": s["id"], "fields": {"request_and_response": {}}})
+    rec_fields: dict[str, set[str]] = {rid: set((r.get("fields") or {}).keys()) for rid, r in rows_by_id.items()}
 
     def check_refs(label: str, refs: list[str], *, allow_empty: bool = False) -> None:
         if not refs:
@@ -272,6 +301,15 @@ def check_analysis(trace: Mapping[str, Any], own: Mapping[str, Any], read_target
         else:
             check_refs(f"{tag}.input_refs", item["input_refs"], allow_empty=True)
             check_refs(f"{tag}.output_refs", item["output_refs"], allow_empty=True)
+            in_ends = _expand_ends(
+                rows_by_id, [{"ref": r, "field": f} for x in _clean_refs(item["input_refs"]) for r, f in (_uri_pair(x),)]
+            )
+            both = sorted(dict.fromkeys(
+                raw for raw in _clean_refs(item["output_refs"])
+                if _expand_ends(rows_by_id, [{"ref": _uri_pair(raw)[0], "field": _uri_pair(raw)[1]}]) & in_ends
+            ))
+            if both:
+                problems.append(f"{tag}：同一个位置不能既是输入端又是输出端：{both}")
         check_refs(f"{tag}.source_refs", item["source_refs"])
     return problems
 
