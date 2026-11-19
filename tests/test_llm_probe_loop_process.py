@@ -654,3 +654,111 @@ def test_build_report_passes_only_enabled_axis_notes_to_case(monkeypatch):
     ea.build_report(None, trace, scenario_id="scn")
     assert captured["notes"] == {"expectations": "只取本轮交付要求", "blocking": "", "fulfillment": "", "main_verdict": ""}
     assert "intent_understanding" not in captured["notes"]
+
+
+def test_detective_field_refs_open_only_named_fields_and_isolate_expected_output():
+    """侦探写到字段层（记录编号/fields/字段名）：下游只开所指字段、不把整条记录的无关重字段全打开；
+    同记录既是表外环节输入字段又是输出字段时，本应阶段只保留输入字段、不漏输出字段。"""
+    from impl.core.axis_loop.view import CallView, TaskView
+    from impl.projects.llm_probe_loop.process_axes import analysis_result, check_analysis
+    from impl.projects.llm_probe_loop.eval_axes.registry import definitions as load_defs
+
+    dossier = {
+        "sources": [{"id": "turn1", "request_and_response": {"q": "查保单"}}],
+        "contents": {},
+        "records": [
+            {
+                "id": "turn1/records/observations/10",
+                "kind": "steps",
+                "turn": "turn1",
+                "name": "backend.policy.search",
+                "fields": {
+                    "input": {"status": "available", "value": {"query": "伏云平"}},
+                    "output": {"status": "available", "value": {"policies": ["P001_SECRET_OUTPUT"]}},
+                    "metadata": {"status": "available", "value": {"big_meta": "M" * 500}},
+                },
+            },
+            {
+                "id": "turn1/records/observations/28",
+                "kind": "steps",
+                "turn": "turn1",
+                "name": "rag.parent",
+                "fields": {
+                    "input": {"status": "available", "value": {"q": "条款"}},
+                    "output": {"status": "available", "value": {"docs": "BIG_PARENT_DOC_" * 200}},
+                    "metadata": {"status": "available", "value": {"trace": "x"}},
+                },
+            },
+        ],
+    }
+    links = [{
+        "link_id": "intent_understanding:turn1",
+        "link_type": "intent_understanding",
+        "turn": "turn1",
+        "input": [{"ref": "turn1", "field": "request_and_response"}],
+        "output": [{"ref": "turn1/records/observations/10", "field": "input"}],
+        "facts": {},
+    }]
+    trace = {"dossier": dossier, "links": links, "program_suspects": [], "coverage": [{"status": "succeeded"}]}
+
+    # 1) 校验：把记录头属性 name 写成 /fields/name、或只读了 input 却引 output → 明确拒绝
+    bad_own = {
+        "existing_link_suspects": [{
+            "link_id": "intent_understanding:turn1",
+            "why": "看步骤名",
+            "source_refs": ["turn1/records/observations/10/fields/name"],
+            "axes": ["intent_understanding"],
+        }],
+        "new_link_suspects": [{
+            "link_type": "tool_execution",
+            "input_refs": ["turn1/records/observations/10/fields/input"],
+            "output_refs": ["turn1/records/observations/10/fields/output"],
+            "why": "直连后端调用",
+            "source_refs": ["turn1/records/observations/28/fields/input"],
+            "axes": ["tool_execution", "knowledge_data"],
+        }],
+    }
+    errs = "\n".join(check_analysis(trace, bad_own, {("turn1/records/observations/10", "input")}))
+    assert "fields/name" in errs and "指步骤本身属性" in errs
+    assert "turn1/records/observations/10/fields/output" in errs
+    assert "turn1/records/observations/28/fields/input" in errs
+
+    # 2) 读过整条记录后，引其下任意真实字段通过校验（通过 checks.py 入口验 CallView 解析）
+    good_own = {
+        **bad_own,
+        "existing_link_suspects": [{
+            "link_id": "intent_understanding:turn1",
+            "why": "补看 rag 输入",
+            "source_refs": ["turn1/records/observations/28/fields/input"],
+            "axes": ["intent_understanding", "knowledge_data"],
+        }],
+    }
+    check_fn = load_defs().axes["trace_analysis"].code.check
+    read_call = CallView(
+        call_id="ta.c0", tool="read_material", category="", args={"name": "resources", "ids": ["obs"]}, batch=0,
+        text=json.dumps({"name": "resources", "records": [
+            {"id": "turn1/records/observations/10", "content": {}},
+            {"id": "turn1/records/observations/28", "path": "fields/input", "content": {}},
+            {"id": "turn1/records/observations/99", "error": "本次合计已到 60000 字"},
+        ]}),
+        structured=None, is_error=False,
+    )
+    tview = TaskView(task_id="trace_analysis", own=good_own, materials={"case.trace": trace}, calls=(read_call,))
+    assert check_fn(tview) == []
+
+    # 3) 合成结果：
+    # - tool_execution 本应 input_uris 只有 obs/10/fields/input，绝不含 obs/10/fields/output（同记录输出隔离）
+    # - intent_understanding / knowledge_data 实际 full_uris 只含 obs/28/fields/input，不含 3 万字的 obs/28/fields/output 和 metadata
+    out = analysis_result(trace, good_own)
+    by_axis = {v["axis"]: v for v in out["views"]}
+    assert by_axis["tool_execution"]["input_uris"] == ["trace://turn1/records/observations/10/fields/input"]
+    assert set(by_axis["tool_execution"]["full_uris"]) == {
+        "trace://turn1/records/observations/10/fields/input",
+        "trace://turn1/records/observations/10/fields/output",
+        "trace://turn1/records/observations/28/fields/input",
+    }
+    assert "trace://turn1/records/observations/28" not in by_axis["intent_understanding"]["full_uris"]
+    assert "trace://turn1/records/observations/28/fields/output" not in by_axis["intent_understanding"]["full_uris"]
+    assert "trace://turn1/records/observations/28/fields/input" in by_axis["knowledge_data"]["full_uris"]
+    assert "trace://turn1/records/observations/28" not in by_axis["knowledge_data"]["full_uris"]
+

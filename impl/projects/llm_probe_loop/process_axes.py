@@ -27,6 +27,10 @@ ANALYSIS = "result.trace_analysis"
 
 # ---- 侦探：合并可疑环节、按轴整理材料 --------------------------------------------------------
 
+def _clean_refs(items: list[str]) -> list[str]:
+    return [str(r or "").strip().removeprefix("trace://") for r in items]
+
+
 def merge_suspects(program: list[dict[str, Any]], existing: list[dict[str, Any]], discovered: list[dict[str, Any]],
                    links: Mapping[str, Mapping[str, Any]]) -> list[dict[str, Any]]:
     """程序发现与两类模型发现物化为下游环节记录（同现方案 trace_analysis.merge_suspects）。
@@ -45,19 +49,20 @@ def merge_suspects(program: list[dict[str, Any]], existing: list[dict[str, Any]]
     for item in program:
         seed(item["link_id"], "program", item["why"], [], [])
     for item in existing:
+        srefs = _clean_refs(item["source_refs"])
         entry = merged.get(item["link_id"])
         if entry is None:
-            seed(item["link_id"], "analysis", item["why"], item["source_refs"], item["axes"])
+            seed(item["link_id"], "analysis", item["why"], srefs, item["axes"])
             continue
         entry["named"] += item["axes"]
         if "analysis" not in entry["origin"]:
             entry["origin"].append("analysis")
         entry["why"].append(item["why"])
-        entry["source_refs"] = list(dict.fromkeys(entry["source_refs"] + item["source_refs"]))
+        entry["source_refs"] = list(dict.fromkeys(entry["source_refs"] + srefs))
     for item in discovered:
         out.append({"link_id": f"new:{len(out)}", "link_type": item["link_type"], "origin": ["analysis"],
-                    "why": [item["why"]], "source_refs": list(item["source_refs"]),
-                    "input_refs": list(item["input_refs"]), "output_refs": list(item["output_refs"]), "off_map": True,
+                    "why": [item["why"]], "source_refs": _clean_refs(item["source_refs"]),
+                    "input_refs": _clean_refs(item["input_refs"]), "output_refs": _clean_refs(item["output_refs"]), "off_map": True,
                     "named": list(item["axes"])})
     for entry in out:
         own = PROCESS_AXES if entry["link_type"] == UNCLASSIFIED else TYPE_AXES[entry["link_type"]]
@@ -73,8 +78,8 @@ def axis_links(axis: str, links: list[Mapping[str, Any]], suspects: list[Mapping
     for item in suspects:
         if item.get("off_map") and axis in item["axes"]:
             out.append({"link_id": item["link_id"], "link_type": item["link_type"], "turn": "",
-                        "input": [{"ref": ref, "field": ""} for ref in item["input_refs"]],
-                        "output": [{"ref": ref, "field": ""} for ref in item["output_refs"]],
+                        "input": [{"ref": rec, "field": field} for r in item["input_refs"] for rec, field in (_uri_pair(r),)],
+                        "output": [{"ref": rec, "field": field} for r in item["output_refs"] for rec, field in (_uri_pair(r),)],
                         # 侦探的怀疑理由只给页面，不进任何轴的材料（只指路，不带看法）
                         "facts": {}, "basis": "侦探补出的表外环节"})
     return out
@@ -195,9 +200,9 @@ def analysis_result(trace: Mapping[str, Any], own: Mapping[str, Any]) -> dict[st
 
 
 def _uri_pair(uri: str) -> tuple[str, str]:
-    raw = uri.removeprefix("trace://")
+    raw = str(uri or "").strip().removeprefix("trace://")
     rec, sep, field = raw.rpartition("/fields/")
-    return (rec, field) if sep else (raw, "")
+    return (rec, field) if sep and field else (raw, "")
 
 
 def feeds(views: list[Mapping[str, Any]]) -> list[dict[str, str]]:
@@ -215,27 +220,59 @@ def feeds(views: list[Mapping[str, Any]]) -> list[dict[str, str]]:
     return out
 
 
-def check_analysis(trace: Mapping[str, Any], own: Mapping[str, Any], read_ids: set[str]) -> list[str]:
-    """侦探交的：link_id 在环节表里；新环节类型合法、至少一端有已知记录；source_refs 不空且都读过。"""
-    problems = []
+def check_analysis(trace: Mapping[str, Any], own: Mapping[str, Any], read_targets: set[tuple[str, str]]) -> list[str]:
+    """侦探交的：link_id 在环节表里；新环节类型合法、至少一端有合法且已读的位置；source_refs 不空、地址存在且都读过。"""
+    problems: list[str] = []
     links = {link["link_id"] for link in trace["links"]}
     dossier = trace.get("dossier") or {}
-    known = ({r["id"] for r in (dossier.get("records") or trace.get("records") or [])}
-             | {s["id"] for s in (dossier.get("sources") or [])})
+    rec_fields: dict[str, set[str]] = {
+        r["id"]: set((r.get("fields") or {}).keys())
+        for r in (dossier.get("records") or trace.get("records") or [])
+    }
+    for s in dossier.get("sources") or []:
+        rec_fields[s["id"]] = {"request_and_response"}
+
+    def check_refs(label: str, refs: list[str], *, allow_empty: bool = False) -> None:
+        if not refs:
+            if not allow_empty:
+                problems.append(f"{label} 不能为空")
+            return
+        bad_addr: list[str] = []
+        unread: list[str] = []
+        for raw in refs:
+            rec, field = _uri_pair(raw)
+            if not rec or rec not in rec_fields:
+                bad_addr.append(f"{raw!r}（记录不存在；写记录编号，或 记录编号/fields/字段名）")
+                continue
+            if field and field not in rec_fields[rec]:
+                bad_addr.append(
+                    f"{raw!r}（记录 {rec} 的 fields 只有 {sorted(rec_fields[rec])}；"
+                    f"指步骤本身属性如 name/kind/outcome 时写记录编号 {rec!r}）"
+                )
+                continue
+            seen = ((rec, "") in read_targets or (bool(field) and (rec, field) in read_targets))
+            if not seen:
+                unread.append(raw)
+        if bad_addr:
+            problems.append(f"{label} 地址不合法：{'；'.join(bad_addr)}")
+        if unread:
+            problems.append(f"{label} 必须是已内联给出或此前用 read_material 读回过的位置（没读过：{unread}）")
+
     for item in own["existing_link_suspects"]:
         if item["link_id"] not in links:
             problems.append(f"existing_link_suspects：{item['link_id']} 不在环节表里")
-    for item in own["new_link_suspects"]:
+        check_refs(f"existing_link_suspects({item['link_id']}).source_refs", item["source_refs"])
+    for idx, item in enumerate(own["new_link_suspects"]):
+        tag = f"new_link_suspects[{idx}]"
         if item["link_type"] not in (*LINK_TYPES, UNCLASSIFIED):
-            problems.append(f"new_link_suspects：link_type {item['link_type']} 不是六类之一或 unclassified")
-        ends = item["input_refs"] + item["output_refs"]
-        if not ends or any(ref not in known for ref in ends):
-            problems.append(f"new_link_suspects：至少一端要有记录，且编号都在案卷里：{ends}")
-    for name in ("existing_link_suspects", "new_link_suspects"):
-        for item in own[name]:
-            unread = [ref for ref in item["source_refs"] if ref not in read_ids]
-            if not item["source_refs"] or unread:
-                problems.append(f"{name}：source_refs 不能空，且必须是此前已读过的编号（没读过：{unread}）")
+            problems.append(f"{tag}：link_type {item['link_type']} 不是六类之一或 unclassified")
+        ends = list(item["input_refs"]) + list(item["output_refs"])
+        if not ends:
+            problems.append(f"{tag}：input_refs 与 output_refs 至少一端不能为空")
+        else:
+            check_refs(f"{tag}.input_refs", item["input_refs"], allow_empty=True)
+            check_refs(f"{tag}.output_refs", item["output_refs"], allow_empty=True)
+        check_refs(f"{tag}.source_refs", item["source_refs"])
     return problems
 
 

@@ -975,7 +975,7 @@
       "title": "过程案卷（侦探）",
       "loop": "trace_analysis",
       "role": "analysis",
-      "instruction": "你是业务执行案卷的侦探：只指路，不评判。案卷完整保存在程序里，你拿到的是目录（每条编号的类别、轮次、大小、一行摘要）、程序从记录结构枚举的环节表（links：类型、输入端与输出端是哪些记录的哪些字段、机器事实 facts）、程序按事实已标出的可疑环节（program_suspects）和采集缺口（gaps）。\n记录由公共资源区【resources】统一提供：若只给了目录，先看完目录和环节表，判断要读哪些编号，用 read_material(name='resources', ids=[…]) 一次把要的编号取回；目录定位不到时用 search_material(name='resources', query=…) 按关键词找，再用 read_material 取回。超长结构按预览提示带 path 下钻，单段超长文本加 offset 续读。不要重复读本会话已给过的正文。\n只理解结构，不评判表现、不猜根因。特别注意函数步骤的完整输出与状态：直连后端可能没有工具 span，其中已有记录的后端调用、参数、返回就是原环节表漏列的步骤。\n交两类发现，偏召回（宁可多列一个值得下游核对的环节，不要漏；程序已标出的不必重复）：\n1. existing_link_suspects：原环节表里值得核查的步骤，每项只填 link_id、axes、why、source_refs；source_refs 写全核这个环节要看的记录：环节端点之外，这个环节实际发生的内容还记在哪些记录上（如工具调用只记了结构，参数和返回记在它的子记录或别的记录里），一并写进来；\n2. new_link_suspects：运行证据里实际发生、但原环节表漏列的步骤，填 link_type（六类之一，确实无法归类填 unclassified）、axes、input_refs、output_refs（至少一端有真实记录；没记录的一端写 []，不编造端点）、why、source_refs。\"新\"是原表漏记的已发生步骤，不是想象系统应该增加的步骤。\naxes 写哪些轴可能用得上这里的信息，多选、偏召回：一条记录常同时是几个环节的证据（例如后端返回既是工具执行的产出，也是知识与数据的数据源返回），用得上的轴都写上；本环节类型对应的轴程序会自动带上。某类环节这次根本没出现时（例如走直达工具、没调大模型），能说明实际走了哪条路的记录（网关判定、直达步骤的产出）也要分给那类环节的轴，它要据此说明这一步这次不需要。\nwhy 一句话写为什么值得核对，只写观察，不写结论。source_refs 不能为空，只能写已内联给出或此前用 read_material 读回过的编号；目录摘要、搜索片段都不算读过。没有发现的那一类写 []。",
+      "instruction": "你是业务执行案卷的侦探：只指路，不评判。案卷完整保存在程序里，你拿到的是目录（每条编号的类别、轮次、开放字段、大小、一行摘要）、程序从记录结构枚举的环节表（links：类型、输入端与输出端是哪些记录的哪些字段、机器事实 facts）、程序按事实已标出的可疑环节（program_suspects）和采集缺口（gaps）。\n记录由公共资源区【resources】统一提供：若只给了目录，先看完目录和环节表，判断要读哪些编号，用 read_material(name='resources', ids=[…]) 一次把要的编号取回；目录定位不到时用 search_material(name='resources', query=…) 按关键词找，再用 read_material 取回。超长结构按预览提示带 path 下钻，单段超长文本加 offset 续读。不要重复读本会话已给过的正文。\n只理解结构，不评判表现、不猜根因。特别注意函数步骤的完整输出与状态：直连后端可能没有工具 span，其中已有记录的后端调用、参数、返回就是原环节表漏列的步骤。\n交两类发现，偏召回（宁可多列一个值得下游核对的环节，不要漏；程序已标出的不必重复）：\n1. existing_link_suspects：原环节表里值得核查的步骤，每项只填 link_id、axes、why、source_refs；source_refs 写全核这个环节要看的位置：环节端点之外，这个环节实际发生的内容还记在哪些记录的哪些字段上（如工具调用只记了结构，参数和返回记在它的子记录或别的记录的字段里），一并写进来；\n2. new_link_suspects：运行证据里实际发生、但原环节表漏列的步骤，填 link_type（六类之一，确实无法归类填 unclassified）、axes、input_refs、output_refs（至少一端有真实证据；没记录的一端写 []，不编造端点）、why、source_refs。\"新\"是原表漏记的已发生步骤，不是想象系统应该增加的步骤。\naxes 写哪些轴可能用得上这里的信息，多选、偏召回：一条记录常同时是几个环节的证据（例如后端返回既是工具执行的产出，也是知识与数据的数据源返回），用得上的轴都写上；本环节类型对应的轴程序会自动带上。某类环节这次根本没出现时（例如走直达工具、没调大模型），能说明实际走了哪条路的记录（网关判定、直达步骤的产出）也要分给那类环节的轴，它要据此说明这一步这次不需要。\nwhy 一句话写为什么值得核对，只写观察，不写结论。input_refs、output_refs、source_refs 的层级和写法见系统规则 4：要指某一端或某个字段里的内容（请求参数、输入、返回、输出、metadata 里的状态等）时，写到那个字段这一层（记录编号/fields/字段名，与环节表 links 端点同粒度）；要指这一步本身（是哪个步骤、发生了没有，即 name、kind、outcome 等记录属性，没有对应内容字段）时，写到记录编号这一层。source_refs 不能为空；只能写已内联给出或此前用 read_material 读回过的位置，目录摘要、搜索片段都不算读过。没有发现的那一类写 []。",
       "materials": [
         "case.trace.{links, program_suspects, gaps}"
       ],
@@ -996,7 +996,8 @@
                 "source_refs": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "位置（层级与写法见系统规则 4）：记录编号/fields/字段名，或 记录编号"
                   }
                 },
                 "axes": {
@@ -1044,13 +1045,15 @@
                 "input_refs": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "输入端位置（层级与写法见系统规则 4）：记录编号/fields/字段名，或 记录编号"
                   }
                 },
                 "output_refs": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "输出端位置（层级与写法见系统规则 4）：记录编号/fields/字段名，或 记录编号"
                   }
                 },
                 "why": {
@@ -1059,7 +1062,8 @@
                 "source_refs": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "位置（层级与写法见系统规则 4）：记录编号/fields/字段名，或 记录编号"
                   }
                 },
                 "axes": {
